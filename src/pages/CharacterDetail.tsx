@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Accordion,
   AccordionContent,
@@ -51,6 +52,7 @@ interface CharacterData {
   race: string | null;
   sub_race: string | null;
   age: number | null;
+  image_url: string | null;
   created_at: string;
 }
 
@@ -161,25 +163,33 @@ export default function CharacterDetail() {
       <Card className="bg-card-gradient border-border glow-primary">
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <CardTitle className="text-3xl">{character.name}</CardTitle>
-                <Badge className={`${getTierColor(character.level)} tier-badge`}>
-                  <Sparkles className="w-3 h-3 mr-1" />
-                  Tier {character.level}
-                </Badge>
-              </div>
-              <p className="text-lg text-muted-foreground">
-                {getTierName(character.level)}
-              </p>
-              {character.profile && (
-                <p className="text-sm text-muted-foreground">
-                  Created by{' '}
-                  <span className="text-primary">
-                    {character.profile.display_name || character.profile.username}
-                  </span>
+            <div className="flex items-start gap-4">
+              <Avatar className="h-20 w-20 border-4 border-primary/30">
+                <AvatarImage src={character.image_url || undefined} alt={character.name} />
+                <AvatarFallback className="bg-primary/20 text-primary text-2xl font-bold">
+                  {character.name.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                  <CardTitle className="text-3xl">{character.name}</CardTitle>
+                  <Badge className={`${getTierColor(character.level)} tier-badge`}>
+                    <Sparkles className="w-3 h-3 mr-1" />
+                    Tier {character.level}
+                  </Badge>
+                </div>
+                <p className="text-lg text-muted-foreground">
+                  {getTierName(character.level)}
                 </p>
-              )}
+                {character.profile && (
+                  <p className="text-sm text-muted-foreground">
+                    Created by{' '}
+                    <span className="text-primary">
+                      {character.profile.display_name || character.profile.username}
+                    </span>
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-2">

@@ -17,6 +17,7 @@ interface CharacterData {
   race: string;
   sub_race: string;
   age: string;
+  image_url: string;
   user_id: string;
 }
 
@@ -62,6 +63,7 @@ export default function EditCharacter() {
       race: data.race || '',
       sub_race: data.sub_race || '',
       age: data.age?.toString() || '',
+      image_url: data.image_url || '',
     });
     setLoading(false);
   };

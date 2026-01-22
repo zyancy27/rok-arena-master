@@ -8,9 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { POWER_TIERS } from '@/lib/game-constants';
-import { ArrowLeft, Save, Sparkles } from 'lucide-react';
+import { ArrowLeft, Save, Sparkles, Camera } from 'lucide-react';
 
 interface CharacterFormData {
   name: string;
@@ -22,6 +23,7 @@ interface CharacterFormData {
   race: string;
   sub_race: string;
   age: string;
+  image_url: string;
 }
 
 interface CharacterFormProps {
@@ -33,6 +35,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   
   const [formData, setFormData] = useState<CharacterFormData>({
     name: initialData?.name || '',
@@ -44,7 +47,19 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
     race: initialData?.race || '',
     sub_race: initialData?.sub_race || '',
     age: initialData?.age || '',
+    image_url: initialData?.image_url || '',
   });
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image must be less than 5MB');
+        return;
+      }
+      setImageFile(file);
+    }
+  };
 
   const handleChange = (field: keyof CharacterFormData, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -66,6 +81,26 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
     setIsLoading(true);
 
     try {
+      let imageUrl = formData.image_url;
+
+      // Upload image if changed
+      if (imageFile) {
+        const fileExt = imageFile.name.split('.').pop();
+        const filePath = `${user.id}/${Date.now()}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('character-images')
+          .upload(filePath, imageFile);
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('character-images')
+          .getPublicUrl(filePath);
+
+        imageUrl = urlData.publicUrl;
+      }
+
       const characterData = {
         name: formData.name.trim(),
         level: formData.level,
@@ -76,6 +111,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
         race: formData.race.trim() || null,
         sub_race: formData.sub_race.trim() || null,
         age: formData.age ? parseInt(formData.age) : null,
+        image_url: imageUrl || null,
         user_id: user.id,
       };
 
@@ -128,6 +164,37 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Character Image */}
+            <div className="flex items-center gap-6">
+              <div className="relative">
+                <Avatar className="h-24 w-24 border-4 border-primary/30">
+                  <AvatarImage 
+                    src={imageFile ? URL.createObjectURL(imageFile) : (formData.image_url || undefined)} 
+                  />
+                  <AvatarFallback className="bg-primary/20 text-primary text-2xl">
+                    {formData.name?.charAt(0)?.toUpperCase() || '?'}
+                  </AvatarFallback>
+                </Avatar>
+                <label
+                  htmlFor="image-upload"
+                  className="absolute bottom-0 right-0 p-2 rounded-full bg-primary text-primary-foreground cursor-pointer hover:bg-primary/80 transition-colors"
+                >
+                  <Camera className="w-4 h-4" />
+                  <input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageChange}
+                  />
+                </label>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                <p>Upload a character portrait</p>
+                <p className="text-xs">Max 5MB, JPG/PNG recommended</p>
+              </div>
+            </div>
+
             {/* Basic Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
