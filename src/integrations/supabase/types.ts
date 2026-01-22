@@ -14,16 +14,248 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      battle_messages: {
+        Row: {
+          battle_id: string
+          channel: Database["public"]["Enums"]["message_channel"]
+          character_id: string
+          content: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          battle_id: string
+          channel?: Database["public"]["Enums"]["message_channel"]
+          character_id: string
+          content: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          battle_id?: string
+          channel?: Database["public"]["Enums"]["message_channel"]
+          character_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "battle_messages_battle_id_fkey"
+            columns: ["battle_id"]
+            isOneToOne: false
+            referencedRelation: "battles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "battle_messages_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      battle_participants: {
+        Row: {
+          battle_id: string
+          character_id: string
+          created_at: string
+          id: string
+          turn_order: number
+        }
+        Insert: {
+          battle_id: string
+          character_id: string
+          created_at?: string
+          id?: string
+          turn_order?: number
+        }
+        Update: {
+          battle_id?: string
+          character_id?: string
+          created_at?: string
+          id?: string
+          turn_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "battle_participants_battle_id_fkey"
+            columns: ["battle_id"]
+            isOneToOne: false
+            referencedRelation: "battles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "battle_participants_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      battles: {
+        Row: {
+          created_at: string
+          id: string
+          loser_id: string | null
+          status: Database["public"]["Enums"]["battle_status"]
+          updated_at: string
+          winner_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          loser_id?: string | null
+          status?: Database["public"]["Enums"]["battle_status"]
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          loser_id?: string | null
+          status?: Database["public"]["Enums"]["battle_status"]
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "battles_loser_id_fkey"
+            columns: ["loser_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "battles_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      characters: {
+        Row: {
+          abilities: string | null
+          age: number | null
+          created_at: string
+          home_planet: string | null
+          id: string
+          level: number
+          lore: string | null
+          name: string
+          powers: string | null
+          race: string | null
+          sub_race: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          abilities?: string | null
+          age?: number | null
+          created_at?: string
+          home_planet?: string | null
+          id?: string
+          level: number
+          lore?: string | null
+          name: string
+          powers?: string | null
+          race?: string | null
+          sub_race?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          abilities?: string | null
+          age?: number | null
+          created_at?: string
+          home_planet?: string | null
+          id?: string
+          level?: number
+          lore?: string | null
+          name?: string
+          powers?: string | null
+          race?: string | null
+          sub_race?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin_or_moderator: { Args: never; Returns: boolean }
+      is_battle_participant: { Args: { _battle_id: string }; Returns: boolean }
+      is_character_owner: { Args: { _character_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
+      battle_status: "pending" | "active" | "completed"
+      message_channel: "in_universe" | "out_of_universe"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +382,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+      battle_status: ["pending", "active", "completed"],
+      message_channel: ["in_universe", "out_of_universe"],
+    },
   },
 } as const
