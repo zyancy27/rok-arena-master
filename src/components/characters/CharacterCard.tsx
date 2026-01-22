@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { getTierName, getTierColor } from '@/lib/game-constants';
 import { Sparkles } from 'lucide-react';
@@ -11,6 +11,7 @@ interface CharacterCardProps {
   level: number;
   race: string | null;
   home_planet: string | null;
+  image_url?: string | null;
   username?: string;
   showOwner?: boolean;
 }
@@ -21,6 +22,7 @@ export default function CharacterCard({
   level,
   race,
   home_planet,
+  image_url,
   username,
   showOwner = false,
 }: CharacterCardProps) {
@@ -30,6 +32,7 @@ export default function CharacterCard({
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between">
             <Avatar className="h-16 w-16 border-2 border-primary/30 group-hover:border-primary/60 transition-colors">
+              <AvatarImage src={image_url || undefined} alt={name} />
               <AvatarFallback className="bg-primary/20 text-primary text-xl font-bold">
                 {name.charAt(0).toUpperCase()}
               </AvatarFallback>

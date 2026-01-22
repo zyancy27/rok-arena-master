@@ -144,6 +144,7 @@ export type Database = {
           created_at: string
           home_planet: string | null
           id: string
+          image_url: string | null
           level: number
           lore: string | null
           name: string
@@ -159,6 +160,7 @@ export type Database = {
           created_at?: string
           home_planet?: string | null
           id?: string
+          image_url?: string | null
           level: number
           lore?: string | null
           name: string
@@ -174,6 +176,7 @@ export type Database = {
           created_at?: string
           home_planet?: string | null
           id?: string
+          image_url?: string | null
           level?: number
           lore?: string | null
           name?: string
