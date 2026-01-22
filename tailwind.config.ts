@@ -57,6 +57,21 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Custom cosmic colors
+        cosmic: {
+          gold: "hsl(var(--cosmic-gold))",
+          glow: "hsl(var(--cosmic-glow))",
+          pink: "hsl(var(--nebula-pink))",
+        },
+        tier: {
+          1: "hsl(var(--tier-1))",
+          2: "hsl(var(--tier-2))",
+          3: "hsl(var(--tier-3))",
+          4: "hsl(var(--tier-4))",
+          5: "hsl(var(--tier-5))",
+          6: "hsl(var(--tier-6))",
+          7: "hsl(var(--tier-7))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -65,25 +80,35 @@ export default {
       },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
+        },
+        "pulse-glow": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.5" },
+        },
+        "float": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-10px)" },
+        },
+        "shimmer": {
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "pulse-glow": "pulse-glow 2s ease-in-out infinite",
+        "float": "float 3s ease-in-out infinite",
+        "shimmer": "shimmer 2s linear infinite",
+      },
+      backgroundImage: {
+        "cosmic-radial": "radial-gradient(ellipse at center, hsl(270 30% 15%) 0%, hsl(240 20% 4%) 70%)",
       },
     },
   },
