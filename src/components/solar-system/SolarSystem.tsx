@@ -9,7 +9,8 @@ import CameraController from './CameraController';
 import PlanetMenu from './PlanetMenu';
 import CharacterList from './CharacterList';
 import PlanetEditor, { PlanetCustomization } from './PlanetEditor';
-import SunEditor, { SunCustomization, getColorFromTemperature } from './SunEditor';
+import SunEditor, { SunCustomization, getColorFromTemperature, getSunLuminosityFromTemperature } from './SunEditor';
+import { getHabitableZone } from './Sun';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -410,23 +411,31 @@ export default function SolarSystem() {
             onClick={handleSunClick}
           />
 
-          {planets.map((planet) => (
-            <group key={planet.name}>
-              <OrbitRing radius={planet.orbitRadius} />
-              <Planet
-                name={planet.displayName}
-                orbitRadius={planet.orbitRadius}
-                planetSize={planet.planetSize}
-                orbitSpeed={planet.orbitSpeed}
-                color={planet.color}
-                characterCount={planet.characterCount}
-                onClick={(pos) => handlePlanetClick(planet, pos)}
-                isSelected={selectedPlanet?.name === planet.name}
-                hasRingsOverride={planet.hasRings}
-                moonCountOverride={planet.moonCount}
-              />
-            </group>
-          ))}
+          {planets.map((planet) => {
+            const sunLuminosity = getSunLuminosityFromTemperature(sunData.temperature);
+            const habitableZone = getHabitableZone(sunData.temperature);
+            return (
+              <group key={planet.name}>
+                <OrbitRing radius={planet.orbitRadius} />
+                <Planet
+                  name={planet.displayName}
+                  orbitRadius={planet.orbitRadius}
+                  planetSize={planet.planetSize}
+                  orbitSpeed={planet.orbitSpeed}
+                  color={planet.color}
+                  characterCount={planet.characterCount}
+                  onClick={(pos) => handlePlanetClick(planet, pos)}
+                  isSelected={selectedPlanet?.name === planet.name}
+                  hasRingsOverride={planet.hasRings}
+                  moonCountOverride={planet.moonCount}
+                  sunTemperature={sunData.temperature}
+                  sunLuminosity={sunLuminosity}
+                  habitableZoneInner={habitableZone.inner}
+                  habitableZoneOuter={habitableZone.outer}
+                />
+              </group>
+            );
+          })}
         </Suspense>
 
         <OrbitControls

@@ -54,6 +54,17 @@ export function getSunSizeFromTemperature(temp: number): number {
   return 7.0;
 }
 
+// Calculate luminosity relative to our Sun using Stefan-Boltzmann approximation
+// L ∝ R² × T⁴ (but we simplify using our size function)
+// Our Sun (5778K) = 1.0 luminosity
+export function getSunLuminosityFromTemperature(temp: number): number {
+  const size = getSunSizeFromTemperature(temp);
+  // Stefan-Boltzmann: L = 4πR²σT⁴
+  // Relative to Sun: L/L☉ = (R/R☉)² × (T/T☉)⁴
+  const tempRatio = temp / 5778;
+  return size * size * Math.pow(tempRatio, 4);
+}
+
 // Get stellar classification from temperature
 export function getStellarType(temp: number) {
   for (const star of STELLAR_TYPES) {
