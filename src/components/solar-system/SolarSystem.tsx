@@ -10,12 +10,14 @@ import PlanetMenu from './PlanetMenu';
 import CharacterList from './CharacterList';
 import PlanetEditor, { PlanetCustomization } from './PlanetEditor';
 import SunEditor, { SunCustomization, getColorFromTemperature, getSunLuminosityFromTemperature } from './SunEditor';
+import CreatePlanetDialog from './CreatePlanetDialog';
 import { getHabitableZone } from './Sun';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Globe } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 
 interface Character {
   id: string;
@@ -53,9 +55,10 @@ interface PlanetData {
   gravity: number | null;
   radius: number | null;
   orbitalDistance: number | null;
+  isUserCreated?: boolean;
 }
 
-type ViewState = 'galaxy' | 'zooming' | 'menu' | 'zooming-in' | 'characters' | 'editor' | 'sun-editor';
+type ViewState = 'galaxy' | 'zooming' | 'menu' | 'zooming-in' | 'characters' | 'editor' | 'sun-editor' | 'create-planet';
 
 interface SunData {
   name: string;
@@ -173,12 +176,21 @@ export default function SolarSystem() {
   };
 
   // Group characters by planet with physics-based orbital positioning
+  // Also include user-created planets that have no characters yet
   const planets = useMemo(() => {
     const planetMap = new Map<string, number>();
     
+    // Add planets from characters
     characters.forEach(char => {
       const planet = char.home_planet || 'Unknown';
       planetMap.set(planet, (planetMap.get(planet) || 0) + 1);
+    });
+
+    // Add user-created planets that don't have characters yet
+    Object.keys(planetCustomizations).forEach(planetName => {
+      if (!planetMap.has(planetName)) {
+        planetMap.set(planetName, 0);
+      }
     });
 
     const planetArray: PlanetData[] = [];
@@ -207,7 +219,7 @@ export default function SolarSystem() {
       const customRadius = customization?.radius;
       const planetSize = customRadius 
         ? Math.min(customRadius * 0.5, 1.5) 
-        : Math.min(0.5 + count * 0.15, 1.5);
+        : Math.min(0.5 + Math.max(count, 1) * 0.15, 1.5);
       
       planetArray.push({
         name,
@@ -223,6 +235,7 @@ export default function SolarSystem() {
         gravity: customization?.gravity ?? null,
         radius: customization?.radius ?? null,
         orbitalDistance: customization?.orbital_distance ?? null,
+        isUserCreated: !!customization,
       });
       
       defaultOrbitIndex++;
@@ -386,6 +399,40 @@ export default function SolarSystem() {
     setViewState('galaxy');
   }, []);
 
+  const handleCreatePlanet = useCallback(() => {
+    setViewState('create-planet');
+  }, []);
+
+  const handleCreatePlanetSuccess = useCallback(() => {
+    fetchCustomizations();
+    setViewState('galaxy');
+  }, []);
+
+  const handleDeletePlanet = useCallback(async () => {
+    if (!selectedPlanet || !user) return;
+    
+    const { error } = await supabase
+      .from('planet_customizations')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('planet_name', selectedPlanet.name);
+
+    if (error) {
+      toast.error('Failed to delete planet');
+      throw error;
+    }
+
+    // Update local state
+    setPlanetCustomizations(prev => {
+      const updated = { ...prev };
+      delete updated[selectedPlanet.name];
+      return updated;
+    });
+
+    toast.success(`${selectedPlanet.displayName} has been deleted`);
+    handleBackToGalaxy();
+  }, [selectedPlanet, user, handleBackToGalaxy]);
+
   const selectedCharacters = selectedPlanet
     ? characters.filter(c => (c.home_planet || 'Unknown') === selectedPlanet.name)
     : [];
@@ -403,8 +450,12 @@ export default function SolarSystem() {
 
   return (
     <div className="h-[calc(100vh-8rem)] relative">
-      {/* Create Character Button */}
-      <div className="absolute top-4 right-4 z-10">
+      {/* Action Buttons */}
+      <div className="absolute top-4 right-4 z-10 flex gap-2">
+        <Button variant="outline" onClick={handleCreatePlanet}>
+          <Globe className="w-4 h-4 mr-2" />
+          Create Planet
+        </Button>
         <Button asChild>
           <Link to="/characters/new">
             <Plus className="w-4 h-4 mr-2" />
@@ -498,7 +549,9 @@ export default function SolarSystem() {
           characterCount={selectedPlanet.characterCount}
           onViewCharacters={handleViewCharacters}
           onEditPlanet={handleEditPlanet}
+          onDeletePlanet={handleDeletePlanet}
           onBack={handleBack}
+          canDelete={selectedPlanet.isUserCreated === true}
         />
       )}
 
@@ -540,19 +593,34 @@ export default function SolarSystem() {
         />
       )}
 
+      {/* Create Planet Dialog */}
+      {viewState === 'create-planet' && (
+        <CreatePlanetDialog
+          onSuccess={handleCreatePlanetSuccess}
+          onBack={() => setViewState('galaxy')}
+          existingPlanets={planets.map(p => p.name)}
+        />
+      )}
+
       {/* Empty state */}
       {planets.length === 0 && viewState === 'galaxy' && (
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
           <div className="text-center space-y-4 pointer-events-auto">
             <p className="text-muted-foreground text-lg">
-              The galaxy is empty. Create your first character to populate it!
+              The galaxy is empty. Create your first planet or character!
             </p>
-            <Button asChild>
-              <Link to="/characters/new">
-                <Plus className="w-4 h-4 mr-2" />
-                Create Character
-              </Link>
-            </Button>
+            <div className="flex gap-2 justify-center">
+              <Button variant="outline" onClick={handleCreatePlanet}>
+                <Globe className="w-4 h-4 mr-2" />
+                Create Planet
+              </Button>
+              <Button asChild>
+                <Link to="/characters/new">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Character
+                </Link>
+              </Button>
+            </div>
           </div>
         </div>
       )}
