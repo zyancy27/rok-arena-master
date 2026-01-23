@@ -8,6 +8,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import MainLayout from "@/components/layout/MainLayout";
 
 import Landing from "@/pages/Landing";
+import ThroneRoom from "@/pages/ThroneRoom";
 import Auth from "@/pages/Auth";
 import Hub from "@/pages/Hub";
 import CreateCharacter from "@/pages/CreateCharacter";
@@ -36,6 +37,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/" element={<Landing />} />
+            <Route path="/throne-room" element={<ThroneRoom />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/rules" element={<Rules />} />
             <Route path="/terms" element={<Terms />} />

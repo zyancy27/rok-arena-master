@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
-import { Swords, BookOpen, Home, LogIn, FileText } from 'lucide-react';
+import { Swords, BookOpen, Home, LogIn, FileText, Crown } from 'lucide-react';
 
 export default function PublicNav() {
   const { user } = useAuth();
@@ -30,6 +30,16 @@ export default function PublicNav() {
             <Link to="/" className="flex items-center gap-2">
               <Home className="w-4 h-4" />
               <span className="hidden sm:inline">Home</span>
+            </Link>
+          </Button>
+          <Button 
+            variant={isActive('/throne-room') ? 'secondary' : 'ghost'} 
+            size="sm" 
+            asChild
+          >
+            <Link to="/throne-room" className="flex items-center gap-2">
+              <Crown className="w-4 h-4" />
+              <span className="hidden sm:inline">Throne Room</span>
             </Link>
           </Button>
           <Button 
