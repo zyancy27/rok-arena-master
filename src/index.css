@@ -8,8 +8,9 @@
 */
 
 @layer base {
-  :root {
-    /* Dark cosmic theme by default */
+  :root,
+  .dark {
+    /* Dark cosmic theme - always active */
     --background: 240 20% 4%;
     --foreground: 210 40% 98%;
 
@@ -59,37 +60,6 @@
     --tier-6: 45 90% 55%;
     --tier-7: 0 0% 95%;
 
-    --sidebar-background: 240 15% 6%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 270 70% 60%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 240 15% 12%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 240 20% 18%;
-    --sidebar-ring: 270 70% 60%;
-  }
-
-  /* No light mode - cosmic theme only */
-  .dark {
-    --background: 240 20% 4%;
-    --foreground: 210 40% 98%;
-    --card: 240 15% 8%;
-    --card-foreground: 210 40% 98%;
-    --popover: 240 15% 10%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 270 70% 60%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 220 50% 20%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 240 15% 15%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 180 70% 45%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 70% 50%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 240 20% 18%;
-    --input: 240 15% 12%;
-    --ring: 270 70% 60%;
     --sidebar-background: 240 15% 6%;
     --sidebar-foreground: 210 40% 98%;
     --sidebar-primary: 270 70% 60%;
