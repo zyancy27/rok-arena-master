@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Switch } from '@/components/ui/switch';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +21,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { User, Save, Camera, Trash2 } from 'lucide-react';
+import { User, Save, Camera, Trash2, EyeOff } from 'lucide-react';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -31,6 +32,7 @@ export default function Profile() {
   const [bio, setBio] = useState(profile?.bio || '');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [isPrivate, setIsPrivate] = useState(profile?.is_private || false);
 
   const handleSave = async () => {
     if (!user || !profile) return;
@@ -64,6 +66,7 @@ export default function Profile() {
           display_name: displayName.trim() || null,
           bio: bio.trim() || null,
           avatar_url: avatarUrl,
+          is_private: isPrivate,
         })
         .eq('id', user.id);
 
@@ -249,6 +252,33 @@ export default function Profile() {
               onChange={(e) => setBio(e.target.value)}
               rows={4}
             />
+          </div>
+
+          {/* Privacy Mode */}
+          <div className="p-4 rounded-lg bg-muted/50 border border-border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <EyeOff className="w-5 h-5 text-muted-foreground" />
+                <div>
+                  <Label htmlFor="private-mode" className="font-semibold cursor-pointer">
+                    Private Mode
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Hide your profile and characters from public directories
+                  </p>
+                </div>
+              </div>
+              <Switch
+                id="private-mode"
+                checked={isPrivate}
+                onCheckedChange={setIsPrivate}
+              />
+            </div>
+            {isPrivate && (
+              <p className="text-xs text-amber-500 mt-3 flex items-center gap-1">
+                ⚠️ Your profile and characters won't appear in search results or public listings
+              </p>
+            )}
           </div>
 
           {/* Account Info */}
