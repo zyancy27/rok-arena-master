@@ -1,6 +1,6 @@
-import { Suspense, useEffect, useState, useRef } from 'react';
+import { Suspense, useEffect, useState, useRef, useMemo } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Stars, PerspectiveCamera, Text, Html } from '@react-three/drei';
+import { Stars, PerspectiveCamera, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,203 @@ import { ArrowLeft, Sparkles, Users, Globe } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFriends } from '@/hooks/use-friends';
+
+// Cosmic dust particle system
+function CosmicDust({ count = 500 }: { count?: number }) {
+  const meshRef = useRef<THREE.Points>(null);
+  
+  const particles = useMemo(() => {
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+    const sizes = new Float32Array(count);
+    
+    for (let i = 0; i < count; i++) {
+      // Spread particles in a disc shape
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 15 + Math.random() * 50;
+      const height = (Math.random() - 0.5) * 20;
+      
+      positions[i * 3] = Math.cos(angle) * radius;
+      positions[i * 3 + 1] = height;
+      positions[i * 3 + 2] = Math.sin(angle) * radius;
+      
+      // Purple/pink cosmic colors
+      const colorChoice = Math.random();
+      if (colorChoice < 0.4) {
+        colors[i * 3] = 0.65; // R
+        colors[i * 3 + 1] = 0.36; // G
+        colors[i * 3 + 2] = 0.98; // B - Purple
+      } else if (colorChoice < 0.7) {
+        colors[i * 3] = 0.93;
+        colors[i * 3 + 1] = 0.28;
+        colors[i * 3 + 2] = 0.6; // Pink
+      } else {
+        colors[i * 3] = 0.4;
+        colors[i * 3 + 1] = 0.7;
+        colors[i * 3 + 2] = 1.0; // Cyan
+      }
+      
+      sizes[i] = Math.random() * 0.5 + 0.1;
+    }
+    
+    return { positions, colors, sizes };
+  }, [count]);
+
+  useFrame((state) => {
+    if (meshRef.current) {
+      meshRef.current.rotation.y += 0.0002;
+      // Gentle wave motion
+      const positions = meshRef.current.geometry.attributes.position.array as Float32Array;
+      for (let i = 0; i < count; i++) {
+        const i3 = i * 3;
+        positions[i3 + 1] += Math.sin(state.clock.elapsedTime * 0.5 + i * 0.1) * 0.002;
+      }
+      meshRef.current.geometry.attributes.position.needsUpdate = true;
+    }
+  });
+
+  return (
+    <points ref={meshRef}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          count={count}
+          array={particles.positions}
+          itemSize={3}
+        />
+        <bufferAttribute
+          attach="attributes-color"
+          count={count}
+          array={particles.colors}
+          itemSize={3}
+        />
+      </bufferGeometry>
+      <pointsMaterial
+        size={0.3}
+        vertexColors
+        transparent
+        opacity={0.6}
+        sizeAttenuation
+        blending={THREE.AdditiveBlending}
+      />
+    </points>
+  );
+}
+
+// Shooting star component
+function ShootingStar({ delay }: { delay: number }) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const trailGeometryRef = useRef<THREE.BufferGeometry>(null);
+  const [active, setActive] = useState(false);
+  const [visible, setVisible] = useState(false);
+  const startTime = useRef(0);
+  const startPos = useRef(new THREE.Vector3());
+  const direction = useRef(new THREE.Vector3());
+  
+  const resetStar = () => {
+    // Random starting position at edge of galaxy
+    const angle = Math.random() * Math.PI * 2;
+    const radius = 60 + Math.random() * 20;
+    const height = (Math.random() - 0.5) * 30 + 15;
+    
+    startPos.current.set(
+      Math.cos(angle) * radius,
+      height,
+      Math.sin(angle) * radius
+    );
+    
+    // Direction toward center with some randomness
+    direction.current.set(
+      -startPos.current.x * 0.8 + (Math.random() - 0.5) * 20,
+      -height * 0.5,
+      -startPos.current.z * 0.8 + (Math.random() - 0.5) * 20
+    ).normalize();
+  };
+
+  useFrame((state) => {
+    if (!meshRef.current) return;
+    
+    const elapsed = state.clock.elapsedTime;
+    
+    if (!active) {
+      if (elapsed > startTime.current + delay) {
+        setActive(true);
+        setVisible(true);
+        startTime.current = elapsed;
+        resetStar();
+      }
+      meshRef.current.visible = false;
+      return;
+    }
+    
+    const progress = (elapsed - startTime.current) * 2; // Speed
+    
+    if (progress > 2) {
+      // Reset for next shooting star
+      setActive(false);
+      setVisible(false);
+      startTime.current = elapsed + Math.random() * 5 + 3; // Random delay before next
+      return;
+    }
+    
+    meshRef.current.visible = true;
+    
+    // Move the star
+    const pos = startPos.current.clone().add(
+      direction.current.clone().multiplyScalar(progress * 30)
+    );
+    meshRef.current.position.copy(pos);
+    
+    // Update trail geometry
+    if (trailGeometryRef.current) {
+      const trailEnd = pos.clone().sub(direction.current.clone().multiplyScalar(3));
+      const positions = trailGeometryRef.current.attributes.position.array as Float32Array;
+      positions[0] = pos.x;
+      positions[1] = pos.y;
+      positions[2] = pos.z;
+      positions[3] = trailEnd.x;
+      positions[4] = trailEnd.y;
+      positions[5] = trailEnd.z;
+      trailGeometryRef.current.attributes.position.needsUpdate = true;
+    }
+    
+    // Fade out near end
+    const opacity = Math.max(0, 1 - progress / 2);
+    (meshRef.current.material as THREE.MeshBasicMaterial).opacity = opacity;
+  });
+
+  const trailPositions = useMemo(() => new Float32Array([0, 0, 0, 0, 0, 0]), []);
+
+  return (
+    <group>
+      <mesh ref={meshRef}>
+        <sphereGeometry args={[0.15, 8, 8]} />
+        <meshBasicMaterial color="#ffffff" transparent opacity={1} />
+      </mesh>
+      {visible && (
+        <primitive object={new THREE.Line(
+          (() => {
+            const geo = new THREE.BufferGeometry();
+            geo.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
+            return geo;
+          })(),
+          new THREE.LineBasicMaterial({ color: '#a5b4fc', transparent: true, opacity: 0.6 })
+        )} />
+      )}
+    </group>
+  );
+}
+
+// Multiple shooting stars
+function ShootingStars() {
+  return (
+    <group>
+      {[0, 2, 5, 8, 12].map((delay, i) => (
+        <ShootingStar key={i} delay={delay} />
+      ))}
+    </group>
+  );
+}
 
 interface SolarSystemNode {
   id: string;
@@ -141,16 +338,33 @@ function GalaxyScene({ systems, hoveredSystem, onHover, onSystemClick }: GalaxyS
     <>
       <ambientLight intensity={0.3} />
       <pointLight position={[0, 20, 0]} intensity={1} color="#a855f7" />
+      <pointLight position={[30, 10, 30]} intensity={0.3} color="#ec4899" />
+      <pointLight position={[-30, 10, -30]} intensity={0.3} color="#06b6d4" />
       
       <Stars radius={200} depth={100} count={8000} factor={6} saturation={0.5} fade speed={0.5} />
       
-      {/* Galaxy dust/nebula effect */}
+      {/* Cosmic dust particles */}
+      <CosmicDust count={600} />
+      
+      {/* Shooting stars */}
+      <ShootingStars />
+      
+      {/* Galaxy dust/nebula rings */}
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, -5, 0]}>
         <ringGeometry args={[10, 60, 64]} />
         <meshBasicMaterial
           color="#7c3aed"
           transparent
           opacity={0.05}
+          side={THREE.DoubleSide}
+        />
+      </mesh>
+      <mesh rotation={[Math.PI / 2.2, 0.3, 0]} position={[0, 2, 0]}>
+        <ringGeometry args={[20, 55, 64]} />
+        <meshBasicMaterial
+          color="#ec4899"
+          transparent
+          opacity={0.03}
           side={THREE.DoubleSide}
         />
       </mesh>
@@ -168,22 +382,26 @@ function GalaxyScene({ systems, hoveredSystem, onHover, onSystemClick }: GalaxyS
         
         {/* Connection lines between friends */}
         {systems.length > 1 && systems.filter(s => s.isOwn).map(ownSystem => (
-          systems.filter(s => !s.isOwn).map(friendSystem => (
-            <line key={`${ownSystem.id}-${friendSystem.id}`}>
-              <bufferGeometry>
-                <bufferAttribute
-                  attach="attributes-position"
-                  count={2}
-                  array={new Float32Array([
-                    ownSystem.position.x, ownSystem.position.y, ownSystem.position.z,
-                    friendSystem.position.x, friendSystem.position.y, friendSystem.position.z,
-                  ])}
-                  itemSize={3}
-                />
-              </bufferGeometry>
-              <lineBasicMaterial color="#a855f7" transparent opacity={0.15} />
-            </line>
-          ))
+          systems.filter(s => !s.isOwn).map(friendSystem => {
+            const lineGeometry = new THREE.BufferGeometry();
+            lineGeometry.setAttribute('position', new THREE.BufferAttribute(
+              new Float32Array([
+                ownSystem.position.x, ownSystem.position.y, ownSystem.position.z,
+                friendSystem.position.x, friendSystem.position.y, friendSystem.position.z,
+              ]), 3
+            ));
+            const lineMaterial = new THREE.LineBasicMaterial({ 
+              color: '#a855f7', 
+              transparent: true, 
+              opacity: 0.15 
+            });
+            return (
+              <primitive 
+                key={`${ownSystem.id}-${friendSystem.id}`}
+                object={new THREE.Line(lineGeometry, lineMaterial)}
+              />
+            );
+          })
         ))}
       </group>
     </>
