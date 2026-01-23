@@ -21,6 +21,7 @@ import Rules from "@/pages/Rules";
 import Profile from "@/pages/Profile";
 import Admin from "@/pages/Admin";
 import Terms from "@/pages/Terms";
+import Races from "@/pages/Races";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ const App = () => (
               <Route path="/battles/practice" element={<MockBattle />} />
               <Route path="/battles/:id" element={<BattleView />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/races" element={<Races />} />
               <Route path="/admin" element={<ProtectedRoute requireModerator><Admin /></ProtectedRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />

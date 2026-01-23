@@ -164,6 +164,7 @@ export type Database = {
           personality: string | null
           powers: string | null
           race: string | null
+          race_id: string | null
           stat_durability: number | null
           stat_intelligence: number | null
           stat_luck: number | null
@@ -190,6 +191,7 @@ export type Database = {
           personality?: string | null
           powers?: string | null
           race?: string | null
+          race_id?: string | null
           stat_durability?: number | null
           stat_intelligence?: number | null
           stat_luck?: number | null
@@ -216,6 +218,7 @@ export type Database = {
           personality?: string | null
           powers?: string | null
           race?: string | null
+          race_id?: string | null
           stat_durability?: number | null
           stat_intelligence?: number | null
           stat_luck?: number | null
@@ -228,7 +231,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "characters_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       planet_customizations: {
         Row: {
@@ -305,6 +316,51 @@ export type Database = {
           id?: string
           updated_at?: string
           username?: string
+        }
+        Relationships: []
+      }
+      races: {
+        Row: {
+          average_lifespan: string | null
+          created_at: string
+          cultural_traits: string | null
+          description: string | null
+          home_planet: string | null
+          id: string
+          image_url: string | null
+          name: string
+          typical_abilities: string | null
+          typical_physiology: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          average_lifespan?: string | null
+          created_at?: string
+          cultural_traits?: string | null
+          description?: string | null
+          home_planet?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          typical_abilities?: string | null
+          typical_physiology?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          average_lifespan?: string | null
+          created_at?: string
+          cultural_traits?: string | null
+          description?: string | null
+          home_planet?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          typical_abilities?: string | null
+          typical_physiology?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

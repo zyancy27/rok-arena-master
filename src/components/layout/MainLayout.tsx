@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import OwnershipNotice from '@/components/legal/OwnershipNotice';
-import { Swords, Users, BookOpen, Shield, LogOut, User, Home } from 'lucide-react';
+import { Swords, Users, BookOpen, Shield, LogOut, User, Home, Dna } from 'lucide-react';
 
 export default function MainLayout() {
   const { user, profile, signOut, isAdmin, isModerator } = useAuth();
@@ -46,6 +46,12 @@ export default function MainLayout() {
               <Link to="/characters" className="flex items-center gap-2">
                 <Users className="w-4 h-4" />
                 <span className="hidden sm:inline">Characters</span>
+              </Link>
+            </Button>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/races" className="flex items-center gap-2">
+                <Dna className="w-4 h-4" />
+                <span className="hidden sm:inline">Races</span>
               </Link>
             </Button>
             <Button variant="ghost" size="sm" asChild>
