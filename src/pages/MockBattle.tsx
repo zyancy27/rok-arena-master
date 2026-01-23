@@ -135,7 +135,91 @@ const ICONIC_OPPONENTS = [
   },
 ];
 
-const AI_OPPONENTS = [...ORIGINAL_OPPONENTS, ...ICONIC_OPPONENTS];
+// Anime & Manga character AI opponents
+const ANIME_OPPONENTS = [
+  {
+    id: 'goku',
+    name: 'Son Goku',
+    level: 6,
+    personality: 'Pure-hearted Saiyan warrior who lives for the thrill of battle. Cheerful, naive about non-combat things. Always seeking stronger opponents. "Kamehameha!"',
+    powers: 'Saiyan Might - Super Saiyan transformations, Ki manipulation, Instant Transmission, Kamehameha, Ultra Instinct',
+    category: 'anime',
+  },
+  {
+    id: 'naruto',
+    name: 'Naruto Uzumaki',
+    level: 5,
+    personality: 'Hyperactive ninja who never gives up. Says "Believe it!" and "Dattebayo!" Wants to be acknowledged. Will talk-no-jutsu you into friendship.',
+    powers: 'Nine-Tails Jinchuriki - Massive chakra reserves, Shadow Clone Jutsu, Rasengan, Sage Mode, Six Paths power',
+    category: 'anime',
+  },
+  {
+    id: 'ichigo',
+    name: 'Ichigo Kurosaki',
+    level: 5,
+    personality: 'Orange-haired Soul Reaper with a scowl. Protective of friends, reluctant hero. Sarcastic but has a strong moral code.',
+    powers: 'Shinigami Powers - Zangetsu sword, Bankai transformation, Hollow powers, Quincy abilities, Getsuga Tensho',
+    category: 'anime',
+  },
+  {
+    id: 'luffy',
+    name: 'Monkey D. Luffy',
+    level: 5,
+    personality: 'Rubber pirate captain who will be King of the Pirates! Simple-minded, loves meat, fiercely loyal to crew. Gear transformations mid-fight.',
+    powers: 'Gum-Gum Fruit - Rubber body, Gear Second/Third/Fourth/Fifth, Haki mastery, Nika awakening',
+    category: 'anime',
+  },
+  {
+    id: 'saitama',
+    name: 'Saitama',
+    level: 7,
+    personality: 'Bored hero who defeats everything in one punch. Deadpan, obsessed with supermarket sales. Existential crisis about being too strong.',
+    powers: 'Limitless Strength - One punch knockout, immeasurable speed, invulnerability, Serious Series techniques',
+    category: 'anime',
+  },
+  {
+    id: 'vegeta',
+    name: 'Vegeta',
+    level: 6,
+    personality: 'Prince of all Saiyans! Arrogant, prideful warrior with a rivalry complex. Has grown from villain to anti-hero. "Its over 9000!"',
+    powers: 'Saiyan Pride - Super Saiyan forms, Final Flash, Big Bang Attack, Ultra Ego, intense training discipline',
+    category: 'anime',
+  },
+  {
+    id: 'zoro',
+    name: 'Roronoa Zoro',
+    level: 4,
+    personality: 'Three-sword style master who gets lost constantly. Stoic, loves sake and naps. Dreams of being worlds greatest swordsman.',
+    powers: 'Santoryu - Three Sword Style, Haki mastery, Asura technique, superhuman endurance and strength',
+    category: 'anime',
+  },
+  {
+    id: 'gojo',
+    name: 'Gojo Satoru',
+    level: 6,
+    personality: 'Blindfolded sorcerer whos the strongest. Playful and arrogant, loves teasing people. Actually cares deeply but hides it behind jokes.',
+    powers: 'Infinity & Six Eyes - Limitless cursed technique, Infinity barrier, Domain Expansion: Unlimited Void, Hollow Purple',
+    category: 'anime',
+  },
+  {
+    id: 'levi',
+    name: 'Levi Ackerman',
+    level: 4,
+    personality: 'Humanitys strongest soldier. Short, clean-freak, blunt to the point of rudeness. Moves faster than the eye can follow.',
+    powers: 'Ackerman Bloodline - Superhuman combat ability, ODM Gear mastery, incredible speed and precision',
+    category: 'anime',
+  },
+  {
+    id: 'all-might',
+    name: 'All Might',
+    level: 5,
+    personality: 'Symbol of Peace! Always smiling, speaks in dramatic heroic fashion. "I AM HERE!" Muscle form hero who inspires hope.',
+    powers: 'One For All - Immense strength, speed, United States of Smash, Detroit Smash, Texas Smash',
+    category: 'anime',
+  },
+];
+
+const AI_OPPONENTS = [...ORIGINAL_OPPONENTS, ...ICONIC_OPPONENTS, ...ANIME_OPPONENTS];
 
 export default function MockBattle() {
   const { user } = useAuth();
@@ -216,6 +300,27 @@ export default function MockBattle() {
         return `So, ${selectedCharacter?.name} dares face DOOM?! Amusing. Doom shall grant you the honor of witnessing true power before your inevitable defeat.`;
       case 'spider-man':
         return `Hey there, ${selectedCharacter?.name}! *sticks to wall* So are we doing the whole hero vs hero misunderstanding thing, or...? Either way, let's keep it friendly, yeah?`;
+      // Anime characters
+      case 'goku':
+        return `Hey! I'm Goku! *stretches excitedly* You're ${selectedCharacter?.name}, right? I can sense you've got some real power! This is gonna be fun! Let's go all out!`;
+      case 'naruto':
+        return `I'm Naruto Uzumaki, and I'm gonna be Hokage someday! Believe it! So you're ${selectedCharacter?.name}? Let's see what you've got, dattebayo!`;
+      case 'ichigo':
+        return `*rests Zangetsu on shoulder* ${selectedCharacter?.name}, huh? I don't know what you want, but if you're looking for a fight... I won't hold back.`;
+      case 'luffy':
+        return `Shishishi! I'm Luffy! The man who'll become King of the Pirates! *cracks knuckles* You look strong, ${selectedCharacter?.name}! Let's fight!`;
+      case 'saitama':
+        return `Oh, another challenger? *scratches head* I'm Saitama, just a hero for fun. Look, ${selectedCharacter?.name}, try to make this interesting, okay?`;
+      case 'vegeta':
+        return `I am Vegeta, Prince of all Saiyans! ${selectedCharacter?.name}... your power level is... acceptable. Now witness the pride of the Saiyan race!`;
+      case 'zoro':
+        return `*draws three swords* Roronoa Zoro. I'm going to be the world's greatest swordsman. ${selectedCharacter?.name}... don't bore me.`;
+      case 'gojo':
+        return `*lifts blindfold slightly* Well well~ ${selectedCharacter?.name}! I'm Gojo Satoru, the strongest. Don't worry, I'll go easy on you... maybe~`;
+      case 'levi':
+        return `Tch. ${selectedCharacter?.name}. *spins blades* I don't have time for games. Come at me with everything you have, or don't bother.`;
+      case 'all-might':
+        return `I AM HERE! *strikes heroic pose* ${selectedCharacter?.name}! Let us clash as heroes! Show me the spirit that burns within you! PLUS ULTRA!`;
       default:
         return 'Prepare yourself, warrior.';
     }
@@ -391,6 +496,17 @@ export default function MockBattle() {
                         <SelectItem key={opponent.id} value={opponent.id}>
                           <span className="flex items-center gap-2">
                             <Swords className="w-3 h-3 text-primary" />
+                            {opponent.name} (Tier {opponent.level})
+                          </span>
+                        </SelectItem>
+                      ))}
+                      <div className="px-2 py-1 text-xs font-semibold text-muted-foreground mt-2 border-t pt-2">
+                        🌸 Anime & Manga
+                      </div>
+                      {ANIME_OPPONENTS.map((opponent) => (
+                        <SelectItem key={opponent.id} value={opponent.id}>
+                          <span className="flex items-center gap-2">
+                            <Sparkles className="w-3 h-3 text-pink-500" />
                             {opponent.name} (Tier {opponent.level})
                           </span>
                         </SelectItem>
