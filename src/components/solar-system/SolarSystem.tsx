@@ -13,6 +13,7 @@ import SunEditor, { SunCustomization, getColorFromTemperature, getSunLuminosityF
 import CreatePlanetDialog from './CreatePlanetDialog';
 import SolarSystemSelector, { SolarSystemData } from './SolarSystemSelector';
 import GalaxyView from './GalaxyView';
+import GiantCharacter, { isPlanetSizedCharacter, getCharacterGender, getCosmicColor } from './GiantCharacter';
 import { getHabitableZone } from './Sun';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -30,6 +31,8 @@ interface Character {
   user_id: string;
   username?: string;
   solar_system_id?: string | null;
+  lore?: string | null;
+  powers?: string | null;
 }
 
 interface StoredCustomization {
@@ -200,7 +203,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
     // Fetch characters that belong to this system OR have a home_planet matching a planet in this system
     let query = supabase
       .from('characters')
-      .select('id, name, level, race, home_planet, user_id, solar_system_id')
+      .select('id, name, level, race, home_planet, user_id, solar_system_id, lore, powers')
       .order('created_at', { ascending: false });
 
     // Filter by solar_system_id if set, otherwise show characters with planets in this system
@@ -349,6 +352,37 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
 
     return planetArray;
   }, [characters, planetCustomizations]);
+
+  // Identify planet-sized characters that should be rendered as giant humanoid figures
+  const giantCharacters = useMemo(() => {
+    return characters.filter(char => isPlanetSizedCharacter({
+      level: char.level,
+      lore: char.lore,
+      powers: char.powers,
+      race: char.race,
+    })).map((char, index) => {
+      // Calculate orbit - place between planet orbits or in outer region
+      const baseOrbit = planets.length > 0 
+        ? Math.max(...planets.map(p => p.orbitRadius)) + 5 + index * 3
+        : 8 + index * 3;
+      
+      // Size scales with power tier
+      const sizeMultiplier = char.level >= 6 ? 2.5 : char.level >= 5 ? 2 : 1.5;
+      const size = sizeMultiplier;
+      
+      // Orbital speed - slower for larger/more powerful beings
+      const orbitSpeed = 0.08 / Math.pow(char.level, 0.3);
+      
+      return {
+        ...char,
+        orbitRadius: baseOrbit,
+        size,
+        orbitSpeed,
+        isMale: getCharacterGender(char) === 'male',
+        color: getCosmicColor(char.level),
+      };
+    });
+  }, [characters, planets]);
 
   const handlePlanetClick = useCallback((planet: PlanetData, position: { x: number; y: number; z: number }) => {
     setSelectedPlanet(planet);
@@ -724,6 +758,22 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
               </group>
             );
           })}
+
+          {/* Render planet-sized characters as giant humanoid figures */}
+          {giantCharacters.map((giant) => (
+            <group key={`giant-${giant.id}`}>
+              <OrbitRing radius={giant.orbitRadius} color={giant.color} opacity={0.3} />
+              <GiantCharacter
+                name={giant.name}
+                orbitRadius={giant.orbitRadius}
+                orbitSpeed={giant.orbitSpeed}
+                size={giant.size}
+                color={giant.color}
+                isMale={giant.isMale}
+                level={giant.level}
+              />
+            </group>
+          ))}
         </Suspense>
 
         <OrbitControls
