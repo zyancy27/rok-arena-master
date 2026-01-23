@@ -92,3 +92,16 @@ export function getTierColor(level: number): string {
   };
   return colors[level as keyof typeof colors] || 'tier-1';
 }
+
+export function getTierSummary(level: number): string {
+  const summaries: Record<number, string> = {
+    1: 'No special abilities. Normal human limitations.',
+    2: 'Peak physical abilities, but still human. Subject to fatigue.',
+    3: 'Superhuman powers, healing, psychic abilities. Not limited by body.',
+    4: 'Godlike control over mass and energy. Exists in single dimension.',
+    5: 'Can create dimensions and rewrite reality. Cannot be killed.',
+    6: 'Logic-bending powers. Exists outside normal rules.',
+    7: 'Paradox tier. Willpower nullifies attacks. Functions as Tier 1 and 7.',
+  };
+  return summaries[level] || 'Unknown tier';
+}

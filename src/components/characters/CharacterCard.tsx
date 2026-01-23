@@ -2,8 +2,14 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { getTierName, getTierColor } from '@/lib/game-constants';
+import { getTierName, getTierColor, getTierSummary } from '@/lib/game-constants';
 import { Sparkles } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface CharacterCardProps {
   id: string;
@@ -37,10 +43,20 @@ export default function CharacterCard({
                 {name.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <Badge className={`${getTierColor(level)} tier-badge`}>
-              <Sparkles className="w-3 h-3 mr-1" />
-              Tier {level}
-            </Badge>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge className={`${getTierColor(level)} tier-badge cursor-help`}>
+                    <Sparkles className="w-3 h-3 mr-1" />
+                    Tier {level}
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="font-semibold">{getTierName(level)}</p>
+                  <p className="text-xs text-muted-foreground">{getTierSummary(level)}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </CardHeader>
         <CardContent className="space-y-2">

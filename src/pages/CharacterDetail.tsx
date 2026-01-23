@@ -26,7 +26,13 @@ import {
 import ChallengeModal from '@/components/battles/ChallengeModal';
 import CharacterStatSheet from '@/components/characters/CharacterStatSheet';
 import { toast } from 'sonner';
-import { getTierName, getTierColor } from '@/lib/game-constants';
+import { getTierName, getTierColor, getTierSummary } from '@/lib/game-constants';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { type CharacterStats } from '@/lib/character-stats';
 import {
   ArrowLeft,
@@ -196,10 +202,20 @@ export default function CharacterDetail() {
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
                   <CardTitle className="text-3xl">{character.name}</CardTitle>
-                  <Badge className={`${getTierColor(character.level)} tier-badge`}>
-                    <Sparkles className="w-3 h-3 mr-1" />
-                    Tier {character.level}
-                  </Badge>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge className={`${getTierColor(character.level)} tier-badge cursor-help`}>
+                          <Sparkles className="w-3 h-3 mr-1" />
+                          Tier {character.level}
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs">
+                        <p className="font-semibold">{getTierName(character.level)}</p>
+                        <p className="text-xs text-muted-foreground">{getTierSummary(character.level)}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
                 <p className="text-lg text-muted-foreground">
                   {getTierName(character.level)}
