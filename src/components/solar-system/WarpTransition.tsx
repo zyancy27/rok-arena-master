@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 
 interface WarpTransitionProps {
   isActive: boolean;
-  direction: 'in' | 'out'; // 'in' = zooming into system, 'out' = zooming out to galaxy
+  direction: 'in' | 'out';
   onTransitionEnd?: () => void;
 }
 
@@ -14,21 +14,21 @@ export default function WarpTransition({ isActive, direction, onTransitionEnd }:
     if (isActive) {
       setPhase('start');
       
-      // Peak of the warp effect
+      // Peak of the warp effect - slower transition
       const peakTimer = setTimeout(() => {
         setPhase('peak');
-      }, 300);
+      }, 500);
       
-      // Fade out
+      // Fade out - longer duration
       const endTimer = setTimeout(() => {
         setPhase('end');
         onTransitionEnd?.();
-      }, 600);
+      }, 1000);
       
-      // Reset
+      // Reset - give more time to fade
       const resetTimer = setTimeout(() => {
         setPhase('idle');
-      }, 1000);
+      }, 1800);
       
       return () => {
         clearTimeout(peakTimer);
@@ -42,63 +42,65 @@ export default function WarpTransition({ isActive, direction, onTransitionEnd }:
 
   return (
     <div className="fixed inset-0 z-50 pointer-events-none overflow-hidden">
-      {/* Radial warp lines */}
+      {/* Soft radial glow */}
       <div 
         className={cn(
-          "absolute inset-0 transition-all duration-300",
-          phase === 'start' && "opacity-100",
-          phase === 'peak' && "opacity-100",
+          "absolute inset-0 transition-all duration-700 ease-in-out",
+          phase === 'start' && "opacity-60",
+          phase === 'peak' && "opacity-80",
           phase === 'end' && "opacity-0"
         )}
       >
-        {/* Star streak lines */}
-        {Array.from({ length: 40 }).map((_, i) => {
-          const angle = (i / 40) * 360;
-          const delay = Math.random() * 100;
+        {/* Fewer, softer star streak lines */}
+        {Array.from({ length: 24 }).map((_, i) => {
+          const angle = (i / 24) * 360;
+          const delay = Math.random() * 150;
           return (
             <div
               key={i}
               className={cn(
-                "absolute left-1/2 top-1/2 h-[2px] origin-left transition-all",
-                direction === 'out' ? "bg-gradient-to-r from-white via-primary/50 to-transparent" : "bg-gradient-to-r from-transparent via-primary/50 to-white"
+                "absolute left-1/2 top-1/2 h-[1px] origin-left transition-all ease-out",
+                direction === 'out' 
+                  ? "bg-gradient-to-r from-white/60 via-primary/20 to-transparent" 
+                  : "bg-gradient-to-r from-transparent via-primary/20 to-white/60"
               )}
               style={{
                 transform: `rotate(${angle}deg)`,
-                width: phase === 'peak' ? '150vw' : phase === 'start' ? '20vw' : '0',
-                opacity: phase === 'end' ? 0 : 0.8,
+                width: phase === 'peak' ? '120vw' : phase === 'start' ? '10vw' : '0',
+                opacity: phase === 'end' ? 0 : 0.5,
                 transitionDelay: `${delay}ms`,
-                transitionDuration: '400ms',
+                transitionDuration: '700ms',
               }}
             />
           );
         })}
       </div>
 
-      {/* Central flash */}
+      {/* Soft central glow instead of harsh flash */}
       <div 
         className={cn(
-          "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-300",
-          "bg-gradient-radial from-white via-primary/30 to-transparent",
-          phase === 'start' && "w-4 h-4 opacity-100",
-          phase === 'peak' && "w-[300vw] h-[300vw] opacity-80",
-          phase === 'end' && "w-[400vw] h-[400vw] opacity-0"
+          "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full transition-all duration-700 ease-in-out",
+          "bg-gradient-radial from-white/40 via-primary/10 to-transparent blur-xl",
+          phase === 'start' && "w-32 h-32 opacity-60",
+          phase === 'peak' && "w-[200vw] h-[200vw] opacity-50",
+          phase === 'end' && "w-[250vw] h-[250vw] opacity-0"
         )}
       />
 
-      {/* Vignette overlay */}
+      {/* Subtle vignette overlay */}
       <div 
         className={cn(
-          "absolute inset-0 transition-opacity duration-500",
-          "bg-gradient-radial from-transparent via-transparent to-background",
+          "absolute inset-0 transition-opacity duration-1000 ease-in-out",
+          "bg-gradient-radial from-transparent via-background/20 to-background/60",
+          phase === 'peak' ? "opacity-80" : "opacity-0"
+        )}
+      />
+
+      {/* Very subtle white overlay instead of harsh flash */}
+      <div 
+        className={cn(
+          "absolute inset-0 bg-white/5 transition-opacity duration-500 ease-in-out",
           phase === 'peak' ? "opacity-100" : "opacity-0"
-        )}
-      />
-
-      {/* Flash overlay */}
-      <div 
-        className={cn(
-          "absolute inset-0 bg-white transition-opacity duration-200",
-          phase === 'peak' ? "opacity-30" : "opacity-0"
         )}
       />
     </div>
