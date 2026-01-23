@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,9 +7,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Swords, Search, User, Sparkles } from 'lucide-react';
+import { Swords, Search, User, Sparkles, Shuffle, Bot } from 'lucide-react';
 import { POWER_TIERS } from '@/lib/game-constants';
 import ChallengeModal from './ChallengeModal';
+import { toast } from 'sonner';
 
 interface Profile {
   id: string;
@@ -92,6 +94,18 @@ export default function OpponentFinder() {
     setChallengeModalOpen(true);
   };
 
+  const handleRandomOpponent = () => {
+    if (filteredCharacters.length === 0) {
+      toast.error('No opponents available');
+      return;
+    }
+    const randomIndex = Math.floor(Math.random() * filteredCharacters.length);
+    const randomChar = filteredCharacters[randomIndex];
+    setSelectedTarget(randomChar);
+    setChallengeModalOpen(true);
+    toast.success(`Random opponent: ${randomChar.name}!`);
+  };
+
   const getTierName = (level: number) => {
     const tier = POWER_TIERS.find(t => t.level === level);
     return tier?.name || `Tier ${level}`;
@@ -134,6 +148,22 @@ export default function OpponentFinder() {
 
   return (
     <div className="space-y-6">
+      {/* Action Buttons */}
+      <div className="flex flex-wrap gap-3">
+        <Button variant="outline" asChild>
+          <Link to="/battles/practice">
+            <Bot className="w-4 h-4 mr-2" />
+            Practice vs AI
+          </Link>
+        </Button>
+        {filteredCharacters.length > 0 && userCharacters.length > 0 && (
+          <Button variant="outline" onClick={handleRandomOpponent}>
+            <Shuffle className="w-4 h-4 mr-2" />
+            Random Opponent
+          </Button>
+        )}
+      </div>
+
       {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />

@@ -96,10 +96,10 @@ export default function Landing() {
             Seven Power Tiers
           </h2>
           <p className="text-muted-foreground mb-8">
-            From Awakened to Transcendent, climb the ranks of cosmic power
+            From Common Human to Logic Resorts, climb the ranks of cosmic power
           </p>
           <div className="flex flex-wrap justify-center gap-2">
-            {['Awakened', 'Adept', 'Master', 'Champion', 'Sovereign', 'Celestial', 'Transcendent'].map((tier, i) => (
+            {['Common Human', 'Enhanced Human', 'Super Human', 'Title of God', 'Title of Titan', 'Logic Bending', 'Logic Resorts'].map((tier, i) => (
               <span
                 key={tier}
                 className={`tier-badge tier-${i + 1} px-4 py-2`}

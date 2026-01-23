@@ -1,1 +1,4 @@
 project_id = "qqcvpgmdcsjxmodtbsry"
+
+[functions.mock-battle-ai]
+verify_jwt = false

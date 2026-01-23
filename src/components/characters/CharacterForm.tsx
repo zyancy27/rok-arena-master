@@ -9,9 +9,24 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { toast } from 'sonner';
 import { POWER_TIERS } from '@/lib/game-constants';
-import { ArrowLeft, Save, Sparkles, Camera } from 'lucide-react';
+import { CHARACTER_STATS, DEFAULT_STATS, type CharacterStats } from '@/lib/character-stats';
+import StatSlider from './StatSlider';
+import OwnershipNotice from '@/components/legal/OwnershipNotice';
+import { ArrowLeft, Save, Sparkles, Camera, Brain, Dumbbell, Flame, Zap, Shield, Heart, Target } from 'lucide-react';
+
+const iconMap = {
+  Brain: <Brain className="w-4 h-4" />,
+  Dumbbell: <Dumbbell className="w-4 h-4" />,
+  Flame: <Flame className="w-4 h-4" />,
+  Zap: <Zap className="w-4 h-4" />,
+  Shield: <Shield className="w-4 h-4" />,
+  Heart: <Heart className="w-4 h-4" />,
+  Target: <Target className="w-4 h-4" />,
+  Sparkles: <Sparkles className="w-4 h-4" />,
+};
 
 interface CharacterFormData {
   name: string;
@@ -27,7 +42,7 @@ interface CharacterFormData {
 }
 
 interface CharacterFormProps {
-  initialData?: CharacterFormData & { id: string };
+  initialData?: CharacterFormData & { id: string } & Partial<CharacterStats>;
   mode: 'create' | 'edit';
 }
 
@@ -49,6 +64,21 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
     age: initialData?.age || '',
     image_url: initialData?.image_url || '',
   });
+
+  const [stats, setStats] = useState<CharacterStats>({
+    stat_intelligence: initialData?.stat_intelligence ?? DEFAULT_STATS.stat_intelligence,
+    stat_strength: initialData?.stat_strength ?? DEFAULT_STATS.stat_strength,
+    stat_power: initialData?.stat_power ?? DEFAULT_STATS.stat_power,
+    stat_speed: initialData?.stat_speed ?? DEFAULT_STATS.stat_speed,
+    stat_durability: initialData?.stat_durability ?? DEFAULT_STATS.stat_durability,
+    stat_stamina: initialData?.stat_stamina ?? DEFAULT_STATS.stat_stamina,
+    stat_skill: initialData?.stat_skill ?? DEFAULT_STATS.stat_skill,
+    stat_luck: initialData?.stat_luck ?? DEFAULT_STATS.stat_luck,
+  });
+
+  const handleStatChange = (key: keyof CharacterStats, value: number) => {
+    setStats(prev => ({ ...prev, [key]: value }));
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -113,6 +143,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
         age: formData.age ? parseInt(formData.age) : null,
         image_url: imageUrl || null,
         user_id: user.id,
+        ...stats,
       };
 
       if (mode === 'create') {
@@ -307,6 +338,37 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                 rows={4}
               />
             </div>
+
+            {/* Character Stats */}
+            <Accordion type="single" collapsible defaultValue="stats">
+              <AccordionItem value="stats" className="border-border">
+                <AccordionTrigger className="hover:no-underline">
+                  <span className="flex items-center gap-2">
+                    <Target className="w-4 h-4 text-primary" />
+                    Character Stats (0-100)
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="space-y-3 pt-4">
+                  <p className="text-xs text-muted-foreground mb-4">
+                    Set your character's attributes on a scale of 0 (none) to 100 (absolute mastery).
+                  </p>
+                  {CHARACTER_STATS.map((stat) => (
+                    <StatSlider
+                      key={stat.key}
+                      name={stat.name}
+                      description={stat.description}
+                      value={stats[stat.key as keyof CharacterStats]}
+                      onChange={(v) => handleStatChange(stat.key as keyof CharacterStats, v)}
+                      icon={iconMap[stat.icon as keyof typeof iconMap]}
+                      color={stat.color}
+                    />
+                  ))}
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+
+            {/* Ownership Notice */}
+            <OwnershipNotice variant="card" />
 
             <Button type="submit" className="w-full glow-primary" disabled={isLoading}>
               <Save className="w-4 h-4 mr-2" />

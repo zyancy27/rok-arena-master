@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import OwnershipNotice from '@/components/legal/OwnershipNotice';
 import { Swords, Users, BookOpen, Shield, LogOut, User, Home } from 'lucide-react';
 
 export default function MainLayout() {
@@ -109,6 +110,16 @@ export default function MainLayout() {
       <main className="container mx-auto px-4 py-8">
         <Outlet />
       </main>
+
+      {/* Footer */}
+      <footer className="border-t border-border py-4 mt-8">
+        <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <OwnershipNotice variant="footer" />
+          <div className="text-xs text-muted-foreground">
+            © 2026 Realm of Kings. All rights reserved.
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

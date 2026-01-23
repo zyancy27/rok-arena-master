@@ -19,6 +19,14 @@ interface CharacterData {
   age: string;
   image_url: string;
   user_id: string;
+  stat_intelligence?: number;
+  stat_strength?: number;
+  stat_power?: number;
+  stat_speed?: number;
+  stat_durability?: number;
+  stat_stamina?: number;
+  stat_skill?: number;
+  stat_luck?: number;
 }
 
 export default function EditCharacter() {
@@ -64,6 +72,14 @@ export default function EditCharacter() {
       sub_race: data.sub_race || '',
       age: data.age?.toString() || '',
       image_url: data.image_url || '',
+      stat_intelligence: data.stat_intelligence ?? 50,
+      stat_strength: data.stat_strength ?? 50,
+      stat_power: data.stat_power ?? 50,
+      stat_speed: data.stat_speed ?? 50,
+      stat_durability: data.stat_durability ?? 50,
+      stat_stamina: data.stat_stamina ?? 50,
+      stat_skill: data.stat_skill ?? 50,
+      stat_luck: data.stat_luck ?? 50,
     });
     setLoading(false);
   };
