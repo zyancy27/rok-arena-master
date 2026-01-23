@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,6 +17,8 @@ import { getGravityClass, calculateGravityStatModifiers } from '@/lib/planet-phy
 import { parseTerrainFromLore, generateTerrainVisuals, getTerrainSummary } from '@/lib/planet-terrain';
 import StatSlider from './StatSlider';
 import OwnershipNotice from '@/components/legal/OwnershipNotice';
+import { useAutoSave } from '@/hooks/use-auto-save';
+import { AutoSaveIndicator } from '@/components/ui/auto-save-indicator';
 import { ArrowLeft, Save, Sparkles, Camera, Brain, Dumbbell, Flame, Zap, Shield, Heart, Target, Wand2, Smile, Lightbulb, Globe, Mountain, Thermometer } from 'lucide-react';
 
 const iconMap = {
@@ -189,6 +191,47 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Memoize data for auto-save (edit mode only)
+  const autoSaveData = useMemo(() => ({
+    formData,
+    stats,
+  }), [formData, stats]);
+
+  // Auto-save callback for edit mode
+  const handleAutoSave = useCallback(async (data: { formData: CharacterFormData; stats: CharacterStats }) => {
+    if (!initialData?.id || !user || !data.formData.name.trim()) return;
+    
+    const characterData = {
+      name: data.formData.name.trim(),
+      level: data.formData.level,
+      lore: data.formData.lore.trim() || null,
+      powers: data.formData.powers.trim() || null,
+      abilities: data.formData.abilities.trim() || null,
+      home_planet: data.formData.home_planet.trim() || null,
+      race: data.formData.race.trim() || null,
+      sub_race: data.formData.sub_race.trim() || null,
+      age: data.formData.age ? parseInt(data.formData.age) : null,
+      personality: data.formData.personality.trim() || null,
+      mentality: data.formData.mentality.trim() || null,
+      ...data.stats,
+    };
+
+    const { error } = await supabase
+      .from('characters')
+      .update(characterData)
+      .eq('id', initialData.id);
+
+    if (error) throw error;
+  }, [initialData?.id, user]);
+
+  // Auto-save hook (only enabled in edit mode)
+  const { isSaving: autoSaving, lastSaved, canUndo, undo } = useAutoSave({
+    data: autoSaveData,
+    onSave: handleAutoSave,
+    debounceMs: 2000,
+    enabled: mode === 'edit' && !!initialData?.id && !!formData.name.trim(),
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -342,14 +385,26 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
 
       <Card className="bg-card-gradient border-border">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-primary" />
-            {mode === 'create' ? 'Create New Character' : 'Edit Character'}
-          </CardTitle>
-          <CardDescription>
-            Define your character's identity and powers according to R.O.K. rules.
-            Remember: one base power only!
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Sparkles className="w-6 h-6 text-primary" />
+                {mode === 'create' ? 'Create New Character' : 'Edit Character'}
+              </CardTitle>
+              <CardDescription>
+                Define your character's identity and powers according to R.O.K. rules.
+                Remember: one base power only!
+              </CardDescription>
+            </div>
+            {mode === 'edit' && (
+              <AutoSaveIndicator
+                isSaving={autoSaving}
+                lastSaved={lastSaved}
+                canUndo={canUndo}
+                onUndo={undo}
+              />
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useAutoSave } from '@/hooks/use-auto-save';
+import { AutoSaveIndicator } from '@/components/ui/auto-save-indicator';
 
 export interface SunCustomization {
   name: string;
@@ -94,15 +96,26 @@ export default function SunEditor({ sun, onSave, onBack }: SunEditorProps) {
   const sunSize = getSunSizeFromTemperature(temperature);
   const color = getColorFromTemperature(temperature);
 
+  // Memoize data for auto-save
+  const currentData = useMemo<SunCustomization>(() => ({
+    name: name.trim() || 'Sol',
+    description,
+    color,
+    temperature,
+  }), [name, description, color, temperature]);
+
+  // Auto-save hook
+  const { isSaving: autoSaving, lastSaved, canUndo, undo, saveNow } = useAutoSave({
+    data: currentData,
+    onSave,
+    debounceMs: 1500,
+    enabled: true,
+  });
+
   const handleSave = async () => {
     setSaving(true);
     try {
-      await onSave({
-        name: name.trim() || 'Sol',
-        description,
-        color,
-        temperature,
-      });
+      await saveNow();
       toast.success('Sun customization saved!');
       onBack();
     } catch (error) {
@@ -126,13 +139,23 @@ export default function SunEditor({ sun, onSave, onBack }: SunEditorProps) {
               <ArrowLeft className="w-4 h-4 mr-1" />
               Back
             </Button>
-            <CardTitle className="text-2xl flex items-center gap-2">
-              <Sun className="w-6 h-6 text-cosmic-gold" />
-              Customize Your Star
-            </CardTitle>
-            <CardDescription>
-              Adjust stellar properties based on real astrophysics
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl flex items-center gap-2">
+                  <Sun className="w-6 h-6 text-cosmic-gold" />
+                  Customize Your Star
+                </CardTitle>
+                <CardDescription>
+                  Adjust stellar properties based on real astrophysics
+                </CardDescription>
+              </div>
+              <AutoSaveIndicator
+                isSaving={autoSaving}
+                lastSaved={lastSaved}
+                canUndo={canUndo}
+                onUndo={undo}
+              />
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Star Preview */}
