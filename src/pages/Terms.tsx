@@ -1,18 +1,12 @@
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Shield, FileText, User, Scale, Mail } from 'lucide-react';
+import PublicNav from '@/components/layout/PublicNav';
+import { Shield, FileText, User, Scale, Mail } from 'lucide-react';
 
 export default function Terms() {
   return (
-    <div className="min-h-screen bg-nebula-gradient bg-stars py-12">
-      <div className="container mx-auto px-4 max-w-4xl">
-        <Button variant="ghost" asChild className="mb-6">
-          <Link to="/">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Link>
-        </Button>
+    <div className="min-h-screen bg-nebula-gradient bg-stars">
+      <PublicNav />
+      <div className="container mx-auto px-4 py-12 max-w-4xl">
 
         <div className="space-y-8">
           <div className="text-center space-y-4">
