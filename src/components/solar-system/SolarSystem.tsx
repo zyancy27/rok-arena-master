@@ -9,6 +9,7 @@ import CameraController from './CameraController';
 import PlanetMenu from './PlanetMenu';
 import CharacterList from './CharacterList';
 import PlanetEditor, { PlanetCustomization } from './PlanetEditor';
+import SunEditor, { SunCustomization, getColorFromTemperature } from './SunEditor';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -47,7 +48,14 @@ interface PlanetData {
   moonCount: number | null;
 }
 
-type ViewState = 'galaxy' | 'zooming' | 'menu' | 'zooming-in' | 'characters' | 'editor';
+type ViewState = 'galaxy' | 'zooming' | 'menu' | 'zooming-in' | 'characters' | 'editor' | 'sun-editor';
+
+interface SunData {
+  name: string;
+  description: string;
+  color: string;
+  temperature: number;
+}
 
 // Default camera positions
 const GALAXY_CAMERA_POSITION = new THREE.Vector3(0, 15, 20);
@@ -73,6 +81,12 @@ export default function SolarSystem() {
   const [viewState, setViewState] = useState<ViewState>('galaxy');
   const [selectedPlanet, setSelectedPlanet] = useState<PlanetData | null>(null);
   const [planetCustomizations, setPlanetCustomizations] = useState<Record<string, StoredCustomization>>({});
+  const [sunData, setSunData] = useState<SunData>({
+    name: 'Sol',
+    description: '',
+    color: '#FDB813',
+    temperature: 5778,
+  });
   
   // Camera animation state
   const [cameraTarget, setCameraTarget] = useState<THREE.Vector3 | null>(null);
@@ -83,6 +97,7 @@ export default function SolarSystem() {
   useEffect(() => {
     fetchCharacters();
     fetchCustomizations();
+    fetchSunData();
   }, [user]);
 
   const fetchCharacters = async () => {
@@ -128,6 +143,25 @@ export default function SolarSystem() {
         customMap[c.planet_name] = c;
       });
       setPlanetCustomizations(customMap);
+    }
+  };
+
+  const fetchSunData = async () => {
+    if (!user) return;
+    
+    const { data } = await supabase
+      .from('sun_customizations')
+      .select('name, description, color, temperature')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (data) {
+      setSunData({
+        name: data.name || 'Sol',
+        description: data.description || '',
+        color: data.color || '#FDB813',
+        temperature: data.temperature || 5778,
+      });
     }
   };
 
@@ -280,6 +314,35 @@ export default function SolarSystem() {
     } : null);
   };
 
+  const handleSunClick = useCallback(() => {
+    setViewState('sun-editor');
+  }, []);
+
+  const handleSaveSun = async (data: SunCustomization) => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('sun_customizations')
+      .upsert({
+        user_id: user.id,
+        name: data.name,
+        description: data.description,
+        color: data.color,
+        temperature: data.temperature,
+      }, {
+        onConflict: 'user_id',
+      });
+
+    if (error) throw error;
+
+    // Update local state
+    setSunData(data);
+  };
+
+  const handleSunEditorBack = useCallback(() => {
+    setViewState('galaxy');
+  }, []);
+
   const selectedCharacters = selectedPlanet
     ? characters.filter(c => (c.home_planet || 'Unknown') === selectedPlanet.name)
     : [];
@@ -315,7 +378,7 @@ export default function SolarSystem() {
         <p className="text-muted-foreground text-sm">
           {viewState === 'zooming' || viewState === 'zooming-in' 
             ? 'Traveling...' 
-            : 'Click a planet to explore its inhabitants'}
+            : 'Click a planet or the sun to customize'}
         </p>
       </div>
 
@@ -341,7 +404,11 @@ export default function SolarSystem() {
         <Suspense fallback={null}>
           <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
           
-          <Sun />
+          <Sun 
+            color={sunData.color}
+            temperature={sunData.temperature}
+            onClick={handleSunClick}
+          />
 
           {planets.map((planet) => (
             <group key={planet.name}>
@@ -405,6 +472,15 @@ export default function SolarSystem() {
           }}
           onSave={handleSavePlanet}
           onBack={handleBack}
+        />
+      )}
+
+      {/* Sun Editor View */}
+      {viewState === 'sun-editor' && (
+        <SunEditor
+          sun={sunData}
+          onSave={handleSaveSun}
+          onBack={handleSunEditorBack}
         />
       )}
 

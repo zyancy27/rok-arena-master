@@ -299,6 +299,39 @@ export type Database = {
         }
         Relationships: []
       }
+      sun_customizations: {
+        Row: {
+          color: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string | null
+          temperature: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string | null
+          temperature?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string | null
+          temperature?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
