@@ -39,14 +39,15 @@ interface Message {
   characterName?: string;
 }
 
-// AI opponent templates
-const AI_OPPONENTS = [
+// Original AI opponent templates
+const ORIGINAL_OPPONENTS = [
   {
     id: 'training-bot',
     name: 'Training Sentinel',
     level: 2,
     personality: 'A stoic training construct designed to help warriors hone their skills. Speaks formally and provides tactical feedback.',
     powers: 'Adaptive Combat Analysis - can analyze and counter fighting styles',
+    category: 'original',
   },
   {
     id: 'chaos-imp',
@@ -54,6 +55,7 @@ const AI_OPPONENTS = [
     level: 3,
     personality: 'A mischievous trickster who enjoys wordplay and unconventional attacks. Playful but cunning.',
     powers: 'Reality Pranks - minor reality distortions for comedic and tactical effect',
+    category: 'original',
   },
   {
     id: 'ancient-guardian',
@@ -61,8 +63,79 @@ const AI_OPPONENTS = [
     level: 4,
     personality: 'An ancient guardian who speaks in riddles and tests worthy challengers. Wise and patient.',
     powers: 'Cosmic Wisdom - manipulation of celestial energies and precognition',
+    category: 'original',
   },
 ];
+
+// Iconic comic book character AI opponents
+const ICONIC_OPPONENTS = [
+  {
+    id: 'hulk',
+    name: 'The Hulk',
+    level: 5,
+    personality: 'HULK IS STRONGEST ONE THERE IS! Speaks in third person, simple sentences. Gets angrier as fight goes on. Surprisingly protective of innocent.',
+    powers: 'Limitless Strength - grows stronger with rage, regeneration, thunderclap shockwaves, gamma radiation immunity',
+    category: 'iconic',
+  },
+  {
+    id: 'wolverine',
+    name: 'Wolverine',
+    level: 4,
+    personality: 'Gruff, sarcastic Canadian mutant. Calls everyone "bub." Has a code of honor despite his feral nature. Cigar-chomping anti-hero.',
+    powers: 'Adamantium Claws - indestructible skeleton, superhuman senses, regenerative healing factor that makes him nearly unkillable',
+    category: 'iconic',
+  },
+  {
+    id: 'deadpool',
+    name: 'Deadpool',
+    level: 4,
+    personality: 'Fourth-wall breaking merc with a mouth. Makes pop culture references, talks to the audience, chaotic and unpredictable. Maximum effort!',
+    powers: 'Regenerative Healing - extreme regeneration, expert marksman and swordsman, unpredictable fighting style',
+    category: 'iconic',
+  },
+  {
+    id: 'mr-fantastic',
+    name: 'Mr. Fantastic',
+    level: 4,
+    personality: 'Brilliant scientist Reed Richards. Speaks technically, always calculating. Sometimes oblivious to social cues. Will explain the science.',
+    powers: 'Elasticity - can stretch, reshape, and expand body infinitely. Genius-level intellect, one of the smartest beings alive',
+    category: 'iconic',
+  },
+  {
+    id: 'thor',
+    name: 'Thor Odinson',
+    level: 5,
+    personality: 'Asgardian God of Thunder. Speaks in archaic, noble manner. Honorable warrior who respects worthy opponents. "Have at thee!"',
+    powers: 'Thunder God - Mjolnir control, lightning manipulation, superhuman strength, flight, near-immortality',
+    category: 'iconic',
+  },
+  {
+    id: 'magneto',
+    name: 'Magneto',
+    level: 5,
+    personality: 'Master of magnetism and mutant supremacist. Eloquent, philosophical, sees himself as mutant savior. Holocaust survivor with complex morality.',
+    powers: 'Magnetokinesis - control over all magnetic fields and metal, force fields, electromagnetic pulse generation',
+    category: 'iconic',
+  },
+  {
+    id: 'doctor-doom',
+    name: 'Doctor Doom',
+    level: 5,
+    personality: 'Ruler of Latveria. Refers to himself in third person as "Doom." Arrogant genius who believes only he can save the world. Theatrical villain.',
+    powers: 'Sorcery & Technology - genius inventor, powerful sorcerer, armored suit with vast weaponry, diplomatic immunity',
+    category: 'iconic',
+  },
+  {
+    id: 'spider-man',
+    name: 'Spider-Man',
+    level: 3,
+    personality: 'Friendly neighborhood wall-crawler. Cracks jokes constantly during fights. Great power, great responsibility. Queens accent optional.',
+    powers: 'Spider Powers - wall-crawling, superhuman agility and strength, spider-sense danger detection, web-slinging',
+    category: 'iconic',
+  },
+];
+
+const AI_OPPONENTS = [...ORIGINAL_OPPONENTS, ...ICONIC_OPPONENTS];
 
 export default function MockBattle() {
   const { user } = useAuth();
@@ -127,6 +200,22 @@ export default function MockBattle() {
         return `Ohoho! ${selectedCharacter?.name}, is it? Your aura looks... deliciously chaotic. Let's dance, shall we? *giggles mischievously*`;
       case 'ancient-guardian':
         return `${selectedCharacter?.name}... the stars spoke of your coming. Whether you seek wisdom or destruction, you shall find truth in our clash.`;
+      case 'hulk':
+        return `HULK SEES PUNY ${selectedCharacter?.name?.toUpperCase()}! You think you can fight HULK?! HULK WILL SMASH!`;
+      case 'wolverine':
+        return `*snikt* So you're ${selectedCharacter?.name}, huh? Let's see what you got, bub. Don't hold back - I heal fast.`;
+      case 'deadpool':
+        return `Oh em gee! ${selectedCharacter?.name}?! I've been DYING to meet you! Get it? Dying? Because I can't die? ...Tough crowd.`;
+      case 'mr-fantastic':
+        return `Fascinating. ${selectedCharacter?.name}, your abilities seem to defy conventional physics. Allow me to test some hypotheses during our engagement.`;
+      case 'thor':
+        return `Hail, ${selectedCharacter?.name}! I am Thor, Prince of Asgard! Show me thy valor, mortal, and perhaps you shall earn the thunderer's respect!`;
+      case 'magneto':
+        return `${selectedCharacter?.name}... another who would stand in the way of mutant destiny? Very well. Let us see if your conviction matches your power.`;
+      case 'doctor-doom':
+        return `So, ${selectedCharacter?.name} dares face DOOM?! Amusing. Doom shall grant you the honor of witnessing true power before your inevitable defeat.`;
+      case 'spider-man':
+        return `Hey there, ${selectedCharacter?.name}! *sticks to wall* So are we doing the whole hero vs hero misunderstanding thing, or...? Either way, let's keep it friendly, yeah?`;
       default:
         return 'Prepare yourself, warrior.';
     }
@@ -286,10 +375,22 @@ export default function MockBattle() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {AI_OPPONENTS.map((opponent) => (
+                      <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Training Opponents</div>
+                      {ORIGINAL_OPPONENTS.map((opponent) => (
                         <SelectItem key={opponent.id} value={opponent.id}>
                           <span className="flex items-center gap-2">
                             <Bot className="w-3 h-3" />
+                            {opponent.name} (Tier {opponent.level})
+                          </span>
+                        </SelectItem>
+                      ))}
+                      <div className="px-2 py-1 text-xs font-semibold text-muted-foreground mt-2 border-t pt-2">
+                        ⚡ Iconic Heroes & Villains
+                      </div>
+                      {ICONIC_OPPONENTS.map((opponent) => (
+                        <SelectItem key={opponent.id} value={opponent.id}>
+                          <span className="flex items-center gap-2">
+                            <Swords className="w-3 h-3 text-primary" />
                             {opponent.name} (Tier {opponent.level})
                           </span>
                         </SelectItem>
