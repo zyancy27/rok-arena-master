@@ -6,8 +6,15 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, Save, Loader2, Globe, Orbit, Weight, Ruler } from 'lucide-react';
 import { toast } from 'sonner';
+import { 
+  getGravityClass, 
+  calculateGravityStatModifiers, 
+  PLANET_PRESETS,
+  type PlanetPhysics 
+} from '@/lib/planet-physics';
 
 export interface PlanetCustomization {
   name: string;
@@ -16,6 +23,9 @@ export interface PlanetCustomization {
   color: string;
   hasRings: boolean | null;
   moonCount: number | null;
+  gravity: number | null;
+  radius: number | null;
+  orbitalDistance: number | null;
 }
 
 interface PlanetEditorProps {
@@ -48,6 +58,27 @@ export default function PlanetEditor({ planet, onSave, onBack }: PlanetEditorPro
   const [moonCount, setMoonCount] = useState<number>(planet.moonCount ?? 0);
   const [customizeMoons, setCustomizeMoons] = useState(planet.moonCount !== null);
   const [saving, setSaving] = useState(false);
+  
+  // Physics properties
+  const [gravity, setGravity] = useState<number>(planet.gravity ?? 1.0);
+  const [radius, setRadius] = useState<number>(planet.radius ?? 1.0);
+  const [orbitalDistance, setOrbitalDistance] = useState<number>(planet.orbitalDistance ?? 1.0);
+  const [customizePhysics, setCustomizePhysics] = useState(
+    planet.gravity !== null || planet.radius !== null || planet.orbitalDistance !== null
+  );
+
+  const gravityClass = getGravityClass(gravity);
+  const statModifiers = calculateGravityStatModifiers(gravity);
+
+  const applyPreset = (presetName: string) => {
+    const preset = PLANET_PRESETS[presetName];
+    if (preset) {
+      setGravity(preset.gravity);
+      setRadius(preset.radius);
+      setOrbitalDistance(preset.orbitalDistance);
+      toast.success(`Applied ${presetName} preset`);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -59,6 +90,9 @@ export default function PlanetEditor({ planet, onSave, onBack }: PlanetEditorPro
         color,
         hasRings: customizeRings ? hasRings : null,
         moonCount: customizeMoons ? moonCount : null,
+        gravity: customizePhysics ? gravity : null,
+        radius: customizePhysics ? radius : null,
+        orbitalDistance: customizePhysics ? orbitalDistance : null,
       });
       toast.success('Planet customization saved!');
       onBack();
@@ -134,6 +168,115 @@ export default function PlanetEditor({ planet, onSave, onBack }: PlanetEditorPro
                   />
                 ))}
               </div>
+            </div>
+
+            {/* Planet Physics Section */}
+            <div className="space-y-4 p-4 rounded-lg bg-muted/30 border border-primary/20">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-primary" />
+                  <Label className="text-base font-semibold">Planet Physics</Label>
+                </div>
+                <Switch checked={customizePhysics} onCheckedChange={setCustomizePhysics} />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Define physical properties that affect orbital position and character stats
+              </p>
+              
+              {customizePhysics && (
+                <div className="space-y-4 pt-2">
+                  {/* Preset selector */}
+                  <div className="space-y-2">
+                    <Label>Quick Preset</Label>
+                    <Select onValueChange={applyPreset}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Apply a preset..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.keys(PLANET_PRESETS).map((name) => (
+                          <SelectItem key={name} value={name}>{name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Gravity */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="flex items-center gap-2">
+                        <Weight className="w-3 h-3" />
+                        Surface Gravity
+                      </Label>
+                      <span 
+                        className="text-sm font-medium px-2 py-0.5 rounded"
+                        style={{ backgroundColor: gravityClass.color + '30', color: gravityClass.color }}
+                      >
+                        {gravity.toFixed(2)}g — {gravityClass.name}
+                      </span>
+                    </div>
+                    <Slider
+                      value={[gravity]}
+                      onValueChange={(v) => setGravity(v[0])}
+                      min={0.05}
+                      max={4}
+                      step={0.05}
+                    />
+                    <p className="text-xs text-muted-foreground">{gravityClass.description}</p>
+                    
+                    {/* Stat modifiers preview */}
+                    <div className="mt-2 p-2 rounded bg-background/50 text-xs">
+                      <p className="font-medium text-foreground/80 mb-1">Character Stat Modifiers:</p>
+                      <p className="text-muted-foreground">{statModifiers.description}</p>
+                    </div>
+                  </div>
+
+                  {/* Radius */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="flex items-center gap-2">
+                        <Ruler className="w-3 h-3" />
+                        Planet Radius
+                      </Label>
+                      <span className="text-sm font-medium">
+                        {radius.toFixed(2)}× Earth
+                      </span>
+                    </div>
+                    <Slider
+                      value={[radius]}
+                      onValueChange={(v) => setRadius(v[0])}
+                      min={0.1}
+                      max={5}
+                      step={0.1}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Affects visual size. Earth = 6,371 km radius
+                    </p>
+                  </div>
+
+                  {/* Orbital Distance */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="flex items-center gap-2">
+                        <Orbit className="w-3 h-3" />
+                        Orbital Distance
+                      </Label>
+                      <span className="text-sm font-medium">
+                        {orbitalDistance.toFixed(2)} AU
+                      </span>
+                    </div>
+                    <Slider
+                      value={[orbitalDistance]}
+                      onValueChange={(v) => setOrbitalDistance(v[0])}
+                      min={0.2}
+                      max={10}
+                      step={0.1}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Distance from sun in Astronomical Units. Earth = 1 AU. Affects climate zone.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Rings Toggle */}

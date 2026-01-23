@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,9 +13,10 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { toast } from 'sonner';
 import { POWER_TIERS } from '@/lib/game-constants';
 import { CHARACTER_STATS, DEFAULT_STATS, getTierBaseStats, type CharacterStats } from '@/lib/character-stats';
+import { getGravityClass, calculateGravityStatModifiers } from '@/lib/planet-physics';
 import StatSlider from './StatSlider';
 import OwnershipNotice from '@/components/legal/OwnershipNotice';
-import { ArrowLeft, Save, Sparkles, Camera, Brain, Dumbbell, Flame, Zap, Shield, Heart, Target, Wand2, Smile, Lightbulb } from 'lucide-react';
+import { ArrowLeft, Save, Sparkles, Camera, Brain, Dumbbell, Flame, Zap, Shield, Heart, Target, Wand2, Smile, Lightbulb, Globe } from 'lucide-react';
 
 const iconMap = {
   Brain: <Brain className="w-4 h-4" />,
@@ -53,6 +54,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [planetGravity, setPlanetGravity] = useState<number | null>(null);
   
   const [formData, setFormData] = useState<CharacterFormData>({
     name: initialData?.name || '',
@@ -79,6 +81,30 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
     stat_skill: initialData?.stat_skill ?? DEFAULT_STATS.stat_skill,
     stat_luck: initialData?.stat_luck ?? DEFAULT_STATS.stat_luck,
   });
+
+  // Fetch planet gravity when home_planet changes
+  useEffect(() => {
+    const fetchPlanetGravity = async () => {
+      if (!formData.home_planet.trim() || !user) {
+        setPlanetGravity(null);
+        return;
+      }
+
+      const { data } = await supabase
+        .from('planet_customizations')
+        .select('gravity')
+        .eq('planet_name', formData.home_planet.trim())
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      setPlanetGravity(data?.gravity ?? null);
+    };
+
+    fetchPlanetGravity();
+  }, [formData.home_planet, user]);
+
+  const gravityClass = planetGravity ? getGravityClass(planetGravity) : null;
+  const gravityModifiers = planetGravity ? calculateGravityStatModifiers(planetGravity) : null;
 
   const handleStatChange = (key: keyof CharacterStats, value: number) => {
     setStats(prev => ({ ...prev, [key]: value }));
@@ -310,6 +336,24 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                 value={formData.home_planet}
                 onChange={(e) => handleChange('home_planet', e.target.value)}
               />
+              {gravityClass && gravityModifiers && (
+                <div 
+                  className="mt-2 p-3 rounded-lg border text-sm"
+                  style={{ 
+                    backgroundColor: gravityClass.color + '15', 
+                    borderColor: gravityClass.color + '40' 
+                  }}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <Globe className="w-4 h-4" style={{ color: gravityClass.color }} />
+                    <span className="font-medium" style={{ color: gravityClass.color }}>
+                      {gravityClass.name} ({planetGravity?.toFixed(2)}g)
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-1">{gravityClass.description}</p>
+                  <p className="text-xs font-medium">{gravityModifiers.description}</p>
+                </div>
+              )}
             </div>
 
             {/* Long Text Fields */}

@@ -34,6 +34,9 @@ interface StoredCustomization {
   color: string | null;
   has_rings: boolean | null;
   moon_count: number | null;
+  gravity: number | null;
+  radius: number | null;
+  orbital_distance: number | null;
 }
 
 interface PlanetData {
@@ -47,6 +50,9 @@ interface PlanetData {
   characterCount: number;
   hasRings: boolean | null;
   moonCount: number | null;
+  gravity: number | null;
+  radius: number | null;
+  orbitalDistance: number | null;
 }
 
 type ViewState = 'galaxy' | 'zooming' | 'menu' | 'zooming-in' | 'characters' | 'editor' | 'sun-editor';
@@ -135,7 +141,7 @@ export default function SolarSystem() {
     
     const { data } = await supabase
       .from('planet_customizations')
-      .select('planet_name, display_name, description, color, has_rings, moon_count')
+      .select('planet_name, display_name, description, color, has_rings, moon_count, gravity, radius, orbital_distance')
       .eq('user_id', user.id);
 
     if (data) {
@@ -166,7 +172,7 @@ export default function SolarSystem() {
     }
   };
 
-  // Group characters by planet
+  // Group characters by planet with physics-based orbital positioning
   const planets = useMemo(() => {
     const planetMap = new Map<string, number>();
     
@@ -176,23 +182,50 @@ export default function SolarSystem() {
     });
 
     const planetArray: PlanetData[] = [];
-    let orbitRadius = 5;
+    let defaultOrbitIndex = 0;
 
-    planetMap.forEach((count, name) => {
+    // Sort by orbital distance if defined, otherwise use default sequential
+    const sortedPlanets = Array.from(planetMap.entries()).sort((a, b) => {
+      const customA = planetCustomizations[a[0]];
+      const customB = planetCustomizations[b[0]];
+      const distA = customA?.orbital_distance ?? (defaultOrbitIndex + 1);
+      const distB = customB?.orbital_distance ?? (defaultOrbitIndex + 1);
+      return distA - distB;
+    });
+
+    sortedPlanets.forEach(([name, count]) => {
       const customization = planetCustomizations[name];
+      
+      // Use orbital_distance if set, otherwise use sequential positioning
+      const orbitalDistance = customization?.orbital_distance ?? (1 + defaultOrbitIndex * 0.8);
+      const orbitRadius = orbitalDistance * 5; // Scale AU to 3D units
+      
+      // Calculate orbital speed using Kepler's third law (faster for closer planets)
+      const orbitSpeed = 0.3 / Math.pow(orbitalDistance, 0.5);
+      
+      // Planet size: use radius if customized, otherwise based on character count
+      const customRadius = customization?.radius;
+      const planetSize = customRadius 
+        ? Math.min(customRadius * 0.5, 1.5) 
+        : Math.min(0.5 + count * 0.15, 1.5);
+      
       planetArray.push({
         name,
         displayName: customization?.display_name || name,
         description: customization?.description || '',
         color: customization?.color || getPlanetColor(name),
         orbitRadius,
-        planetSize: Math.min(0.5 + count * 0.15, 1.5),
-        orbitSpeed: 0.3 - (orbitRadius * 0.015),
+        planetSize,
+        orbitSpeed,
         characterCount: count,
         hasRings: customization?.has_rings ?? null,
         moonCount: customization?.moon_count ?? null,
+        gravity: customization?.gravity ?? null,
+        radius: customization?.radius ?? null,
+        orbitalDistance: customization?.orbital_distance ?? null,
       });
-      orbitRadius += 3;
+      
+      defaultOrbitIndex++;
     });
 
     return planetArray;
@@ -285,6 +318,9 @@ export default function SolarSystem() {
         color: data.color,
         has_rings: data.hasRings,
         moon_count: data.moonCount,
+        gravity: data.gravity,
+        radius: data.radius,
+        orbital_distance: data.orbitalDistance,
       }, {
         onConflict: 'user_id,planet_name',
       });
@@ -301,6 +337,9 @@ export default function SolarSystem() {
         color: data.color,
         has_rings: data.hasRings,
         moon_count: data.moonCount,
+        gravity: data.gravity,
+        radius: data.radius,
+        orbital_distance: data.orbitalDistance,
       },
     }));
 
@@ -312,6 +351,9 @@ export default function SolarSystem() {
       color: data.color,
       hasRings: data.hasRings,
       moonCount: data.moonCount,
+      gravity: data.gravity,
+      radius: data.radius,
+      orbitalDistance: data.orbitalDistance,
     } : null);
   };
 
@@ -432,6 +474,7 @@ export default function SolarSystem() {
                   sunLuminosity={sunLuminosity}
                   habitableZoneInner={habitableZone.inner}
                   habitableZoneOuter={habitableZone.outer}
+                  gravity={planet.gravity}
                 />
               </group>
             );
@@ -478,6 +521,9 @@ export default function SolarSystem() {
             color: selectedPlanet.color,
             hasRings: selectedPlanet.hasRings,
             moonCount: selectedPlanet.moonCount,
+            gravity: selectedPlanet.gravity,
+            radius: selectedPlanet.radius,
+            orbitalDistance: selectedPlanet.orbitalDistance,
           }}
           onSave={handleSavePlanet}
           onBack={handleBack}
