@@ -221,9 +221,13 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
       return;
     }
 
-    // Filter characters: those explicitly in this system, or those with home_planet matching this system's planets
+    // Filter characters: 
+    // 1. Those explicitly in this system via solar_system_id
+    // 2. Those owned by the system owner with no solar_system_id (default to their system)
+    // 3. Those with home_planet matching a planet in this system
     const systemCharacters = charData.filter(c => 
       c.solar_system_id === currentSystem.id || 
+      (!c.solar_system_id && c.user_id === currentSystem.user_id) ||
       (!c.solar_system_id && planetCustomizations[c.home_planet || ''])
     );
 
