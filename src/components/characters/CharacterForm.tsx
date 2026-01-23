@@ -61,6 +61,8 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
     gravity: number | null;
     orbital_distance: number | null;
   } | null>(null);
+  const [availablePlanets, setAvailablePlanets] = useState<{ name: string; display_name: string | null }[]>([]);
+  const [useCustomPlanet, setUseCustomPlanet] = useState(false);
   
   const [formData, setFormData] = useState<CharacterFormData>({
     name: initialData?.name || '',
@@ -87,6 +89,30 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
     stat_skill: initialData?.stat_skill ?? DEFAULT_STATS.stat_skill,
     stat_luck: initialData?.stat_luck ?? DEFAULT_STATS.stat_luck,
   });
+
+  // Fetch available planets
+  useEffect(() => {
+    const fetchPlanets = async () => {
+      if (!user) return;
+      
+      const { data } = await supabase
+        .from('planet_customizations')
+        .select('planet_name, display_name')
+        .eq('user_id', user.id)
+        .order('planet_name');
+
+      if (data) {
+        setAvailablePlanets(data.map(p => ({ name: p.planet_name, display_name: p.display_name })));
+        
+        // If editing and planet is not in list, enable custom mode
+        if (initialData?.home_planet && !data.some(p => p.planet_name === initialData.home_planet)) {
+          setUseCustomPlanet(true);
+        }
+      }
+    };
+
+    fetchPlanets();
+  }, [user, initialData?.home_planet]);
 
   // Fetch planet data when home_planet changes
   useEffect(() => {
@@ -343,12 +369,65 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
 
             <div className="space-y-2">
               <Label htmlFor="home_planet">Home Planet</Label>
-              <Input
-                id="home_planet"
-                placeholder="Aethoria Prime"
-                value={formData.home_planet}
-                onChange={(e) => handleChange('home_planet', e.target.value)}
-              />
+              {availablePlanets.length > 0 && !useCustomPlanet ? (
+                <div className="space-y-2">
+                  <Select
+                    value={formData.home_planet}
+                    onValueChange={(value) => {
+                      if (value === '__custom__') {
+                        setUseCustomPlanet(true);
+                        handleChange('home_planet', '');
+                      } else {
+                        handleChange('home_planet', value);
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a planet..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover z-50">
+                      {availablePlanets.map((planet) => (
+                        <SelectItem key={planet.name} value={planet.name}>
+                          {planet.display_name || planet.name}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="__custom__" className="text-muted-foreground border-t mt-1 pt-2">
+                        + Enter custom planet...
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      id="home_planet"
+                      placeholder="Enter planet name..."
+                      value={formData.home_planet}
+                      onChange={(e) => handleChange('home_planet', e.target.value)}
+                      className="flex-1"
+                    />
+                    {availablePlanets.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setUseCustomPlanet(false);
+                          handleChange('home_planet', '');
+                        }}
+                      >
+                        Select Existing
+                      </Button>
+                    )}
+                  </div>
+                  {availablePlanets.length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Tip: Create planets in the Galaxy Map to select them here
+                    </p>
+                  )}
+                </div>
+              )}
               {/* Planet Info Panel - shows when planet data exists */}
               {(gravityClass || terrainFeatures) && (
                 <div className="mt-3 p-4 rounded-lg border bg-muted/30 space-y-3">
