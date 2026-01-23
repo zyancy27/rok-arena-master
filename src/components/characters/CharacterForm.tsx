@@ -62,7 +62,9 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
     orbital_distance: number | null;
   } | null>(null);
   const [availablePlanets, setAvailablePlanets] = useState<{ name: string; display_name: string | null }[]>([]);
+  const [availableRaces, setAvailableRaces] = useState<{ id: string; name: string; typical_physiology: string | null; typical_abilities: string | null }[]>([]);
   const [useCustomPlanet, setUseCustomPlanet] = useState(false);
+  const [useCustomRace, setUseCustomRace] = useState(false);
   
   const [formData, setFormData] = useState<CharacterFormData>({
     name: initialData?.name || '',
@@ -90,29 +92,46 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
     stat_luck: initialData?.stat_luck ?? DEFAULT_STATS.stat_luck,
   });
 
-  // Fetch available planets
+  // Fetch available planets and races
   useEffect(() => {
-    const fetchPlanets = async () => {
+    const fetchData = async () => {
       if (!user) return;
       
-      const { data } = await supabase
+      // Fetch planets
+      const { data: planets } = await supabase
         .from('planet_customizations')
         .select('planet_name, display_name')
         .eq('user_id', user.id)
         .order('planet_name');
 
-      if (data) {
-        setAvailablePlanets(data.map(p => ({ name: p.planet_name, display_name: p.display_name })));
+      if (planets) {
+        setAvailablePlanets(planets.map(p => ({ name: p.planet_name, display_name: p.display_name })));
         
         // If editing and planet is not in list, enable custom mode
-        if (initialData?.home_planet && !data.some(p => p.planet_name === initialData.home_planet)) {
+        if (initialData?.home_planet && !planets.some(p => p.planet_name === initialData.home_planet)) {
           setUseCustomPlanet(true);
+        }
+      }
+
+      // Fetch races
+      const { data: races } = await supabase
+        .from('races')
+        .select('id, name, typical_physiology, typical_abilities')
+        .eq('user_id', user.id)
+        .order('name');
+
+      if (races) {
+        setAvailableRaces(races);
+        
+        // If editing and race is not in list, enable custom mode
+        if (initialData?.race && !races.some(r => r.name === initialData.race)) {
+          setUseCustomRace(true);
         }
       }
     };
 
-    fetchPlanets();
-  }, [user, initialData?.home_planet]);
+    fetchData();
+  }, [user, initialData?.home_planet, initialData?.race]);
 
   // Fetch planet data when home_planet changes
   useEffect(() => {
@@ -339,12 +358,66 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="race">Race</Label>
-                <Input
-                  id="race"
-                  placeholder="Celestial"
-                  value={formData.race}
-                  onChange={(e) => handleChange('race', e.target.value)}
-                />
+                {availableRaces.length > 0 && !useCustomRace ? (
+                  <Select
+                    value={formData.race}
+                    onValueChange={(value) => {
+                      if (value === '__custom__') {
+                        setUseCustomRace(true);
+                        handleChange('race', '');
+                      } else {
+                        handleChange('race', value);
+                        // Auto-fill suggestions from race data
+                        const selectedRace = availableRaces.find(r => r.name === value);
+                        if (selectedRace) {
+                          toast.info(`Race "${value}" selected - check abilities/physiology suggestions below!`);
+                        }
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a race..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover z-50">
+                      {availableRaces.map((race) => (
+                        <SelectItem key={race.id} value={race.name}>
+                          {race.name}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="__custom__" className="text-muted-foreground border-t mt-1 pt-2">
+                        + Enter custom race...
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      id="race"
+                      placeholder="Celestial"
+                      value={formData.race}
+                      onChange={(e) => handleChange('race', e.target.value)}
+                      className="flex-1"
+                    />
+                    {availableRaces.length > 0 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setUseCustomRace(false);
+                          handleChange('race', '');
+                        }}
+                      >
+                        Select
+                      </Button>
+                    )}
+                  </div>
+                )}
+                {availableRaces.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Tip: Create races in the Races page to select them here
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="sub_race">Sub-Race</Label>
@@ -366,6 +439,39 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                 />
               </div>
             </div>
+
+            {/* Race Info Panel - shows when a race is selected */}
+            {formData.race && availableRaces.find(r => r.name === formData.race) && (
+              <div className="p-4 rounded-lg border bg-muted/30 space-y-3">
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  Race Traits: {formData.race}
+                </div>
+                {(() => {
+                  const selectedRace = availableRaces.find(r => r.name === formData.race);
+                  if (!selectedRace) return null;
+                  return (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                      {selectedRace.typical_physiology && (
+                        <div className="p-2 rounded bg-background/50 border-l-2 border-accent">
+                          <span className="font-medium text-accent">Typical Physiology</span>
+                          <p className="text-muted-foreground mt-1">{selectedRace.typical_physiology}</p>
+                        </div>
+                      )}
+                      {selectedRace.typical_abilities && (
+                        <div className="p-2 rounded bg-background/50 border-l-2 border-primary">
+                          <span className="font-medium text-primary">Typical Abilities</span>
+                          <p className="text-muted-foreground mt-1">{selectedRace.typical_abilities}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+                <p className="text-xs text-muted-foreground italic">
+                  Use these as inspiration for your character's powers and lore!
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="home_planet">Home Planet</Label>

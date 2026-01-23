@@ -1,0 +1,397 @@
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
+import { LoreDocumentUpload } from '@/components/lore/LoreDocumentUpload';
+import { Dna, Plus, Edit, Trash2, Globe, Sparkles, Heart, Clock, Users } from 'lucide-react';
+
+interface Race {
+  id: string;
+  name: string;
+  description: string | null;
+  home_planet: string | null;
+  typical_physiology: string | null;
+  typical_abilities: string | null;
+  cultural_traits: string | null;
+  average_lifespan: string | null;
+  image_url: string | null;
+  created_at: string;
+}
+
+interface RaceFormData {
+  name: string;
+  description: string;
+  home_planet: string;
+  typical_physiology: string;
+  typical_abilities: string;
+  cultural_traits: string;
+  average_lifespan: string;
+}
+
+const emptyForm: RaceFormData = {
+  name: '',
+  description: '',
+  home_planet: '',
+  typical_physiology: '',
+  typical_abilities: '',
+  cultural_traits: '',
+  average_lifespan: '',
+};
+
+export default function Races() {
+  const { user } = useAuth();
+  const [races, setRaces] = useState<Race[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingRace, setEditingRace] = useState<Race | null>(null);
+  const [formData, setFormData] = useState<RaceFormData>(emptyForm);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      fetchRaces();
+    }
+  }, [user]);
+
+  const fetchRaces = async () => {
+    const { data, error } = await supabase
+      .from('races')
+      .select('*')
+      .eq('user_id', user?.id)
+      .order('name');
+
+    if (error) {
+      toast.error('Failed to load races');
+    } else {
+      setRaces(data || []);
+    }
+    setLoading(false);
+  };
+
+  const handleOpenCreate = () => {
+    setEditingRace(null);
+    setFormData(emptyForm);
+    setIsDialogOpen(true);
+  };
+
+  const handleOpenEdit = (race: Race) => {
+    setEditingRace(race);
+    setFormData({
+      name: race.name,
+      description: race.description || '',
+      home_planet: race.home_planet || '',
+      typical_physiology: race.typical_physiology || '',
+      typical_abilities: race.typical_abilities || '',
+      cultural_traits: race.cultural_traits || '',
+      average_lifespan: race.average_lifespan || '',
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleSave = async () => {
+    if (!formData.name.trim()) {
+      toast.error('Race name is required');
+      return;
+    }
+
+    setIsSaving(true);
+
+    try {
+      if (editingRace) {
+        const { error } = await supabase
+          .from('races')
+          .update({
+            name: formData.name,
+            description: formData.description || null,
+            home_planet: formData.home_planet || null,
+            typical_physiology: formData.typical_physiology || null,
+            typical_abilities: formData.typical_abilities || null,
+            cultural_traits: formData.cultural_traits || null,
+            average_lifespan: formData.average_lifespan || null,
+          })
+          .eq('id', editingRace.id);
+
+        if (error) throw error;
+        toast.success('Race updated!');
+      } else {
+        const { error } = await supabase.from('races').insert({
+          user_id: user?.id,
+          name: formData.name,
+          description: formData.description || null,
+          home_planet: formData.home_planet || null,
+          typical_physiology: formData.typical_physiology || null,
+          typical_abilities: formData.typical_abilities || null,
+          cultural_traits: formData.cultural_traits || null,
+          average_lifespan: formData.average_lifespan || null,
+        });
+
+        if (error) throw error;
+        toast.success('Race created!');
+      }
+
+      setIsDialogOpen(false);
+      fetchRaces();
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error('Failed to save race');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async (raceId: string) => {
+    const { error } = await supabase.from('races').delete().eq('id', raceId);
+
+    if (error) {
+      toast.error('Failed to delete race');
+    } else {
+      toast.success('Race deleted');
+      fetchRaces();
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-nebula-gradient bg-stars">
+      <div className="container mx-auto py-8 px-4 max-w-6xl">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-2">
+              <Dna className="h-8 w-8" />
+              Your Races
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Define species and peoples that populate your universe
+            </p>
+          </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={handleOpenCreate}>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Race
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{editingRace ? 'Edit Race' : 'Create New Race'}</DialogTitle>
+                <DialogDescription>
+                  Define a species or people group. Characters can belong to this race.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Race Name *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g., Elderkin, Void Walkers, Crystalborn"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="General overview of this race..."
+                    rows={3}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="home_planet">Home Planet/Region</Label>
+                    <Input
+                      id="home_planet"
+                      value={formData.home_planet}
+                      onChange={(e) => setFormData({ ...formData, home_planet: e.target.value })}
+                      placeholder="e.g., Crystallis Prime"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="average_lifespan">Average Lifespan</Label>
+                    <Input
+                      id="average_lifespan"
+                      value={formData.average_lifespan}
+                      onChange={(e) => setFormData({ ...formData, average_lifespan: e.target.value })}
+                      placeholder="e.g., 500 years, Immortal"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="typical_physiology">Typical Physiology</Label>
+                  <Textarea
+                    id="typical_physiology"
+                    value={formData.typical_physiology}
+                    onChange={(e) => setFormData({ ...formData, typical_physiology: e.target.value })}
+                    placeholder="Common physical traits, appearances, biology..."
+                    rows={2}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="typical_abilities">Typical Abilities</Label>
+                  <Textarea
+                    id="typical_abilities"
+                    value={formData.typical_abilities}
+                    onChange={(e) => setFormData({ ...formData, typical_abilities: e.target.value })}
+                    placeholder="Common powers or abilities shared by this race..."
+                    rows={2}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cultural_traits">Cultural Traits</Label>
+                  <Textarea
+                    id="cultural_traits"
+                    value={formData.cultural_traits}
+                    onChange={(e) => setFormData({ ...formData, cultural_traits: e.target.value })}
+                    placeholder="Society, traditions, values, common behaviors..."
+                    rows={2}
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleSave} disabled={isSaving}>
+                    {isSaving ? 'Saving...' : editingRace ? 'Update Race' : 'Create Race'}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        {/* Document Upload Section */}
+        <div className="mb-8">
+          <LoreDocumentUpload onImportComplete={fetchRaces} />
+        </div>
+
+        {/* Races Grid */}
+        {loading ? (
+          <div className="text-center py-12 text-muted-foreground">Loading races...</div>
+        ) : races.length === 0 ? (
+          <Card className="text-center py-12">
+            <CardContent>
+              <Dna className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No Races Yet</h3>
+              <p className="text-muted-foreground mb-4">
+                Create race templates that your characters can belong to
+              </p>
+              <Button onClick={handleOpenCreate}>
+                <Plus className="mr-2 h-4 w-4" />
+                Create Your First Race
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {races.map((race) => (
+              <Card key={race.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between">
+                    <CardTitle className="text-lg">{race.name}</CardTitle>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(race)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete {race.name}?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will remove the race definition. Characters won't be deleted but will lose their race reference.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(race.id)}>
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </div>
+                  {race.description && (
+                    <CardDescription className="line-clamp-2">{race.description}</CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex flex-wrap gap-2">
+                    {race.home_planet && (
+                      <Badge variant="secondary" className="flex items-center gap-1">
+                        <Globe className="h-3 w-3" />
+                        {race.home_planet}
+                      </Badge>
+                    )}
+                    {race.average_lifespan && (
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {race.average_lifespan}
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  {race.typical_physiology && (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                        <Heart className="h-3 w-3" /> Physiology
+                      </p>
+                      <p className="text-sm line-clamp-2">{race.typical_physiology}</p>
+                    </div>
+                  )}
+                  
+                  {race.typical_abilities && (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                        <Sparkles className="h-3 w-3" /> Abilities
+                      </p>
+                      <p className="text-sm line-clamp-2">{race.typical_abilities}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
