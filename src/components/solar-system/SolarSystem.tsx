@@ -16,6 +16,7 @@ import CreatePlanetDialog from './CreatePlanetDialog';
 import SolarSystemSelector, { SolarSystemData } from './SolarSystemSelector';
 import GalaxyView from './GalaxyView';
 import GiantCharacter, { isPlanetSizedCharacter, getCharacterGender, getCosmicColor } from './GiantCharacter';
+import DangerZone from './DangerZone';
 import { getHabitableZone } from './Sun';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -793,26 +794,8 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
         <Suspense fallback={null}>
           <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
           
-          {/* Danger zone ring - shows minimum safe orbit distance */}
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]}>
-            <ringGeometry args={[sunRadius * 0.9, sunRadius + 2, 64]} />
-            <meshBasicMaterial
-              color="#ef4444"
-              transparent
-              opacity={0.15}
-              side={THREE.DoubleSide}
-            />
-          </mesh>
-          {/* Danger zone outer glow */}
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.15, 0]}>
-            <ringGeometry args={[sunRadius + 1.5, sunRadius + 2.5, 64]} />
-            <meshBasicMaterial
-              color="#f97316"
-              transparent
-              opacity={0.08}
-              side={THREE.DoubleSide}
-            />
-          </mesh>
+          {/* Animated danger zone ring */}
+          <DangerZone sunRadius={sunRadius} />
           
           <Sun 
             key={`sun-${sunData.temperature}-${sunData.color}`}
