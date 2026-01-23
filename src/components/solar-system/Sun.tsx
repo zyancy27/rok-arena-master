@@ -2,10 +2,31 @@ import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Sphere } from '@react-three/drei';
 import * as THREE from 'three';
+import { getSunSizeFromTemperature } from './SunEditor';
 
-export default function Sun() {
+interface SunProps {
+  color?: string;
+  temperature?: number;
+  onClick?: () => void;
+}
+
+export default function Sun({ color = '#FDB813', temperature = 5778, onClick }: SunProps) {
   const sunRef = useRef<THREE.Mesh>(null);
   const glowRef = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<THREE.Group>(null);
+
+  // Calculate size based on temperature (real astrophysics)
+  const sizeMultiplier = getSunSizeFromTemperature(temperature);
+  const baseSize = 2;
+  const size = baseSize * sizeMultiplier;
+
+  // Generate glow colors based on main color
+  const mainColor = new THREE.Color(color);
+  const innerGlowColor = mainColor.clone().offsetHSL(0, 0, -0.1);
+  const outerGlowColor = mainColor.clone().offsetHSL(0, -0.2, 0.1);
+
+  // Light intensity scales with temperature
+  const lightIntensity = Math.min(2 + (temperature - 5778) / 10000, 5);
 
   useFrame((state, delta) => {
     if (sunRef.current) {
@@ -17,34 +38,56 @@ export default function Sun() {
     }
   });
 
+  const handleClick = (e: { stopPropagation: () => void }) => {
+    e.stopPropagation();
+    onClick?.();
+  };
+
   return (
-    <group>
+    <group ref={groupRef} onClick={handleClick}>
       {/* Core sun */}
-      <Sphere ref={sunRef} args={[2, 64, 64]}>
-        <meshBasicMaterial color="#FDB813" />
+      <Sphere ref={sunRef} args={[size, 64, 64]}>
+        <meshBasicMaterial color={color} />
       </Sphere>
 
       {/* Inner glow */}
-      <Sphere args={[2.2, 32, 32]}>
+      <Sphere args={[size * 1.1, 32, 32]}>
         <meshBasicMaterial
-          color="#FF8C00"
+          color={innerGlowColor}
           transparent
           opacity={0.4}
         />
       </Sphere>
 
       {/* Outer glow */}
-      <Sphere ref={glowRef} args={[2.8, 32, 32]}>
+      <Sphere ref={glowRef} args={[size * 1.4, 32, 32]}>
         <meshBasicMaterial
-          color="#FFD700"
+          color={outerGlowColor}
           transparent
           opacity={0.15}
           side={THREE.BackSide}
         />
       </Sphere>
 
+      {/* Corona effect for hotter stars */}
+      {temperature > 7500 && (
+        <Sphere args={[size * 1.8, 32, 32]}>
+          <meshBasicMaterial
+            color={outerGlowColor}
+            transparent
+            opacity={0.08}
+            side={THREE.BackSide}
+          />
+        </Sphere>
+      )}
+
       {/* Point light */}
-      <pointLight intensity={2} distance={50} decay={2} color="#FDB813" />
+      <pointLight 
+        intensity={lightIntensity} 
+        distance={50 + size * 10} 
+        decay={2} 
+        color={color} 
+      />
     </group>
   );
 }
