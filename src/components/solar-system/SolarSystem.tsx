@@ -572,14 +572,21 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
       // Transitioning into a solar system
       const system = solarSystems.find(s => s.id === pendingSystemId);
       if (system) {
+        const isChangingSystem = system.id !== currentSystem?.id;
         setCurrentSystem(system);
         setIsViewingFriend(system.user_id !== user?.id);
         setViewState('galaxy');
-        setLoading(true);
+        // Only trigger loading if actually changing to a different system
+        if (isChangingSystem) {
+          setLoading(true);
+        }
       }
       setPendingSystemId(null);
+    } else if (warpDirection === 'in') {
+      // Returning to current system (no pending ID means same system)
+      setViewState('galaxy');
     }
-  }, [warpDirection, pendingSystemId, solarSystems, user]);
+  }, [warpDirection, pendingSystemId, solarSystems, user, currentSystem]);
 
   const handleExitGalaxy = useCallback(() => {
     // Use warp transition to return
