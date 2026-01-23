@@ -11,7 +11,7 @@ import WarpTransition from './WarpTransition';
 import PlanetMenu from './PlanetMenu';
 import CharacterList from './CharacterList';
 import PlanetEditor, { PlanetCustomization } from './PlanetEditor';
-import SunEditor, { SunCustomization, getColorFromTemperature, getSunLuminosityFromTemperature } from './SunEditor';
+import SunEditor, { SunCustomization, getColorFromTemperature, getSunLuminosityFromTemperature, getSunSizeFromTemperature } from './SunEditor';
 import CreatePlanetDialog from './CreatePlanetDialog';
 import SolarSystemSelector, { SolarSystemData } from './SolarSystemSelector';
 import GalaxyView from './GalaxyView';
@@ -295,6 +295,14 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
     }
   };
 
+  // Calculate sun's visual radius based on temperature
+  const sunRadius = useMemo(() => {
+    const baseSize = 2;
+    const sizeMultiplier = getSunSizeFromTemperature(sunData.temperature);
+    // Include outer glow in the "safe" radius (1.3x core + some buffer)
+    return baseSize * sizeMultiplier * 1.5;
+  }, [sunData.temperature]);
+
   // Group characters by planet with physics-based orbital positioning
   // Also include user-created planets that have no characters yet
   const planets = useMemo(() => {
@@ -325,14 +333,18 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
       return distA - distB;
     });
 
+    // Minimum safe orbit starts outside the sun's visual radius + buffer
+    const minOrbitRadius = sunRadius + 2;
+
     sortedPlanets.forEach(([name, count]) => {
       const customization = planetCustomizations[name];
       
       // Use orbital_distance if set, otherwise use sequential positioning
       // Orbital distance in AU-like units (1 = closest, 10 = farthest)
       const orbitalDistance = customization?.orbital_distance ?? (1 + defaultOrbitIndex * 0.8);
-      // Scale to 3D units: multiply by 4 for more dramatic positioning changes
-      const orbitRadius = 4 + orbitalDistance * 4;
+      // Scale to 3D units: start from safe distance outside the sun
+      // Base orbit = minOrbitRadius + (distance * scale factor)
+      const orbitRadius = minOrbitRadius + orbitalDistance * 4;
       
       // Calculate orbital speed using Kepler's third law (faster for closer planets)
       const orbitSpeed = 0.3 / Math.pow(orbitalDistance, 0.5);
