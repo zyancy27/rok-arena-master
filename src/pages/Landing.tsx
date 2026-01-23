@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import PublicNav from '@/components/layout/PublicNav';
 import { Swords, Sparkles, Users, BookOpen, ArrowRight } from 'lucide-react';
 
 export default function Landing() {
   return (
     <div className="min-h-screen bg-nebula-gradient bg-stars">
+      <PublicNav />
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-16">
         <div className="text-center space-y-8 max-w-4xl mx-auto">

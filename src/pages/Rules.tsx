@@ -2,12 +2,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import PublicNav from '@/components/layout/PublicNav';
 import { ROK_RULES, POWER_TIERS } from '@/lib/game-constants';
 import { BookOpen, Sparkles, AlertTriangle, CheckCircle, Trophy, Lightbulb } from 'lucide-react';
 
 export default function Rules() {
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="min-h-screen bg-nebula-gradient bg-stars">
+      <PublicNav />
+      <div className="max-w-4xl mx-auto space-y-8 px-4 py-8">
       {/* Header */}
       <div className="text-center space-y-4">
         <h1 className="text-4xl font-bold text-glow bg-gradient-to-r from-primary via-cosmic-pink to-accent bg-clip-text text-transparent flex items-center justify-center gap-3">
@@ -129,6 +132,7 @@ export default function Rules() {
             </ul>
           </CardContent>
         </Card>
+      </div>
       </div>
     </div>
   );
