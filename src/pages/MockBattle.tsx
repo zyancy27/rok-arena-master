@@ -22,6 +22,7 @@ import {
   Send, 
   MessageSquare, 
   Sparkles,
+  Mic,
   RefreshCw,
   User,
   MapPin,
@@ -40,7 +41,7 @@ interface UserCharacter {
 
 interface Message {
   id: string;
-  role: 'user' | 'ai';
+  role: 'user' | 'ai' | 'narrator';
   content: string;
   channel: 'in_universe' | 'out_of_universe';
   characterName?: string;
@@ -265,6 +266,8 @@ export default function MockBattle() {
   const [selectedPlanetData, setSelectedPlanetData] = useState<PlanetData | null>(null);
   const [battleEnvironment, setBattleEnvironment] = useState<BattleEnvironment | null>(null);
   const [useCustomLocation, setUseCustomLocation] = useState(false);
+  const [narratorEnabled, setNarratorEnabled] = useState(true);
+  const [turnNumber, setTurnNumber] = useState(1);
 
   useEffect(() => {
     if (user) {
@@ -470,6 +473,43 @@ export default function MockBattle() {
       };
       
       setMessages(prev => [...prev, aiMessage]);
+
+      // Trigger narrator for in-universe exchanges
+      if (narratorEnabled && activeChannel === 'in_universe' && currentOpponent) {
+        try {
+          const narratorResponse = await supabase.functions.invoke('battle-narrator', {
+            body: {
+              userCharacter: {
+                name: selectedCharacter.name,
+                level: selectedCharacter.level,
+              },
+              opponent: {
+                name: currentOpponent.name,
+                level: currentOpponent.level,
+              },
+              userAction: input,
+              opponentResponse: response.data.response,
+              battleLocation,
+              turnNumber,
+            },
+          });
+
+          if (!narratorResponse.error && narratorResponse.data?.narration) {
+            const narratorMessage: Message = {
+              id: crypto.randomUUID(),
+              role: 'narrator',
+              content: narratorResponse.data.narration,
+              channel: 'in_universe',
+              characterName: '🎙️ Narrator',
+            };
+            setMessages(prev => [...prev, narratorMessage]);
+            setTurnNumber(prev => prev + 1);
+          }
+        } catch (narratorError) {
+          console.error('Narrator error:', narratorError);
+          // Narrator failures are non-critical, continue without narration
+        }
+      }
     } catch (error) {
       console.error('AI response error:', error);
       // Fallback response if AI fails
@@ -495,6 +535,7 @@ export default function MockBattle() {
     setSelectedPlanetData(null);
     setBattleEnvironment(null);
     setUseCustomLocation(false);
+    setTurnNumber(1);
   };
 
   if (userCharacters.length === 0) {
@@ -798,6 +839,26 @@ export default function MockBattle() {
                   />
                 </div>
 
+                {/* Battle Narrator Toggle */}
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border">
+                  <div className="flex items-center gap-3">
+                    <Mic className="w-5 h-5 text-purple-500" />
+                    <div>
+                      <Label htmlFor="narrator-toggle" className="text-sm font-medium cursor-pointer">
+                        Epic Battle Narrator
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        AI provides dramatic commentary after each battle exchange
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="narrator-toggle"
+                    checked={narratorEnabled}
+                    onCheckedChange={setNarratorEnabled}
+                  />
+                </div>
+
                 {/* Environment Preview */}
                 {battleEnvironment && dynamicEnvironment && (
                   <div className="p-3 rounded-lg border bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/30 space-y-2">
@@ -971,10 +1032,12 @@ function MessageArea({
               className={`p-3 rounded-lg ${
                 message.role === 'user'
                   ? 'bg-primary/20 border-l-4 border-primary ml-8'
+                  : message.role === 'narrator'
+                  ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-l-4 border-purple-500 mx-4 italic'
                   : 'bg-muted/50 border-l-4 border-accent mr-8'
               }`}
             >
-              <p className="text-xs text-muted-foreground mb-1">
+              <p className={`text-xs mb-1 ${message.role === 'narrator' ? 'text-purple-400 font-semibold' : 'text-muted-foreground'}`}>
                 {message.characterName}
               </p>
               <p className="whitespace-pre-wrap">{message.content}</p>
