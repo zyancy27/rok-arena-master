@@ -190,18 +190,60 @@ export default function BattleView() {
           // Fetch character name for new message
           const { data: charData } = await supabase
             .from('characters')
-            .select('name')
+            .select('name, user_id')
             .eq('id', newMessage.character_id)
             .maybeSingle();
 
-          setMessages(prev => [
-            ...prev,
-            {
-              ...newMessage,
-              channel: newMessage.channel as 'in_universe' | 'out_of_universe',
-              character_name: charData?.name || 'Unknown',
-            },
-          ]);
+          const messageWithName = {
+            ...newMessage,
+            channel: newMessage.channel as 'in_universe' | 'out_of_universe',
+            character_name: charData?.name || 'Unknown',
+          };
+
+          setMessages(prev => [...prev, messageWithName]);
+
+          // Show notification if message is from another user
+          if (charData?.user_id !== user?.id) {
+            const channelLabel = newMessage.channel === 'in_universe' ? '⚔️' : '💬';
+            toast.info(`${channelLabel} ${charData?.name || 'Unknown'}`, {
+              description: newMessage.content.length > 60 
+                ? newMessage.content.substring(0, 60) + '...' 
+                : newMessage.content,
+              duration: 4000,
+            });
+
+            // Play notification sound if available
+            try {
+              const audio = new Audio('/notification.mp3');
+              audio.volume = 0.3;
+              audio.play().catch(() => {});
+            } catch {}
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'battles',
+          filter: `id=eq.${id}`,
+        },
+        (payload) => {
+          const updatedBattle = payload.new as Battle;
+          setBattle(updatedBattle);
+          
+          if (updatedBattle.status === 'active' && battle?.status === 'pending') {
+            toast.success('⚔️ Battle has begun!', {
+              description: 'Your opponent is ready. Make your move!',
+            });
+          }
+          
+          if (updatedBattle.status === 'completed') {
+            toast.info('🏁 Battle completed!', {
+              description: 'The battle has ended.',
+            });
+          }
         }
       )
       .subscribe();
