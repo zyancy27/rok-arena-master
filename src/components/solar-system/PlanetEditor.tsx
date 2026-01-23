@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,8 @@ import {
   PLANET_PRESETS,
   type PlanetPhysics 
 } from '@/lib/planet-physics';
+import { useAutoSave } from '@/hooks/use-auto-save';
+import { AutoSaveIndicator } from '@/components/ui/auto-save-indicator';
 
 export interface PlanetCustomization {
   name: string;
@@ -70,6 +72,27 @@ export default function PlanetEditor({ planet, onSave, onBack }: PlanetEditorPro
   const gravityClass = getGravityClass(gravity);
   const statModifiers = calculateGravityStatModifiers(gravity);
 
+  // Memoize the current data for auto-save
+  const currentData = useMemo<PlanetCustomization>(() => ({
+    name: planet.name,
+    displayName: displayName.trim() || planet.name,
+    description,
+    color,
+    hasRings: customizeRings ? hasRings : null,
+    moonCount: customizeMoons ? moonCount : null,
+    gravity: customizePhysics ? gravity : null,
+    radius: customizePhysics ? radius : null,
+    orbitalDistance: customizePhysics ? orbitalDistance : null,
+  }), [planet.name, displayName, description, color, customizeRings, hasRings, customizeMoons, moonCount, customizePhysics, gravity, radius, orbitalDistance]);
+
+  // Auto-save hook
+  const { isSaving: autoSaving, lastSaved, canUndo, undo, saveNow } = useAutoSave({
+    data: currentData,
+    onSave,
+    debounceMs: 1500,
+    enabled: true,
+  });
+
   const applyPreset = (presetName: string) => {
     const preset = PLANET_PRESETS[presetName];
     if (preset) {
@@ -83,17 +106,7 @@ export default function PlanetEditor({ planet, onSave, onBack }: PlanetEditorPro
   const handleSave = async () => {
     setSaving(true);
     try {
-      await onSave({
-        name: planet.name,
-        displayName: displayName.trim() || planet.name,
-        description,
-        color,
-        hasRings: customizeRings ? hasRings : null,
-        moonCount: customizeMoons ? moonCount : null,
-        gravity: customizePhysics ? gravity : null,
-        radius: customizePhysics ? radius : null,
-        orbitalDistance: customizePhysics ? orbitalDistance : null,
-      });
+      await saveNow();
       toast.success('Planet customization saved!');
       onBack();
     } catch (error) {
@@ -117,10 +130,20 @@ export default function PlanetEditor({ planet, onSave, onBack }: PlanetEditorPro
               <ArrowLeft className="w-4 h-4 mr-1" />
               Back
             </Button>
-            <CardTitle className="text-2xl">Customize Planet</CardTitle>
-            <CardDescription>
-              Personalize {planet.name}'s appearance and lore
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl">Customize Planet</CardTitle>
+                <CardDescription>
+                  Personalize {planet.name}'s appearance and lore
+                </CardDescription>
+              </div>
+              <AutoSaveIndicator
+                isSaving={autoSaving}
+                lastSaved={lastSaved}
+                canUndo={canUndo}
+                onUndo={undo}
+              />
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Display Name */}

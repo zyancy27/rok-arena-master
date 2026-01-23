@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,6 +30,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { LoreDocumentUpload } from '@/components/lore/LoreDocumentUpload';
+import { useAutoSave } from '@/hooks/use-auto-save';
+import { AutoSaveIndicator } from '@/components/ui/auto-save-indicator';
 import { Dna, Plus, Edit, Trash2, Globe, Sparkles, Heart, Clock, Users } from 'lucide-react';
 
 interface Race {
@@ -115,6 +117,34 @@ export default function Races() {
     setIsDialogOpen(true);
   };
 
+  // Auto-save callback for when editing
+  const handleAutoSave = useCallback(async (data: RaceFormData) => {
+    if (!editingRace || !data.name.trim()) return;
+    
+    const { error } = await supabase
+      .from('races')
+      .update({
+        name: data.name,
+        description: data.description || null,
+        home_planet: data.home_planet || null,
+        typical_physiology: data.typical_physiology || null,
+        typical_abilities: data.typical_abilities || null,
+        cultural_traits: data.cultural_traits || null,
+        average_lifespan: data.average_lifespan || null,
+      })
+      .eq('id', editingRace.id);
+
+    if (error) throw error;
+  }, [editingRace]);
+
+  // Auto-save hook
+  const { isSaving: autoSaving, lastSaved, canUndo, undo } = useAutoSave({
+    data: formData,
+    onSave: handleAutoSave,
+    debounceMs: 1500,
+    enabled: !!editingRace && !!formData.name.trim(),
+  });
+
   const handleSave = async () => {
     if (!formData.name.trim()) {
       toast.error('Race name is required');
@@ -199,10 +229,22 @@ export default function Races() {
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>{editingRace ? 'Edit Race' : 'Create New Race'}</DialogTitle>
-                <DialogDescription>
-                  Define a species or people group. Characters can belong to this race.
-                </DialogDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <DialogTitle>{editingRace ? 'Edit Race' : 'Create New Race'}</DialogTitle>
+                    <DialogDescription>
+                      Define a species or people group. Characters can belong to this race.
+                    </DialogDescription>
+                  </div>
+                  {editingRace && (
+                    <AutoSaveIndicator
+                      isSaving={autoSaving}
+                      lastSaved={lastSaved}
+                      canUndo={canUndo}
+                      onUndo={undo}
+                    />
+                  )}
+                </div>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
