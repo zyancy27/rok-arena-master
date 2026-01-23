@@ -12,11 +12,12 @@ import PlanetEditor, { PlanetCustomization } from './PlanetEditor';
 import SunEditor, { SunCustomization, getColorFromTemperature, getSunLuminosityFromTemperature } from './SunEditor';
 import CreatePlanetDialog from './CreatePlanetDialog';
 import SolarSystemSelector, { SolarSystemData } from './SolarSystemSelector';
+import GalaxyView from './GalaxyView';
 import { getHabitableZone } from './Sun';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Plus, Globe } from 'lucide-react';
+import { Plus, Globe, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -61,7 +62,7 @@ interface PlanetData {
   isUserCreated?: boolean;
 }
 
-type ViewState = 'galaxy' | 'zooming' | 'menu' | 'zooming-in' | 'characters' | 'editor' | 'sun-editor' | 'create-planet';
+type ViewState = 'galaxy' | 'my-galaxy' | 'zooming' | 'menu' | 'zooming-in' | 'characters' | 'editor' | 'sun-editor' | 'create-planet';
 
 interface SunData {
   name: string;
@@ -507,6 +508,24 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
     setViewState('galaxy');
   }, []);
 
+  const handleViewGalaxy = useCallback(() => {
+    setViewState('my-galaxy');
+  }, []);
+
+  const handleExitGalaxy = useCallback(() => {
+    setViewState('galaxy');
+  }, []);
+
+  const handleEnterSystemFromGalaxy = useCallback((systemId: string) => {
+    const system = solarSystems.find(s => s.id === systemId);
+    if (system) {
+      setCurrentSystem(system);
+      setIsViewingFriend(system.user_id !== user?.id);
+      setViewState('galaxy');
+      setLoading(true);
+    }
+  }, [solarSystems, user]);
+
   const handleCreatePlanet = useCallback(() => {
     setViewState('create-planet');
   }, []);
@@ -562,7 +581,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
     ? characters.filter(c => (c.home_planet || 'Unknown') === selectedPlanet.name)
     : [];
 
-  if (loading) {
+  if (loading && viewState !== 'my-galaxy') {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -570,6 +589,17 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
           <p className="text-muted-foreground">Loading solar system...</p>
         </div>
       </div>
+    );
+  }
+
+  // Show Galaxy View when in my-galaxy mode
+  if (viewState === 'my-galaxy') {
+    return (
+      <GalaxyView
+        currentSystemId={currentSystem?.id || null}
+        onEnterSystem={handleEnterSystemFromGalaxy}
+        onBack={handleExitGalaxy}
+      />
     );
   }
 
@@ -601,6 +631,10 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
       {/* Action Buttons - hide when viewing friend's system */}
       {!isViewingFriend && (
         <div className="absolute top-4 right-4 z-10 flex gap-2">
+          <Button variant="outline" onClick={handleViewGalaxy}>
+            <Sparkles className="w-4 h-4 mr-2" />
+            My Galaxy
+          </Button>
           <Button variant="outline" onClick={handleCreatePlanet}>
             <Globe className="w-4 h-4 mr-2" />
             Create Planet
