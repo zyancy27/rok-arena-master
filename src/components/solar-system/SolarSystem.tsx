@@ -1,9 +1,11 @@
-import { Suspense, useState, useEffect, useMemo } from 'react';
+import { Suspense, useState, useEffect, useMemo, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stars, PerspectiveCamera } from '@react-three/drei';
+import * as THREE from 'three';
 import Sun from './Sun';
 import Planet from './Planet';
 import OrbitRing from './OrbitRing';
+import CameraController from './CameraController';
 import PlanetMenu from './PlanetMenu';
 import CharacterList from './CharacterList';
 import PlanetEditor from './PlanetEditor';
@@ -33,7 +35,11 @@ interface PlanetData {
   characterCount: number;
 }
 
-type ViewState = 'galaxy' | 'menu' | 'characters' | 'editor';
+type ViewState = 'galaxy' | 'zooming' | 'menu' | 'zooming-in' | 'characters' | 'editor';
+
+// Default camera positions
+const GALAXY_CAMERA_POSITION = new THREE.Vector3(0, 15, 20);
+const GALAXY_LOOK_AT = new THREE.Vector3(0, 0, 0);
 
 // Generate consistent planet colors based on name
 function getPlanetColor(name: string): string {
@@ -55,6 +61,12 @@ export default function SolarSystem() {
   const [viewState, setViewState] = useState<ViewState>('galaxy');
   const [selectedPlanet, setSelectedPlanet] = useState<PlanetData | null>(null);
   const [planetCustomizations, setPlanetCustomizations] = useState<Record<string, { description: string; color: string }>>({});
+  
+  // Camera animation state
+  const [cameraTarget, setCameraTarget] = useState<THREE.Vector3 | null>(null);
+  const [cameraLookAt, setCameraLookAt] = useState<THREE.Vector3 | null>(null);
+  const [isZooming, setIsZooming] = useState(false);
+  const [controlsEnabled, setControlsEnabled] = useState(true);
 
   useEffect(() => {
     fetchCharacters();
@@ -118,32 +130,79 @@ export default function SolarSystem() {
     return planetArray;
   }, [characters, planetCustomizations]);
 
-  const handlePlanetClick = (planet: PlanetData) => {
+  const handlePlanetClick = useCallback((planet: PlanetData, position: { x: number; y: number; z: number }) => {
     setSelectedPlanet(planet);
-    setViewState('menu');
-  };
+    setViewState('zooming');
+    setControlsEnabled(false);
+    
+    // Calculate camera position to zoom toward planet
+    const planetPos = new THREE.Vector3(position.x, position.y, position.z);
+    const direction = planetPos.clone().normalize();
+    const distance = planet.planetSize * 6;
+    const cameraPos = planetPos.clone().add(
+      new THREE.Vector3(direction.x * distance, distance * 0.5, direction.z * distance + distance)
+    );
+    
+    setCameraTarget(cameraPos);
+    setCameraLookAt(planetPos);
+    setIsZooming(true);
+  }, []);
 
-  const handleViewCharacters = () => {
-    setViewState('characters');
-  };
+  const handleZoomComplete = useCallback(() => {
+    setIsZooming(false);
+    if (viewState === 'zooming') {
+      setViewState('menu');
+    } else if (viewState === 'zooming-in') {
+      setViewState('characters');
+    }
+  }, [viewState]);
+
+  const handleViewCharacters = useCallback(() => {
+    // Zoom in even closer for character view
+    if (cameraLookAt) {
+      const closePos = cameraLookAt.clone().add(new THREE.Vector3(0, 1, 3));
+      setCameraTarget(closePos);
+      setIsZooming(true);
+      setViewState('zooming-in');
+    }
+  }, [cameraLookAt]);
 
   const handleEditPlanet = () => {
     setViewState('editor');
   };
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
     if (viewState === 'menu') {
-      setSelectedPlanet(null);
-      setViewState('galaxy');
+      // Zoom back to galaxy view
+      setCameraTarget(GALAXY_CAMERA_POSITION.clone());
+      setCameraLookAt(GALAXY_LOOK_AT.clone());
+      setIsZooming(true);
+      setViewState('zooming');
+      
+      // After zoom completes, reset to galaxy
+      setTimeout(() => {
+        setSelectedPlanet(null);
+        setViewState('galaxy');
+        setControlsEnabled(true);
+        setIsZooming(false);
+      }, 1200);
     } else {
       setViewState('menu');
     }
-  };
+  }, [viewState]);
 
-  const handleBackToGalaxy = () => {
-    setSelectedPlanet(null);
-    setViewState('galaxy');
-  };
+  const handleBackToGalaxy = useCallback(() => {
+    setCameraTarget(GALAXY_CAMERA_POSITION.clone());
+    setCameraLookAt(GALAXY_LOOK_AT.clone());
+    setIsZooming(true);
+    
+    setTimeout(() => {
+      setSelectedPlanet(null);
+      setViewState('galaxy');
+      setControlsEnabled(true);
+      setIsZooming(false);
+    }, 1200);
+  }, []);
 
   const handleSavePlanet = (data: { name: string; description: string; color: string }) => {
     if (selectedPlanet) {
@@ -172,6 +231,8 @@ export default function SolarSystem() {
     );
   }
 
+  const showOverlay = viewState === 'menu' || viewState === 'characters' || viewState === 'editor';
+
   return (
     <div className="h-[calc(100vh-8rem)] relative">
       {/* Create Character Button */}
@@ -190,14 +251,30 @@ export default function SolarSystem() {
           Galaxy Map
         </h1>
         <p className="text-muted-foreground text-sm">
-          Click a planet to explore its inhabitants
+          {viewState === 'zooming' || viewState === 'zooming-in' 
+            ? 'Traveling...' 
+            : 'Click a planet to explore its inhabitants'}
         </p>
       </div>
+
+      {/* Zoom transition overlay */}
+      {(viewState === 'zooming' || viewState === 'zooming-in') && (
+        <div className="absolute inset-0 z-5 pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-radial from-transparent via-transparent to-background/30 animate-pulse" />
+        </div>
+      )}
 
       {/* 3D Canvas */}
       <Canvas className="!absolute inset-0">
         <PerspectiveCamera makeDefault position={[0, 15, 20]} fov={60} />
         <ambientLight intensity={0.2} />
+        
+        <CameraController
+          targetPosition={cameraTarget}
+          targetLookAt={cameraLookAt}
+          isZooming={isZooming}
+          onZoomComplete={handleZoomComplete}
+        />
         
         <Suspense fallback={null}>
           <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
@@ -214,7 +291,7 @@ export default function SolarSystem() {
                 orbitSpeed={planet.orbitSpeed}
                 color={planet.color}
                 characterCount={planet.characterCount}
-                onClick={() => handlePlanetClick(planet)}
+                onClick={(pos) => handlePlanetClick(planet, pos)}
                 isSelected={selectedPlanet?.name === planet.name}
               />
             </group>
@@ -222,6 +299,7 @@ export default function SolarSystem() {
         </Suspense>
 
         <OrbitControls
+          enabled={controlsEnabled}
           enablePan={false}
           minDistance={10}
           maxDistance={50}

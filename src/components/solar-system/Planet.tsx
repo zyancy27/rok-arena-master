@@ -14,7 +14,7 @@ interface PlanetProps {
   color: string;
   emissiveColor?: string;
   characterCount: number;
-  onClick: () => void;
+  onClick: (position: { x: number; y: number; z: number }) => void;
   isSelected: boolean;
 }
 
@@ -79,7 +79,13 @@ export default function Planet({
         args={[planetSize, 32, 32]}
         onClick={(e) => {
           e.stopPropagation();
-          onClick();
+          if (groupRef.current) {
+            onClick({
+              x: groupRef.current.position.x,
+              y: groupRef.current.position.y,
+              z: groupRef.current.position.z,
+            });
+          }
         }}
         onPointerOver={(e) => {
           e.stopPropagation();
