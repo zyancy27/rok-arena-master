@@ -41,7 +41,17 @@ import {
   Zap,
   Shield,
   Target,
+  Download,
+  Smile,
+  Lightbulb,
 } from 'lucide-react';
+import { downloadCharacterSheet, downloadCharacterSheetJSON } from '@/lib/character-sheet-download';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface CharacterData {
   id: string;
@@ -56,6 +66,8 @@ interface CharacterData {
   sub_race: string | null;
   age: number | null;
   image_url: string | null;
+  personality: string | null;
+  mentality: string | null;
   created_at: string;
   stat_intelligence: number | null;
   stat_strength: number | null;
@@ -203,7 +215,25 @@ export default function CharacterDetail() {
               </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              {/* Download Button - Available to everyone */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">
+                    <Download className="w-4 h-4 mr-2" />
+                    Download
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => downloadCharacterSheet(character)}>
+                    Download as Text (.txt)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => downloadCharacterSheetJSON(character)}>
+                    Download as JSON (.json)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               {!isOwner && userCharacters.length > 0 && (
                 <Button className="glow-accent" onClick={() => setShowChallengeModal(true)}>
                   <Swords className="w-4 h-4 mr-2" />
@@ -325,6 +355,34 @@ export default function CharacterDetail() {
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground whitespace-pre-wrap">
                   {character.abilities}
+                </AccordionContent>
+              </AccordionItem>
+            )}
+
+            {character.personality && (
+              <AccordionItem value="personality" className="border-border">
+                <AccordionTrigger className="hover:no-underline">
+                  <span className="flex items-center gap-2">
+                    <Smile className="w-4 h-4 text-accent" />
+                    Personality
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground whitespace-pre-wrap">
+                  {character.personality}
+                </AccordionContent>
+              </AccordionItem>
+            )}
+
+            {character.mentality && (
+              <AccordionItem value="mentality" className="border-border">
+                <AccordionTrigger className="hover:no-underline">
+                  <span className="flex items-center gap-2">
+                    <Lightbulb className="w-4 h-4 text-cosmic-gold" />
+                    Mentality
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent className="text-muted-foreground whitespace-pre-wrap">
+                  {character.mentality}
                 </AccordionContent>
               </AccordionItem>
             )}

@@ -19,6 +19,8 @@ interface CharacterData {
   age: string;
   image_url: string;
   user_id: string;
+  personality: string;
+  mentality: string;
   stat_intelligence?: number;
   stat_strength?: number;
   stat_power?: number;
@@ -72,6 +74,8 @@ export default function EditCharacter() {
       sub_race: data.sub_race || '',
       age: data.age?.toString() || '',
       image_url: data.image_url || '',
+      personality: data.personality || '',
+      mentality: data.mentality || '',
       stat_intelligence: data.stat_intelligence ?? 50,
       stat_strength: data.stat_strength ?? 50,
       stat_power: data.stat_power ?? 50,

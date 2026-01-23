@@ -15,7 +15,7 @@ import { POWER_TIERS } from '@/lib/game-constants';
 import { CHARACTER_STATS, DEFAULT_STATS, getTierBaseStats, type CharacterStats } from '@/lib/character-stats';
 import StatSlider from './StatSlider';
 import OwnershipNotice from '@/components/legal/OwnershipNotice';
-import { ArrowLeft, Save, Sparkles, Camera, Brain, Dumbbell, Flame, Zap, Shield, Heart, Target, Wand2 } from 'lucide-react';
+import { ArrowLeft, Save, Sparkles, Camera, Brain, Dumbbell, Flame, Zap, Shield, Heart, Target, Wand2, Smile, Lightbulb } from 'lucide-react';
 
 const iconMap = {
   Brain: <Brain className="w-4 h-4" />,
@@ -39,6 +39,8 @@ interface CharacterFormData {
   sub_race: string;
   age: string;
   image_url: string;
+  personality: string;
+  mentality: string;
 }
 
 interface CharacterFormProps {
@@ -63,6 +65,8 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
     sub_race: initialData?.sub_race || '',
     age: initialData?.age || '',
     image_url: initialData?.image_url || '',
+    personality: (initialData as any)?.personality || '',
+    mentality: (initialData as any)?.mentality || '',
   });
 
   const [stats, setStats] = useState<CharacterStats>({
@@ -148,6 +152,8 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
         sub_race: formData.sub_race.trim() || null,
         age: formData.age ? parseInt(formData.age) : null,
         image_url: imageUrl || null,
+        personality: formData.personality.trim() || null,
+        mentality: formData.mentality.trim() || null,
         user_id: user.id,
         ...stats,
       };
@@ -343,6 +349,36 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                 onChange={(e) => handleChange('abilities', e.target.value)}
                 rows={4}
               />
+            </div>
+
+            {/* Personality & Mentality */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="personality" className="flex items-center gap-2">
+                  <Smile className="w-4 h-4 text-accent" />
+                  Personality
+                </Label>
+                <Textarea
+                  id="personality"
+                  placeholder="Describe your character's personality traits, demeanor, and how they interact with others..."
+                  value={formData.personality}
+                  onChange={(e) => handleChange('personality', e.target.value)}
+                  rows={4}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="mentality" className="flex items-center gap-2">
+                  <Lightbulb className="w-4 h-4 text-cosmic-gold" />
+                  Mentality
+                </Label>
+                <Textarea
+                  id="mentality"
+                  placeholder="Describe your character's mindset, beliefs, motivations, and psychological traits..."
+                  value={formData.mentality}
+                  onChange={(e) => handleChange('mentality', e.target.value)}
+                  rows={4}
+                />
+              </div>
             </div>
 
             {/* Character Stats */}
