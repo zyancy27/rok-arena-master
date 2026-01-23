@@ -26,6 +26,7 @@ interface BattleRequest {
     content: string;
     channel: string;
   }>;
+  battleLocation?: string;
 }
 
 serve(async (req) => {
@@ -34,12 +35,14 @@ serve(async (req) => {
   }
 
   try {
-    const { userCharacter, opponent, userMessage, channel, messageHistory }: BattleRequest = await req.json();
+    const { userCharacter, opponent, userMessage, channel, messageHistory, battleLocation }: BattleRequest = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
+
+    const locationContext = battleLocation ? `\n\nBATTLE LOCATION: ${battleLocation}\nIncorporate this environment into your actions and descriptions. Use the terrain, elements, and atmosphere of this location in your combat responses.` : '';
 
     const systemPrompt = channel === 'in_universe'
       ? `You are roleplaying as ${opponent.name}, a ${opponent.personality}
@@ -51,7 +54,7 @@ Your character details:
 
 You are in a practice battle against ${userCharacter.name} (Tier ${userCharacter.level}).
 Their powers: ${userCharacter.powers || 'Unknown'}
-Their abilities: ${userCharacter.abilities || 'Unknown'}
+Their abilities: ${userCharacter.abilities || 'Unknown'}${locationContext}
 
 RULES FOR ROLEPLAY:
 1. Stay in character as ${opponent.name}
@@ -63,7 +66,8 @@ RULES FOR ROLEPLAY:
 7. If outmatched by tier difference, acknowledge the power gap
 8. Keep responses concise (2-4 paragraphs max)
 9. Follow R.O.K. rules: one base power, no godmodding
-10. Make the battle fun and educational`
+10. Make the battle fun and educational
+11. Use the battle environment creatively in your actions`
       : `You are ${opponent.name} speaking out-of-character (OOC) to help a player learn the Realm of Kings battle system.
 
 Provide helpful feedback about:

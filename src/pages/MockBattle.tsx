@@ -19,7 +19,9 @@ import {
   Send, 
   MessageSquare, 
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  User,
+  MapPin
 } from 'lucide-react';
 
 interface UserCharacter {
@@ -37,6 +39,15 @@ interface Message {
   content: string;
   channel: 'in_universe' | 'out_of_universe';
   characterName?: string;
+}
+
+interface AIOpponent {
+  id: string;
+  name: string;
+  level: number;
+  personality: string;
+  powers: string;
+  category: string;
 }
 
 // Original AI opponent templates
@@ -219,7 +230,7 @@ const ANIME_OPPONENTS = [
   },
 ];
 
-const AI_OPPONENTS = [...ORIGINAL_OPPONENTS, ...ICONIC_OPPONENTS, ...ANIME_OPPONENTS];
+const AI_OPPONENTS: AIOpponent[] = [...ORIGINAL_OPPONENTS, ...ICONIC_OPPONENTS, ...ANIME_OPPONENTS];
 
 export default function MockBattle() {
   const { user } = useAuth();
@@ -228,12 +239,15 @@ export default function MockBattle() {
   
   const [userCharacters, setUserCharacters] = useState<UserCharacter[]>([]);
   const [selectedCharacter, setSelectedCharacter] = useState<UserCharacter | null>(null);
-  const [selectedOpponent, setSelectedOpponent] = useState(AI_OPPONENTS[0]);
+  const [selectedOpponent, setSelectedOpponent] = useState<AIOpponent | null>(AI_OPPONENTS[0]);
+  const [selectedOwnCharacter, setSelectedOwnCharacter] = useState<UserCharacter | null>(null);
+  const [opponentType, setOpponentType] = useState<'ai' | 'own'>('ai');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [activeChannel, setActiveChannel] = useState<'in_universe' | 'out_of_universe'>('in_universe');
   const [battleStarted, setBattleStarted] = useState(false);
+  const [battleLocation, setBattleLocation] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -259,9 +273,31 @@ export default function MockBattle() {
     }
   };
 
+  // Get the current opponent (either AI or own character)
+  const currentOpponent = opponentType === 'ai' 
+    ? selectedOpponent 
+    : selectedOwnCharacter 
+      ? {
+          id: selectedOwnCharacter.id,
+          name: selectedOwnCharacter.name,
+          level: selectedOwnCharacter.level,
+          personality: `Your own character ${selectedOwnCharacter.name}. Roleplay based on their abilities and style.`,
+          powers: selectedOwnCharacter.powers || 'Unknown powers',
+          category: 'own'
+        }
+      : null;
+
   const startBattle = () => {
     if (!selectedCharacter) {
       toast.error('Please select a character first');
+      return;
+    }
+    if (!currentOpponent) {
+      toast.error('Please select an opponent');
+      return;
+    }
+    if (!battleLocation.trim()) {
+      toast.error('Please enter a battle location');
       return;
     }
     
@@ -269,15 +305,22 @@ export default function MockBattle() {
     const introMessage: Message = {
       id: crypto.randomUUID(),
       role: 'ai',
-      content: `*${selectedOpponent.name} materializes in the arena, ${selectedOpponent.level <= 2 ? 'radiating calm focus' : selectedOpponent.level <= 4 ? 'crackling with power' : 'warping reality around them'}*\n\n"${getOpponentIntro()}"`,
+      content: `*The arena shifts and transforms into ${battleLocation}*\n\n*${currentOpponent.name} materializes in the arena, ${currentOpponent.level <= 2 ? 'radiating calm focus' : currentOpponent.level <= 4 ? 'crackling with power' : 'warping reality around them'}*\n\n"${getOpponentIntro()}"`,
       channel: 'in_universe',
-      characterName: selectedOpponent.name,
+      characterName: currentOpponent.name,
     };
     setMessages([introMessage]);
   };
 
   const getOpponentIntro = () => {
-    switch (selectedOpponent.id) {
+    if (!currentOpponent || !selectedCharacter) return 'Prepare yourself, warrior.';
+    
+    // For own characters, generate a generic intro
+    if (opponentType === 'own' && selectedOwnCharacter) {
+      return `So, ${selectedCharacter.name}... we meet in battle at last. Show me what you're truly capable of!`;
+    }
+    
+    switch (currentOpponent.id) {
       case 'training-bot':
         return `Warrior ${selectedCharacter?.name}, I have analyzed your potential. Let us begin your training. Show me the depths of your ${selectedCharacter?.powers || 'power'}.`;
       case 'chaos-imp':
@@ -350,10 +393,11 @@ export default function MockBattle() {
             powers: selectedCharacter.powers,
             abilities: selectedCharacter.abilities,
           },
-          opponent: selectedOpponent,
+          opponent: currentOpponent,
           userMessage: input,
           channel: activeChannel,
           messageHistory: messages.slice(-10),
+          battleLocation,
         },
       });
 
@@ -364,7 +408,7 @@ export default function MockBattle() {
         role: 'ai',
         content: response.data.response,
         channel: activeChannel,
-        characterName: selectedOpponent.name,
+        characterName: currentOpponent?.name || 'Unknown',
       };
       
       setMessages(prev => [...prev, aiMessage]);
@@ -375,10 +419,10 @@ export default function MockBattle() {
         id: crypto.randomUUID(),
         role: 'ai',
         content: activeChannel === 'in_universe' 
-          ? `*${selectedOpponent.name} narrows their eyes, considering your move*\n\n"Interesting approach, ${selectedCharacter.name}. But can you handle THIS?"\n\n*${selectedOpponent.name} prepares a counter-attack*`
+          ? `*${currentOpponent?.name || 'Your opponent'} narrows their eyes, considering your move*\n\n"Interesting approach, ${selectedCharacter.name}. But can you handle THIS?"\n\n*${currentOpponent?.name || 'Your opponent'} prepares a counter-attack*`
           : `[OOC: Nice move! That was a creative use of your character's abilities. Want to keep going?]`,
         channel: activeChannel,
-        characterName: selectedOpponent.name,
+        characterName: currentOpponent?.name || 'Unknown',
       };
       setMessages(prev => [...prev, fallbackMessage]);
     } finally {
@@ -389,6 +433,7 @@ export default function MockBattle() {
   const resetBattle = () => {
     setMessages([]);
     setBattleStarted(false);
+    setBattleLocation('');
   };
 
   if (userCharacters.length === 0) {
@@ -471,67 +516,147 @@ export default function MockBattle() {
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-sm font-medium">AI Opponent</label>
-                  <Select 
-                    value={selectedOpponent.id} 
-                    onValueChange={(id) => setSelectedOpponent(AI_OPPONENTS.find(o => o.id === id) || AI_OPPONENTS[0])}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Training Opponents</div>
-                      {ORIGINAL_OPPONENTS.map((opponent) => (
-                        <SelectItem key={opponent.id} value={opponent.id}>
-                          <span className="flex items-center gap-2">
-                            <Bot className="w-3 h-3" />
-                            {opponent.name} (Tier {opponent.level})
-                          </span>
-                        </SelectItem>
-                      ))}
-                      <div className="px-2 py-1 text-xs font-semibold text-muted-foreground mt-2 border-t pt-2">
-                        ⚡ Iconic Heroes & Villains
-                      </div>
-                      {ICONIC_OPPONENTS.map((opponent) => (
-                        <SelectItem key={opponent.id} value={opponent.id}>
-                          <span className="flex items-center gap-2">
-                            <Swords className="w-3 h-3 text-primary" />
-                            {opponent.name} (Tier {opponent.level})
-                          </span>
-                        </SelectItem>
-                      ))}
-                      <div className="px-2 py-1 text-xs font-semibold text-muted-foreground mt-2 border-t pt-2">
-                        🌸 Anime & Manga
-                      </div>
-                      {ANIME_OPPONENTS.map((opponent) => (
-                        <SelectItem key={opponent.id} value={opponent.id}>
-                          <span className="flex items-center gap-2">
-                            <Sparkles className="w-3 h-3 text-pink-500" />
-                            {opponent.name} (Tier {opponent.level})
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <div className="p-3 rounded-lg bg-muted/50">
-                    <div className="flex items-center gap-3 mb-2">
-                      <Avatar className="bg-primary/20">
-                        <AvatarFallback className="text-primary">
-                          <Bot className="w-5 h-5" />
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{selectedOpponent.name}</p>
-                        <p className="text-xs text-muted-foreground">{getTierName(selectedOpponent.level)}</p>
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground">{selectedOpponent.personality}</p>
-                  </div>
+                  <label className="text-sm font-medium">Opponent Type</label>
+                  <Tabs value={opponentType} onValueChange={(v) => setOpponentType(v as 'ai' | 'own')}>
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="ai" className="flex items-center gap-2">
+                        <Bot className="w-4 h-4" />
+                        AI Characters
+                      </TabsTrigger>
+                      <TabsTrigger value="own" className="flex items-center gap-2">
+                        <User className="w-4 h-4" />
+                        My Characters
+                      </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+
+                  {opponentType === 'ai' ? (
+                    <>
+                      <Select 
+                        value={selectedOpponent?.id || ''} 
+                        onValueChange={(id) => setSelectedOpponent(AI_OPPONENTS.find(o => o.id === id) || AI_OPPONENTS[0])}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Training Opponents</div>
+                          {ORIGINAL_OPPONENTS.map((opponent) => (
+                            <SelectItem key={opponent.id} value={opponent.id}>
+                              <span className="flex items-center gap-2">
+                                <Bot className="w-3 h-3" />
+                                {opponent.name} (Tier {opponent.level})
+                              </span>
+                            </SelectItem>
+                          ))}
+                          <div className="px-2 py-1 text-xs font-semibold text-muted-foreground mt-2 border-t pt-2">
+                            ⚡ Iconic Heroes & Villains
+                          </div>
+                          {ICONIC_OPPONENTS.map((opponent) => (
+                            <SelectItem key={opponent.id} value={opponent.id}>
+                              <span className="flex items-center gap-2">
+                                <Swords className="w-3 h-3 text-primary" />
+                                {opponent.name} (Tier {opponent.level})
+                              </span>
+                            </SelectItem>
+                          ))}
+                          <div className="px-2 py-1 text-xs font-semibold text-muted-foreground mt-2 border-t pt-2">
+                            🌸 Anime & Manga
+                          </div>
+                          {ANIME_OPPONENTS.map((opponent) => (
+                            <SelectItem key={opponent.id} value={opponent.id}>
+                              <span className="flex items-center gap-2">
+                                <Sparkles className="w-3 h-3 text-pink-500" />
+                                {opponent.name} (Tier {opponent.level})
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {selectedOpponent && (
+                        <div className="p-3 rounded-lg bg-muted/50">
+                          <div className="flex items-center gap-3 mb-2">
+                            <Avatar className="bg-primary/20">
+                              <AvatarFallback className="text-primary">
+                                <Bot className="w-5 h-5" />
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">{selectedOpponent.name}</p>
+                              <p className="text-xs text-muted-foreground">{getTierName(selectedOpponent.level)}</p>
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{selectedOpponent.personality}</p>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <Select 
+                        value={selectedOwnCharacter?.id || ''} 
+                        onValueChange={(id) => setSelectedOwnCharacter(userCharacters.find(c => c.id === id) || null)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select your character as opponent" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {userCharacters.filter(c => c.id !== selectedCharacter?.id).map((char) => (
+                            <SelectItem key={char.id} value={char.id}>
+                              <span className="flex items-center gap-2">
+                                <User className="w-3 h-3" />
+                                {char.name} (Tier {char.level})
+                              </span>
+                            </SelectItem>
+                          ))}
+                          {userCharacters.filter(c => c.id !== selectedCharacter?.id).length === 0 && (
+                            <div className="px-2 py-3 text-center text-sm text-muted-foreground">
+                              You need at least 2 characters to fight yourself
+                            </div>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      {selectedOwnCharacter && (
+                        <div className="p-3 rounded-lg bg-muted/50">
+                          <div className="flex items-center gap-3 mb-2">
+                            <Avatar>
+                              <AvatarImage src={selectedOwnCharacter.image_url || undefined} />
+                              <AvatarFallback>{selectedOwnCharacter.name[0]}</AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">{selectedOwnCharacter.name}</p>
+                              <p className="text-xs text-muted-foreground">{getTierName(selectedOwnCharacter.level)}</p>
+                            </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Powers: {selectedOwnCharacter.powers || 'Unknown'}
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
 
+              {/* Battle Location */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-primary" />
+                  Battle Location
+                </label>
+                <Input
+                  placeholder="Enter battle location (e.g., Volcanic Mountains, Crystal Caverns, Space Station)"
+                  value={battleLocation}
+                  onChange={(e) => setBattleLocation(e.target.value)}
+                />
+              </div>
+
               <div className="text-center">
-                <Button onClick={startBattle} className="glow-primary" size="lg">
+                <Button 
+                  onClick={startBattle} 
+                  className="glow-primary" 
+                  size="lg"
+                  disabled={!selectedCharacter || !currentOpponent || !battleLocation.trim()}
+                >
                   <Swords className="w-5 h-5 mr-2" />
                   Begin Practice Battle
                 </Button>
@@ -539,6 +664,15 @@ export default function MockBattle() {
             </div>
           ) : (
             <div className="space-y-4">
+              {/* Battle Location Display */}
+              <div className="p-3 rounded-lg bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/30">
+                <div className="flex items-center gap-2 text-sm">
+                  <MapPin className="w-4 h-4 text-primary" />
+                  <span className="text-muted-foreground">Location:</span>
+                  <span className="font-semibold">{battleLocation}</span>
+                </div>
+              </div>
+
               {/* Battle Header */}
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
                 <div className="flex items-center gap-3">
@@ -554,14 +688,21 @@ export default function MockBattle() {
                 <Swords className="w-6 h-6 text-primary" />
                 <div className="flex items-center gap-3">
                   <div className="text-right">
-                    <p className="font-medium">{selectedOpponent.name}</p>
-                    <Badge variant="outline" className="text-xs">{getTierName(selectedOpponent.level)}</Badge>
+                    <p className="font-medium">{currentOpponent?.name}</p>
+                    <Badge variant="outline" className="text-xs">{getTierName(currentOpponent?.level || 1)}</Badge>
                   </div>
-                  <Avatar className="h-10 w-10 bg-primary/20">
-                    <AvatarFallback className="text-primary">
-                      <Bot className="w-5 h-5" />
-                    </AvatarFallback>
-                  </Avatar>
+                  {opponentType === 'own' && selectedOwnCharacter ? (
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={selectedOwnCharacter.image_url || undefined} />
+                      <AvatarFallback>{selectedOwnCharacter.name[0]}</AvatarFallback>
+                    </Avatar>
+                  ) : (
+                    <Avatar className="h-10 w-10 bg-primary/20">
+                      <AvatarFallback className="text-primary">
+                        <Bot className="w-5 h-5" />
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
                 </div>
               </div>
 

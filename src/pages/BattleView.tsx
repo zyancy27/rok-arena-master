@@ -31,6 +31,8 @@ import {
   Flag,
   Users,
   Sparkles,
+  MapPin,
+  Coins,
 } from 'lucide-react';
 
 interface Battle {
@@ -39,6 +41,10 @@ interface Battle {
   created_at: string;
   winner_id: string | null;
   loser_id: string | null;
+  location_1: string | null;
+  location_2: string | null;
+  chosen_location: string | null;
+  coin_flip_winner_id: string | null;
 }
 
 interface Participant {
@@ -76,6 +82,8 @@ export default function BattleView() {
   const [messageInput, setMessageInput] = useState('');
   const [activeChannel, setActiveChannel] = useState<'in_universe' | 'out_of_universe'>('in_universe');
   const [showRules, setShowRules] = useState(false);
+  const [locationInput, setLocationInput] = useState('');
+  const [isFlippingCoin, setIsFlippingCoin] = useState(false);
 
   useEffect(() => {
     if (id && user) {
@@ -294,18 +302,68 @@ export default function BattleView() {
   const handleAcceptBattle = async () => {
     if (!battle) return;
 
+    if (!locationInput.trim()) {
+      toast.error('Please enter your battle location first');
+      return;
+    }
+
+    // Set location_2 and then flip coin
+    const { error: locationError } = await supabase
+      .from('battles')
+      .update({ location_2: locationInput.trim() })
+      .eq('id', battle.id);
+
+    if (locationError) {
+      toast.error('Failed to set location');
+      return;
+    }
+
+    setBattle({ ...battle, location_2: locationInput.trim() });
+    setLocationInput('');
+    toast.success('Location submitted! Flip the coin to determine the battle arena.');
+  };
+
+  const handleCoinFlip = async () => {
+    if (!battle || !userCharacter) return;
+    
+    setIsFlippingCoin(true);
+    
+    // Animate coin flip
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Randomly choose winner
+    const locations = [battle.location_1, battle.location_2];
+    const winnerIndex = Math.random() > 0.5 ? 0 : 1;
+    const chosenLocation = locations[winnerIndex];
+    const winnerCharacterId = winnerIndex === 0 
+      ? participants[0]?.character_id 
+      : participants[1]?.character_id;
+
     const { error } = await supabase
       .from('battles')
-      .update({ status: 'active' })
+      .update({ 
+        status: 'active',
+        chosen_location: chosenLocation,
+        coin_flip_winner_id: winnerCharacterId
+      })
       .eq('id', battle.id);
 
     if (error) {
       toast.error('Failed to start battle');
+      setIsFlippingCoin(false);
       return;
     }
 
-    setBattle({ ...battle, status: 'active' });
-    toast.success('Battle has begun!');
+    setBattle({ 
+      ...battle, 
+      status: 'active', 
+      chosen_location: chosenLocation,
+      coin_flip_winner_id: winnerCharacterId
+    });
+    
+    const winnerName = participants[winnerIndex]?.character?.name || 'Unknown';
+    toast.success(`🪙 ${winnerName}'s location was chosen: ${chosenLocation}!`);
+    setIsFlippingCoin(false);
   };
 
   const inUniverseMessages = messages.filter(m => m.channel === 'in_universe');
@@ -354,17 +412,117 @@ export default function BattleView() {
         </div>
       </div>
 
-      {/* Pending Battle Actions */}
+      {/* Location Setup for Pending Battle */}
       {battle.status === 'pending' && userCharacter && (
         <Card className="bg-card-gradient border-border">
-          <CardContent className="p-4 text-center">
-            <p className="text-muted-foreground mb-4">
-              This battle is waiting to begin. Accept the challenge to start!
-            </p>
-            <Button onClick={handleAcceptBattle} className="glow-primary">
-              <Swords className="w-4 h-4 mr-2" />
-              Accept & Begin Battle
-            </Button>
+          <CardHeader className="py-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-primary" />
+              Battle Location Setup
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Show submitted locations */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  {participants[0]?.character?.name || 'Challenger'}'s Location
+                </p>
+                {battle.location_1 ? (
+                  <Badge variant="outline" className="w-full justify-start gap-2 py-2">
+                    <Sparkles className="w-3 h-3" />
+                    {battle.location_1}
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="w-full justify-start py-2 text-muted-foreground">
+                    Awaiting...
+                  </Badge>
+                )}
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  {participants[1]?.character?.name || 'Defender'}'s Location
+                </p>
+                {battle.location_2 ? (
+                  <Badge variant="outline" className="w-full justify-start gap-2 py-2">
+                    <Sparkles className="w-3 h-3" />
+                    {battle.location_2}
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="w-full justify-start py-2 text-muted-foreground">
+                    Awaiting...
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            {/* Input for defender to set their location */}
+            {userCharacter.turn_order === 2 && !battle.location_2 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Enter Your Battle Location</p>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="e.g., Volcanic Mountains, Crystal Caverns..."
+                    value={locationInput}
+                    onChange={(e) => setLocationInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAcceptBattle()}
+                  />
+                  <Button onClick={handleAcceptBattle} disabled={!locationInput.trim()}>
+                    Submit
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Coin flip when both locations are set */}
+            {battle.location_1 && battle.location_2 && !battle.chosen_location && (
+              <div className="text-center space-y-4 py-4">
+                <p className="text-sm text-muted-foreground">
+                  Both locations submitted! Flip the coin to decide the battle arena.
+                </p>
+                
+                {isFlippingCoin && (
+                  <div className="flex justify-center">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 animate-spin flex items-center justify-center shadow-lg">
+                      <Coins className="w-8 h-8 text-amber-900" />
+                    </div>
+                  </div>
+                )}
+                
+                {!isFlippingCoin && (
+                  <Button 
+                    onClick={handleCoinFlip}
+                    className="glow-primary"
+                    size="lg"
+                  >
+                    <Coins className="w-5 h-5 mr-2" />
+                    Flip Coin & Start Battle
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* Waiting for defender message */}
+            {userCharacter.turn_order === 1 && battle.location_1 && !battle.location_2 && (
+              <p className="text-center text-sm text-muted-foreground">
+                Waiting for your opponent to submit their location...
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Show chosen location when battle is active */}
+      {battle.chosen_location && (
+        <Card className="bg-gradient-to-br from-primary/10 to-accent/10 border-primary/30">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <MapPin className="w-5 h-5 text-primary" />
+              <div>
+                <p className="text-sm text-muted-foreground">Battle Location</p>
+                <p className="font-semibold text-lg">{battle.chosen_location}</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}
