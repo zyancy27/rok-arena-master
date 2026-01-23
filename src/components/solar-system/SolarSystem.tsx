@@ -6,6 +6,7 @@ import Sun from './Sun';
 import Planet from './Planet';
 import OrbitRing from './OrbitRing';
 import CameraController from './CameraController';
+import ZoomTransitionController from './ZoomTransitionController';
 import PlanetMenu from './PlanetMenu';
 import CharacterList from './CharacterList';
 import PlanetEditor, { PlanetCustomization } from './PlanetEditor';
@@ -781,6 +782,13 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
             </group>
           ))}
         </Suspense>
+
+        {/* Zoom transition detector */}
+        <ZoomTransitionController
+          onZoomOutThreshold={handleViewGalaxy}
+          threshold={48}
+          enabled={controlsEnabled && viewState === 'galaxy'}
+        />
 
         <OrbitControls
           enabled={controlsEnabled}
