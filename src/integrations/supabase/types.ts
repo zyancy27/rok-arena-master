@@ -236,10 +236,13 @@ export type Database = {
           created_at: string
           description: string | null
           display_name: string | null
+          gravity: number | null
           has_rings: boolean | null
           id: string
           moon_count: number | null
+          orbital_distance: number | null
           planet_name: string
+          radius: number | null
           updated_at: string
           user_id: string
         }
@@ -248,10 +251,13 @@ export type Database = {
           created_at?: string
           description?: string | null
           display_name?: string | null
+          gravity?: number | null
           has_rings?: boolean | null
           id?: string
           moon_count?: number | null
+          orbital_distance?: number | null
           planet_name: string
+          radius?: number | null
           updated_at?: string
           user_id: string
         }
@@ -260,10 +266,13 @@ export type Database = {
           created_at?: string
           description?: string | null
           display_name?: string | null
+          gravity?: number | null
           has_rings?: boolean | null
           id?: string
           moon_count?: number | null
+          orbital_distance?: number | null
           planet_name?: string
+          radius?: number | null
           updated_at?: string
           user_id?: string
         }

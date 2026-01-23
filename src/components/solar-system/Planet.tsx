@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import Atmosphere from './Atmosphere';
 import PlanetRings from './PlanetRings';
 import Moon from './Moon';
+import { getGravityClass } from '@/lib/planet-physics';
 
 interface PlanetProps {
   name: string;
@@ -23,6 +24,8 @@ interface PlanetProps {
   sunLuminosity?: number;
   habitableZoneInner?: number;
   habitableZoneOuter?: number;
+  // Planet physics
+  gravity?: number | null;
 }
 
 // Determine planet features based on name hash for consistency
@@ -61,6 +64,7 @@ export default function Planet({
   sunLuminosity = 1,
   habitableZoneInner = 4.75,
   habitableZoneOuter = 6.85,
+  gravity,
 }: PlanetProps) {
   const groupRef = useRef<THREE.Group>(null);
   const planetRef = useRef<THREE.Mesh>(null);
@@ -82,6 +86,9 @@ export default function Planet({
 
   // Calculate if planet is in habitable zone
   const isInHabitableZone = orbitRadius >= habitableZoneInner && orbitRadius <= habitableZoneOuter;
+  
+  // Gravity classification for display
+  const gravityInfo = gravity ? getGravityClass(gravity) : null;
   
   // Calculate planet temperature based on distance from sun and sun's luminosity
   // T_planet ∝ (L^0.25) / (d^0.5) - simplified equilibrium temperature
@@ -222,6 +229,17 @@ export default function Planet({
           <div className="text-[10px] text-muted-foreground/70">
             ~{planetTemperature}K · {climateZone}
           </div>
+          {gravityInfo && (
+            <div 
+              className="text-[10px] mt-0.5 px-1.5 py-0.5 rounded-full inline-block"
+              style={{ 
+                backgroundColor: gravityInfo.color + '30', 
+                color: gravityInfo.color 
+              }}
+            >
+              {gravity?.toFixed(1)}g · {gravityInfo.name}
+            </div>
+          )}
         </div>
       </Html>
     </group>
