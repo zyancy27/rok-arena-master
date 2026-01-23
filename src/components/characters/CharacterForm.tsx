@@ -14,9 +14,10 @@ import { toast } from 'sonner';
 import { POWER_TIERS } from '@/lib/game-constants';
 import { CHARACTER_STATS, DEFAULT_STATS, getTierBaseStats, type CharacterStats } from '@/lib/character-stats';
 import { getGravityClass, calculateGravityStatModifiers } from '@/lib/planet-physics';
+import { parseTerrainFromLore, generateTerrainVisuals, getTerrainSummary } from '@/lib/planet-terrain';
 import StatSlider from './StatSlider';
 import OwnershipNotice from '@/components/legal/OwnershipNotice';
-import { ArrowLeft, Save, Sparkles, Camera, Brain, Dumbbell, Flame, Zap, Shield, Heart, Target, Wand2, Smile, Lightbulb, Globe } from 'lucide-react';
+import { ArrowLeft, Save, Sparkles, Camera, Brain, Dumbbell, Flame, Zap, Shield, Heart, Target, Wand2, Smile, Lightbulb, Globe, Mountain, Thermometer } from 'lucide-react';
 
 const iconMap = {
   Brain: <Brain className="w-4 h-4" />,
@@ -55,6 +56,11 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
   const [isLoading, setIsLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [planetGravity, setPlanetGravity] = useState<number | null>(null);
+  const [planetData, setPlanetData] = useState<{
+    description: string | null;
+    gravity: number | null;
+    orbital_distance: number | null;
+  } | null>(null);
   
   const [formData, setFormData] = useState<CharacterFormData>({
     name: initialData?.name || '',
@@ -82,29 +88,36 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
     stat_luck: initialData?.stat_luck ?? DEFAULT_STATS.stat_luck,
   });
 
-  // Fetch planet gravity when home_planet changes
+  // Fetch planet data when home_planet changes
   useEffect(() => {
-    const fetchPlanetGravity = async () => {
+    const fetchPlanetData = async () => {
       if (!formData.home_planet.trim() || !user) {
         setPlanetGravity(null);
+        setPlanetData(null);
         return;
       }
 
       const { data } = await supabase
         .from('planet_customizations')
-        .select('gravity')
+        .select('gravity, description, orbital_distance')
         .eq('planet_name', formData.home_planet.trim())
         .eq('user_id', user.id)
         .maybeSingle();
 
       setPlanetGravity(data?.gravity ?? null);
+      setPlanetData(data);
     };
 
-    fetchPlanetGravity();
+    fetchPlanetData();
   }, [formData.home_planet, user]);
 
   const gravityClass = planetGravity ? getGravityClass(planetGravity) : null;
   const gravityModifiers = planetGravity ? calculateGravityStatModifiers(planetGravity) : null;
+  
+  // Parse terrain from planet description
+  const terrainFeatures = planetData?.description ? parseTerrainFromLore(planetData.description) : null;
+  const terrainVisuals = terrainFeatures ? generateTerrainVisuals(terrainFeatures, '#3B82F6') : null;
+  const terrainSummary = terrainFeatures ? getTerrainSummary(terrainFeatures) : null;
 
   const handleStatChange = (key: keyof CharacterStats, value: number) => {
     setStats(prev => ({ ...prev, [key]: value }));
@@ -336,22 +349,58 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                 value={formData.home_planet}
                 onChange={(e) => handleChange('home_planet', e.target.value)}
               />
-              {gravityClass && gravityModifiers && (
-                <div 
-                  className="mt-2 p-3 rounded-lg border text-sm"
-                  style={{ 
-                    backgroundColor: gravityClass.color + '15', 
-                    borderColor: gravityClass.color + '40' 
-                  }}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <Globe className="w-4 h-4" style={{ color: gravityClass.color }} />
-                    <span className="font-medium" style={{ color: gravityClass.color }}>
-                      {gravityClass.name} ({planetGravity?.toFixed(2)}g)
-                    </span>
+              {/* Planet Info Panel - shows when planet data exists */}
+              {(gravityClass || terrainFeatures) && (
+                <div className="mt-3 p-4 rounded-lg border bg-muted/30 space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-semibold">
+                    <Globe className="w-4 h-4 text-primary" />
+                    Planet Environment
                   </div>
-                  <p className="text-xs text-muted-foreground mb-1">{gravityClass.description}</p>
-                  <p className="text-xs font-medium">{gravityModifiers.description}</p>
+                  
+                  {/* Gravity info */}
+                  {gravityClass && gravityModifiers && (
+                    <div 
+                      className="p-2 rounded border-l-2"
+                      style={{ 
+                        backgroundColor: gravityClass.color + '10', 
+                        borderColor: gravityClass.color 
+                      }}
+                    >
+                      <div className="flex items-center gap-2 text-xs font-medium" style={{ color: gravityClass.color }}>
+                        <span>{gravityClass.name} ({planetGravity?.toFixed(2)}g)</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">{gravityModifiers.description}</p>
+                    </div>
+                  )}
+                  
+                  {/* Terrain summary */}
+                  {terrainSummary && (
+                    <div className="p-2 rounded bg-background/50 border-l-2 border-accent">
+                      <div className="flex items-center gap-2 text-xs font-medium text-accent">
+                        <Mountain className="w-3 h-3" />
+                        Terrain
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 capitalize">{terrainSummary}</p>
+                    </div>
+                  )}
+                  
+                  {/* Physiology hints */}
+                  {terrainVisuals && terrainVisuals.physiologyHints.length > 0 && (
+                    <div className="p-2 rounded bg-background/50 border-l-2 border-primary">
+                      <div className="flex items-center gap-2 text-xs font-medium text-primary mb-1">
+                        <Thermometer className="w-3 h-3" />
+                        Suggested Physiology Adaptations
+                      </div>
+                      <ul className="text-xs text-muted-foreground space-y-1">
+                        {terrainVisuals.physiologyHints.map((hint, i) => (
+                          <li key={i} className="flex items-start gap-1">
+                            <span className="text-primary/50">•</span>
+                            {hint}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -475,6 +475,7 @@ export default function SolarSystem() {
                   habitableZoneInner={habitableZone.inner}
                   habitableZoneOuter={habitableZone.outer}
                   gravity={planet.gravity}
+                  description={planet.description}
                 />
               </group>
             );
