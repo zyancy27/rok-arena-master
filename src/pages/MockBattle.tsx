@@ -14,7 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { getTierName } from '@/lib/game-constants';
-import { generateBattleEnvironment, getEnvironmentStatImpact, BattleEnvironment } from '@/lib/battle-environment';
+import { generateBattleEnvironment, getEnvironmentStatImpact, BattleEnvironment, shouldTriggerHazard, generateHazardEventPrompt } from '@/lib/battle-environment';
 import { 
   ArrowLeft, 
   Swords, 
@@ -428,6 +428,17 @@ export default function MockBattle() {
     setInput('');
     setIsLoading(true);
 
+    // Determine if an environmental hazard should trigger
+    const messageCount = messages.filter(m => m.channel === 'in_universe').length;
+    const hazardShouldTrigger = dynamicEnvironment && 
+                                 battleEnvironment?.terrainFeatures && 
+                                 activeChannel === 'in_universe' &&
+                                 shouldTriggerHazard(messageCount, 'medium');
+    
+    const hazardEvent = hazardShouldTrigger 
+      ? generateHazardEventPrompt(battleEnvironment?.terrainFeatures || null)
+      : undefined;
+
     try {
       const response = await supabase.functions.invoke('mock-battle-ai', {
         body: {
@@ -444,6 +455,7 @@ export default function MockBattle() {
           battleLocation,
           dynamicEnvironment: dynamicEnvironment && !!battleEnvironment,
           environmentEffects: battleEnvironment?.effectsPrompt || '',
+          hazardEvent,
         },
       });
 

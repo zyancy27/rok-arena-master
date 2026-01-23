@@ -29,6 +29,7 @@ interface BattleRequest {
   battleLocation?: string;
   dynamicEnvironment?: boolean;
   environmentEffects?: string;
+  hazardEvent?: string;
 }
 
 serve(async (req) => {
@@ -37,7 +38,7 @@ serve(async (req) => {
   }
 
   try {
-    const { userCharacter, opponent, userMessage, channel, messageHistory, battleLocation, dynamicEnvironment, environmentEffects }: BattleRequest = await req.json();
+    const { userCharacter, opponent, userMessage, channel, messageHistory, battleLocation, dynamicEnvironment, environmentEffects, hazardEvent }: BattleRequest = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -51,6 +52,12 @@ serve(async (req) => {
       locationContext += environmentEffects;
     } else if (battleLocation) {
       locationContext += `\nIncorporate this environment into your actions and descriptions. Use the terrain, elements, and atmosphere of this location in your combat responses.`;
+    }
+
+    // Add hazard event if triggered
+    let hazardContext = '';
+    if (hazardEvent) {
+      hazardContext = hazardEvent;
     }
 
     const systemPrompt = channel === 'in_universe'
@@ -77,7 +84,8 @@ RULES FOR ROLEPLAY:
 9. Follow R.O.K. rules: one base power, no godmodding
 10. Make the battle fun and educational
 11. Use the battle environment creatively in your actions
-${dynamicEnvironment ? '12. CRITICAL: When describing any physical action (throwing, jumping, running, lifting), explicitly describe how the environmental conditions affect that action. Be specific about the physics.' : ''}`
+${dynamicEnvironment ? '12. CRITICAL: When describing any physical action (throwing, jumping, running, lifting), explicitly describe how the environmental conditions affect that action. Be specific about the physics.' : ''}
+${hazardEvent ? '13. CRITICAL PRIORITY: An environmental hazard has just occurred! You MUST start your response by narrating this hazard event dramatically, then show how BOTH fighters react to it before continuing the battle. The hazard affects both combatants equally.' : ''}`
       : `You are ${opponent.name} speaking out-of-character (OOC) to help a player learn the Realm of Kings battle system.
 
 Provide helpful feedback about:
@@ -88,8 +96,10 @@ Provide helpful feedback about:
 
 Keep responses friendly and constructive. Use [OOC: ...] format.`;
 
+    // Add hazard event as a system-level instruction if present
     const messages = [
       { role: "system", content: systemPrompt },
+      ...(hazardEvent ? [{ role: "system", content: hazardContext }] : []),
       ...messageHistory.slice(-8).map(m => ({
         role: m.role === 'user' ? 'user' : 'assistant',
         content: m.content,

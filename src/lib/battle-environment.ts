@@ -17,6 +17,128 @@ export interface BattleEnvironment {
   shortSummary: string;
 }
 
+export interface EnvironmentalHazard {
+  name: string;
+  description: string;
+  severity: 'minor' | 'moderate' | 'severe';
+  terrain: string[];
+}
+
+/**
+ * Define possible environmental hazards by terrain type
+ */
+const ENVIRONMENTAL_HAZARDS: Record<string, EnvironmentalHazard[]> = {
+  volcanic: [
+    { name: 'Lava Eruption', description: 'A nearby fissure cracks open, spewing molten lava across the battlefield! Both fighters must dodge the spreading flow.', severity: 'severe', terrain: ['volcanic'] },
+    { name: 'Ground Collapse', description: 'The unstable volcanic rock crumbles, creating a new chasm between the fighters!', severity: 'moderate', terrain: ['volcanic'] },
+    { name: 'Ash Cloud', description: 'A sudden eruption releases a thick cloud of volcanic ash, obscuring vision for both combatants!', severity: 'minor', terrain: ['volcanic'] },
+    { name: 'Heat Wave', description: 'A wave of superheated air blasts across the arena, forcing both fighters to shield themselves!', severity: 'moderate', terrain: ['volcanic'] },
+  ],
+  tundra: [
+    { name: 'Ice Crack', description: 'The frozen ground splits with a thunderous crack! The ice beneath both fighters becomes treacherously unstable.', severity: 'severe', terrain: ['tundra'] },
+    { name: 'Blizzard Surge', description: 'A sudden whiteout blizzard sweeps across the battlefield, reducing visibility to near zero!', severity: 'moderate', terrain: ['tundra'] },
+    { name: 'Avalanche', description: 'Snow and ice cascade down from above! Both combatants must scramble to avoid being buried.', severity: 'severe', terrain: ['tundra', 'mountain'] },
+    { name: 'Freezing Wind', description: 'A blast of arctic wind cuts through the battlefield, numbing exposed flesh and slowing movements.', severity: 'minor', terrain: ['tundra'] },
+  ],
+  desert: [
+    { name: 'Sandstorm', description: 'A massive sandstorm rolls in, pelting both fighters with stinging sand and reducing visibility!', severity: 'moderate', terrain: ['desert'] },
+    { name: 'Quicksand', description: 'The ground suddenly gives way to quicksand! Both fighters struggle to maintain solid footing.', severity: 'severe', terrain: ['desert'] },
+    { name: 'Dust Devil', description: 'A spinning column of sand and debris sweeps between the combatants, disrupting their engagement!', severity: 'minor', terrain: ['desert'] },
+    { name: 'Heat Mirage', description: 'Intense heat creates disorienting mirages, making distances and positions deceiving for both fighters.', severity: 'minor', terrain: ['desert'] },
+  ],
+  ocean: [
+    { name: 'Tidal Surge', description: 'A massive wave crashes onto the battlefield, threatening to sweep both fighters off their feet!', severity: 'severe', terrain: ['ocean', 'coastal'] },
+    { name: 'Whirlpool', description: 'The water beneath begins spinning violently, creating a dangerous vortex that pulls at both combatants!', severity: 'severe', terrain: ['ocean'] },
+    { name: 'Lightning Strike', description: 'A bolt of lightning cracks down near the water, sending electrical current through the battlefield!', severity: 'moderate', terrain: ['ocean', 'storm'] },
+    { name: 'Rogue Wave', description: 'An unexpected wave surges across the arena, forcing both fighters to brace or be knocked down!', severity: 'moderate', terrain: ['ocean', 'coastal'] },
+  ],
+  crystal: [
+    { name: 'Crystal Shatter', description: 'A massive crystal formation explodes, sending razor-sharp shards flying in all directions!', severity: 'severe', terrain: ['crystal'] },
+    { name: 'Resonance Wave', description: 'The crystals begin to hum and vibrate at a disorienting frequency, affecting balance and concentration!', severity: 'moderate', terrain: ['crystal'] },
+    { name: 'Light Refraction', description: 'The crystals suddenly catch the light, creating blinding prismatic flashes across the battlefield!', severity: 'minor', terrain: ['crystal'] },
+  ],
+  floating: [
+    { name: 'Platform Shift', description: 'The floating island lurches violently, throwing both fighters off balance!', severity: 'moderate', terrain: ['floating'] },
+    { name: 'Platform Collision', description: 'Two floating platforms crash together, sending debris flying and creating new terrain!', severity: 'severe', terrain: ['floating'] },
+    { name: 'Gravity Flux', description: 'The mysterious forces holding the islands aloft fluctuate, causing both fighters to briefly lose their footing!', severity: 'minor', terrain: ['floating'] },
+  ],
+  storm: [
+    { name: 'Lightning Strike', description: 'A bolt of lightning crashes down between the fighters, leaving the air crackling with electricity!', severity: 'severe', terrain: ['storm'] },
+    { name: 'Thunder Blast', description: 'A deafening thunderclap rocks the battlefield, momentarily stunning both combatants!', severity: 'moderate', terrain: ['storm'] },
+    { name: 'Wind Gust', description: 'A powerful gust of wind sweeps across the arena, pushing both fighters and disrupting projectiles!', severity: 'minor', terrain: ['storm'] },
+  ],
+  generic: [
+    { name: 'Seismic Tremor', description: 'The ground shakes violently beneath both fighters, making stable footing nearly impossible!', severity: 'moderate', terrain: ['any'] },
+    { name: 'Meteor Strike', description: 'A small meteor crashes nearby, creating a shockwave that staggers both combatants!', severity: 'severe', terrain: ['any'] },
+    { name: 'Energy Surge', description: 'A strange energy pulse ripples through the battlefield, disrupting powers and abilities momentarily!', severity: 'moderate', terrain: ['any'] },
+  ],
+};
+
+/**
+ * Get applicable hazards for a given terrain feature set
+ */
+export function getApplicableHazards(terrainFeatures: TerrainFeatures | null): EnvironmentalHazard[] {
+  const hazards: EnvironmentalHazard[] = [...ENVIRONMENTAL_HAZARDS.generic];
+  
+  if (!terrainFeatures) return hazards;
+  
+  if (terrainFeatures.hasVolcanoes) {
+    hazards.push(...ENVIRONMENTAL_HAZARDS.volcanic);
+  }
+  if (terrainFeatures.hasTundra) {
+    hazards.push(...ENVIRONMENTAL_HAZARDS.tundra);
+  }
+  if (terrainFeatures.hasDeserts) {
+    hazards.push(...ENVIRONMENTAL_HAZARDS.desert);
+  }
+  if (terrainFeatures.oceanCoverage > 0.3) {
+    hazards.push(...ENVIRONMENTAL_HAZARDS.ocean);
+  }
+  if (terrainFeatures.hasCrystals) {
+    hazards.push(...ENVIRONMENTAL_HAZARDS.crystal);
+  }
+  if (terrainFeatures.hasFloatingIslands) {
+    hazards.push(...ENVIRONMENTAL_HAZARDS.floating);
+  }
+  // Check for storm-like conditions in lore/biome
+  if (terrainFeatures.primaryBiome === 'stormy' || 
+      terrainFeatures.atmosphereType === 'thick') {
+    hazards.push(...ENVIRONMENTAL_HAZARDS.storm);
+  }
+  
+  return hazards;
+}
+
+/**
+ * Generate hazard event prompt for AI to incorporate
+ */
+export function generateHazardEventPrompt(terrainFeatures: TerrainFeatures | null): string {
+  const hazards = getApplicableHazards(terrainFeatures);
+  
+  if (hazards.length === 0) return '';
+  
+  // Pick a random hazard
+  const hazard = hazards[Math.floor(Math.random() * hazards.length)];
+  
+  return `\n\n⚠️ ENVIRONMENTAL HAZARD EVENT: ${hazard.name.toUpperCase()}\n${hazard.description}\n\nYou MUST incorporate this hazard into your response. Describe how it affects BOTH fighters and how they react to it. This hazard takes priority in your narrative - describe the event happening first, then show both characters' reactions before continuing the battle.`;
+}
+
+/**
+ * Determine if a hazard should trigger (based on message count for pacing)
+ */
+export function shouldTriggerHazard(messageCount: number, hazardFrequency: 'low' | 'medium' | 'high' = 'medium'): boolean {
+  // Don't trigger on first few exchanges
+  if (messageCount < 3) return false;
+  
+  const thresholds = {
+    low: 0.1,    // 10% chance
+    medium: 0.2, // 20% chance  
+    high: 0.35,  // 35% chance
+  };
+  
+  return Math.random() < thresholds[hazardFrequency];
+}
+
 /**
  * Generate battle environment context from planet data
  */
