@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -7,15 +8,29 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { User, Save, Camera } from 'lucide-react';
+import { User, Save, Camera, Trash2 } from 'lucide-react';
 
 export default function Profile() {
-  const { user, profile, refreshProfile } = useAuth();
+  const navigate = useNavigate();
+  const { user, profile, refreshProfile, signOut } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [displayName, setDisplayName] = useState(profile?.display_name || '');
   const [bio, setBio] = useState(profile?.bio || '');
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
 
   const handleSave = async () => {
     if (!user || !profile) return;
@@ -63,6 +78,86 @@ export default function Profile() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!user || deleteConfirmation !== 'DELETE') return;
+    setIsDeleting(true);
+
+    try {
+      // Delete user data in order (respecting foreign key constraints)
+      // 1. Delete battle messages for user's characters
+      const { data: userCharacters } = await supabase
+        .from('characters')
+        .select('id')
+        .eq('user_id', user.id);
+
+      if (userCharacters && userCharacters.length > 0) {
+        const characterIds = userCharacters.map(c => c.id);
+        
+        await supabase
+          .from('battle_messages')
+          .delete()
+          .in('character_id', characterIds);
+
+        await supabase
+          .from('battle_participants')
+          .delete()
+          .in('character_id', characterIds);
+      }
+
+      // 2. Delete characters
+      await supabase
+        .from('characters')
+        .delete()
+        .eq('user_id', user.id);
+
+      // 3. Delete planet customizations
+      await supabase
+        .from('planet_customizations')
+        .delete()
+        .eq('user_id', user.id);
+
+      // 4. Delete sun customizations
+      await supabase
+        .from('sun_customizations')
+        .delete()
+        .eq('user_id', user.id);
+
+      // 5. Delete solar systems
+      await supabase
+        .from('solar_systems')
+        .delete()
+        .eq('user_id', user.id);
+
+      // 6. Delete races
+      await supabase
+        .from('races')
+        .delete()
+        .eq('user_id', user.id);
+
+      // 7. Delete user roles
+      await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', user.id);
+
+      // 8. Delete profile
+      await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', user.id);
+
+      // 9. Sign out and navigate away
+      await signOut();
+      navigate('/');
+      toast.success('Your account has been deleted.');
+    } catch (error: any) {
+      console.error('Delete account error:', error);
+      toast.error(error.message || 'Failed to delete account. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -75,7 +170,7 @@ export default function Profile() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto space-y-6">
       <Card className="bg-card-gradient border-border">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -163,6 +258,71 @@ export default function Profile() {
             <Save className="w-4 h-4 mr-2" />
             {isLoading ? 'Saving...' : 'Save Changes'}
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Danger Zone */}
+      <Card className="border-destructive/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-destructive">
+            <Trash2 className="w-5 h-5" />
+            Danger Zone
+          </CardTitle>
+          <CardDescription>
+            Irreversible actions that affect your account
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" className="w-full">
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete My Account
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                <AlertDialogDescription className="space-y-3">
+                  <p>
+                    This action cannot be undone. This will permanently delete your account
+                    and remove all your data from our servers, including:
+                  </p>
+                  <ul className="list-disc list-inside text-sm space-y-1">
+                    <li>Your profile and avatar</li>
+                    <li>All your characters</li>
+                    <li>Your solar systems and planets</li>
+                    <li>Your custom races</li>
+                    <li>Battle history and messages</li>
+                  </ul>
+                  <div className="pt-2">
+                    <Label htmlFor="delete-confirm" className="text-foreground">
+                      Type <span className="font-bold text-destructive">DELETE</span> to confirm:
+                    </Label>
+                    <Input
+                      id="delete-confirm"
+                      className="mt-2"
+                      placeholder="DELETE"
+                      value={deleteConfirmation}
+                      onChange={(e) => setDeleteConfirmation(e.target.value)}
+                    />
+                  </div>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setDeleteConfirmation('')}>
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteAccount}
+                  disabled={deleteConfirmation !== 'DELETE' || isDeleting}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete Account'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </CardContent>
       </Card>
     </div>
