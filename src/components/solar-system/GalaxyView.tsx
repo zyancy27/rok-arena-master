@@ -1,6 +1,6 @@
-import { Suspense, useEffect, useState, useRef, useMemo } from 'react';
+import { Suspense, useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Stars, PerspectiveCamera, Html } from '@react-three/drei';
+import { Stars, PerspectiveCamera, Html, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,43 @@ import { ArrowLeft, Sparkles, Users, Globe } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFriends } from '@/hooks/use-friends';
+
+// Component to detect zoom-in and trigger solar system entry
+function GalaxyZoomController({
+  onZoomIn,
+  userSystemId,
+  threshold = 15,
+}: {
+  onZoomIn: (systemId: string) => void;
+  userSystemId: string | null;
+  threshold?: number;
+}) {
+  const { camera } = useThree();
+  const hasTriggered = useRef(false);
+  const wasAboveThreshold = useRef(true);
+
+  useFrame(() => {
+    if (!userSystemId) return;
+    
+    const distance = camera.position.length();
+    
+    // Check if we've crossed the threshold going inward (zooming in)
+    if (distance <= threshold && !hasTriggered.current && wasAboveThreshold.current) {
+      hasTriggered.current = true;
+      onZoomIn(userSystemId);
+    }
+    
+    // Reset when zoomed back out
+    if (distance > threshold + 5) {
+      wasAboveThreshold.current = true;
+      hasTriggered.current = false;
+    } else if (distance <= threshold) {
+      wasAboveThreshold.current = false;
+    }
+  });
+
+  return null;
+}
 
 // Cosmic dust particle system
 function CosmicDust({ count = 500 }: { count?: number }) {
@@ -550,6 +587,10 @@ export default function GalaxyView({ currentSystemId, onEnterSystem, onBack }: G
     onEnterSystem(system.id);
   };
 
+  const handleZoomInToSystem = useCallback((systemId: string) => {
+    onEnterSystem(systemId);
+  }, [onEnterSystem]);
+
   if (loading) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -617,7 +658,21 @@ export default function GalaxyView({ currentSystemId, onEnterSystem, onBack }: G
             onHover={setHoveredSystem}
             onSystemClick={handleSystemClick}
           />
+          
+          {/* Zoom controller - zooming in enters your primary solar system */}
+          <GalaxyZoomController
+            onZoomIn={handleZoomInToSystem}
+            userSystemId={currentSystemId}
+            threshold={18}
+          />
         </Suspense>
+        
+        <OrbitControls
+          enablePan={false}
+          minDistance={12}
+          maxDistance={80}
+          maxPolarAngle={Math.PI / 2}
+        />
       </Canvas>
 
       {/* Empty state */}
