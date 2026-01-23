@@ -19,6 +19,7 @@ import BattleView from "@/pages/BattleView";
 import MockBattle from "@/pages/MockBattle";
 import Rules from "@/pages/Rules";
 import Profile from "@/pages/Profile";
+import Friends from "@/pages/Friends";
 import Admin from "@/pages/Admin";
 import Terms from "@/pages/Terms";
 import Races from "@/pages/Races";
@@ -48,6 +49,7 @@ const App = () => (
               <Route path="/battles/practice" element={<MockBattle />} />
               <Route path="/battles/:id" element={<BattleView />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/friends" element={<Friends />} />
               <Route path="/races" element={<Races />} />
               <Route path="/admin" element={<ProtectedRoute requireModerator><Admin /></ProtectedRoute>} />
             </Route>

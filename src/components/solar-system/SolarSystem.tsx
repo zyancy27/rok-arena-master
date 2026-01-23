@@ -87,7 +87,11 @@ function getPlanetColor(name: string): string {
   return colors[Math.abs(hash) % colors.length];
 }
 
-export default function SolarSystem() {
+interface SolarSystemProps {
+  viewSystemId?: string | null;
+}
+
+export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
   const { user } = useAuth();
   const [characters, setCharacters] = useState<Character[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,6 +108,7 @@ export default function SolarSystem() {
   // Solar system state
   const [solarSystems, setSolarSystems] = useState<SolarSystemData[]>([]);
   const [currentSystem, setCurrentSystem] = useState<SolarSystemData | null>(null);
+  const [isViewingFriend, setIsViewingFriend] = useState(false);
   
   // Camera animation state
   const [cameraTarget, setCameraTarget] = useState<THREE.Vector3 | null>(null);
@@ -114,7 +119,7 @@ export default function SolarSystem() {
   // Fetch solar systems first
   useEffect(() => {
     fetchSolarSystems();
-  }, [user]);
+  }, [user, viewSystemId]);
 
   // Fetch data when current system changes
   useEffect(() => {
@@ -139,10 +144,21 @@ export default function SolarSystem() {
 
     setSolarSystems(data || []);
     
+    // If viewing a specific system (from friend link), use that
+    if (viewSystemId && data) {
+      const viewSystem = data.find(s => s.id === viewSystemId);
+      if (viewSystem) {
+        setCurrentSystem(viewSystem);
+        setIsViewingFriend(viewSystem.user_id !== user?.id);
+        return;
+      }
+    }
+    
     // Set current system - prefer user's first system, or first available
     if (data && data.length > 0) {
       const userSystem = data.find(s => s.user_id === user?.id);
       setCurrentSystem(userSystem || data[0]);
+      setIsViewingFriend(false);
     } else if (user) {
       // Auto-create a default system for the user
       await createDefaultSystem();
@@ -551,7 +567,7 @@ export default function SolarSystem() {
       <div className="h-full flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-muted-foreground">Loading the galaxy...</p>
+          <p className="text-muted-foreground">Loading solar system...</p>
         </div>
       </div>
     );
@@ -559,24 +575,49 @@ export default function SolarSystem() {
 
   return (
     <div className="h-[calc(100vh-8rem)] relative">
-      {/* Action Buttons */}
-      <div className="absolute top-4 right-4 z-10 flex gap-2">
-        <Button variant="outline" onClick={handleCreatePlanet}>
-          <Globe className="w-4 h-4 mr-2" />
-          Create Planet
-        </Button>
-        <Button asChild>
-          <Link to="/characters/new">
-            <Plus className="w-4 h-4 mr-2" />
-            Create Character
-          </Link>
-        </Button>
-      </div>
+      {/* Viewing Friend Banner */}
+      {isViewingFriend && currentSystem && (
+        <div className="absolute top-0 left-0 right-0 z-20 bg-primary/20 border-b border-primary/30 py-2 px-4 text-center">
+          <p className="text-sm">
+            Viewing <span className="font-semibold">{currentSystem.name}</span> (read-only)
+            <Button
+              variant="link"
+              size="sm"
+              className="ml-2"
+              onClick={() => {
+                const userSystem = solarSystems.find(s => s.user_id === user?.id);
+                if (userSystem) {
+                  setCurrentSystem(userSystem);
+                  setIsViewingFriend(false);
+                }
+              }}
+            >
+              Return to your system
+            </Button>
+          </p>
+        </div>
+      )}
+
+      {/* Action Buttons - hide when viewing friend's system */}
+      {!isViewingFriend && (
+        <div className="absolute top-4 right-4 z-10 flex gap-2">
+          <Button variant="outline" onClick={handleCreatePlanet}>
+            <Globe className="w-4 h-4 mr-2" />
+            Create Planet
+          </Button>
+          <Button asChild>
+            <Link to="/characters/new">
+              <Plus className="w-4 h-4 mr-2" />
+              Create Character
+            </Link>
+          </Button>
+        </div>
+      )}
 
       {/* Header */}
-      <div className="absolute top-4 left-4 z-10 space-y-2">
+      <div className={`absolute ${isViewingFriend ? 'top-14' : 'top-4'} left-4 z-10 space-y-2`}>
         <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-cosmic-pink to-accent bg-clip-text text-transparent">
-          Galaxy Map
+          Solar System Map
         </h1>
         <SolarSystemSelector
           systems={solarSystems}
@@ -588,7 +629,9 @@ export default function SolarSystem() {
         <p className="text-muted-foreground text-sm">
           {viewState === 'zooming' || viewState === 'zooming-in' 
             ? 'Traveling...' 
-            : 'Click a planet or the sun to customize'}
+            : isViewingFriend 
+              ? 'Viewing friend\'s solar system'
+              : 'Click a planet or the sun to customize'}
         </p>
       </div>
 
@@ -724,7 +767,7 @@ export default function SolarSystem() {
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
           <div className="text-center space-y-4 pointer-events-auto">
             <p className="text-muted-foreground text-lg">
-              The galaxy is empty. Create your first planet or character!
+              Your solar system is empty. Create your first planet or character!
             </p>
             <div className="flex gap-2 justify-center">
               <Button variant="outline" onClick={handleCreatePlanet}>

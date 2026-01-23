@@ -724,7 +724,7 @@ export default function MockBattle() {
                       }}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select a planet from your galaxy..." />
+                        <SelectValue placeholder="Select a planet from your solar system..." />
                       </SelectTrigger>
                       <SelectContent>
                         {availablePlanets.map((planet) => (
@@ -772,7 +772,7 @@ export default function MockBattle() {
                     </div>
                     {availablePlanets.length === 0 && (
                       <p className="text-xs text-muted-foreground">
-                        Tip: Create planets in the Galaxy Map to enable dynamic battlefield effects
+                        Tip: Create planets in the Solar System Map to enable dynamic battlefield effects
                       </p>
                     )}
                   </div>
