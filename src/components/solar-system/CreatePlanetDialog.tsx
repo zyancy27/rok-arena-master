@@ -35,9 +35,10 @@ interface CreatePlanetDialogProps {
   onSuccess: () => void;
   onBack: () => void;
   existingPlanets: string[];
+  solarSystemId: string;
 }
 
-export default function CreatePlanetDialog({ onSuccess, onBack, existingPlanets }: CreatePlanetDialogProps) {
+export default function CreatePlanetDialog({ onSuccess, onBack, existingPlanets, solarSystemId }: CreatePlanetDialogProps) {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
   
@@ -101,6 +102,7 @@ export default function CreatePlanetDialog({ onSuccess, onBack, existingPlanets 
           orbital_distance: orbitalDistance,
           has_rings: hasRings,
           moon_count: moonCount,
+          solar_system_id: solarSystemId,
         });
 
       if (error) throw error;

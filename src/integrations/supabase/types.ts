@@ -165,6 +165,7 @@ export type Database = {
           powers: string | null
           race: string | null
           race_id: string | null
+          solar_system_id: string | null
           stat_durability: number | null
           stat_intelligence: number | null
           stat_luck: number | null
@@ -192,6 +193,7 @@ export type Database = {
           powers?: string | null
           race?: string | null
           race_id?: string | null
+          solar_system_id?: string | null
           stat_durability?: number | null
           stat_intelligence?: number | null
           stat_luck?: number | null
@@ -219,6 +221,7 @@ export type Database = {
           powers?: string | null
           race?: string | null
           race_id?: string | null
+          solar_system_id?: string | null
           stat_durability?: number | null
           stat_intelligence?: number | null
           stat_luck?: number | null
@@ -239,6 +242,13 @@ export type Database = {
             referencedRelation: "races"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "characters_solar_system_id_fkey"
+            columns: ["solar_system_id"]
+            isOneToOne: false
+            referencedRelation: "solar_systems"
+            referencedColumns: ["id"]
+          },
         ]
       }
       planet_customizations: {
@@ -254,6 +264,7 @@ export type Database = {
           orbital_distance: number | null
           planet_name: string
           radius: number | null
+          solar_system_id: string | null
           updated_at: string
           user_id: string
         }
@@ -269,6 +280,7 @@ export type Database = {
           orbital_distance?: number | null
           planet_name: string
           radius?: number | null
+          solar_system_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -284,10 +296,19 @@ export type Database = {
           orbital_distance?: number | null
           planet_name?: string
           radius?: number | null
+          solar_system_id?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "planet_customizations_solar_system_id_fkey"
+            columns: ["solar_system_id"]
+            isOneToOne: false
+            referencedRelation: "solar_systems"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -364,6 +385,33 @@ export type Database = {
         }
         Relationships: []
       }
+      solar_systems: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sun_customizations: {
         Row: {
           color: string
@@ -371,6 +419,7 @@ export type Database = {
           description: string | null
           id: string
           name: string | null
+          solar_system_id: string | null
           temperature: number
           updated_at: string
           user_id: string
@@ -381,6 +430,7 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string | null
+          solar_system_id?: string | null
           temperature?: number
           updated_at?: string
           user_id: string
@@ -391,11 +441,20 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string | null
+          solar_system_id?: string | null
           temperature?: number
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sun_customizations_solar_system_id_fkey"
+            columns: ["solar_system_id"]
+            isOneToOne: false
+            referencedRelation: "solar_systems"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
