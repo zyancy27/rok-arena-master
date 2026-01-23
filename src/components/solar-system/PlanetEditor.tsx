@@ -4,18 +4,23 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Save } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
+import { ArrowLeft, Save, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface PlanetData {
+export interface PlanetCustomization {
   name: string;
+  displayName: string;
   description: string;
   color: string;
+  hasRings: boolean | null;
+  moonCount: number | null;
 }
 
 interface PlanetEditorProps {
-  planet: PlanetData;
-  onSave: (data: PlanetData) => void;
+  planet: PlanetCustomization;
+  onSave: (data: PlanetCustomization) => Promise<void>;
   onBack: () => void;
 }
 
@@ -28,21 +33,40 @@ const PLANET_COLORS = [
   { name: 'Rose', value: '#DB2777' },
   { name: 'Slate', value: '#475569' },
   { name: 'Teal', value: '#14B8A6' },
+  { name: 'Sky', value: '#0EA5E9' },
+  { name: 'Lime', value: '#84CC16' },
+  { name: 'Orange', value: '#F97316' },
+  { name: 'Indigo', value: '#6366F1' },
 ];
 
 export default function PlanetEditor({ planet, onSave, onBack }: PlanetEditorProps) {
-  const [name, setName] = useState(planet.name);
+  const [displayName, setDisplayName] = useState(planet.displayName || planet.name);
   const [description, setDescription] = useState(planet.description);
   const [color, setColor] = useState(planet.color);
+  const [hasRings, setHasRings] = useState<boolean>(planet.hasRings ?? false);
+  const [customizeRings, setCustomizeRings] = useState(planet.hasRings !== null);
+  const [moonCount, setMoonCount] = useState<number>(planet.moonCount ?? 0);
+  const [customizeMoons, setCustomizeMoons] = useState(planet.moonCount !== null);
+  const [saving, setSaving] = useState(false);
 
-  const handleSave = () => {
-    if (!name.trim()) {
-      toast.error('Planet name is required');
-      return;
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave({
+        name: planet.name,
+        displayName: displayName.trim() || planet.name,
+        description,
+        color,
+        hasRings: customizeRings ? hasRings : null,
+        moonCount: customizeMoons ? moonCount : null,
+      });
+      toast.success('Planet customization saved!');
+      onBack();
+    } catch (error) {
+      toast.error('Failed to save customization');
+    } finally {
+      setSaving(false);
     }
-    onSave({ name: name.trim(), description, color });
-    toast.success('Planet updated!');
-    onBack();
   };
 
   return (
@@ -59,44 +83,50 @@ export default function PlanetEditor({ planet, onSave, onBack }: PlanetEditorPro
               <ArrowLeft className="w-4 h-4 mr-1" />
               Back
             </Button>
-            <CardTitle className="text-2xl">Edit Planet</CardTitle>
+            <CardTitle className="text-2xl">Customize Planet</CardTitle>
             <CardDescription>
-              Customize this planet's appearance and information
+              Personalize {planet.name}'s appearance and lore
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Display Name */}
             <div className="space-y-2">
-              <Label htmlFor="planet-name">Planet Name</Label>
+              <Label htmlFor="planet-display-name">Display Name</Label>
               <Input
-                id="planet-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Enter planet name..."
+                id="planet-display-name"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder={planet.name}
               />
+              <p className="text-xs text-muted-foreground">
+                Original name: {planet.name}
+              </p>
             </div>
 
+            {/* Description */}
             <div className="space-y-2">
-              <Label htmlFor="planet-description">Description</Label>
+              <Label htmlFor="planet-description">Planet Lore</Label>
               <Textarea
                 id="planet-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe this planet's history, culture, or notable features..."
+                placeholder="Describe this planet's history, culture, environment, or notable features..."
                 rows={4}
               />
             </div>
 
+            {/* Planet Color */}
             <div className="space-y-3">
               <Label>Planet Color</Label>
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-6 gap-2">
                 {PLANET_COLORS.map((c) => (
                   <button
                     key={c.value}
                     type="button"
                     onClick={() => setColor(c.value)}
-                    className={`h-12 rounded-lg transition-all ${
+                    className={`h-10 rounded-lg transition-all ${
                       color === c.value
-                        ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-105'
+                        ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-110'
                         : 'hover:scale-105'
                     }`}
                     style={{ backgroundColor: c.value }}
@@ -106,9 +136,56 @@ export default function PlanetEditor({ planet, onSave, onBack }: PlanetEditorPro
               </div>
             </div>
 
-            <Button onClick={handleSave} className="w-full">
-              <Save className="w-4 h-4 mr-2" />
-              Save Changes
+            {/* Rings Toggle */}
+            <div className="space-y-3 p-4 rounded-lg bg-muted/30">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Customize Rings</Label>
+                  <p className="text-xs text-muted-foreground">Override default ring appearance</p>
+                </div>
+                <Switch checked={customizeRings} onCheckedChange={setCustomizeRings} />
+              </div>
+              {customizeRings && (
+                <div className="flex items-center justify-between pt-2">
+                  <Label>Has Planetary Rings</Label>
+                  <Switch checked={hasRings} onCheckedChange={setHasRings} />
+                </div>
+              )}
+            </div>
+
+            {/* Moons Slider */}
+            <div className="space-y-3 p-4 rounded-lg bg-muted/30">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Customize Moons</Label>
+                  <p className="text-xs text-muted-foreground">Override default moon count</p>
+                </div>
+                <Switch checked={customizeMoons} onCheckedChange={setCustomizeMoons} />
+              </div>
+              {customizeMoons && (
+                <div className="space-y-2 pt-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Number of Moons</Label>
+                    <span className="text-sm font-medium">{moonCount}</span>
+                  </div>
+                  <Slider
+                    value={[moonCount]}
+                    onValueChange={(v) => setMoonCount(v[0])}
+                    min={0}
+                    max={5}
+                    step={1}
+                  />
+                </div>
+              )}
+            </div>
+
+            <Button onClick={handleSave} className="w-full" disabled={saving}>
+              {saving ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              Save Customization
             </Button>
           </CardContent>
         </Card>

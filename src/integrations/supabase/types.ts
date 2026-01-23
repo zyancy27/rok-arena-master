@@ -230,6 +230,45 @@ export type Database = {
         }
         Relationships: []
       }
+      planet_customizations: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          display_name: string | null
+          has_rings: boolean | null
+          id: string
+          moon_count: number | null
+          planet_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          display_name?: string | null
+          has_rings?: boolean | null
+          id?: string
+          moon_count?: number | null
+          planet_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          display_name?: string | null
+          has_rings?: boolean | null
+          id?: string
+          moon_count?: number | null
+          planet_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
