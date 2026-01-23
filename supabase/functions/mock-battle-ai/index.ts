@@ -27,6 +27,8 @@ interface BattleRequest {
     channel: string;
   }>;
   battleLocation?: string;
+  dynamicEnvironment?: boolean;
+  environmentEffects?: string;
 }
 
 serve(async (req) => {
@@ -35,14 +37,21 @@ serve(async (req) => {
   }
 
   try {
-    const { userCharacter, opponent, userMessage, channel, messageHistory, battleLocation }: BattleRequest = await req.json();
+    const { userCharacter, opponent, userMessage, channel, messageHistory, battleLocation, dynamicEnvironment, environmentEffects }: BattleRequest = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const locationContext = battleLocation ? `\n\nBATTLE LOCATION: ${battleLocation}\nIncorporate this environment into your actions and descriptions. Use the terrain, elements, and atmosphere of this location in your combat responses.` : '';
+    // Build location context with optional dynamic environment effects
+    let locationContext = battleLocation ? `\n\nBATTLE LOCATION: ${battleLocation}` : '';
+    
+    if (dynamicEnvironment && environmentEffects) {
+      locationContext += environmentEffects;
+    } else if (battleLocation) {
+      locationContext += `\nIncorporate this environment into your actions and descriptions. Use the terrain, elements, and atmosphere of this location in your combat responses.`;
+    }
 
     const systemPrompt = channel === 'in_universe'
       ? `You are roleplaying as ${opponent.name}, a ${opponent.personality}
@@ -67,7 +76,8 @@ RULES FOR ROLEPLAY:
 8. Keep responses concise (2-4 paragraphs max)
 9. Follow R.O.K. rules: one base power, no godmodding
 10. Make the battle fun and educational
-11. Use the battle environment creatively in your actions`
+11. Use the battle environment creatively in your actions
+${dynamicEnvironment ? '12. CRITICAL: When describing any physical action (throwing, jumping, running, lifting), explicitly describe how the environmental conditions affect that action. Be specific about the physics.' : ''}`
       : `You are ${opponent.name} speaking out-of-character (OOC) to help a player learn the Realm of Kings battle system.
 
 Provide helpful feedback about:
