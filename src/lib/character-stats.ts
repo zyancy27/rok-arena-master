@@ -82,6 +82,92 @@ export const DEFAULT_STATS: CharacterStats = {
   stat_luck: 50,
 };
 
+// Base stat templates scaled by power tier (1-7)
+// These represent typical stats for each tier level
+export const TIER_BASE_STATS: Record<number, CharacterStats> = {
+  // Tier 1: Common Human - Normal human capabilities
+  1: {
+    stat_intelligence: 25,
+    stat_strength: 15,
+    stat_power: 0,
+    stat_speed: 15,
+    stat_durability: 15,
+    stat_stamina: 20,
+    stat_skill: 20,
+    stat_luck: 25,
+  },
+  // Tier 2: Enhanced Human - Peak physical condition
+  2: {
+    stat_intelligence: 35,
+    stat_strength: 35,
+    stat_power: 10,
+    stat_speed: 35,
+    stat_durability: 30,
+    stat_stamina: 40,
+    stat_skill: 45,
+    stat_luck: 30,
+  },
+  // Tier 3: Super Human - Beyond human limits
+  3: {
+    stat_intelligence: 45,
+    stat_strength: 50,
+    stat_power: 40,
+    stat_speed: 50,
+    stat_durability: 45,
+    stat_stamina: 50,
+    stat_skill: 55,
+    stat_luck: 35,
+  },
+  // Tier 4: Title of God - Mass manipulation, energy control
+  4: {
+    stat_intelligence: 60,
+    stat_strength: 65,
+    stat_power: 65,
+    stat_speed: 65,
+    stat_durability: 60,
+    stat_stamina: 65,
+    stat_skill: 70,
+    stat_luck: 45,
+  },
+  // Tier 5: Title of Titan - Reality/dimensional control
+  5: {
+    stat_intelligence: 75,
+    stat_strength: 80,
+    stat_power: 80,
+    stat_speed: 80,
+    stat_durability: 75,
+    stat_stamina: 80,
+    stat_skill: 85,
+    stat_luck: 55,
+  },
+  // Tier 6: Logic Bending - Balance restoration powers
+  6: {
+    stat_intelligence: 90,
+    stat_strength: 90,
+    stat_power: 92,
+    stat_speed: 90,
+    stat_durability: 88,
+    stat_stamina: 90,
+    stat_skill: 95,
+    stat_luck: 70,
+  },
+  // Tier 7: Logic Resorts (7:1) - Willpower-based paradox
+  7: {
+    stat_intelligence: 98,
+    stat_strength: 98,
+    stat_power: 99,
+    stat_speed: 98,
+    stat_durability: 97,
+    stat_stamina: 98,
+    stat_skill: 99,
+    stat_luck: 85,
+  },
+};
+
+export function getTierBaseStats(tier: number): CharacterStats {
+  return TIER_BASE_STATS[tier] || DEFAULT_STATS;
+}
+
 export function getStatLabel(value: number): string {
   if (value === 0) return 'None';
   if (value <= 20) return 'Minimal';

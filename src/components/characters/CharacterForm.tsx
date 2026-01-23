@@ -12,10 +12,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { toast } from 'sonner';
 import { POWER_TIERS } from '@/lib/game-constants';
-import { CHARACTER_STATS, DEFAULT_STATS, type CharacterStats } from '@/lib/character-stats';
+import { CHARACTER_STATS, DEFAULT_STATS, getTierBaseStats, type CharacterStats } from '@/lib/character-stats';
 import StatSlider from './StatSlider';
 import OwnershipNotice from '@/components/legal/OwnershipNotice';
-import { ArrowLeft, Save, Sparkles, Camera, Brain, Dumbbell, Flame, Zap, Shield, Heart, Target } from 'lucide-react';
+import { ArrowLeft, Save, Sparkles, Camera, Brain, Dumbbell, Flame, Zap, Shield, Heart, Target, Wand2 } from 'lucide-react';
 
 const iconMap = {
   Brain: <Brain className="w-4 h-4" />,
@@ -78,6 +78,12 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
 
   const handleStatChange = (key: keyof CharacterStats, value: number) => {
     setStats(prev => ({ ...prev, [key]: value }));
+  };
+
+  const applyTierBaseStats = () => {
+    const tierStats = getTierBaseStats(formData.level);
+    setStats(tierStats);
+    toast.success(`Applied Tier ${formData.level} base stats`);
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -349,8 +355,23 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                   </span>
                 </AccordionTrigger>
                 <AccordionContent className="space-y-3 pt-4">
-                  <p className="text-xs text-muted-foreground mb-4">
-                    Set your character's attributes on a scale of 0 (none) to 100 (absolute mastery).
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-xs text-muted-foreground">
+                      Set your character's attributes on a scale of 0 (none) to 100 (absolute mastery).
+                    </p>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={applyTierBaseStats}
+                      className="shrink-0"
+                    >
+                      <Wand2 className="w-3 h-3 mr-1" />
+                      Use Tier {formData.level} Defaults
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground/70 italic mb-4">
+                    Not sure what stats to use? Click the button above to apply balanced stats for your power tier.
                   </p>
                   {CHARACTER_STATS.map((stat) => (
                     <StatSlider
