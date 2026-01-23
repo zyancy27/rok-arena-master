@@ -1,13 +1,27 @@
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Settings, ArrowLeft, Plus } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Users, Settings, ArrowLeft, Trash2, Loader2 } from 'lucide-react';
 
 interface PlanetMenuProps {
   planetName: string;
   characterCount: number;
   onViewCharacters: () => void;
   onEditPlanet: () => void;
+  onDeletePlanet?: () => Promise<void>;
   onBack: () => void;
+  canDelete?: boolean;
 }
 
 export default function PlanetMenu({
@@ -15,8 +29,22 @@ export default function PlanetMenu({
   characterCount,
   onViewCharacters,
   onEditPlanet,
+  onDeletePlanet,
   onBack,
+  canDelete = false,
 }: PlanetMenuProps) {
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    if (!onDeletePlanet) return;
+    setDeleting(true);
+    try {
+      await onDeletePlanet();
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
       <Card className="bg-card/95 backdrop-blur-md border-primary/30 w-80 pointer-events-auto animate-scale-in">
@@ -53,6 +81,49 @@ export default function PlanetMenu({
             <Settings className="w-4 h-4" />
             Edit Planet Info
           </Button>
+          
+          {canDelete && onDeletePlanet && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  className="w-full h-10 gap-2"
+                  disabled={characterCount > 0}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete Planet
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete {planetName}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete this planet and all its customizations.
+                    This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    disabled={deleting}
+                  >
+                    {deleting ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : null}
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+          
+          {canDelete && characterCount > 0 && (
+            <p className="text-xs text-muted-foreground text-center">
+              Move or delete all characters before deleting this planet
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>
