@@ -10,8 +10,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { getTierName } from '@/lib/game-constants';
+import { generateBattleEnvironment, getEnvironmentStatImpact, BattleEnvironment } from '@/lib/battle-environment';
 import { 
   ArrowLeft, 
   Swords, 
@@ -21,7 +24,9 @@ import {
   Sparkles,
   RefreshCw,
   User,
-  MapPin
+  MapPin,
+  Globe,
+  Zap
 } from 'lucide-react';
 
 interface UserCharacter {
@@ -48,6 +53,13 @@ interface AIOpponent {
   personality: string;
   powers: string;
   category: string;
+}
+
+interface PlanetData {
+  planet_name: string;
+  display_name: string | null;
+  gravity: number | null;
+  description: string | null;
 }
 
 // Original AI opponent templates
@@ -248,10 +260,16 @@ export default function MockBattle() {
   const [activeChannel, setActiveChannel] = useState<'in_universe' | 'out_of_universe'>('in_universe');
   const [battleStarted, setBattleStarted] = useState(false);
   const [battleLocation, setBattleLocation] = useState('');
+  const [dynamicEnvironment, setDynamicEnvironment] = useState(true);
+  const [availablePlanets, setAvailablePlanets] = useState<PlanetData[]>([]);
+  const [selectedPlanetData, setSelectedPlanetData] = useState<PlanetData | null>(null);
+  const [battleEnvironment, setBattleEnvironment] = useState<BattleEnvironment | null>(null);
+  const [useCustomLocation, setUseCustomLocation] = useState(false);
 
   useEffect(() => {
     if (user) {
       fetchUserCharacters();
+      fetchUserPlanets();
     }
   }, [user]);
 
@@ -272,6 +290,32 @@ export default function MockBattle() {
       setSelectedCharacter(data[0]);
     }
   };
+
+  const fetchUserPlanets = async () => {
+    const { data } = await supabase
+      .from('planet_customizations')
+      .select('planet_name, display_name, gravity, description')
+      .eq('user_id', user?.id)
+      .order('planet_name');
+    
+    if (data) {
+      setAvailablePlanets(data);
+    }
+  };
+
+  // Update battle environment when planet is selected
+  useEffect(() => {
+    if (selectedPlanetData && dynamicEnvironment) {
+      const env = generateBattleEnvironment(
+        selectedPlanetData.display_name || selectedPlanetData.planet_name,
+        selectedPlanetData.gravity,
+        selectedPlanetData.description
+      );
+      setBattleEnvironment(env);
+    } else {
+      setBattleEnvironment(null);
+    }
+  }, [selectedPlanetData, dynamicEnvironment]);
 
   // Get the current opponent (either AI or own character)
   const currentOpponent = opponentType === 'ai' 
@@ -398,6 +442,8 @@ export default function MockBattle() {
           channel: activeChannel,
           messageHistory: messages.slice(-10),
           battleLocation,
+          dynamicEnvironment: dynamicEnvironment && !!battleEnvironment,
+          environmentEffects: battleEnvironment?.effectsPrompt || '',
         },
       });
 
@@ -434,6 +480,9 @@ export default function MockBattle() {
     setMessages([]);
     setBattleStarted(false);
     setBattleLocation('');
+    setSelectedPlanetData(null);
+    setBattleEnvironment(null);
+    setUseCustomLocation(false);
   };
 
   if (userCharacters.length === 0) {
@@ -643,11 +692,123 @@ export default function MockBattle() {
                   <MapPin className="w-4 h-4 text-primary" />
                   Battle Location
                 </label>
-                <Input
-                  placeholder="Enter battle location (e.g., Volcanic Mountains, Crystal Caverns, Space Station)"
-                  value={battleLocation}
-                  onChange={(e) => setBattleLocation(e.target.value)}
-                />
+                
+                {availablePlanets.length > 0 && !useCustomLocation ? (
+                  <div className="space-y-2">
+                    <Select
+                      value={selectedPlanetData?.planet_name || ''}
+                      onValueChange={(value) => {
+                        if (value === '__custom__') {
+                          setUseCustomLocation(true);
+                          setSelectedPlanetData(null);
+                          setBattleLocation('');
+                        } else {
+                          const planet = availablePlanets.find(p => p.planet_name === value);
+                          if (planet) {
+                            setSelectedPlanetData(planet);
+                            setBattleLocation(planet.display_name || planet.planet_name);
+                          }
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a planet from your galaxy..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availablePlanets.map((planet) => (
+                          <SelectItem key={planet.planet_name} value={planet.planet_name}>
+                            <span className="flex items-center gap-2">
+                              <Globe className="w-3 h-3 text-primary" />
+                              {planet.display_name || planet.planet_name}
+                              {planet.gravity && (
+                                <Badge variant="outline" className="text-xs ml-2">
+                                  {planet.gravity.toFixed(1)}g
+                                </Badge>
+                              )}
+                            </span>
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="__custom__" className="text-muted-foreground border-t mt-1 pt-2">
+                          + Enter custom location...
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Enter battle location (e.g., Volcanic Mountains, Crystal Caverns)"
+                        value={battleLocation}
+                        onChange={(e) => setBattleLocation(e.target.value)}
+                        className="flex-1"
+                      />
+                      {availablePlanets.length > 0 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setUseCustomLocation(false);
+                            setBattleLocation('');
+                          }}
+                        >
+                          <Globe className="w-4 h-4 mr-1" />
+                          Select Planet
+                        </Button>
+                      )}
+                    </div>
+                    {availablePlanets.length === 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Tip: Create planets in the Galaxy Map to enable dynamic battlefield effects
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Environment Effects Toggle */}
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border">
+                  <div className="flex items-center gap-3">
+                    <Zap className="w-5 h-5 text-amber-500" />
+                    <div>
+                      <Label htmlFor="dynamic-env" className="text-sm font-medium cursor-pointer">
+                        Dynamic Battlefield Effects
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        AI describes how gravity, terrain, and atmosphere affect combat moves
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="dynamic-env"
+                    checked={dynamicEnvironment}
+                    onCheckedChange={setDynamicEnvironment}
+                  />
+                </div>
+
+                {/* Environment Preview */}
+                {battleEnvironment && dynamicEnvironment && (
+                  <div className="p-3 rounded-lg border bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/30 space-y-2">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <Globe className="w-4 h-4 text-amber-500" />
+                      Environment: {battleEnvironment.shortSummary}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      <span className="font-medium">Gravity:</span> {battleEnvironment.gravity.toFixed(2)}g ({battleEnvironment.gravityClass.name})
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      <span className="font-medium">Stat Impact:</span> {getEnvironmentStatImpact(battleEnvironment.gravity)}
+                    </div>
+                    {battleEnvironment.terrainFeatures && (
+                      <div className="text-xs text-muted-foreground">
+                        <span className="font-medium">Terrain:</span> {battleEnvironment.terrainFeatures.primaryBiome}
+                        {battleEnvironment.terrainFeatures.hasVolcanoes && ', volcanic'}
+                        {battleEnvironment.terrainFeatures.hasTundra && ', frozen'}
+                        {battleEnvironment.terrainFeatures.oceanCoverage > 0.5 && ', aquatic'}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="text-center">
@@ -666,11 +827,28 @@ export default function MockBattle() {
             <div className="space-y-4">
               {/* Battle Location Display */}
               <div className="p-3 rounded-lg bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/30">
-                <div className="flex items-center gap-2 text-sm">
-                  <MapPin className="w-4 h-4 text-primary" />
-                  <span className="text-muted-foreground">Location:</span>
-                  <span className="font-semibold">{battleLocation}</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm">
+                    <MapPin className="w-4 h-4 text-primary" />
+                    <span className="text-muted-foreground">Location:</span>
+                    <span className="font-semibold">{battleLocation}</span>
+                  </div>
+                  {battleEnvironment && dynamicEnvironment && (
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs bg-amber-500/10 border-amber-500/30 text-amber-600">
+                        <Zap className="w-3 h-3 mr-1" />
+                        {battleEnvironment.gravity.toFixed(1)}g • {battleEnvironment.gravityClass.name}
+                      </Badge>
+                    </div>
+                  )}
                 </div>
+                {battleEnvironment && dynamicEnvironment && battleEnvironment.terrainFeatures && (
+                  <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                    <Globe className="w-3 h-3" />
+                    {battleEnvironment.terrainFeatures.primaryBiome} environment
+                    {battleEnvironment.terrainFeatures.atmosphereType !== 'normal' && ` • ${battleEnvironment.terrainFeatures.atmosphereType} atmosphere`}
+                  </div>
+                )}
               </div>
 
               {/* Battle Header */}
