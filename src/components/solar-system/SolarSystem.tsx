@@ -318,16 +318,19 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
       const customization = planetCustomizations[name];
       
       // Use orbital_distance if set, otherwise use sequential positioning
+      // Orbital distance in AU-like units (1 = closest, 10 = farthest)
       const orbitalDistance = customization?.orbital_distance ?? (1 + defaultOrbitIndex * 0.8);
-      const orbitRadius = orbitalDistance * 5; // Scale AU to 3D units
+      // Scale to 3D units: multiply by 4 for more dramatic positioning changes
+      const orbitRadius = 4 + orbitalDistance * 4;
       
       // Calculate orbital speed using Kepler's third law (faster for closer planets)
       const orbitSpeed = 0.3 / Math.pow(orbitalDistance, 0.5);
       
       // Planet size: use radius if customized, otherwise based on character count
+      // Radius values: 0.5 = small (Mars-like), 1 = Earth-like, 2 = Neptune-like, 3 = Jupiter-like
       const customRadius = customization?.radius;
       const planetSize = customRadius 
-        ? Math.min(customRadius * 0.5, 1.5) 
+        ? 0.3 + customRadius * 0.4 // Range: 0.5 (r=0.5) to 1.5 (r=3)
         : Math.min(0.5 + Math.max(count, 1) * 0.15, 1.5);
       
       planetArray.push({
@@ -726,6 +729,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
           <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
           
           <Sun 
+            key={`sun-${sunData.temperature}-${sunData.color}`}
             color={sunData.color}
             temperature={sunData.temperature}
             onClick={handleSunClick}
@@ -734,8 +738,10 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
           {planets.map((planet) => {
             const sunLuminosity = getSunLuminosityFromTemperature(sunData.temperature);
             const habitableZone = getHabitableZone(sunData.temperature);
+            // Create a unique key that includes customization values to force re-render
+            const planetKey = `${planet.name}-${planet.orbitRadius}-${planet.planetSize}-${planet.color}`;
             return (
-              <group key={planet.name}>
+              <group key={planetKey}>
                 <OrbitRing radius={planet.orbitRadius} />
                 <Planet
                   name={planet.displayName}
