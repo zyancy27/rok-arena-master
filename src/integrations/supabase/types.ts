@@ -159,7 +159,9 @@ export type Database = {
           image_url: string | null
           level: number
           lore: string | null
+          mentality: string | null
           name: string
+          personality: string | null
           powers: string | null
           race: string | null
           stat_durability: number | null
@@ -183,7 +185,9 @@ export type Database = {
           image_url?: string | null
           level: number
           lore?: string | null
+          mentality?: string | null
           name: string
+          personality?: string | null
           powers?: string | null
           race?: string | null
           stat_durability?: number | null
@@ -207,7 +211,9 @@ export type Database = {
           image_url?: string | null
           level?: number
           lore?: string | null
+          mentality?: string | null
           name?: string
+          personality?: string | null
           powers?: string | null
           race?: string | null
           stat_durability?: number | null
