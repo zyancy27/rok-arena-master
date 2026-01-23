@@ -1,95 +1,170 @@
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-interface DangerZoneProps {
+interface HeatShimmerProps {
   sunRadius: number;
 }
 
-export default function DangerZone({ sunRadius }: DangerZoneProps) {
-  const innerRingRef = useRef<THREE.Mesh>(null);
-  const outerRingRef = useRef<THREE.Mesh>(null);
-  const pulseRingRef = useRef<THREE.Mesh>(null);
+// Create a custom shader for heat distortion effect
+const shimmerVertexShader = `
+  varying vec2 vUv;
+  varying vec3 vPosition;
+  uniform float time;
+  
+  void main() {
+    vUv = uv;
+    vPosition = position;
+    
+    // Animated displacement for shimmer
+    vec3 pos = position;
+    float displacement = sin(position.x * 3.0 + time * 2.0) * cos(position.z * 3.0 + time * 1.5) * 0.15;
+    pos.y += displacement;
+    
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+  }
+`;
+
+const shimmerFragmentShader = `
+  varying vec2 vUv;
+  varying vec3 vPosition;
+  uniform float time;
+  uniform float innerRadius;
+  uniform float outerRadius;
+  
+  void main() {
+    float dist = length(vPosition.xz);
+    
+    // Normalize distance within the ring
+    float t = (dist - innerRadius) / (outerRadius - innerRadius);
+    
+    // Multi-layered noise for organic shimmer
+    float shimmer1 = sin(dist * 8.0 - time * 3.0) * 0.5 + 0.5;
+    float shimmer2 = sin(dist * 12.0 + time * 2.5 + vPosition.x * 2.0) * 0.5 + 0.5;
+    float shimmer3 = cos(dist * 6.0 - time * 1.8 + vPosition.z * 3.0) * 0.5 + 0.5;
+    
+    float combinedShimmer = (shimmer1 * 0.4 + shimmer2 * 0.35 + shimmer3 * 0.25);
+    
+    // Fade at edges - stronger near sun, fading outward
+    float edgeFade = 1.0 - smoothstep(0.0, 0.3, t) * 0.5;
+    float outerFade = 1.0 - smoothstep(0.7, 1.0, t);
+    
+    // Very subtle warm tint - almost invisible but adds heat feel
+    vec3 warmColor = vec3(1.0, 0.95, 0.85);
+    
+    float alpha = combinedShimmer * edgeFade * outerFade * 0.08;
+    
+    gl_FragColor = vec4(warmColor, alpha);
+  }
+`;
+
+export default function HeatShimmer({ sunRadius }: HeatShimmerProps) {
+  const shimmerRef = useRef<THREE.Mesh>(null);
+  const particlesRef = useRef<THREE.Points>(null);
+  
+  const innerRadius = sunRadius * 0.9;
+  const outerRadius = sunRadius + 4;
+
+  const uniforms = useMemo(() => ({
+    time: { value: 0 },
+    innerRadius: { value: innerRadius },
+    outerRadius: { value: outerRadius },
+  }), [innerRadius, outerRadius]);
+
+  // Heat particles for extra effect
+  const particles = useMemo(() => {
+    const count = 200;
+    const positions = new Float32Array(count * 3);
+    const velocities = new Float32Array(count);
+    
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = innerRadius + Math.random() * (outerRadius - innerRadius);
+      
+      positions[i * 3] = Math.cos(angle) * radius;
+      positions[i * 3 + 1] = Math.random() * 2;
+      positions[i * 3 + 2] = Math.sin(angle) * radius;
+      
+      velocities[i] = 0.5 + Math.random() * 1.5;
+    }
+    
+    return { positions, velocities, count };
+  }, [innerRadius, outerRadius]);
 
   useFrame((state) => {
     const time = state.clock.elapsedTime;
     
-    // Organic breathing animation using multiple sine waves
-    const breathe = Math.sin(time * 0.8) * 0.3 + Math.sin(time * 1.3) * 0.2 + Math.sin(time * 0.5) * 0.1;
-    const normalizedBreathe = (breathe + 0.6) / 1.2; // Normalize to 0-1 range
+    // Update shader uniform
+    uniforms.time.value = time;
     
-    if (innerRingRef.current) {
-      const material = innerRingRef.current.material as THREE.MeshBasicMaterial;
-      // Subtle opacity pulse between 0.08 and 0.18
-      material.opacity = 0.08 + normalizedBreathe * 0.1;
-    }
-    
-    if (outerRingRef.current) {
-      const material = outerRingRef.current.material as THREE.MeshBasicMaterial;
-      // Offset phase for layered effect
-      const outerBreathe = Math.sin(time * 0.6 + 1) * 0.3 + Math.sin(time * 1.1 + 0.5) * 0.2;
-      const normalizedOuter = (outerBreathe + 0.5) / 1.0;
-      material.opacity = 0.04 + normalizedOuter * 0.06;
-    }
-    
-    if (pulseRingRef.current) {
-      // Slow expanding pulse wave
-      const pulsePhase = (time * 0.3) % 1;
-      const scale = 1 + pulsePhase * 0.15;
-      pulseRingRef.current.scale.setScalar(scale);
+    // Animate heat particles rising
+    if (particlesRef.current) {
+      const positions = particlesRef.current.geometry.attributes.position.array as Float32Array;
       
-      const material = pulseRingRef.current.material as THREE.MeshBasicMaterial;
-      // Fade out as it expands
-      material.opacity = (1 - pulsePhase) * 0.12;
+      for (let i = 0; i < particles.count; i++) {
+        const i3 = i * 3;
+        
+        // Rise upward with slight wave
+        positions[i3 + 1] += particles.velocities[i] * 0.02;
+        
+        // Add horizontal drift
+        const angle = Math.atan2(positions[i3 + 2], positions[i3]);
+        positions[i3] += Math.sin(time + i) * 0.005;
+        positions[i3 + 2] += Math.cos(time + i * 0.7) * 0.005;
+        
+        // Reset when too high
+        if (positions[i3 + 1] > 4) {
+          const newAngle = Math.random() * Math.PI * 2;
+          const radius = innerRadius + Math.random() * (outerRadius - innerRadius);
+          positions[i3] = Math.cos(newAngle) * radius;
+          positions[i3 + 1] = 0;
+          positions[i3 + 2] = Math.sin(newAngle) * radius;
+        }
+      }
+      
+      particlesRef.current.geometry.attributes.position.needsUpdate = true;
     }
   });
 
   return (
     <group>
-      {/* Inner danger zone - main ring */}
+      {/* Heat shimmer distortion ring */}
       <mesh 
-        ref={innerRingRef}
+        ref={shimmerRef}
         rotation={[-Math.PI / 2, 0, 0]} 
-        position={[0, -0.1, 0]}
+        position={[0, 0.1, 0]}
       >
-        <ringGeometry args={[sunRadius * 0.85, sunRadius + 2, 64]} />
-        <meshBasicMaterial
-          color="#ef4444"
+        <ringGeometry args={[innerRadius, outerRadius, 128, 8]} />
+        <shaderMaterial
+          vertexShader={shimmerVertexShader}
+          fragmentShader={shimmerFragmentShader}
+          uniforms={uniforms}
           transparent
-          opacity={0.12}
           side={THREE.DoubleSide}
+          depthWrite={false}
         />
       </mesh>
       
-      {/* Outer glow ring */}
-      <mesh 
-        ref={outerRingRef}
-        rotation={[-Math.PI / 2, 0, 0]} 
-        position={[0, -0.15, 0]}
-      >
-        <ringGeometry args={[sunRadius + 1, sunRadius + 3, 64]} />
-        <meshBasicMaterial
-          color="#f97316"
+      {/* Rising heat particles */}
+      <points ref={particlesRef}>
+        <bufferGeometry>
+          <bufferAttribute
+            attach="attributes-position"
+            count={particles.count}
+            array={particles.positions}
+            itemSize={3}
+          />
+        </bufferGeometry>
+        <pointsMaterial
+          size={0.08}
+          color="#fff8e7"
           transparent
-          opacity={0.06}
-          side={THREE.DoubleSide}
+          opacity={0.25}
+          sizeAttenuation
+          blending={THREE.AdditiveBlending}
+          depthWrite={false}
         />
-      </mesh>
-      
-      {/* Expanding pulse wave */}
-      <mesh 
-        ref={pulseRingRef}
-        rotation={[-Math.PI / 2, 0, 0]} 
-        position={[0, -0.05, 0]}
-      >
-        <ringGeometry args={[sunRadius + 1.5, sunRadius + 2, 64]} />
-        <meshBasicMaterial
-          color="#fbbf24"
-          transparent
-          opacity={0.1}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
+      </points>
     </group>
   );
 }

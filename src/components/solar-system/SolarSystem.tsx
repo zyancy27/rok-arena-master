@@ -16,7 +16,7 @@ import CreatePlanetDialog from './CreatePlanetDialog';
 import SolarSystemSelector, { SolarSystemData } from './SolarSystemSelector';
 import GalaxyView from './GalaxyView';
 import GiantCharacter, { isPlanetSizedCharacter, getCharacterGender, getCosmicColor } from './GiantCharacter';
-import DangerZone from './DangerZone';
+import HeatShimmer from './DangerZone';
 import { getHabitableZone } from './Sun';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -794,8 +794,8 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
         <Suspense fallback={null}>
           <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
           
-          {/* Animated danger zone ring */}
-          <DangerZone sunRadius={sunRadius} />
+          {/* Heat shimmer effect around sun */}
+          <HeatShimmer sunRadius={sunRadius} />
           
           <Sun 
             key={`sun-${sunData.temperature}-${sunData.color}`}
