@@ -16,9 +16,11 @@ import CharacterDetail from "@/pages/CharacterDetail";
 import CharacterDirectory from "@/pages/CharacterDirectory";
 import Battles from "@/pages/Battles";
 import BattleView from "@/pages/BattleView";
+import MockBattle from "@/pages/MockBattle";
 import Rules from "@/pages/Rules";
 import Profile from "@/pages/Profile";
 import Admin from "@/pages/Admin";
+import Terms from "@/pages/Terms";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +36,7 @@ const App = () => (
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/rules" element={<Rules />} />
+            <Route path="/terms" element={<Terms />} />
             <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
               <Route path="/hub" element={<Hub />} />
               <Route path="/characters" element={<CharacterDirectory />} />
@@ -41,6 +44,7 @@ const App = () => (
               <Route path="/characters/:id" element={<CharacterDetail />} />
               <Route path="/characters/:id/edit" element={<EditCharacter />} />
               <Route path="/battles" element={<Battles />} />
+              <Route path="/battles/practice" element={<MockBattle />} />
               <Route path="/battles/:id" element={<BattleView />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/admin" element={<ProtectedRoute requireModerator><Admin /></ProtectedRoute>} />

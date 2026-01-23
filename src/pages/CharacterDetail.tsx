@@ -24,8 +24,10 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import ChallengeModal from '@/components/battles/ChallengeModal';
+import CharacterStatSheet from '@/components/characters/CharacterStatSheet';
 import { toast } from 'sonner';
 import { getTierName, getTierColor } from '@/lib/game-constants';
+import { type CharacterStats } from '@/lib/character-stats';
 import {
   ArrowLeft,
   Edit,
@@ -38,6 +40,7 @@ import {
   BookOpen,
   Zap,
   Shield,
+  Target,
 } from 'lucide-react';
 
 interface CharacterData {
@@ -54,6 +57,14 @@ interface CharacterData {
   age: number | null;
   image_url: string | null;
   created_at: string;
+  stat_intelligence: number | null;
+  stat_strength: number | null;
+  stat_power: number | null;
+  stat_speed: number | null;
+  stat_durability: number | null;
+  stat_stamina: number | null;
+  stat_skill: number | null;
+  stat_luck: number | null;
 }
 
 interface Profile {
@@ -317,6 +328,30 @@ export default function CharacterDetail() {
                 </AccordionContent>
               </AccordionItem>
             )}
+
+            {/* Stats Section */}
+            <AccordionItem value="stats" className="border-border">
+              <AccordionTrigger className="hover:no-underline">
+                <span className="flex items-center gap-2">
+                  <Target className="w-4 h-4 text-primary" />
+                  Character Stats
+                </span>
+              </AccordionTrigger>
+              <AccordionContent>
+                <CharacterStatSheet
+                  stats={{
+                    stat_intelligence: character.stat_intelligence ?? 50,
+                    stat_strength: character.stat_strength ?? 50,
+                    stat_power: character.stat_power ?? 50,
+                    stat_speed: character.stat_speed ?? 50,
+                    stat_durability: character.stat_durability ?? 50,
+                    stat_stamina: character.stat_stamina ?? 50,
+                    stat_skill: character.stat_skill ?? 50,
+                    stat_luck: character.stat_luck ?? 50,
+                  }}
+                />
+              </AccordionContent>
+            </AccordionItem>
           </Accordion>
         </CardContent>
       </Card>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,6 +21,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Swords, Sparkles } from 'lucide-react';
+import TierWarning from './TierWarning';
 
 interface ChallengeModalProps {
   open: boolean;
@@ -127,13 +128,21 @@ export default function ChallengeModal({
           </div>
 
           {selectedCharacter && (
-            <div className="p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
-              <p className="flex items-center gap-2">
-                <Swords className="w-4 h-4 text-primary" />
-                Your character will face off against {targetCharacter.name} in the arena.
-                The challenged player will need to accept before the battle begins.
-              </p>
-            </div>
+            <>
+              <TierWarning
+                attackerTier={userCharacters.find(c => c.id === selectedCharacter)?.level || 1}
+                defenderTier={targetCharacter.level}
+                attackerName={userCharacters.find(c => c.id === selectedCharacter)?.name || 'Your character'}
+                defenderName={targetCharacter.name}
+              />
+              <div className="p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
+                <p className="flex items-center gap-2">
+                  <Swords className="w-4 h-4 text-primary" />
+                  Your character will face off against {targetCharacter.name} in the arena.
+                  The challenged player will need to accept before the battle begins.
+                </p>
+              </div>
+            </>
           )}
         </div>
 

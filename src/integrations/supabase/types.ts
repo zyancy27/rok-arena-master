@@ -150,6 +150,14 @@ export type Database = {
           name: string
           powers: string | null
           race: string | null
+          stat_durability: number | null
+          stat_intelligence: number | null
+          stat_luck: number | null
+          stat_power: number | null
+          stat_skill: number | null
+          stat_speed: number | null
+          stat_stamina: number | null
+          stat_strength: number | null
           sub_race: string | null
           updated_at: string
           user_id: string
@@ -166,6 +174,14 @@ export type Database = {
           name: string
           powers?: string | null
           race?: string | null
+          stat_durability?: number | null
+          stat_intelligence?: number | null
+          stat_luck?: number | null
+          stat_power?: number | null
+          stat_skill?: number | null
+          stat_speed?: number | null
+          stat_stamina?: number | null
+          stat_strength?: number | null
           sub_race?: string | null
           updated_at?: string
           user_id: string
@@ -182,6 +198,14 @@ export type Database = {
           name?: string
           powers?: string | null
           race?: string | null
+          stat_durability?: number | null
+          stat_intelligence?: number | null
+          stat_luck?: number | null
+          stat_power?: number | null
+          stat_skill?: number | null
+          stat_speed?: number | null
+          stat_stamina?: number | null
+          stat_strength?: number | null
           sub_race?: string | null
           updated_at?: string
           user_id?: string
