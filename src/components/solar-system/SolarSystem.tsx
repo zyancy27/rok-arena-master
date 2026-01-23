@@ -8,7 +8,7 @@ import OrbitRing from './OrbitRing';
 import CameraController from './CameraController';
 import PlanetMenu from './PlanetMenu';
 import CharacterList from './CharacterList';
-import PlanetEditor from './PlanetEditor';
+import PlanetEditor, { PlanetCustomization } from './PlanetEditor';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -25,14 +25,26 @@ interface Character {
   username?: string;
 }
 
+interface StoredCustomization {
+  planet_name: string;
+  display_name: string | null;
+  description: string | null;
+  color: string | null;
+  has_rings: boolean | null;
+  moon_count: number | null;
+}
+
 interface PlanetData {
   name: string;
+  displayName: string;
   description: string;
   color: string;
   orbitRadius: number;
   planetSize: number;
   orbitSpeed: number;
   characterCount: number;
+  hasRings: boolean | null;
+  moonCount: number | null;
 }
 
 type ViewState = 'galaxy' | 'zooming' | 'menu' | 'zooming-in' | 'characters' | 'editor';
@@ -60,7 +72,7 @@ export default function SolarSystem() {
   const [loading, setLoading] = useState(true);
   const [viewState, setViewState] = useState<ViewState>('galaxy');
   const [selectedPlanet, setSelectedPlanet] = useState<PlanetData | null>(null);
-  const [planetCustomizations, setPlanetCustomizations] = useState<Record<string, { description: string; color: string }>>({});
+  const [planetCustomizations, setPlanetCustomizations] = useState<Record<string, StoredCustomization>>({});
   
   // Camera animation state
   const [cameraTarget, setCameraTarget] = useState<THREE.Vector3 | null>(null);
@@ -70,7 +82,8 @@ export default function SolarSystem() {
 
   useEffect(() => {
     fetchCharacters();
-  }, []);
+    fetchCustomizations();
+  }, [user]);
 
   const fetchCharacters = async () => {
     const { data: charData, error: charError } = await supabase
@@ -101,6 +114,23 @@ export default function SolarSystem() {
     setLoading(false);
   };
 
+  const fetchCustomizations = async () => {
+    if (!user) return;
+    
+    const { data } = await supabase
+      .from('planet_customizations')
+      .select('planet_name, display_name, description, color, has_rings, moon_count')
+      .eq('user_id', user.id);
+
+    if (data) {
+      const customMap: Record<string, StoredCustomization> = {};
+      data.forEach(c => {
+        customMap[c.planet_name] = c;
+      });
+      setPlanetCustomizations(customMap);
+    }
+  };
+
   // Group characters by planet
   const planets = useMemo(() => {
     const planetMap = new Map<string, number>();
@@ -117,12 +147,15 @@ export default function SolarSystem() {
       const customization = planetCustomizations[name];
       planetArray.push({
         name,
+        displayName: customization?.display_name || name,
         description: customization?.description || '',
         color: customization?.color || getPlanetColor(name),
         orbitRadius,
         planetSize: Math.min(0.5 + count * 0.15, 1.5),
         orbitSpeed: 0.3 - (orbitRadius * 0.015),
         characterCount: count,
+        hasRings: customization?.has_rings ?? null,
+        moonCount: customization?.moon_count ?? null,
       });
       orbitRadius += 3;
     });
@@ -204,16 +237,47 @@ export default function SolarSystem() {
     }, 1200);
   }, []);
 
-  const handleSavePlanet = (data: { name: string; description: string; color: string }) => {
-    if (selectedPlanet) {
-      setPlanetCustomizations(prev => ({
-        ...prev,
-        [selectedPlanet.name]: {
-          description: data.description,
-          color: data.color,
-        },
-      }));
-    }
+  const handleSavePlanet = async (data: PlanetCustomization) => {
+    if (!selectedPlanet || !user) return;
+
+    const { error } = await supabase
+      .from('planet_customizations')
+      .upsert({
+        user_id: user.id,
+        planet_name: selectedPlanet.name,
+        display_name: data.displayName,
+        description: data.description,
+        color: data.color,
+        has_rings: data.hasRings,
+        moon_count: data.moonCount,
+      }, {
+        onConflict: 'user_id,planet_name',
+      });
+
+    if (error) throw error;
+
+    // Update local state
+    setPlanetCustomizations(prev => ({
+      ...prev,
+      [selectedPlanet.name]: {
+        planet_name: selectedPlanet.name,
+        display_name: data.displayName,
+        description: data.description,
+        color: data.color,
+        has_rings: data.hasRings,
+        moon_count: data.moonCount,
+      },
+    }));
+
+    // Update selected planet
+    setSelectedPlanet(prev => prev ? {
+      ...prev,
+      displayName: data.displayName,
+      description: data.description,
+      color: data.color,
+      hasRings: data.hasRings,
+      moonCount: data.moonCount,
+    } : null);
   };
 
   const selectedCharacters = selectedPlanet
@@ -230,8 +294,6 @@ export default function SolarSystem() {
       </div>
     );
   }
-
-  const showOverlay = viewState === 'menu' || viewState === 'characters' || viewState === 'editor';
 
   return (
     <div className="h-[calc(100vh-8rem)] relative">
@@ -285,7 +347,7 @@ export default function SolarSystem() {
             <group key={planet.name}>
               <OrbitRing radius={planet.orbitRadius} />
               <Planet
-                name={planet.name}
+                name={planet.displayName}
                 orbitRadius={planet.orbitRadius}
                 planetSize={planet.planetSize}
                 orbitSpeed={planet.orbitSpeed}
@@ -293,6 +355,8 @@ export default function SolarSystem() {
                 characterCount={planet.characterCount}
                 onClick={(pos) => handlePlanetClick(planet, pos)}
                 isSelected={selectedPlanet?.name === planet.name}
+                hasRingsOverride={planet.hasRings}
+                moonCountOverride={planet.moonCount}
               />
             </group>
           ))}
@@ -310,7 +374,7 @@ export default function SolarSystem() {
       {/* Planet Menu Overlay */}
       {viewState === 'menu' && selectedPlanet && (
         <PlanetMenu
-          planetName={selectedPlanet.name}
+          planetName={selectedPlanet.displayName}
           characterCount={selectedPlanet.characterCount}
           onViewCharacters={handleViewCharacters}
           onEditPlanet={handleEditPlanet}
@@ -321,7 +385,7 @@ export default function SolarSystem() {
       {/* Character List View */}
       {viewState === 'characters' && selectedPlanet && (
         <CharacterList
-          planetName={selectedPlanet.name}
+          planetName={selectedPlanet.displayName}
           characters={selectedCharacters}
           onBack={handleBackToGalaxy}
           isUserOwned={selectedCharacters.every(c => c.user_id === user?.id)}
@@ -333,8 +397,11 @@ export default function SolarSystem() {
         <PlanetEditor
           planet={{
             name: selectedPlanet.name,
+            displayName: selectedPlanet.displayName,
             description: selectedPlanet.description,
             color: selectedPlanet.color,
+            hasRings: selectedPlanet.hasRings,
+            moonCount: selectedPlanet.moonCount,
           }}
           onSave={handleSavePlanet}
           onBack={handleBack}

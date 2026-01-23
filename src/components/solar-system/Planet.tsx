@@ -16,6 +16,8 @@ interface PlanetProps {
   characterCount: number;
   onClick: (position: { x: number; y: number; z: number }) => void;
   isSelected: boolean;
+  hasRingsOverride?: boolean | null;
+  moonCountOverride?: number | null;
 }
 
 // Determine planet features based on name hash for consistency
@@ -48,14 +50,26 @@ export default function Planet({
   characterCount,
   onClick,
   isSelected,
+  hasRingsOverride,
+  moonCountOverride,
 }: PlanetProps) {
   const groupRef = useRef<THREE.Group>(null);
   const planetRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
   const angleRef = useRef(Math.random() * Math.PI * 2);
 
-  const features = useMemo(() => getPlanetFeatures(name, planetSize), [name, planetSize]);
-  const moonColors = useMemo(() => getMoonColors(color, features.moonCount), [color, features.moonCount]);
+  const defaultFeatures = useMemo(() => getPlanetFeatures(name, planetSize), [name, planetSize]);
+  
+  // Apply overrides if provided
+  const hasRings = hasRingsOverride !== null && hasRingsOverride !== undefined 
+    ? hasRingsOverride 
+    : defaultFeatures.hasRings;
+  const moonCount = moonCountOverride !== null && moonCountOverride !== undefined 
+    ? moonCountOverride 
+    : defaultFeatures.moonCount;
+  const atmosphereIntensity = defaultFeatures.atmosphereIntensity;
+  
+  const moonColors = useMemo(() => getMoonColors(color, moonCount), [color, moonCount]);
 
   useFrame((state, delta) => {
     if (groupRef.current && !isSelected) {
@@ -110,12 +124,12 @@ export default function Planet({
       <Atmosphere
         planetSize={planetSize}
         color={color}
-        intensity={hovered ? features.atmosphereIntensity * 1.5 : features.atmosphereIntensity}
+        intensity={hovered ? atmosphereIntensity * 1.5 : atmosphereIntensity}
         animated
       />
 
       {/* Planetary rings (for some planets) */}
-      {features.hasRings && (
+      {hasRings && (
         <PlanetRings
           innerRadius={planetSize * 1.4}
           outerRadius={planetSize * 2.2}
@@ -125,20 +139,20 @@ export default function Planet({
       )}
 
       {/* Moons (for larger planets) */}
-      {Array.from({ length: features.moonCount }).map((_, index) => (
+      {Array.from({ length: moonCount }).map((_, index) => (
         <Moon
           key={index}
           orbitRadius={planetSize * (1.8 + index * 0.6)}
           moonSize={planetSize * (0.15 - index * 0.03)}
           orbitSpeed={2 + index * 0.5}
           color={moonColors[index]}
-          startAngle={(index * Math.PI * 2) / features.moonCount}
+          startAngle={(index * Math.PI * 2) / moonCount}
         />
       ))}
 
       {/* Label */}
       <Html
-        position={[0, planetSize + (features.hasRings ? 1.2 : 0.5), 0]}
+        position={[0, planetSize + (hasRings ? 1.2 : 0.5), 0]}
         center
         style={{
           pointerEvents: 'none',
