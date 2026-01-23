@@ -11,6 +11,7 @@ import CharacterList from './CharacterList';
 import PlanetEditor, { PlanetCustomization } from './PlanetEditor';
 import SunEditor, { SunCustomization, getColorFromTemperature, getSunLuminosityFromTemperature } from './SunEditor';
 import CreatePlanetDialog from './CreatePlanetDialog';
+import SolarSystemSelector, { SolarSystemData } from './SolarSystemSelector';
 import { getHabitableZone } from './Sun';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,6 +28,7 @@ interface Character {
   home_planet: string | null;
   user_id: string;
   username?: string;
+  solar_system_id?: string | null;
 }
 
 interface StoredCustomization {
@@ -39,6 +41,7 @@ interface StoredCustomization {
   gravity: number | null;
   radius: number | null;
   orbital_distance: number | null;
+  solar_system_id?: string | null;
 }
 
 interface PlanetData {
@@ -98,39 +101,115 @@ export default function SolarSystem() {
     temperature: 5778,
   });
   
+  // Solar system state
+  const [solarSystems, setSolarSystems] = useState<SolarSystemData[]>([]);
+  const [currentSystem, setCurrentSystem] = useState<SolarSystemData | null>(null);
+  
   // Camera animation state
   const [cameraTarget, setCameraTarget] = useState<THREE.Vector3 | null>(null);
   const [cameraLookAt, setCameraLookAt] = useState<THREE.Vector3 | null>(null);
   const [isZooming, setIsZooming] = useState(false);
   const [controlsEnabled, setControlsEnabled] = useState(true);
 
+  // Fetch solar systems first
   useEffect(() => {
-    fetchCharacters();
-    fetchCustomizations();
-    fetchSunData();
+    fetchSolarSystems();
   }, [user]);
 
+  // Fetch data when current system changes
+  useEffect(() => {
+    if (currentSystem) {
+      fetchCharacters();
+      fetchCustomizations();
+      fetchSunData();
+    }
+  }, [currentSystem]);
+
+  const fetchSolarSystems = async () => {
+    const { data, error } = await supabase
+      .from('solar_systems')
+      .select('*')
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Failed to fetch solar systems:', error);
+      setLoading(false);
+      return;
+    }
+
+    setSolarSystems(data || []);
+    
+    // Set current system - prefer user's first system, or first available
+    if (data && data.length > 0) {
+      const userSystem = data.find(s => s.user_id === user?.id);
+      setCurrentSystem(userSystem || data[0]);
+    } else if (user) {
+      // Auto-create a default system for the user
+      await createDefaultSystem();
+    } else {
+      setLoading(false);
+    }
+  };
+
+  const createDefaultSystem = async () => {
+    if (!user) return;
+    
+    const { data, error } = await supabase
+      .from('solar_systems')
+      .insert({
+        user_id: user.id,
+        name: 'My Galaxy',
+        description: 'My first solar system',
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Failed to create default system:', error);
+      setLoading(false);
+      return;
+    }
+
+    setSolarSystems([data]);
+    setCurrentSystem(data);
+  };
+
   const fetchCharacters = async () => {
-    const { data: charData, error: charError } = await supabase
+    if (!currentSystem) {
+      setLoading(false);
+      return;
+    }
+
+    // Fetch characters that belong to this system OR have a home_planet matching a planet in this system
+    let query = supabase
       .from('characters')
-      .select('id, name, level, race, home_planet, user_id')
+      .select('id, name, level, race, home_planet, user_id, solar_system_id')
       .order('created_at', { ascending: false });
+
+    // Filter by solar_system_id if set, otherwise show characters with planets in this system
+    const { data: charData, error: charError } = await query;
 
     if (charError || !charData) {
       setLoading(false);
       return;
     }
 
-    const userIds = [...new Set(charData.map(c => c.user_id))];
+    // Filter characters: those explicitly in this system, or those with home_planet matching this system's planets
+    const systemCharacters = charData.filter(c => 
+      c.solar_system_id === currentSystem.id || 
+      (!c.solar_system_id && planetCustomizations[c.home_planet || ''])
+    );
+
+    const userIds = [...new Set(systemCharacters.map(c => c.user_id))];
 
     const { data: profilesData } = await supabase
       .from('profiles')
       .select('id, username')
-      .in('id', userIds);
+      .in('id', userIds.length > 0 ? userIds : ['']);
 
     const profileMap = new Map(profilesData?.map(p => [p.id, p.username]) || []);
 
-    const charactersWithProfiles = charData.map(char => ({
+    const charactersWithProfiles = systemCharacters.map(char => ({
       ...char,
       username: profileMap.get(char.user_id),
     }));
@@ -140,12 +219,12 @@ export default function SolarSystem() {
   };
 
   const fetchCustomizations = async () => {
-    if (!user) return;
+    if (!currentSystem) return;
     
     const { data } = await supabase
       .from('planet_customizations')
-      .select('planet_name, display_name, description, color, has_rings, moon_count, gravity, radius, orbital_distance')
-      .eq('user_id', user.id);
+      .select('planet_name, display_name, description, color, has_rings, moon_count, gravity, radius, orbital_distance, solar_system_id')
+      .eq('solar_system_id', currentSystem.id);
 
     if (data) {
       const customMap: Record<string, StoredCustomization> = {};
@@ -153,16 +232,18 @@ export default function SolarSystem() {
         customMap[c.planet_name] = c;
       });
       setPlanetCustomizations(customMap);
+    } else {
+      setPlanetCustomizations({});
     }
   };
 
   const fetchSunData = async () => {
-    if (!user) return;
+    if (!currentSystem) return;
     
     const { data } = await supabase
       .from('sun_customizations')
       .select('name, description, color, temperature')
-      .eq('user_id', user.id)
+      .eq('solar_system_id', currentSystem.id)
       .maybeSingle();
 
     if (data) {
@@ -171,6 +252,14 @@ export default function SolarSystem() {
         description: data.description || '',
         color: data.color || '#FDB813',
         temperature: data.temperature || 5778,
+      });
+    } else {
+      // Reset to defaults for new/different system
+      setSunData({
+        name: 'Sol',
+        description: '',
+        color: '#FDB813',
+        temperature: 5778,
       });
     }
   };
@@ -319,7 +408,7 @@ export default function SolarSystem() {
   }, []);
 
   const handleSavePlanet = async (data: PlanetCustomization) => {
-    if (!selectedPlanet || !user) return;
+    if (!selectedPlanet || !user || !currentSystem) return;
 
     const { error } = await supabase
       .from('planet_customizations')
@@ -334,6 +423,7 @@ export default function SolarSystem() {
         gravity: data.gravity,
         radius: data.radius,
         orbital_distance: data.orbitalDistance,
+        solar_system_id: currentSystem.id,
       }, {
         onConflict: 'user_id,planet_name',
       });
@@ -353,6 +443,7 @@ export default function SolarSystem() {
         gravity: data.gravity,
         radius: data.radius,
         orbital_distance: data.orbitalDistance,
+        solar_system_id: currentSystem.id,
       },
     }));
 
@@ -375,7 +466,7 @@ export default function SolarSystem() {
   }, []);
 
   const handleSaveSun = async (data: SunCustomization) => {
-    if (!user) return;
+    if (!user || !currentSystem) return;
 
     const { error } = await supabase
       .from('sun_customizations')
@@ -385,8 +476,9 @@ export default function SolarSystem() {
         description: data.description,
         color: data.color,
         temperature: data.temperature,
+        solar_system_id: currentSystem.id,
       }, {
-        onConflict: 'user_id',
+        onConflict: 'user_id,solar_system_id',
       });
 
     if (error) throw error;
@@ -405,17 +497,19 @@ export default function SolarSystem() {
 
   const handleCreatePlanetSuccess = useCallback(() => {
     fetchCustomizations();
+    fetchCharacters();
     setViewState('galaxy');
-  }, []);
+  }, [currentSystem]);
 
   const handleDeletePlanet = useCallback(async () => {
-    if (!selectedPlanet || !user) return;
+    if (!selectedPlanet || !user || !currentSystem) return;
     
     const { error } = await supabase
       .from('planet_customizations')
       .delete()
       .eq('user_id', user.id)
-      .eq('planet_name', selectedPlanet.name);
+      .eq('planet_name', selectedPlanet.name)
+      .eq('solar_system_id', currentSystem.id);
 
     if (error) {
       toast.error('Failed to delete planet');
@@ -431,7 +525,22 @@ export default function SolarSystem() {
 
     toast.success(`${selectedPlanet.displayName} has been deleted`);
     handleBackToGalaxy();
-  }, [selectedPlanet, user, handleBackToGalaxy]);
+  }, [selectedPlanet, user, currentSystem, handleBackToGalaxy]);
+
+  const handleSystemChange = useCallback((system: SolarSystemData) => {
+    setCurrentSystem(system);
+    setSelectedPlanet(null);
+    setViewState('galaxy');
+    setLoading(true);
+  }, []);
+
+  const handleSystemCreated = useCallback(() => {
+    fetchSolarSystems();
+  }, []);
+
+  const handleSystemDeleted = useCallback(() => {
+    fetchSolarSystems();
+  }, []);
 
   const selectedCharacters = selectedPlanet
     ? characters.filter(c => (c.home_planet || 'Unknown') === selectedPlanet.name)
@@ -465,10 +574,17 @@ export default function SolarSystem() {
       </div>
 
       {/* Header */}
-      <div className="absolute top-4 left-4 z-10">
+      <div className="absolute top-4 left-4 z-10 space-y-2">
         <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-cosmic-pink to-accent bg-clip-text text-transparent">
           Galaxy Map
         </h1>
+        <SolarSystemSelector
+          systems={solarSystems}
+          currentSystem={currentSystem}
+          onSystemChange={handleSystemChange}
+          onSystemCreated={handleSystemCreated}
+          onSystemDeleted={handleSystemDeleted}
+        />
         <p className="text-muted-foreground text-sm">
           {viewState === 'zooming' || viewState === 'zooming-in' 
             ? 'Traveling...' 
@@ -594,11 +710,12 @@ export default function SolarSystem() {
       )}
 
       {/* Create Planet Dialog */}
-      {viewState === 'create-planet' && (
+      {viewState === 'create-planet' && currentSystem && (
         <CreatePlanetDialog
           onSuccess={handleCreatePlanetSuccess}
           onBack={() => setViewState('galaxy')}
           existingPlanets={planets.map(p => p.name)}
+          solarSystemId={currentSystem.id}
         />
       )}
 
