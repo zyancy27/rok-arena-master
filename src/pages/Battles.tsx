@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Swords, Plus, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Swords, Plus, Clock, CheckCircle, Users } from 'lucide-react';
+import OpponentFinder from '@/components/battles/OpponentFinder';
 
 interface Battle {
   id: string;
@@ -106,140 +108,159 @@ export default function Battles() {
             Battle Arena
           </h1>
           <p className="text-muted-foreground mt-1">
-            Your active and past battles
+            Challenge opponents and manage your battles
           </p>
         </div>
         <Button asChild>
-          <Link to="/characters">
+          <Link to="/characters/new">
             <Plus className="w-4 h-4 mr-2" />
-            Challenge Someone
+            Create Character
           </Link>
         </Button>
       </div>
 
-      {loading ? (
-        <div className="grid gap-4">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i} className="bg-card-gradient border-border animate-pulse">
-              <CardContent className="h-24" />
+      {/* Tabs for Find Opponents vs My Battles */}
+      <Tabs defaultValue="find" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2 max-w-md">
+          <TabsTrigger value="find" className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Find Opponents
+          </TabsTrigger>
+          <TabsTrigger value="battles" className="flex items-center gap-2">
+            <Swords className="w-4 h-4" />
+            My Battles
+            {battles.length > 0 && (
+              <Badge variant="secondary" className="ml-1">
+                {battles.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="find" className="space-y-6">
+          <OpponentFinder />
+        </TabsContent>
+
+        <TabsContent value="battles" className="space-y-6">
+          {loading ? (
+            <div className="grid gap-4">
+              {[...Array(3)].map((_, i) => (
+                <Card key={i} className="bg-card-gradient border-border animate-pulse">
+                  <CardContent className="h-24" />
+                </Card>
+              ))}
+            </div>
+          ) : battles.length === 0 ? (
+            <Card className="bg-card-gradient border-border">
+              <CardContent className="py-12 text-center">
+                <Swords className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+                <h3 className="text-xl font-semibold mb-2">No Battles Yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Challenge another character to begin your first battle!
+                </p>
+              </CardContent>
             </Card>
-          ))}
-        </div>
-      ) : battles.length === 0 ? (
-        <Card className="bg-card-gradient border-border">
-          <CardContent className="py-12 text-center">
-            <Swords className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-xl font-semibold mb-2">No Battles Yet</h3>
-            <p className="text-muted-foreground mb-4">
-              Challenge another character to begin your first battle!
-            </p>
-            <Button asChild>
-              <Link to="/characters">
-                <Swords className="w-4 h-4 mr-2" />
-                Browse Characters
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-6">
-          {/* Active Battles */}
-          {activeBattles.length > 0 && (
-            <div className="space-y-3">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <Swords className="w-5 h-5 text-green-400" />
-                Active Battles ({activeBattles.length})
-              </h2>
-              <div className="grid gap-3">
-                {activeBattles.map((battle) => (
-                  <Link key={battle.id} to={`/battles/${battle.id}`}>
-                    <Card className="bg-card-gradient border-border hover:glow-accent transition-all cursor-pointer">
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Badge className={`${getStatusColor(battle.status)} flex items-center gap-1`}>
-                            {getStatusIcon(battle.status)}
-                            {battle.status}
-                          </Badge>
-                          <span className="text-muted-foreground text-sm">
-                            Started {new Date(battle.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <Button variant="outline" size="sm">
-                          Continue Battle
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
+          ) : (
+            <div className="space-y-6">
+              {/* Active Battles */}
+              {activeBattles.length > 0 && (
+                <div className="space-y-3">
+                  <h2 className="text-xl font-semibold flex items-center gap-2">
+                    <Swords className="w-5 h-5 text-green-400" />
+                    Active Battles ({activeBattles.length})
+                  </h2>
+                  <div className="grid gap-3">
+                    {activeBattles.map((battle) => (
+                      <Link key={battle.id} to={`/battles/${battle.id}`}>
+                        <Card className="bg-card-gradient border-border hover:glow-accent transition-all cursor-pointer">
+                          <CardContent className="p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <Badge className={`${getStatusColor(battle.status)} flex items-center gap-1`}>
+                                {getStatusIcon(battle.status)}
+                                {battle.status}
+                              </Badge>
+                              <span className="text-muted-foreground text-sm">
+                                Started {new Date(battle.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <Button variant="outline" size="sm">
+                              Continue Battle
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-          {/* Pending Battles */}
-          {pendingBattles.length > 0 && (
-            <div className="space-y-3">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <Clock className="w-5 h-5 text-yellow-400" />
-                Pending Challenges ({pendingBattles.length})
-              </h2>
-              <div className="grid gap-3">
-                {pendingBattles.map((battle) => (
-                  <Link key={battle.id} to={`/battles/${battle.id}`}>
-                    <Card className="bg-card-gradient border-border hover:glow-primary transition-all cursor-pointer">
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Badge className={`${getStatusColor(battle.status)} flex items-center gap-1`}>
-                            {getStatusIcon(battle.status)}
-                            {battle.status}
-                          </Badge>
-                          <span className="text-muted-foreground text-sm">
-                            Created {new Date(battle.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <Button variant="outline" size="sm">
-                          View
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
+              {/* Pending Battles */}
+              {pendingBattles.length > 0 && (
+                <div className="space-y-3">
+                  <h2 className="text-xl font-semibold flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-yellow-400" />
+                    Pending Challenges ({pendingBattles.length})
+                  </h2>
+                  <div className="grid gap-3">
+                    {pendingBattles.map((battle) => (
+                      <Link key={battle.id} to={`/battles/${battle.id}`}>
+                        <Card className="bg-card-gradient border-border hover:glow-primary transition-all cursor-pointer">
+                          <CardContent className="p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <Badge className={`${getStatusColor(battle.status)} flex items-center gap-1`}>
+                                {getStatusIcon(battle.status)}
+                                {battle.status}
+                              </Badge>
+                              <span className="text-muted-foreground text-sm">
+                                Created {new Date(battle.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <Button variant="outline" size="sm">
+                              View
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-          {/* Completed Battles */}
-          {completedBattles.length > 0 && (
-            <div className="space-y-3">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-muted-foreground" />
-                Completed Battles ({completedBattles.length})
-              </h2>
-              <div className="grid gap-3">
-                {completedBattles.map((battle) => (
-                  <Link key={battle.id} to={`/battles/${battle.id}`}>
-                    <Card className="bg-card-gradient border-border hover:border-border/80 transition-all cursor-pointer opacity-75">
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Badge className={`${getStatusColor(battle.status)} flex items-center gap-1`}>
-                            {getStatusIcon(battle.status)}
-                            {battle.status}
-                          </Badge>
-                          <span className="text-muted-foreground text-sm">
-                            Ended {new Date(battle.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <Button variant="ghost" size="sm">
-                          View Transcript
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
-              </div>
+              {/* Completed Battles */}
+              {completedBattles.length > 0 && (
+                <div className="space-y-3">
+                  <h2 className="text-xl font-semibold flex items-center gap-2">
+                    <CheckCircle className="w-5 h-5 text-muted-foreground" />
+                    Completed Battles ({completedBattles.length})
+                  </h2>
+                  <div className="grid gap-3">
+                    {completedBattles.map((battle) => (
+                      <Link key={battle.id} to={`/battles/${battle.id}`}>
+                        <Card className="bg-card-gradient border-border hover:border-border/80 transition-all cursor-pointer opacity-75">
+                          <CardContent className="p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <Badge className={`${getStatusColor(battle.status)} flex items-center gap-1`}>
+                                {getStatusIcon(battle.status)}
+                                {battle.status}
+                              </Badge>
+                              <span className="text-muted-foreground text-sm">
+                                Ended {new Date(battle.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <Button variant="ghost" size="sm">
+                              View Transcript
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
-        </div>
-      )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
