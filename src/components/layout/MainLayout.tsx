@@ -127,8 +127,26 @@ export default function MainLayout() {
       <footer className="border-t border-border py-4 mt-8">
         <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <OwnershipNotice variant="footer" />
-          <div className="text-xs text-muted-foreground">
-            © 2026 Realm of Kings. All rights reserved.
+          <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-primary border-primary/50 hover:bg-primary/10"
+              asChild
+            >
+              <a
+                href="https://ko-fi.com/YOUR_USERNAME"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2"
+              >
+                <Heart className="w-4 h-4 fill-primary" />
+                <span>Donate</span>
+              </a>
+            </Button>
+            <div className="text-xs text-muted-foreground">
+              © 2026 Realm of Kings. All rights reserved.
+            </div>
           </div>
         </div>
       </footer>
