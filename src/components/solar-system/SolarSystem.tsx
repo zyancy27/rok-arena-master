@@ -805,7 +805,8 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
             const sunLuminosity = getSunLuminosityFromTemperature(sunData.temperature);
             const habitableZone = getHabitableZone(sunData.temperature);
             // Create a unique key that includes customization values to force re-render
-            const planetKey = `${planet.name}-${planet.orbitRadius}-${planet.planetSize}-${planet.color}`;
+            const descHash = planet.description ? planet.description.slice(0, 50) : '';
+            const planetKey = `${planet.name}-${planet.orbitRadius}-${planet.planetSize}-${planet.color}-${descHash}`;
             return (
               <group key={planetKey}>
                 <OrbitRing radius={planet.orbitRadius} />
