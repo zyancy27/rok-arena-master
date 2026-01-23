@@ -616,7 +616,7 @@ export default function GalaxyView({ currentSystemId, onEnterSystem, onBack }: G
               My Galaxy
             </h1>
             <p className="text-muted-foreground text-sm">
-              Your connected universe • Click a star to enter
+              Click any star to visit • Zoom in to enter your system
             </p>
           </div>
         </div>
