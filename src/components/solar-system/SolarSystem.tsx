@@ -7,6 +7,7 @@ import Planet from './Planet';
 import OrbitRing from './OrbitRing';
 import CameraController from './CameraController';
 import ZoomTransitionController from './ZoomTransitionController';
+import WarpTransition from './WarpTransition';
 import PlanetMenu from './PlanetMenu';
 import CharacterList from './CharacterList';
 import PlanetEditor, { PlanetCustomization } from './PlanetEditor';
@@ -120,6 +121,11 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
   const [cameraLookAt, setCameraLookAt] = useState<THREE.Vector3 | null>(null);
   const [isZooming, setIsZooming] = useState(false);
   const [controlsEnabled, setControlsEnabled] = useState(true);
+  
+  // Warp transition state
+  const [warpActive, setWarpActive] = useState(false);
+  const [warpDirection, setWarpDirection] = useState<'in' | 'out'>('out');
+  const [pendingSystemId, setPendingSystemId] = useState<string | null>(null);
 
   // Fetch solar systems first
   useEffect(() => {
@@ -547,22 +553,43 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
   }, []);
 
   const handleViewGalaxy = useCallback(() => {
-    setViewState('my-galaxy');
+    // Trigger warp out transition
+    setWarpDirection('out');
+    setWarpActive(true);
   }, []);
+
+  const handleWarpTransitionEnd = useCallback(() => {
+    setWarpActive(false);
+    
+    if (warpDirection === 'out') {
+      // Transitioning to galaxy view
+      setViewState('my-galaxy');
+    } else if (warpDirection === 'in' && pendingSystemId) {
+      // Transitioning into a solar system
+      const system = solarSystems.find(s => s.id === pendingSystemId);
+      if (system) {
+        setCurrentSystem(system);
+        setIsViewingFriend(system.user_id !== user?.id);
+        setViewState('galaxy');
+        setLoading(true);
+      }
+      setPendingSystemId(null);
+    }
+  }, [warpDirection, pendingSystemId, solarSystems, user]);
 
   const handleExitGalaxy = useCallback(() => {
-    setViewState('galaxy');
-  }, []);
+    // Use warp transition to return
+    setWarpDirection('in');
+    setPendingSystemId(currentSystem?.id || null);
+    setWarpActive(true);
+  }, [currentSystem]);
 
   const handleEnterSystemFromGalaxy = useCallback((systemId: string) => {
-    const system = solarSystems.find(s => s.id === systemId);
-    if (system) {
-      setCurrentSystem(system);
-      setIsViewingFriend(system.user_id !== user?.id);
-      setViewState('galaxy');
-      setLoading(true);
-    }
-  }, [solarSystems, user]);
+    // Trigger warp in transition, then switch system
+    setWarpDirection('in');
+    setPendingSystemId(systemId);
+    setWarpActive(true);
+  }, []);
 
   const handleCreatePlanet = useCallback(() => {
     setViewState('create-planet');
@@ -633,15 +660,29 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
   // Show Galaxy View when in my-galaxy mode
   if (viewState === 'my-galaxy') {
     return (
-      <GalaxyView
-        currentSystemId={currentSystem?.id || null}
-        onEnterSystem={handleEnterSystemFromGalaxy}
-        onBack={handleExitGalaxy}
-      />
+      <>
+        <WarpTransition 
+          isActive={warpActive} 
+          direction={warpDirection}
+          onTransitionEnd={handleWarpTransitionEnd}
+        />
+        <GalaxyView
+          currentSystemId={currentSystem?.id || null}
+          onEnterSystem={handleEnterSystemFromGalaxy}
+          onBack={handleExitGalaxy}
+        />
+      </>
     );
   }
 
   return (
+    <>
+      {/* Warp transition overlay */}
+      <WarpTransition 
+        isActive={warpActive} 
+        direction={warpDirection}
+        onTransitionEnd={handleWarpTransitionEnd}
+      />
     <div className="h-[calc(100vh-8rem)] relative">
       {/* Viewing Friend Banner */}
       {isViewingFriend && currentSystem && (
@@ -883,5 +924,6 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
         </div>
       )}
     </div>
+    </>
   );
 }
