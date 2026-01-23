@@ -18,6 +18,11 @@ interface PlanetProps {
   isSelected: boolean;
   hasRingsOverride?: boolean | null;
   moonCountOverride?: number | null;
+  // Sun properties for accurate effects
+  sunTemperature?: number;
+  sunLuminosity?: number;
+  habitableZoneInner?: number;
+  habitableZoneOuter?: number;
 }
 
 // Determine planet features based on name hash for consistency
@@ -52,6 +57,10 @@ export default function Planet({
   isSelected,
   hasRingsOverride,
   moonCountOverride,
+  sunTemperature = 5778,
+  sunLuminosity = 1,
+  habitableZoneInner = 4.75,
+  habitableZoneOuter = 6.85,
 }: PlanetProps) {
   const groupRef = useRef<THREE.Group>(null);
   const planetRef = useRef<THREE.Mesh>(null);
@@ -70,6 +79,34 @@ export default function Planet({
   const atmosphereIntensity = defaultFeatures.atmosphereIntensity;
   
   const moonColors = useMemo(() => getMoonColors(color, moonCount), [color, moonCount]);
+
+  // Calculate if planet is in habitable zone
+  const isInHabitableZone = orbitRadius >= habitableZoneInner && orbitRadius <= habitableZoneOuter;
+  
+  // Calculate planet temperature based on distance from sun and sun's luminosity
+  // T_planet ∝ (L^0.25) / (d^0.5) - simplified equilibrium temperature
+  const planetTemperature = useMemo(() => {
+    const baseTemp = 288; // Earth's average temp in K at 1 AU from Sun
+    const distanceRatio = orbitRadius / 5; // 5 = 1 AU equivalent in our scale
+    const tempK = baseTemp * Math.pow(sunLuminosity, 0.25) / Math.pow(distanceRatio, 0.5);
+    return Math.round(tempK);
+  }, [orbitRadius, sunLuminosity]);
+  
+  // Determine planet climate zone for visual effects
+  const climateZone = useMemo(() => {
+    if (planetTemperature > 400) return 'scorched'; // Too hot, like Mercury/Venus
+    if (planetTemperature > 320) return 'hot';
+    if (planetTemperature >= 250 && planetTemperature <= 310) return 'temperate'; // Earth-like
+    if (planetTemperature >= 200) return 'cold';
+    return 'frozen'; // Ice world
+  }, [planetTemperature]);
+
+  // Adjust emissive based on heat from sun
+  const heatEmissive = useMemo(() => {
+    if (climateZone === 'scorched') return 0.6;
+    if (climateZone === 'hot') return 0.4;
+    return 0.2;
+  }, [climateZone]);
 
   useFrame((state, delta) => {
     if (groupRef.current && !isSelected) {
@@ -113,12 +150,24 @@ export default function Planet({
       >
         <meshStandardMaterial
           color={color}
-          emissive={emissiveColor || color}
-          emissiveIntensity={hovered ? 0.8 : 0.3}
-          roughness={0.7}
-          metalness={0.3}
+          emissive={climateZone === 'scorched' ? '#FF4500' : climateZone === 'frozen' ? '#87CEEB' : emissiveColor || color}
+          emissiveIntensity={hovered ? heatEmissive + 0.4 : heatEmissive}
+          roughness={climateZone === 'frozen' ? 0.3 : 0.7}
+          metalness={climateZone === 'frozen' ? 0.5 : 0.3}
         />
       </Sphere>
+
+      {/* Habitable zone indicator glow */}
+      {isInHabitableZone && (
+        <Sphere args={[planetSize * 1.15, 16, 16]}>
+          <meshBasicMaterial
+            color="#22C55E"
+            transparent
+            opacity={hovered ? 0.25 : 0.1}
+            side={THREE.BackSide}
+          />
+        </Sphere>
+      )}
 
       {/* Layered atmosphere */}
       <Atmosphere
@@ -161,11 +210,17 @@ export default function Planet({
         }}
       >
         <div className="text-center whitespace-nowrap">
-          <div className="text-sm font-bold text-white drop-shadow-lg">
+          <div className="text-sm font-bold text-white drop-shadow-lg flex items-center gap-1 justify-center">
             {name}
+            {isInHabitableZone && (
+              <span className="text-[10px] text-green-400" title="In habitable zone">🌱</span>
+            )}
           </div>
           <div className="text-xs text-muted-foreground">
             {characterCount} character{characterCount !== 1 ? 's' : ''}
+          </div>
+          <div className="text-[10px] text-muted-foreground/70">
+            ~{planetTemperature}K · {climateZone}
           </div>
         </div>
       </Html>
