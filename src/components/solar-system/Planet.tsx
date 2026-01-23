@@ -1,7 +1,10 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html, Sphere } from '@react-three/drei';
 import * as THREE from 'three';
+import Atmosphere from './Atmosphere';
+import PlanetRings from './PlanetRings';
+import Moon from './Moon';
 
 interface PlanetProps {
   name: string;
@@ -13,6 +16,26 @@ interface PlanetProps {
   characterCount: number;
   onClick: () => void;
   isSelected: boolean;
+}
+
+// Determine planet features based on name hash for consistency
+function getPlanetFeatures(name: string, size: number) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  
+  const hasRings = Math.abs(hash % 3) === 0; // ~33% of planets have rings
+  const moonCount = size > 0.8 ? Math.abs(hash % 3) + 1 : size > 0.6 ? Math.abs(hash % 2) : 0;
+  const atmosphereIntensity = 0.5 + (Math.abs(hash % 100) / 100) * 1.5;
+  
+  return { hasRings, moonCount, atmosphereIntensity };
+}
+
+// Generate moon colors based on planet
+function getMoonColors(planetColor: string, count: number): string[] {
+  const colors = ['#9CA3AF', '#D1D5DB', '#6B7280', '#E5E7EB', '#A1A1AA'];
+  return Array.from({ length: count }, (_, i) => colors[i % colors.length]);
 }
 
 export default function Planet({
@@ -31,6 +54,9 @@ export default function Planet({
   const [hovered, setHovered] = useState(false);
   const angleRef = useRef(Math.random() * Math.PI * 2);
 
+  const features = useMemo(() => getPlanetFeatures(name, planetSize), [name, planetSize]);
+  const moonColors = useMemo(() => getMoonColors(color, features.moonCount), [color, features.moonCount]);
+
   useFrame((state, delta) => {
     if (groupRef.current && !isSelected) {
       angleRef.current += orbitSpeed * delta;
@@ -47,7 +73,7 @@ export default function Planet({
 
   return (
     <group ref={groupRef}>
-      {/* Planet */}
+      {/* Planet core */}
       <Sphere
         ref={planetRef}
         args={[planetSize, 32, 32]}
@@ -74,19 +100,39 @@ export default function Planet({
         />
       </Sphere>
 
-      {/* Atmosphere glow */}
-      <Sphere args={[planetSize * 1.15, 32, 32]}>
-        <meshBasicMaterial
+      {/* Layered atmosphere */}
+      <Atmosphere
+        planetSize={planetSize}
+        color={color}
+        intensity={hovered ? features.atmosphereIntensity * 1.5 : features.atmosphereIntensity}
+        animated
+      />
+
+      {/* Planetary rings (for some planets) */}
+      {features.hasRings && (
+        <PlanetRings
+          innerRadius={planetSize * 1.4}
+          outerRadius={planetSize * 2.2}
           color={color}
-          transparent
-          opacity={hovered ? 0.3 : 0.1}
-          side={THREE.BackSide}
+          opacity={hovered ? 0.7 : 0.5}
         />
-      </Sphere>
+      )}
+
+      {/* Moons (for larger planets) */}
+      {Array.from({ length: features.moonCount }).map((_, index) => (
+        <Moon
+          key={index}
+          orbitRadius={planetSize * (1.8 + index * 0.6)}
+          moonSize={planetSize * (0.15 - index * 0.03)}
+          orbitSpeed={2 + index * 0.5}
+          color={moonColors[index]}
+          startAngle={(index * Math.PI * 2) / features.moonCount}
+        />
+      ))}
 
       {/* Label */}
       <Html
-        position={[0, planetSize + 0.5, 0]}
+        position={[0, planetSize + (features.hasRings ? 1.2 : 0.5), 0]}
         center
         style={{
           pointerEvents: 'none',
