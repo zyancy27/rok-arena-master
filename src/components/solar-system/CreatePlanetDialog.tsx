@@ -41,6 +41,7 @@ interface CreatePlanetDialogProps {
 export default function CreatePlanetDialog({ onSuccess, onBack, existingPlanets, solarSystemId }: CreatePlanetDialogProps) {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   // Basic info
   const [planetName, setPlanetName] = useState('');
@@ -71,19 +72,21 @@ export default function CreatePlanetDialog({ onSuccess, onBack, existingPlanets,
   };
 
   const handleSave = async () => {
+    setErrorMessage(null);
+    
     if (!planetName.trim()) {
-      toast.error('Please enter a planet name');
+      setErrorMessage('Please enter a planet name.');
       return;
     }
     
     if (!user) {
-      toast.error('You must be logged in');
+      setErrorMessage('You must be logged in to create a planet.');
       return;
     }
 
-    // Check if planet already exists
+    // Check if planet already exists locally
     if (existingPlanets.some(p => p.toLowerCase() === planetName.toLowerCase())) {
-      toast.error('A planet with this name already exists');
+      setErrorMessage(`A planet named "${planetName}" already exists in this solar system. Try a different name.`);
       return;
     }
 
@@ -105,13 +108,21 @@ export default function CreatePlanetDialog({ onSuccess, onBack, existingPlanets,
           solar_system_id: solarSystemId,
         });
 
-      if (error) throw error;
+      if (error) {
+        // Handle specific database errors
+        if (error.code === '23505') {
+          setErrorMessage(`A planet named "${planetName}" already exists. Please choose a unique name for your planet.`);
+        } else {
+          setErrorMessage(`Failed to create planet: ${error.message}`);
+        }
+        return;
+      }
 
       toast.success(`${displayName || planetName} created successfully!`);
       onSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create planet:', error);
-      toast.error('Failed to create planet');
+      setErrorMessage(error?.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -140,6 +151,13 @@ export default function CreatePlanetDialog({ onSuccess, onBack, existingPlanets,
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Error Message Display */}
+            {errorMessage && (
+              <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive">
+                <p className="text-sm font-medium">{errorMessage}</p>
+              </div>
+            )}
+
             {/* Planet Name (required) */}
             <div className="space-y-2">
               <Label htmlFor="planet-name" className="text-base">
@@ -148,8 +166,12 @@ export default function CreatePlanetDialog({ onSuccess, onBack, existingPlanets,
               <Input
                 id="planet-name"
                 value={planetName}
-                onChange={(e) => setPlanetName(e.target.value)}
+                onChange={(e) => {
+                  setPlanetName(e.target.value);
+                  if (errorMessage) setErrorMessage(null);
+                }}
                 placeholder="e.g., Xandar, Korelia, Nova Prime..."
+                className={errorMessage?.includes('name') ? 'border-destructive' : ''}
               />
               <p className="text-xs text-muted-foreground">
                 This will be used as the internal identifier
