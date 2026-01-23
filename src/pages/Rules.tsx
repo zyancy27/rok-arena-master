@@ -1,8 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ROK_RULES, POWER_TIERS } from '@/lib/game-constants';
-import { BookOpen, Sparkles, AlertTriangle, CheckCircle } from 'lucide-react';
+import { BookOpen, Sparkles, AlertTriangle, CheckCircle, Trophy, Lightbulb } from 'lucide-react';
 
 export default function Rules() {
   return (
@@ -17,6 +18,23 @@ export default function Rules() {
           The sacred laws of combat in the Realm of Kings. All warriors must abide by these rules to ensure fair and honourable battles.
         </p>
       </div>
+
+      {/* Creativity Note */}
+      <Alert className="border-primary/50 bg-primary/10">
+        <Trophy className="h-5 w-5 text-primary" />
+        <AlertTitle className="text-primary font-bold flex items-center gap-2">
+          <Lightbulb className="w-4 h-4" />
+          How We Determine Victory
+        </AlertTitle>
+        <AlertDescription className="text-foreground mt-2">
+          <p className="mb-2">
+            <strong>Winning isn't about who can defeat the other.</strong> In R.O.K., the winner is ultimately decided by who was the <span className="text-primary font-semibold">most creative and unique</span> in combat.
+          </p>
+          <p className="text-muted-foreground">
+            We value creativity, originality, and storytelling above raw power. A cleverly-written underdog can triumph over a poorly-played powerhouse. Express yourself, surprise your opponent, and craft memorable moments—that's what makes a true champion.
+          </p>
+        </AlertDescription>
+      </Alert>
 
       {/* Rules Grid */}
       <div className="grid gap-4">
