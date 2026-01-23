@@ -324,7 +324,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
             if (planetError) {
               console.error('Failed to auto-create planet:', planetError);
             } else {
-              toast.info(`Planet "${planetName}" added to your Galaxy Map!`);
+              toast.info(`Planet "${planetName}" added to your Solar System Map!`);
             }
           }
         }
@@ -647,12 +647,12 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                   {formData.home_planet.trim() && !availablePlanets.some(p => p.name.toLowerCase() === formData.home_planet.trim().toLowerCase()) && (
                     <p className="text-xs text-primary flex items-center gap-1">
                       <Globe className="w-3 h-3" />
-                      New planet will be auto-added to your Galaxy Map!
+                      New planet will be auto-added to your Solar System Map!
                     </p>
                   )}
                   {availablePlanets.length === 0 && !formData.home_planet.trim() && (
                     <p className="text-xs text-muted-foreground">
-                      Enter a planet name - it will be added to your Galaxy Map automatically
+                      Enter a planet name - it will be added to your Solar System Map automatically
                     </p>
                   )}
                 </div>

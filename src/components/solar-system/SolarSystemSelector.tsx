@@ -163,7 +163,7 @@ export default function SolarSystemSelector({
         <DropdownMenuTrigger asChild>
           <Button variant="outline" className="gap-2">
             <Sparkles className="w-4 h-4 text-primary" />
-            {currentSystem?.name || 'Select Galaxy'}
+            {currentSystem?.name || 'Select Solar System'}
             <ChevronDown className="w-4 h-4 opacity-50" />
           </Button>
         </DropdownMenuTrigger>
@@ -171,7 +171,7 @@ export default function SolarSystemSelector({
           {userSystems.length > 0 && (
             <>
               <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                Your Galaxies
+                Your Solar Systems
               </div>
               {userSystems.map((system) => (
                 <DropdownMenuItem
@@ -190,7 +190,7 @@ export default function SolarSystemSelector({
           {otherSystems.length > 0 && (
             <>
               <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                Other Galaxies
+                Other Solar Systems
               </div>
               {otherSystems.map((system) => (
                 <DropdownMenuItem
@@ -210,14 +210,14 @@ export default function SolarSystemSelector({
             <DialogTrigger asChild>
               <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
                 <Plus className="w-4 h-4 mr-2" />
-                Create New Galaxy
+                Create New Solar System
               </DropdownMenuItem>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <Sparkles className="w-5 h-5 text-primary" />
-                  Create New Galaxy
+                  Create New Solar System
                 </DialogTitle>
                 <DialogDescription>
                   Create a new solar system to organize your planets and characters.
@@ -225,12 +225,12 @@ export default function SolarSystemSelector({
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="system-name">Galaxy Name</Label>
+                  <Label htmlFor="system-name">Solar System Name</Label>
                   <Input
                     id="system-name"
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
-                    placeholder="e.g., Andromeda, Milky Way, Pegasus..."
+                    placeholder="e.g., Sol, Alpha Centauri, Trappist..."
                   />
                 </div>
                 <div className="space-y-2">
@@ -250,7 +250,7 @@ export default function SolarSystemSelector({
                 </Button>
                 <Button onClick={handleCreateSystem} disabled={saving || !newName.trim()}>
                   {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
-                  Create Galaxy
+                  Create Solar System
                 </Button>
               </div>
             </DialogContent>
@@ -273,9 +273,9 @@ export default function SolarSystemSelector({
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Delete Galaxy</DialogTitle>
+                <DialogTitle>Delete Solar System</DialogTitle>
                 <DialogDescription>
-                  Are you sure you want to delete "{currentSystem.name}"? This will also delete all planets and sun customizations in this galaxy. This action cannot be undone.
+                  Are you sure you want to delete "{currentSystem.name}"? This will also delete all planets and sun customizations. This action cannot be undone.
                 </DialogDescription>
               </DialogHeader>
               <div className="flex justify-end gap-2">
@@ -284,7 +284,7 @@ export default function SolarSystemSelector({
                 </Button>
                 <Button variant="destructive" onClick={handleDeleteSystem} disabled={saving}>
                   {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
-                  Delete Galaxy
+                  Delete Solar System
                 </Button>
               </div>
             </DialogContent>
@@ -298,12 +298,12 @@ export default function SolarSystemSelector({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Pencil className="w-5 h-5 text-primary" />
-              Edit Galaxy
+              Edit Solar System
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-system-name">Galaxy Name</Label>
+              <Label htmlFor="edit-system-name">Solar System Name</Label>
               <Input
                 id="edit-system-name"
                 value={newName}

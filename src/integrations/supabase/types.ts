@@ -251,6 +251,69 @@ export type Database = {
           },
         ]
       }
+      friendships: {
+        Row: {
+          addressee_id: string
+          created_at: string
+          id: string
+          is_follow: boolean
+          requester_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          addressee_id: string
+          created_at?: string
+          id?: string
+          is_follow?: boolean
+          requester_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          addressee_id?: string
+          created_at?: string
+          id?: string
+          is_follow?: boolean
+          requester_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      galaxy_customizations: {
+        Row: {
+          background_type: string
+          created_at: string
+          custom_colors: Json | null
+          galaxy_shape: string
+          id: string
+          updated_at: string
+          user_id: string
+          visual_effects: Json | null
+        }
+        Insert: {
+          background_type?: string
+          created_at?: string
+          custom_colors?: Json | null
+          galaxy_shape?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+          visual_effects?: Json | null
+        }
+        Update: {
+          background_type?: string
+          created_at?: string
+          custom_colors?: Json | null
+          galaxy_shape?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+          visual_effects?: Json | null
+        }
+        Relationships: []
+      }
       planet_customizations: {
         Row: {
           color: string | null

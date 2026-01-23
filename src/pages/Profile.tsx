@@ -134,7 +134,19 @@ export default function Profile() {
         .delete()
         .eq('user_id', user.id);
 
-      // 7. Delete user roles
+      // 7. Delete friendships
+      await supabase
+        .from('friendships')
+        .delete()
+        .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
+
+      // 8. Delete galaxy customizations
+      await supabase
+        .from('galaxy_customizations')
+        .delete()
+        .eq('user_id', user.id);
+
+      // 9. Delete user roles
       await supabase
         .from('user_roles')
         .delete()
@@ -293,6 +305,7 @@ export default function Profile() {
                     <li>All your characters</li>
                     <li>Your solar systems and planets</li>
                     <li>Your custom races</li>
+                    <li>Your friends and connections</li>
                     <li>Battle history and messages</li>
                   </ul>
                   <div className="pt-2">
