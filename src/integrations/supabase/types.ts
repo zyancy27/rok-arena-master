@@ -97,24 +97,36 @@ export type Database = {
       }
       battles: {
         Row: {
+          chosen_location: string | null
+          coin_flip_winner_id: string | null
           created_at: string
           id: string
+          location_1: string | null
+          location_2: string | null
           loser_id: string | null
           status: Database["public"]["Enums"]["battle_status"]
           updated_at: string
           winner_id: string | null
         }
         Insert: {
+          chosen_location?: string | null
+          coin_flip_winner_id?: string | null
           created_at?: string
           id?: string
+          location_1?: string | null
+          location_2?: string | null
           loser_id?: string | null
           status?: Database["public"]["Enums"]["battle_status"]
           updated_at?: string
           winner_id?: string | null
         }
         Update: {
+          chosen_location?: string | null
+          coin_flip_winner_id?: string | null
           created_at?: string
           id?: string
+          location_1?: string | null
+          location_2?: string | null
           loser_id?: string | null
           status?: Database["public"]["Enums"]["battle_status"]
           updated_at?: string

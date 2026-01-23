@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,8 +19,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Swords, Sparkles } from 'lucide-react';
+import { Swords, Sparkles, MapPin, Coins } from 'lucide-react';
 import TierWarning from './TierWarning';
 
 interface ChallengeModalProps {
@@ -47,6 +48,7 @@ export default function ChallengeModal({
   const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedCharacter, setSelectedCharacter] = useState<string>('');
+  const [userLocation, setUserLocation] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
 
   const handleChallenge = async () => {
@@ -55,13 +57,21 @@ export default function ChallengeModal({
       return;
     }
 
+    if (!userLocation.trim()) {
+      toast.error('Please enter a battle location');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      // Create the battle
+      // Create the battle with location
       const { data: battle, error: battleError } = await supabase
         .from('battles')
-        .insert({ status: 'pending' })
+        .insert({ 
+          status: 'pending',
+          location_1: userLocation.trim()
+        })
         .select()
         .single();
 
@@ -127,6 +137,22 @@ export default function ChallengeModal({
             </Select>
           </div>
 
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <MapPin className="w-4 h-4 text-primary" />
+              Your Battle Location
+            </Label>
+            <Input
+              placeholder="Enter a battle location (e.g., Volcanic Mountains, Frozen Tundra)"
+              value={userLocation}
+              onChange={(e) => setUserLocation(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Coins className="w-3 h-3" />
+              A coin flip will decide which location is used when battle begins
+            </p>
+          </div>
+
           {selectedCharacter && (
             <>
               <TierWarning
@@ -139,7 +165,7 @@ export default function ChallengeModal({
                 <p className="flex items-center gap-2">
                   <Swords className="w-4 h-4 text-primary" />
                   Your character will face off against {targetCharacter.name} in the arena.
-                  The challenged player will need to accept before the battle begins.
+                  The challenged player will need to accept and choose their location before the battle begins.
                 </p>
               </div>
             </>
@@ -152,7 +178,7 @@ export default function ChallengeModal({
           </Button>
           <Button
             onClick={handleChallenge}
-            disabled={!selectedCharacter || isLoading}
+            disabled={!selectedCharacter || !userLocation.trim() || isLoading}
             className="glow-primary"
           >
             {isLoading ? 'Sending...' : 'Send Challenge'}
