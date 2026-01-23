@@ -225,13 +225,75 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
         imageUrl = urlData.publicUrl;
       }
 
+      // Auto-create planet if it doesn't exist
+      const planetName = formData.home_planet.trim();
+      if (planetName) {
+        const existingPlanet = availablePlanets.find(
+          p => p.name.toLowerCase() === planetName.toLowerCase()
+        );
+
+        if (!existingPlanet) {
+          // Get or create the user's default solar system
+          let solarSystemId: string | null = null;
+          
+          const { data: existingSystems } = await supabase
+            .from('solar_systems')
+            .select('id')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: true })
+            .limit(1);
+
+          if (existingSystems && existingSystems.length > 0) {
+            solarSystemId = existingSystems[0].id;
+          } else {
+            // Create a default solar system
+            const { data: newSystem, error: systemError } = await supabase
+              .from('solar_systems')
+              .insert({
+                user_id: user.id,
+                name: 'My Galaxy',
+                description: 'Auto-created galaxy',
+              })
+              .select('id')
+              .single();
+
+            if (systemError) {
+              console.error('Failed to create solar system:', systemError);
+            } else {
+              solarSystemId = newSystem.id;
+            }
+          }
+
+          // Create the planet with basic info
+          if (solarSystemId) {
+            const { error: planetError } = await supabase
+              .from('planet_customizations')
+              .insert({
+                user_id: user.id,
+                planet_name: planetName,
+                display_name: planetName,
+                solar_system_id: solarSystemId,
+                gravity: 1.0,
+                radius: 1.0,
+                orbital_distance: 1.0,
+              });
+
+            if (planetError) {
+              console.error('Failed to auto-create planet:', planetError);
+            } else {
+              toast.info(`Planet "${planetName}" added to your Galaxy Map!`);
+            }
+          }
+        }
+      }
+
       const characterData = {
         name: formData.name.trim(),
         level: formData.level,
         lore: formData.lore.trim() || null,
         powers: formData.powers.trim() || null,
         abilities: formData.abilities.trim() || null,
-        home_planet: formData.home_planet.trim() || null,
+        home_planet: planetName || null,
         race: formData.race.trim() || null,
         sub_race: formData.sub_race.trim() || null,
         age: formData.age ? parseInt(formData.age) : null,
@@ -527,9 +589,15 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                       </Button>
                     )}
                   </div>
-                  {availablePlanets.length === 0 && (
+                  {formData.home_planet.trim() && !availablePlanets.some(p => p.name.toLowerCase() === formData.home_planet.trim().toLowerCase()) && (
+                    <p className="text-xs text-primary flex items-center gap-1">
+                      <Globe className="w-3 h-3" />
+                      New planet will be auto-added to your Galaxy Map!
+                    </p>
+                  )}
+                  {availablePlanets.length === 0 && !formData.home_planet.trim() && (
                     <p className="text-xs text-muted-foreground">
-                      Tip: Create planets in the Galaxy Map to select them here
+                      Enter a planet name - it will be added to your Galaxy Map automatically
                     </p>
                   )}
                 </div>
