@@ -793,21 +793,20 @@ function ThroneRoomScene({
   selectedThrone: number | null;
   onSelectThrone: (id: number | null) => void;
 }) {
-  // Arrange thrones in a semi-circle facing the dome
+  // Arrange thrones in a full circle around the table
   // Thrones lowered so dome is at chest height of seated figures
   const thronePositions: [number, number, number][] = useMemo(() => {
     const positions: [number, number, number][] = [];
-    const radius = 10;
-    const startAngle = Math.PI * 0.15;
-    const endAngle = Math.PI * 0.85;
+    const radius = 9;
     const throneY = -3; // Lowered so dome (at y=-2) is at chest height
     
     for (let i = 0; i < 7; i++) {
-      const angle = startAngle + (endAngle - startAngle) * (i / 6);
+      // Evenly distribute 7 thrones around a full circle
+      const angle = (i / 7) * Math.PI * 2 - Math.PI / 2; // Start from front
       positions.push([
         Math.cos(angle) * radius,
         throneY,
-        Math.sin(angle) * radius - 5
+        Math.sin(angle) * radius
       ]);
     }
     return positions;
