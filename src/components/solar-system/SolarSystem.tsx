@@ -18,6 +18,8 @@ import GalaxyView from './GalaxyView';
 import GiantCharacter, { isPlanetSizedCharacter, getCharacterGender, getCosmicColor } from './GiantCharacter';
 import Spaceship, { isShipOrFleetHome } from './Spaceship';
 import MobilePlanetDetails from './MobilePlanetDetails';
+import MobileSpaceshipDetails from './MobileSpaceshipDetails';
+import MobileGiantCharacterDetails from './MobileGiantCharacterDetails';
 
 import { getHabitableZone } from './Sun';
 import { supabase } from '@/integrations/supabase/client';
@@ -133,8 +135,32 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
   const [warpDirection, setWarpDirection] = useState<'in' | 'out'>('out');
   const [pendingSystemId, setPendingSystemId] = useState<string | null>(null);
   
-  // Mobile planet details sheet state
+  // Mobile sheet states
   const [mobilePlanetSheetOpen, setMobilePlanetSheetOpen] = useState(false);
+  const [mobileSpaceshipSheetOpen, setMobileSpaceshipSheetOpen] = useState(false);
+  const [mobileGiantCharacterSheetOpen, setMobileGiantCharacterSheetOpen] = useState(false);
+  
+  // Selected vessel/giant for mobile sheets
+  const [selectedVessel, setSelectedVessel] = useState<{
+    name: string;
+    orbitRadius: number;
+    orbitSpeed: number;
+    size: number;
+    color: string;
+    characterCount: number;
+    isFleet: boolean;
+  } | null>(null);
+  
+  const [selectedGiant, setSelectedGiant] = useState<{
+    id: string;
+    name: string;
+    level: number;
+    race: string | null;
+    orbitRadius: number;
+    size: number;
+    color: string;
+    isMale: boolean;
+  } | null>(null);
 
   // Fetch solar systems first
   useEffect(() => {
@@ -523,6 +549,59 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
   
   const handleMobilePlanetSheetClose = useCallback(() => {
     setMobilePlanetSheetOpen(false);
+  }, []);
+
+  // Handle spaceship/fleet click for mobile
+  const handleVesselClick = useCallback((vessel: typeof selectedVessel) => {
+    if (isMobile && vessel) {
+      setSelectedVessel(vessel);
+      setMobileSpaceshipSheetOpen(true);
+    }
+  }, [isMobile]);
+
+  const handleMobileSpaceshipSheetClose = useCallback(() => {
+    setMobileSpaceshipSheetOpen(false);
+    setSelectedVessel(null);
+  }, []);
+
+  const handleViewVesselCrew = useCallback(() => {
+    if (selectedVessel) {
+      // Find characters for this vessel
+      const vesselCharacters = characters.filter(c => c.home_planet === selectedVessel.name);
+      if (vesselCharacters.length > 0) {
+        // Set as "selected planet" for reuse of character list view
+        setSelectedPlanet({
+          name: selectedVessel.name,
+          displayName: selectedVessel.name,
+          description: '',
+          color: selectedVessel.color,
+          orbitRadius: selectedVessel.orbitRadius,
+          planetSize: 0,
+          orbitSpeed: selectedVessel.orbitSpeed,
+          characterCount: selectedVessel.characterCount,
+          hasRings: null,
+          moonCount: null,
+          gravity: null,
+          radius: null,
+          orbitalDistance: null,
+          isUserCreated: false,
+        });
+        setViewState('characters');
+      }
+    }
+  }, [selectedVessel, characters]);
+
+  // Handle giant character click for mobile
+  const handleGiantCharacterClick = useCallback((giant: typeof selectedGiant) => {
+    if (isMobile && giant) {
+      setSelectedGiant(giant);
+      setMobileGiantCharacterSheetOpen(true);
+    }
+  }, [isMobile]);
+
+  const handleMobileGiantCharacterSheetClose = useCallback(() => {
+    setMobileGiantCharacterSheetOpen(false);
+    setSelectedGiant(null);
   }, []);
 
   const handleBack = useCallback(() => {
@@ -924,6 +1003,16 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
                 color={giant.color}
                 isMale={giant.isMale}
                 level={giant.level}
+                onClick={() => handleGiantCharacterClick({
+                  id: giant.id,
+                  name: giant.name,
+                  level: giant.level,
+                  race: giant.race,
+                  orbitRadius: giant.orbitRadius,
+                  size: giant.size,
+                  color: giant.color,
+                  isMale: giant.isMale,
+                })}
               />
             </group>
           ))}
@@ -940,6 +1029,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
                 color={vessel.color}
                 characterCount={vessel.characterCount}
                 isFleet={vessel.isFleet}
+                onClick={() => handleVesselClick(vessel)}
               />
             </group>
           ))}
@@ -999,6 +1089,21 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
         sunTemperature={sunData.temperature}
         sunLuminosity={getSunLuminosityFromTemperature(sunData.temperature)}
         canEdit={!isViewingFriend}
+      />
+
+      {/* Mobile Spaceship/Fleet Details Sheet */}
+      <MobileSpaceshipDetails
+        vessel={selectedVessel}
+        isOpen={mobileSpaceshipSheetOpen}
+        onClose={handleMobileSpaceshipSheetClose}
+        onViewCrew={handleViewVesselCrew}
+      />
+
+      {/* Mobile Giant Character Details Sheet */}
+      <MobileGiantCharacterDetails
+        character={selectedGiant}
+        isOpen={mobileGiantCharacterSheetOpen}
+        onClose={handleMobileGiantCharacterSheetClose}
       />
 
       {/* Character List View */}
