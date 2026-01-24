@@ -113,15 +113,92 @@ const figureConfigs: Record<number, {
   3: { pose: 'contemplative', headTilt: 0.2, armSpread: 0.2, leanAngle: 0.05 },
 };
 
-// Wireframe holographic figure - cosmic energy being
+// Wireframe holographic figure - cosmic energy being with idle animations
 function SeatedFigure({ holderId, color }: { holderId: number; color: string }) {
   const figRef = useRef<THREE.Group>(null);
+  const headRef = useRef<THREE.Group>(null);
+  const torsoRef = useRef<THREE.Group>(null);
+  const leftArmRef = useRef<THREE.Group>(null);
+  const rightArmRef = useRef<THREE.Group>(null);
+  const leftHandRef = useRef<THREE.Group>(null);
+  const rightHandRef = useRef<THREE.Group>(null);
+  const chestRef = useRef<THREE.Mesh>(null);
+  const auraRef = useRef<THREE.Mesh>(null);
+  const eyeLeftRef = useRef<THREE.Mesh>(null);
+  const eyeRightRef = useRef<THREE.Mesh>(null);
+  
   const config = figureConfigs[holderId] || figureConfigs[1];
   
-  // Subtle breathing/floating animation
+  // Complex idle animations
   useFrame((state) => {
+    const t = state.clock.elapsedTime;
+    const offset = holderId * 1.7; // Unique offset per figure
+    
+    // Base floating/breathing
     if (figRef.current) {
-      figRef.current.position.y = 0.6 + Math.sin(state.clock.elapsedTime * 0.8 + holderId) * 0.02;
+      figRef.current.position.y = 0.6 + Math.sin(t * 0.8 + offset) * 0.025;
+    }
+    
+    // Head look around - slow wandering gaze
+    if (headRef.current) {
+      headRef.current.rotation.x = config.headTilt + Math.sin(t * 0.3 + offset) * 0.08;
+      headRef.current.rotation.y = Math.sin(t * 0.2 + offset * 0.5) * 0.12;
+      headRef.current.rotation.z = Math.sin(t * 0.25 + offset) * 0.03;
+    }
+    
+    // Torso subtle sway - breathing motion
+    if (torsoRef.current) {
+      torsoRef.current.rotation.x = config.leanAngle + Math.sin(t * 0.6 + offset) * 0.02;
+      torsoRef.current.rotation.z = Math.sin(t * 0.35 + offset) * 0.015;
+      // Breathing scale
+      const breathScale = 1 + Math.sin(t * 1.2 + offset) * 0.015;
+      torsoRef.current.scale.set(breathScale, 1, breathScale);
+    }
+    
+    // Chest breathing expansion
+    if (chestRef.current) {
+      const breathIntensity = 1 + Math.sin(t * 1.2 + offset) * 0.08;
+      chestRef.current.scale.set(breathIntensity, 1, breathIntensity);
+    }
+    
+    // Left arm subtle movement
+    if (leftArmRef.current) {
+      leftArmRef.current.rotation.x = -0.5 + Math.sin(t * 0.4 + offset) * 0.05;
+      leftArmRef.current.rotation.z = config.armSpread + Math.sin(t * 0.3 + offset * 2) * 0.03;
+    }
+    
+    // Right arm gesture/movement
+    if (rightArmRef.current) {
+      const baseRotX = config.pose === 'contemplative' ? -1.2 : -0.5;
+      rightArmRef.current.rotation.x = baseRotX + Math.sin(t * 0.35 + offset) * 0.06;
+      rightArmRef.current.rotation.z = -config.armSpread + Math.sin(t * 0.28 + offset) * 0.04;
+    }
+    
+    // Finger twitching - left hand
+    if (leftHandRef.current) {
+      leftHandRef.current.rotation.x = Math.sin(t * 2.5 + offset) * 0.1;
+      leftHandRef.current.rotation.z = Math.sin(t * 1.8 + offset * 3) * 0.08;
+    }
+    
+    // Finger twitching - right hand
+    if (rightHandRef.current) {
+      rightHandRef.current.rotation.x = Math.sin(t * 2.2 + offset * 2) * 0.12;
+      rightHandRef.current.rotation.z = Math.sin(t * 1.5 + offset) * 0.06;
+    }
+    
+    // Eye glow pulsing
+    if (eyeLeftRef.current && eyeRightRef.current) {
+      const eyePulse = 0.8 + Math.sin(t * 2 + offset) * 0.2;
+      (eyeLeftRef.current.material as THREE.MeshBasicMaterial).opacity = eyePulse;
+      (eyeRightRef.current.material as THREE.MeshBasicMaterial).opacity = eyePulse;
+    }
+    
+    // Aura energy field pulsing
+    if (auraRef.current) {
+      const auraPulse = 0.12 + Math.sin(t * 1.5 + offset) * 0.05;
+      (auraRef.current.material as THREE.MeshBasicMaterial).opacity = auraPulse;
+      const auraScale = 1 + Math.sin(t * 0.8 + offset) * 0.03;
+      auraRef.current.scale.set(auraScale, auraScale, auraScale);
     }
   });
 
@@ -157,8 +234,8 @@ function SeatedFigure({ holderId, color }: { holderId: number; color: string }) 
         />
       </mesh>
 
-      {/* HEAD */}
-      <group position={[0, 1.55, 0]} rotation={[config.headTilt, 0, 0]}>
+      {/* HEAD - with look around animation */}
+      <group ref={headRef} position={[0, 1.55, 0]} rotation={[config.headTilt, 0, 0]}>
         {/* Wireframe skull */}
         <mesh>
           <sphereGeometry args={[0.16, 12, 8]} />
@@ -169,14 +246,14 @@ function SeatedFigure({ holderId, color }: { holderId: number; color: string }) 
           <sphereGeometry args={[0.12, 8, 6]} />
           {glowMaterial}
         </mesh>
-        {/* Eyes - solid glow points */}
-        <mesh position={[0.05, 0.02, 0.12]}>
+        {/* Eyes - pulsing glow points */}
+        <mesh ref={eyeLeftRef} position={[0.05, 0.02, 0.12]}>
           <sphereGeometry args={[0.025, 8, 8]} />
-          <meshBasicMaterial color={color} />
+          <meshBasicMaterial color={color} transparent opacity={0.8} />
         </mesh>
-        <mesh position={[-0.05, 0.02, 0.12]}>
+        <mesh ref={eyeRightRef} position={[-0.05, 0.02, 0.12]}>
           <sphereGeometry args={[0.025, 8, 8]} />
-          <meshBasicMaterial color={color} />
+          <meshBasicMaterial color={color} transparent opacity={0.8} />
         </mesh>
         {/* Crown/halo */}
         <mesh position={[0, 0.14, 0]} rotation={[Math.PI / 2, 0, 0]}>
@@ -191,15 +268,15 @@ function SeatedFigure({ holderId, color }: { holderId: number; color: string }) 
         {wireframeMaterial}
       </mesh>
 
-      {/* TORSO */}
-      <group position={[0, 0.95, 0]} rotation={[config.leanAngle, 0, 0]}>
+      {/* TORSO - with breathing animation */}
+      <group ref={torsoRef} position={[0, 0.95, 0]} rotation={[config.leanAngle, 0, 0]}>
         {/* Ribcage wireframe */}
         <mesh>
           <cylinderGeometry args={[0.2, 0.15, 0.4, 10]} />
           {wireframeMaterial}
         </mesh>
-        {/* Inner chest glow */}
-        <mesh>
+        {/* Inner chest glow - breathing */}
+        <mesh ref={chestRef}>
           <cylinderGeometry args={[0.12, 0.1, 0.3, 6]} />
           {glowMaterial}
         </mesh>
@@ -216,8 +293,8 @@ function SeatedFigure({ holderId, color }: { holderId: number; color: string }) 
         {wireframeMaterial}
       </mesh>
 
-      {/* LEFT ARM */}
-      <group position={[-0.28, 1.05, 0]} rotation={[-0.5, 0, config.armSpread]}>
+      {/* LEFT ARM - with subtle movement */}
+      <group ref={leftArmRef} position={[-0.28, 1.05, 0]} rotation={[-0.5, 0, config.armSpread]}>
         {/* Upper arm */}
         <mesh position={[0, -0.15, 0]}>
           <cylinderGeometry args={[0.035, 0.04, 0.25, 6]} />
@@ -234,23 +311,26 @@ function SeatedFigure({ holderId, color }: { holderId: number; color: string }) 
             <cylinderGeometry args={[0.03, 0.035, 0.22, 6]} />
             {wireframeMaterial}
           </mesh>
-          {/* Hand */}
-          <mesh position={[0, -0.25, 0]}>
-            <sphereGeometry args={[0.04, 6, 4]} />
-            {wireframeMaterial}
-          </mesh>
-          {/* Fingers */}
-          {[-0.02, 0, 0.02].map((offset, i) => (
-            <mesh key={i} position={[offset, -0.32, 0]}>
-              <cylinderGeometry args={[0.008, 0.01, 0.06, 4]} />
+          {/* Hand with finger twitching */}
+          <group ref={leftHandRef} position={[0, -0.25, 0]}>
+            <mesh>
+              <sphereGeometry args={[0.04, 6, 4]} />
               {wireframeMaterial}
             </mesh>
-          ))}
+            {/* Fingers */}
+            {[-0.02, 0, 0.02].map((offset, i) => (
+              <mesh key={i} position={[offset, -0.07, 0]}>
+                <cylinderGeometry args={[0.008, 0.01, 0.06, 4]} />
+                {wireframeMaterial}
+              </mesh>
+            ))}
+          </group>
         </group>
       </group>
 
-      {/* RIGHT ARM */}
+      {/* RIGHT ARM - with gesture movement */}
       <group 
+        ref={rightArmRef}
         position={[0.28, 1.05, 0]} 
         rotation={[
           config.pose === 'contemplative' ? -1.2 : -0.5, 
@@ -277,18 +357,20 @@ function SeatedFigure({ holderId, color }: { holderId: number; color: string }) 
             <cylinderGeometry args={[0.03, 0.035, 0.22, 6]} />
             {wireframeMaterial}
           </mesh>
-          {/* Hand */}
-          <mesh position={[0, -0.25, 0]}>
-            <sphereGeometry args={[0.04, 6, 4]} />
-            {wireframeMaterial}
-          </mesh>
-          {/* Fingers */}
-          {[-0.02, 0, 0.02].map((offset, i) => (
-            <mesh key={i} position={[offset, -0.32, 0]}>
-              <cylinderGeometry args={[0.008, 0.01, 0.06, 4]} />
+          {/* Hand with finger twitching */}
+          <group ref={rightHandRef} position={[0, -0.25, 0]}>
+            <mesh>
+              <sphereGeometry args={[0.04, 6, 4]} />
               {wireframeMaterial}
             </mesh>
-          ))}
+            {/* Fingers */}
+            {[-0.02, 0, 0.02].map((offset, i) => (
+              <mesh key={i} position={[offset, -0.07, 0]}>
+                <cylinderGeometry args={[0.008, 0.01, 0.06, 4]} />
+                {wireframeMaterial}
+              </mesh>
+            ))}
+          </group>
           {/* Holding orb for commanding pose */}
           {config.pose === 'commanding' && (
             <Float speed={3} floatIntensity={0.2}>
@@ -363,16 +445,16 @@ function SeatedFigure({ holderId, color }: { holderId: number; color: string }) 
 
       {/* Sparkle particles around figure */}
       <Sparkles
-        count={20}
-        scale={[1, 1.8, 0.6]}
+        count={25}
+        scale={[1.2, 2, 0.8]}
         position={[0, 0.9, 0]}
-        size={2}
-        speed={0.4}
+        size={2.5}
+        speed={0.6}
         color={color}
       />
 
-      {/* Energy field outline */}
-      <mesh position={[0, 0.9, 0]}>
+      {/* Energy field outline - pulsing */}
+      <mesh ref={auraRef} position={[0, 0.9, 0]}>
         <capsuleGeometry args={[0.35, 0.9, 4, 12]} />
         <meshBasicMaterial 
           color={color}
