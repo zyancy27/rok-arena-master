@@ -687,6 +687,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin_or_moderator: { Args: never; Returns: boolean }
+      is_battle_creator: { Args: { _battle_id: string }; Returns: boolean }
       is_battle_participant: { Args: { _battle_id: string }; Returns: boolean }
       is_character_owner: { Args: { _character_id: string }; Returns: boolean }
     }
