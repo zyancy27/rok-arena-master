@@ -296,7 +296,7 @@ export default function MockBattle() {
   const [selectedPlanetData, setSelectedPlanetData] = useState<PlanetData | null>(null);
   const [battleEnvironment, setBattleEnvironment] = useState<BattleEnvironment | null>(null);
   const [useCustomLocation, setUseCustomLocation] = useState(false);
-  const [narratorEnabled, setNarratorEnabled] = useState(true);
+  const [narratorFrequency, setNarratorFrequency] = useState<'always' | 'key_moments' | 'off'>('key_moments');
   const [turnNumber, setTurnNumber] = useState(1);
   
   // New states for turn order and physics
@@ -685,8 +685,8 @@ export default function MockBattle() {
       
       setMessages(prev => [...prev, aiMessage]);
 
-      // Trigger narrator for in-universe exchanges
-      if (narratorEnabled && activeChannel === 'in_universe' && currentOpponent) {
+      // Trigger narrator for in-universe exchanges (based on frequency setting)
+      if (narratorFrequency !== 'off' && activeChannel === 'in_universe' && currentOpponent) {
         try {
           const narratorResponse = await supabase.functions.invoke('battle-narrator', {
             body: {
@@ -702,6 +702,7 @@ export default function MockBattle() {
               opponentResponse: response.data.response,
               battleLocation,
               turnNumber,
+              frequency: narratorFrequency,
             },
           });
 
@@ -715,11 +716,17 @@ export default function MockBattle() {
             };
             setMessages(prev => [...prev, narratorMessage]);
             setTurnNumber(prev => prev + 1);
+          } else {
+            // If narrator chose not to speak (key moments mode), still increment turn
+            setTurnNumber(prev => prev + 1);
           }
         } catch (narratorError) {
           console.error('Narrator error:', narratorError);
           // Narrator failures are non-critical, continue without narration
+          setTurnNumber(prev => prev + 1);
         }
+      } else if (narratorFrequency === 'off') {
+        setTurnNumber(prev => prev + 1);
       }
     } catch (error) {
       console.error('AI response error:', error);
@@ -1053,24 +1060,32 @@ export default function MockBattle() {
                   />
                 </div>
 
-                {/* Battle Narrator Toggle */}
+                {/* Battle Narrator Frequency */}
                 <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border">
                   <div className="flex items-center gap-3">
                     <Mic className="w-5 h-5 text-purple-500" />
                     <div>
-                      <Label htmlFor="narrator-toggle" className="text-sm font-medium cursor-pointer">
-                        Epic Battle Narrator
+                      <Label className="text-sm font-medium">
+                        Battle Narrator
                       </Label>
                       <p className="text-xs text-muted-foreground">
-                        AI provides dramatic commentary after each battle exchange
+                        Invisible observer commenting on the fight
                       </p>
                     </div>
                   </div>
-                  <Switch
-                    id="narrator-toggle"
-                    checked={narratorEnabled}
-                    onCheckedChange={setNarratorEnabled}
-                  />
+                  <Select 
+                    value={narratorFrequency} 
+                    onValueChange={(v) => setNarratorFrequency(v as 'always' | 'key_moments' | 'off')}
+                  >
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="always">Always</SelectItem>
+                      <SelectItem value="key_moments">Key Moments</SelectItem>
+                      <SelectItem value="off">Off</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Environment Preview */}

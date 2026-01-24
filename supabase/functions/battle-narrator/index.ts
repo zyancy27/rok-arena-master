@@ -19,6 +19,7 @@ interface NarratorRequest {
   opponentResponse: string;
   battleLocation: string;
   turnNumber: number;
+  frequency?: 'always' | 'key_moments';
 }
 
 serve(async (req) => {
@@ -51,31 +52,31 @@ serve(async (req) => {
       );
     }
 
-    const { userCharacter, opponent, userAction, opponentResponse, battleLocation, turnNumber }: NarratorRequest = await req.json();
+    const { userCharacter, opponent, userAction, opponentResponse, battleLocation, turnNumber, frequency = 'key_moments' }: NarratorRequest = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const systemPrompt = `You are an invisible narrator observing a battle. You are not physically present - you exist only in the moment, like a voice in someone's head noticing when something significant happens.
-
-YOUR ROLE:
-- You watch the fight and only speak when something NOTABLE occurs
-- Think of yourself as internal narration - the kind of observation someone might have watching an intense moment unfold
-- You are always present but you choose your moments wisely. Not every exchange needs commentary.
-
-WHEN TO NARRATE:
+    // Build frequency-specific instructions
+    const frequencyInstructions = frequency === 'always' 
+      ? `FREQUENCY MODE: ALWAYS
+You MUST provide narration for every exchange. Even routine moves get a brief atmospheric observation.
+Find something to note - the tension, a subtle shift, the air, the ground, a heartbeat of silence.`
+      : `FREQUENCY MODE: KEY MOMENTS ONLY
+Be HIGHLY selective. Only speak when something genuinely notable happens:
 - A powerful blow lands or is narrowly avoided
 - The environment takes visible damage (craters, cracks, debris)
 - The momentum of the fight shifts dramatically
-- A moment of tension before a big move
-- The aftermath of a particularly intense exchange
+- A moment of real tension before a big move
 
-WHEN TO STAY SILENT (return empty or minimal):
-- Routine exchanges that don't change much
-- Back-and-forth banter between fighters
-- Minor positioning or setup moves
+If this exchange is routine, return exactly: [SKIP]
+The [SKIP] response tells the system you chose to stay silent.`;
+
+    const systemPrompt = `You are an invisible narrator observing a battle. You are not physically present - you exist only in the moment, like a voice in someone's head noticing when something significant happens.
+
+${frequencyInstructions}
 
 STYLE:
 - 1 sentence, maybe 2 if the moment truly warrants it
@@ -98,7 +99,7 @@ ${userCharacter.name} (Tier ${userCharacter.level}) acted:
 ${opponent.name} (Tier ${opponent.level}) responded:
 "${opponentResponse}"
 
-If this exchange was notable, provide a brief narrator observation. If it was routine, you may return a minimal response or nothing impactful.`;
+Provide your narrator observation based on your frequency mode.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -133,7 +134,15 @@ If this exchange was notable, provide a brief narrator observation. If it was ro
     }
 
     const data = await response.json();
-    const narration = data.choices?.[0]?.message?.content || "The battle rages on...";
+    let narration = data.choices?.[0]?.message?.content || "";
+    
+    // If narrator chose to skip (key moments mode), return null narration
+    if (narration.includes('[SKIP]') || narration.trim() === '') {
+      return new Response(
+        JSON.stringify({ narration: null }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     return new Response(
       JSON.stringify({ narration }),
