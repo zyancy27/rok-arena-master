@@ -39,6 +39,7 @@ interface CharacterFormData {
   powers: string;
   abilities: string;
   home_planet: string;
+  home_moon: string;
   race: string;
   sub_race: string;
   age: string;
@@ -65,9 +66,11 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
     gravity: number | null;
     orbital_distance: number | null;
   } | null>(null);
-  const [availablePlanets, setAvailablePlanets] = useState<{ name: string; display_name: string | null }[]>([]);
+  const [availablePlanets, setAvailablePlanets] = useState<{ name: string; display_name: string | null; moon_count?: number | null }[]>([]);
+  const [availableMoons, setAvailableMoons] = useState<{ name: string; display_name: string | null; planet_name: string }[]>([]);
   const [availableRaces, setAvailableRaces] = useState<{ id: string; name: string; typical_physiology: string | null; typical_abilities: string | null }[]>([]);
   const [useCustomPlanet, setUseCustomPlanet] = useState(false);
+  const [useCustomMoon, setUseCustomMoon] = useState(false);
   const [useCustomRace, setUseCustomRace] = useState(false);
   
   const [formData, setFormData] = useState<CharacterFormData>({
@@ -77,6 +80,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
     powers: initialData?.powers || '',
     abilities: initialData?.abilities || '',
     home_planet: initialData?.home_planet || '',
+    home_moon: (initialData as any)?.home_moon || '',
     race: initialData?.race || '',
     sub_race: initialData?.sub_race || '',
     age: initialData?.age || '',
@@ -96,7 +100,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
     stat_luck: initialData?.stat_luck ?? DEFAULT_STATS.stat_luck,
   });
 
-  // Fetch available planets and races
+  // Fetch available planets, moons, and races
   useEffect(() => {
     const fetchData = async () => {
       if (!user) return;
@@ -104,16 +108,32 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
       // Fetch planets
       const { data: planets } = await supabase
         .from('planet_customizations')
-        .select('planet_name, display_name')
+        .select('planet_name, display_name, moon_count')
         .eq('user_id', user.id)
         .order('planet_name');
 
       if (planets) {
-        setAvailablePlanets(planets.map(p => ({ name: p.planet_name, display_name: p.display_name })));
+        setAvailablePlanets(planets.map(p => ({ name: p.planet_name, display_name: p.display_name, moon_count: p.moon_count })));
         
         // If editing and planet is not in list, enable custom mode
         if (initialData?.home_planet && !planets.some(p => p.planet_name === initialData.home_planet)) {
           setUseCustomPlanet(true);
+        }
+      }
+
+      // Fetch moons
+      const { data: moons } = await supabase
+        .from('moon_customizations')
+        .select('moon_name, display_name, planet_name')
+        .eq('user_id', user.id)
+        .order('moon_name');
+
+      if (moons) {
+        setAvailableMoons(moons.map(m => ({ name: m.moon_name, display_name: m.display_name, planet_name: m.planet_name })));
+        
+        // If editing and moon is not in list, enable custom mode
+        if ((initialData as any)?.home_moon && !moons.some(m => m.moon_name === (initialData as any)?.home_moon)) {
+          setUseCustomMoon(true);
         }
       }
 
@@ -397,6 +417,43 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
         }
       }
 
+      const moonName = formData.home_moon.trim();
+      
+      // Auto-create moon if needed
+      if (moonName && planetName) {
+        const existingMoon = availableMoons.find(
+          m => m.name.toLowerCase() === moonName.toLowerCase() && m.planet_name.toLowerCase() === planetName.toLowerCase()
+        );
+        
+        if (!existingMoon) {
+          // Get solar system id
+          const { data: existingSystems } = await supabase
+            .from('solar_systems')
+            .select('id')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: true })
+            .limit(1);
+
+          const solarSystemId = existingSystems?.[0]?.id;
+          
+          if (solarSystemId) {
+            const { error: moonError } = await supabase
+              .from('moon_customizations')
+              .insert({
+                user_id: user.id,
+                planet_name: planetName,
+                moon_name: moonName,
+                display_name: moonName,
+                solar_system_id: solarSystemId,
+              });
+
+            if (!moonError) {
+              toast.info(`Moon "${moonName}" added to ${planetName}!`);
+            }
+          }
+        }
+      }
+
       const characterData = {
         name: formData.name.trim(),
         level: formData.level,
@@ -404,6 +461,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
         powers: formData.powers.trim() || null,
         abilities: formData.abilities.trim() || null,
         home_planet: planetName || null,
+        home_moon: moonName || null,
         race: formData.race.trim() || null,
         sub_race: formData.sub_race.trim() || null,
         age: formData.age ? parseInt(formData.age) : null,
@@ -843,7 +901,93 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
               )}
             </div>
 
-            {/* Long Text Fields */}
+            {/* Home Moon - optional, only shown when a planet is selected */}
+            {formData.home_planet.trim() && (() => {
+              const homeLower = formData.home_planet.trim().toLowerCase();
+              const isShip = ['ship', 'vessel', 'cruiser', 'destroyer', 'carrier', 'frigate', 'corvette', 'battleship', 'dreadnought', 'starship', 'spacecraft', 'shuttle', 'station', 'ark', 'flagship', 'warship', 'gunship'].some(k => homeLower.includes(k));
+              const isFleet = ['fleet', 'armada', 'flotilla', 'squadron', 'navy', 'convoy', 'taskforce', 'task force', 'battle group', 'battlegroup'].some(k => homeLower.includes(k));
+              
+              // Don't show moon selection for ships/fleets
+              if (isShip || isFleet) return null;
+              
+              // Get moons for the selected planet
+              const moonsForPlanet = availableMoons.filter(m => 
+                m.planet_name.toLowerCase() === formData.home_planet.trim().toLowerCase()
+              );
+              
+              return (
+                <div className="space-y-2">
+                  <Label htmlFor="home_moon" className="flex items-center gap-2">
+                    🌙 Home Moon
+                    <span className="text-xs text-muted-foreground">(Optional)</span>
+                  </Label>
+                  {moonsForPlanet.length > 0 && !useCustomMoon ? (
+                    <Select
+                      value={formData.home_moon}
+                      onValueChange={(value) => {
+                        if (value === '__custom__') {
+                          setUseCustomMoon(true);
+                          handleChange('home_moon', '');
+                        } else if (value === '__none__') {
+                          handleChange('home_moon', '');
+                        } else {
+                          handleChange('home_moon', value);
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a moon (optional)..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover z-50">
+                        <SelectItem value="__none__" className="text-muted-foreground">
+                          No moon (lives on planet surface)
+                        </SelectItem>
+                        {moonsForPlanet.map((moon) => (
+                          <SelectItem key={moon.name} value={moon.name}>
+                            🌙 {moon.display_name || moon.name}
+                          </SelectItem>
+                        ))}
+                        <SelectItem value="__custom__" className="text-muted-foreground border-t mt-1 pt-2">
+                          + Create new moon...
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        id="home_moon"
+                        placeholder="Enter moon name (e.g., Luna, Titan)..."
+                        value={formData.home_moon}
+                        onChange={(e) => handleChange('home_moon', e.target.value)}
+                        className="flex-1"
+                      />
+                      {moonsForPlanet.length > 0 && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setUseCustomMoon(false);
+                            handleChange('home_moon', '');
+                          }}
+                        >
+                          Select
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                  {formData.home_moon.trim() && !moonsForPlanet.some(m => m.name.toLowerCase() === formData.home_moon.trim().toLowerCase()) && (
+                    <p className="text-xs text-amber-400 flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" />
+                      New moon will orbit {formData.home_planet} in your Solar System!
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    If your character lives on a moon rather than the planet surface
+                  </p>
+                </div>
+              );
+            })()}
             <div className="space-y-2">
               <Label htmlFor="lore">Lore & Backstory</Label>
               <Textarea
