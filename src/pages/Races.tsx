@@ -1,5 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -8,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
   DialogContent,
@@ -28,11 +26,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { toast } from 'sonner';
 import { LoreDocumentUpload } from '@/components/lore/LoreDocumentUpload';
 import { useAutoSave } from '@/hooks/use-auto-save';
 import { AutoSaveIndicator } from '@/components/ui/auto-save-indicator';
-import { Dna, Plus, Edit, Trash2, Globe, Sparkles, Heart, Clock, Users } from 'lucide-react';
+import { Dna, Plus, Edit, Trash2, Globe, Sparkles, Heart, Clock, ChevronDown, Wand2, Loader2 } from 'lucide-react';
 
 interface Race {
   id: string;
@@ -75,6 +78,9 @@ export default function Races() {
   const [editingRace, setEditingRace] = useState<Race | null>(null);
   const [formData, setFormData] = useState<RaceFormData>(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
+  const [pasteText, setPasteText] = useState('');
+  const [isParsing, setIsParsing] = useState(false);
+  const [isPasteOpen, setIsPasteOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -97,9 +103,51 @@ export default function Races() {
     setLoading(false);
   };
 
+  const handleAutoFillFromPaste = async () => {
+    if (!pasteText.trim()) {
+      toast.error('Please paste some text first');
+      return;
+    }
+
+    setIsParsing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('parse-species-info', {
+        body: { text: pasteText }
+      });
+
+      if (error) throw error;
+
+      if (data?.success && data?.data) {
+        const extracted = data.data;
+        setFormData({
+          name: extracted.name || formData.name,
+          description: extracted.description || formData.description,
+          home_planet: extracted.home_planet || formData.home_planet,
+          typical_physiology: extracted.typical_physiology || formData.typical_physiology,
+          typical_abilities: extracted.typical_abilities || formData.typical_abilities,
+          cultural_traits: extracted.cultural_traits || formData.cultural_traits,
+          average_lifespan: extracted.average_lifespan || formData.average_lifespan,
+        });
+        toast.success('Species information extracted!');
+        setPasteText('');
+        setIsPasteOpen(false);
+      } else {
+        throw new Error(data?.error || 'Failed to extract information');
+      }
+    } catch (error) {
+      console.error('Parse error:', error);
+      const message = error instanceof Error ? error.message : 'Failed to parse text';
+      toast.error(message);
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
   const handleOpenCreate = () => {
     setEditingRace(null);
     setFormData(emptyForm);
+    setPasteText('');
+    setIsPasteOpen(false);
     setIsDialogOpen(true);
   };
 
@@ -247,6 +295,51 @@ export default function Races() {
                 </div>
               </DialogHeader>
               <div className="space-y-4 py-4">
+                {/* AI Auto-fill from paste section */}
+                {!editingRace && (
+                  <Collapsible open={isPasteOpen} onOpenChange={setIsPasteOpen}>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between" type="button">
+                        <span className="flex items-center gap-2">
+                          <Wand2 className="w-4 h-4" />
+                          Paste character info to auto-fill
+                        </span>
+                        <ChevronDown className={`w-4 h-4 transition-transform ${isPasteOpen ? 'rotate-180' : ''}`} />
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pt-3 space-y-3">
+                      <Textarea
+                        placeholder="Paste character description, wiki entry, or any text containing species information..."
+                        value={pasteText}
+                        onChange={(e) => setPasteText(e.target.value)}
+                        rows={4}
+                        className="text-sm"
+                      />
+                      <Button
+                        type="button"
+                        onClick={handleAutoFillFromPaste}
+                        disabled={isParsing || !pasteText.trim()}
+                        className="w-full"
+                      >
+                        {isParsing ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Extracting...
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="w-4 h-4 mr-2" />
+                            Extract Species Info
+                          </>
+                        )}
+                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        AI will extract species name, physiology, abilities, culture, and more from your text.
+                      </p>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="name">Race Name *</Label>
                   <Input

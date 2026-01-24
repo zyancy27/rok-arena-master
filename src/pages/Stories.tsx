@@ -7,13 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
-import { Plus, FileText, Edit, Trash2, Eye, EyeOff, BookOpen, User, ChevronLeft, ChevronRight, Book, ListOrdered } from 'lucide-react';
+import { Plus, FileText, Edit, Trash2, Eye, EyeOff, BookOpen, User, ChevronLeft, ChevronRight, Book, ListOrdered, Users } from 'lucide-react';
 
 interface Chapter {
   id: string;
@@ -23,6 +24,14 @@ interface Chapter {
   content: string;
   created_at: string;
   updated_at: string;
+}
+
+interface StoryCharacter {
+  character_id: string;
+  character: {
+    id: string;
+    name: string;
+  };
 }
 
 interface Story {
@@ -38,6 +47,7 @@ interface Story {
     id: string;
     name: string;
   } | null;
+  story_characters?: StoryCharacter[];
   chapters?: Chapter[];
 }
 
@@ -63,9 +73,10 @@ export default function Stories() {
     title: '',
     content: '',
     summary: '',
-    character_id: '',
     is_published: false,
   });
+
+  const [selectedCharacterIds, setSelectedCharacterIds] = useState<string[]>([]);
 
   const [chapterFormData, setChapterFormData] = useState({
     title: '',
@@ -87,7 +98,8 @@ export default function Stories() {
       .from('stories')
       .select(`
         *,
-        character:characters(id, name)
+        character:characters(id, name),
+        story_characters(character_id, character:characters(id, name))
       `)
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false });
@@ -107,7 +119,7 @@ export default function Stories() {
         return { ...story, chapters: chapters || [] };
       }));
       
-      setStories(storiesWithChapters);
+      setStories(storiesWithChapters as Story[]);
     }
     setLoading(false);
   };
@@ -131,9 +143,9 @@ export default function Stories() {
       title: '',
       content: '',
       summary: '',
-      character_id: '',
       is_published: false,
     });
+    setSelectedCharacterIds([]);
     setEditingStory(null);
   };
 
@@ -153,9 +165,15 @@ export default function Stories() {
       title: story.title,
       content: story.content,
       summary: story.summary || '',
-      character_id: story.character_id || '',
       is_published: story.is_published,
     });
+    // Load linked characters
+    const linkedIds = story.story_characters?.map(sc => sc.character_id) || [];
+    // Also include legacy single character if present
+    if (story.character_id && !linkedIds.includes(story.character_id)) {
+      linkedIds.push(story.character_id);
+    }
+    setSelectedCharacterIds(linkedIds);
     setIsDialogOpen(true);
   };
 
@@ -194,7 +212,7 @@ export default function Stories() {
       title: formData.title.trim(),
       content: formData.content.trim(),
       summary: formData.summary.trim() || null,
-      character_id: formData.character_id || null,
+      character_id: selectedCharacterIds.length > 0 ? selectedCharacterIds[0] : null, // Keep legacy field for compatibility
       is_published: formData.is_published,
       user_id: user.id,
     };
@@ -208,19 +226,40 @@ export default function Stories() {
       if (error) {
         toast.error('Failed to update story');
       } else {
+        // Update story_characters junction table
+        await supabase.from('story_characters').delete().eq('story_id', editingStory.id);
+        if (selectedCharacterIds.length > 0) {
+          await supabase.from('story_characters').insert(
+            selectedCharacterIds.map(charId => ({
+              story_id: editingStory.id,
+              character_id: charId
+            }))
+          );
+        }
         toast.success('Story updated!');
         fetchStories();
         setIsDialogOpen(false);
         resetForm();
       }
     } else {
-      const { error } = await supabase
+      const { data: newStory, error } = await supabase
         .from('stories')
-        .insert(storyData);
+        .insert(storyData)
+        .select('id')
+        .single();
 
       if (error) {
         toast.error('Failed to create story');
-      } else {
+      } else if (newStory) {
+        // Add story_characters links
+        if (selectedCharacterIds.length > 0) {
+          await supabase.from('story_characters').insert(
+            selectedCharacterIds.map(charId => ({
+              story_id: newStory.id,
+              character_id: charId
+            }))
+          );
+        }
         toast.success('Story created!');
         fetchStories();
         setIsDialogOpen(false);
@@ -389,25 +428,36 @@ export default function Stories() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="character">Character (optional)</Label>
-                <Select
-                  value={formData.character_id}
-                  onValueChange={(value) => setFormData({ ...formData, character_id: value === '__none__' ? '' : value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a character..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover z-50">
-                    <SelectItem value="__none__">No character</SelectItem>
-                    {characters.map((char) => (
-                      <SelectItem key={char.id} value={char.id}>
-                        {char.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label className="flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  Link Characters (optional)
+                </Label>
+                <div className="border rounded-md p-3 max-h-40 overflow-y-auto space-y-2">
+                  {characters.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No characters yet. Create one first!</p>
+                  ) : (
+                    characters.map((char) => (
+                      <div key={char.id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`char-${char.id}`}
+                          checked={selectedCharacterIds.includes(char.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedCharacterIds([...selectedCharacterIds, char.id]);
+                            } else {
+                              setSelectedCharacterIds(selectedCharacterIds.filter(id => id !== char.id));
+                            }
+                          }}
+                        />
+                        <label htmlFor={`char-${char.id}`} className="text-sm cursor-pointer">
+                          {char.name}
+                        </label>
+                      </div>
+                    ))
+                  )}
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  Link to a character to include their story lore in AI battles
+                  Selected characters' story lore will be used in AI battles
                 </p>
               </div>
 
@@ -562,7 +612,21 @@ export default function Stories() {
                           </span>
                         )}
                       </CardTitle>
-                      {story.character && (
+                      {/* Show linked characters */}
+                      {(story.story_characters && story.story_characters.length > 0) ? (
+                        <CardDescription className="flex items-center gap-1 mt-1 flex-wrap">
+                          <Users className="w-3 h-3" />
+                          {story.story_characters.map((sc, idx) => (
+                            <span key={sc.character_id}>
+                              <Link to={`/characters/${sc.character.id}`} className="hover:underline text-primary">
+                                {sc.character.name}
+                              </Link>
+                              {idx < story.story_characters!.length - 1 && ', '}
+                            </span>
+                          ))}
+                          <span className="text-xs text-muted-foreground ml-2">• Lore used in AI battles</span>
+                        </CardDescription>
+                      ) : story.character && (
                         <CardDescription className="flex items-center gap-1 mt-1">
                           <User className="w-3 h-3" />
                           <Link to={`/characters/${story.character.id}`} className="hover:underline text-primary">

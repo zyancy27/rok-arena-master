@@ -5,3 +5,12 @@ verify_jwt = false
 
 [functions.battle-narrator]
 verify_jwt = false
+
+[functions.parse-species-info]
+verify_jwt = false
+
+[functions.parse-character-notes]
+verify_jwt = false
+
+[functions.parse-lore-document]
+verify_jwt = false
