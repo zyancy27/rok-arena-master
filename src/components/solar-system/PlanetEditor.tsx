@@ -59,6 +59,7 @@ export interface CharacterData {
 interface PlanetEditorProps {
   planet: PlanetCustomization;
   moons: MoonData[];
+  allMoons: MoonData[]; // All moons in the solar system for transfer picker
   characters: CharacterData[];
   allPlanets: string[];
   solarSystemId: string;
@@ -97,6 +98,7 @@ const MOON_COLORS = [
 export default function PlanetEditor({ 
   planet, 
   moons, 
+  allMoons,
   characters, 
   allPlanets, 
   solarSystemId, 
@@ -704,31 +706,97 @@ export default function PlanetEditor({
 
                 {/* Transfer Character Modal */}
                 {transferringCharacter && (
-                  <Card className="p-4 space-y-4 border-primary/30">
+                  <Card className="p-4 space-y-4 border-primary/30 bg-card">
                     <p className="font-medium">Move {transferringCharacter.name} to:</p>
                     <div className="space-y-2">
                       <Label>Target Planet</Label>
                       <Select value={targetPlanet} onValueChange={(v) => { setTargetPlanet(v); setTargetMoon(''); }}>
-                        <SelectTrigger>
+                        <SelectTrigger className="bg-background">
                           <SelectValue placeholder="Select planet..." />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-popover z-50">
                           {allPlanets.filter(p => p !== planet.name).map((p) => (
                             <SelectItem key={p} value={p}>{p}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
+                    
+                    {/* Visual Moon Picker */}
                     {targetPlanet && (
-                      <div className="space-y-2">
-                        <Label>Target Moon (optional)</Label>
-                        <Input
-                          value={targetMoon}
-                          onChange={(e) => setTargetMoon(e.target.value)}
-                          placeholder="Leave empty for planet surface"
-                        />
+                      <div className="space-y-3">
+                        <Label>Location on {targetPlanet}</Label>
+                        
+                        {/* Planet Surface Option */}
+                        <button
+                          type="button"
+                          onClick={() => setTargetMoon('')}
+                          className={`w-full p-3 rounded-lg border-2 transition-all flex items-center gap-3 ${
+                            targetMoon === ''
+                              ? 'border-primary bg-primary/10'
+                              : 'border-border hover:border-primary/50 bg-background'
+                          }`}
+                        >
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center">
+                            <Globe className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="text-left">
+                            <p className="font-medium">Planet Surface</p>
+                            <p className="text-xs text-muted-foreground">Live directly on {targetPlanet}</p>
+                          </div>
+                          {targetMoon === '' && (
+                            <div className="ml-auto w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                              <svg className="w-3 h-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </div>
+                          )}
+                        </button>
+                        
+                        {/* Available Moons */}
+                        {(() => {
+                          const targetPlanetMoons = allMoons.filter(m => m.planet_name === targetPlanet);
+                          if (targetPlanetMoons.length === 0) return null;
+                          
+                          return (
+                            <div className="space-y-2">
+                              <p className="text-xs text-muted-foreground">Or choose a moon:</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                {targetPlanetMoons.map((moon) => (
+                                  <button
+                                    key={moon.moon_name}
+                                    type="button"
+                                    onClick={() => setTargetMoon(moon.moon_name)}
+                                    className={`p-3 rounded-lg border-2 transition-all flex items-center gap-2 ${
+                                      targetMoon === moon.moon_name
+                                        ? 'border-primary bg-primary/10'
+                                        : 'border-border hover:border-primary/50 bg-background'
+                                    }`}
+                                  >
+                                    <div
+                                      className="w-8 h-8 rounded-full shrink-0"
+                                      style={{ backgroundColor: moon.color || '#9CA3AF' }}
+                                    />
+                                    <div className="text-left min-w-0">
+                                      <p className="font-medium text-sm truncate">{moon.display_name || moon.moon_name}</p>
+                                      <p className="text-xs text-muted-foreground">Moon</p>
+                                    </div>
+                                    {targetMoon === moon.moon_name && (
+                                      <div className="ml-auto w-4 h-4 rounded-full bg-primary flex items-center justify-center shrink-0">
+                                        <svg className="w-2.5 h-2.5 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                      </div>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     )}
+                    
                     <div className="flex gap-2">
                       <Button onClick={handleTransferCharacter} disabled={!targetPlanet} className="flex-1">
                         Move Character
