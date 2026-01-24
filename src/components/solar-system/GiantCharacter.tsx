@@ -2,6 +2,7 @@ import { useRef, useMemo, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html, Sphere, Cylinder, Box } from '@react-three/drei';
 import * as THREE from 'three';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface GiantCharacterProps {
   name: string;
@@ -28,6 +29,7 @@ export default function GiantCharacter({
   const groupRef = useRef<THREE.Group>(null);
   const figureRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
+  const isMobile = useIsMobile();
   
   // Random starting angle based on name
   const startAngle = useMemo(() => {
@@ -237,15 +239,15 @@ export default function GiantCharacter({
         <Html
           position={[0, size * 0.5 + 0.5, 0]}
           center
-          distanceFactor={15}
+          distanceFactor={isMobile ? 10 : 15}
           style={{
             transition: 'opacity 0.2s',
             opacity: hovered ? 1 : 0.7,
           }}
         >
-          <div className="text-center pointer-events-none">
+          <div className="text-center pointer-events-none" style={{ transform: isMobile ? 'scale(0.75)' : 'none' }}>
             <div 
-              className="text-sm font-bold px-2 py-1 rounded-full whitespace-nowrap"
+              className={`${isMobile ? 'text-xs' : 'text-sm'} font-bold px-2 py-1 rounded-full whitespace-nowrap`}
               style={{
                 backgroundColor: `${color}40`,
                 color: 'white',
@@ -255,9 +257,11 @@ export default function GiantCharacter({
             >
               {name}
             </div>
-            <div className="text-xs text-white/70 mt-1">
-              Tier {level} • Planet-Sized
-            </div>
+            {!isMobile && (
+              <div className="text-xs text-white/70 mt-1">
+                Tier {level} • Planet-Sized
+              </div>
+            )}
           </div>
         </Html>
       </group>

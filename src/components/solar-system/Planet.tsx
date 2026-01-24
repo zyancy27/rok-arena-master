@@ -7,7 +7,7 @@ import PlanetRings from './PlanetRings';
 import Moon from './Moon';
 import { getGravityClass } from '@/lib/planet-physics';
 import { parseTerrainFromLore, generateTerrainVisuals } from '@/lib/planet-terrain';
-
+import { useIsMobile } from '@/hooks/use-mobile';
 interface PlanetProps {
   name: string;
   orbitRadius: number;
@@ -74,6 +74,7 @@ export default function Planet({
   const planetRef = useRef<THREE.Mesh>(null);
   const [hovered, setHovered] = useState(false);
   const angleRef = useRef(Math.random() * Math.PI * 2);
+  const isMobile = useIsMobile();
 
   const defaultFeatures = useMemo(() => getPlanetFeatures(name, planetSize), [name, planetSize]);
   
@@ -309,35 +310,40 @@ export default function Planet({
       <Html
         position={[0, planetSize + (hasRings ? 1.2 : 0.5), 0]}
         center
+        distanceFactor={isMobile ? 12 : undefined}
         style={{
           pointerEvents: 'none',
           opacity: hovered || isSelected ? 1 : 0.7,
           transition: 'opacity 0.3s',
         }}
       >
-        <div className="text-center whitespace-nowrap">
-          <div className="text-sm font-bold text-white drop-shadow-lg flex items-center gap-1 justify-center">
+        <div className="text-center whitespace-nowrap" style={{ transform: isMobile ? 'scale(0.8)' : 'none' }}>
+          <div className={`${isMobile ? 'text-xs' : 'text-sm'} font-bold text-white drop-shadow-lg flex items-center gap-1 justify-center`}>
             {name}
             {isInHabitableZone && (
-              <span className="text-[10px] text-green-400" title="In habitable zone">🌱</span>
+              <span className={`${isMobile ? 'text-[8px]' : 'text-[10px]'} text-green-400`} title="In habitable zone">🌱</span>
             )}
           </div>
-          <div className="text-xs text-muted-foreground">
-            {characterCount} character{characterCount !== 1 ? 's' : ''}
-          </div>
-          <div className="text-[10px] text-muted-foreground/70">
-            ~{planetTemperature}K · {climateZone}
-          </div>
-          {gravityInfo && (
-            <div 
-              className="text-[10px] mt-0.5 px-1.5 py-0.5 rounded-full inline-block"
-              style={{ 
-                backgroundColor: gravityInfo.color + '30', 
-                color: gravityInfo.color 
-              }}
-            >
-              {gravity?.toFixed(1)}g · {gravityInfo.name}
-            </div>
+          {!isMobile && (
+            <>
+              <div className="text-xs text-muted-foreground">
+                {characterCount} character{characterCount !== 1 ? 's' : ''}
+              </div>
+              <div className="text-[10px] text-muted-foreground/70">
+                ~{planetTemperature}K · {climateZone}
+              </div>
+              {gravityInfo && (
+                <div 
+                  className="text-[10px] mt-0.5 px-1.5 py-0.5 rounded-full inline-block"
+                  style={{ 
+                    backgroundColor: gravityInfo.color + '30', 
+                    color: gravityInfo.color 
+                  }}
+                >
+                  {gravity?.toFixed(1)}g · {gravityInfo.name}
+                </div>
+              )}
+            </>
           )}
         </div>
       </Html>

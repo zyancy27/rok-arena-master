@@ -2,6 +2,7 @@ import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Float, Text, Sparkles } from '@react-three/drei';
 import * as THREE from 'three';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface SpaceshipProps {
   name: string;
@@ -147,6 +148,7 @@ export default function Spaceship({
   const groupRef = useRef<THREE.Group>(null);
   const shipRef = useRef<THREE.Group>(null);
   const angle = useRef(Math.random() * Math.PI * 2);
+  const isMobile = useIsMobile();
 
   useFrame((_, delta) => {
     angle.current += delta * orbitSpeed;
@@ -191,7 +193,7 @@ export default function Spaceship({
         <Float speed={2} floatIntensity={0.2}>
           <Text
             position={[0, size * 0.8 + 0.5, 0]}
-            fontSize={0.25}
+            fontSize={isMobile ? 0.18 : 0.25}
             color={color}
             anchorX="center"
             anchorY="middle"
@@ -200,7 +202,7 @@ export default function Spaceship({
           >
             {name}
           </Text>
-          {characterCount > 0 && (
+          {characterCount > 0 && !isMobile && (
             <Text
               position={[0, size * 0.8 + 0.2, 0]}
               fontSize={0.15}
