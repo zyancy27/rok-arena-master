@@ -20,6 +20,7 @@ import Spaceship, { isShipOrFleetHome } from './Spaceship';
 import MobilePlanetDetails from './MobilePlanetDetails';
 import MobileSpaceshipDetails from './MobileSpaceshipDetails';
 import MobileGiantCharacterDetails from './MobileGiantCharacterDetails';
+import MergePlanetDialog from './MergePlanetDialog';
 
 import { getHabitableZone } from './Sun';
 import { supabase } from '@/integrations/supabase/client';
@@ -142,6 +143,9 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
   const [mobilePlanetSheetOpen, setMobilePlanetSheetOpen] = useState(false);
   const [mobileSpaceshipSheetOpen, setMobileSpaceshipSheetOpen] = useState(false);
   const [mobileGiantCharacterSheetOpen, setMobileGiantCharacterSheetOpen] = useState(false);
+  
+  // Merge planet dialog state
+  const [mergePlanetDialogOpen, setMergePlanetDialogOpen] = useState(false);
   
   // Selected vessel/giant for mobile sheets
   const [selectedVessel, setSelectedVessel] = useState<{
@@ -871,6 +875,77 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
     handleBackToGalaxy();
   }, [selectedPlanet, user, currentSystem, handleBackToGalaxy]);
 
+  // Open merge planet dialog
+  const handleOpenMergePlanet = useCallback(() => {
+    setMergePlanetDialogOpen(true);
+  }, []);
+
+  // Merge planets: transfer all characters and moons from source to target, then delete source
+  const handleMergePlanets = useCallback(async (sourcePlanetName: string, targetPlanetName: string) => {
+    if (!user || !currentSystem) return;
+
+    // 1. Update all characters from source planet to target planet
+    const { error: charError } = await supabase
+      .from('characters')
+      .update({ 
+        home_planet: targetPlanetName,
+        home_moon: null // Reset moon since target planet may have different moons
+      })
+      .eq('home_planet', sourcePlanetName)
+      .eq('solar_system_id', currentSystem.id);
+
+    if (charError) {
+      // Try updating characters that belong to this user without solar_system_id
+      const { error: charError2 } = await supabase
+        .from('characters')
+        .update({ 
+          home_planet: targetPlanetName,
+          home_moon: null
+        })
+        .eq('home_planet', sourcePlanetName)
+        .eq('user_id', user.id);
+
+      if (charError2) {
+        toast.error('Failed to transfer characters');
+        throw charError2;
+      }
+    }
+
+    // 2. Transfer moon customizations from source to target planet
+    const { error: moonError } = await supabase
+      .from('moon_customizations')
+      .update({ planet_name: targetPlanetName })
+      .eq('planet_name', sourcePlanetName)
+      .eq('solar_system_id', currentSystem.id);
+
+    if (moonError) {
+      console.warn('Failed to transfer moons:', moonError);
+      // Non-fatal - continue with planet deletion
+    }
+
+    // 3. Delete the source planet customization
+    const { error: deleteError } = await supabase
+      .from('planet_customizations')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('planet_name', sourcePlanetName)
+      .eq('solar_system_id', currentSystem.id);
+
+    if (deleteError) {
+      toast.error('Failed to delete source planet');
+      throw deleteError;
+    }
+
+    // 4. Refresh data
+    await Promise.all([fetchCharacters(), fetchCustomizations()]);
+
+    const sourcePlanet = planets.find(p => p.name === sourcePlanetName);
+    const targetPlanet = planets.find(p => p.name === targetPlanetName);
+    
+    toast.success(`${sourcePlanet?.displayName || sourcePlanetName} merged into ${targetPlanet?.displayName || targetPlanetName}`);
+    handleBackToGalaxy();
+  }, [user, currentSystem, planets, handleBackToGalaxy]);
+
   const handleSystemChange = useCallback((system: SolarSystemData) => {
     setCurrentSystem(system);
     setSelectedPlanet(null);
@@ -1126,8 +1201,10 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
           onViewCharacters={handleViewCharacters}
           onEditPlanet={handleEditPlanet}
           onDeletePlanet={handleDeletePlanet}
+          onMergePlanet={handleOpenMergePlanet}
           onBack={handleBack}
           canDelete={selectedPlanet.isUserCreated === true}
+          canMerge={!isViewingFriend && planets.length > 1}
         />
       )}
 
@@ -1139,9 +1216,30 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
         onViewCharacters={handleViewCharacters}
         onEditPlanet={handleEditPlanet}
         onDeletePlanet={handleDeletePlanet}
+        onMergePlanet={handleOpenMergePlanet}
         sunTemperature={sunData.temperature}
         sunLuminosity={getSunLuminosityFromTemperature(sunData.temperature)}
         canEdit={!isViewingFriend}
+        canMerge={!isViewingFriend && planets.length > 1}
+      />
+
+      {/* Merge Planet Dialog */}
+      <MergePlanetDialog
+        isOpen={mergePlanetDialogOpen}
+        onClose={() => setMergePlanetDialogOpen(false)}
+        sourcePlanet={selectedPlanet ? {
+          name: selectedPlanet.name,
+          displayName: selectedPlanet.displayName,
+          characterCount: selectedPlanet.characterCount,
+          color: selectedPlanet.color,
+        } : null}
+        availablePlanets={planets.map(p => ({
+          name: p.name,
+          displayName: p.displayName,
+          characterCount: p.characterCount,
+          color: p.color,
+        }))}
+        onMerge={handleMergePlanets}
       />
 
       {/* Mobile Spaceship/Fleet Details Sheet */}
