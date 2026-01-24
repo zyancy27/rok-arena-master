@@ -125,8 +125,9 @@ function Throne({
   const throneColor = holder.isEmpty && !holder.isCreator ? '#2D3748' : holder.color;
   const emissiveIntensity = hovered || isSelected ? 0.4 : holder.isCreator ? 0.2 : 0.05;
 
-  // Calculate rotation to face the dome center (0, -4, 0)
-  const rotationY = Math.atan2(-position[0], -(position[2] + 4));
+  // Calculate rotation to face the dome center (0, -2, 0)
+  const domeCenter = { x: 0, z: 0 };
+  const rotationY = Math.atan2(domeCenter.x - position[0], domeCenter.z - position[2]);
 
   return (
     <group 
@@ -286,37 +287,41 @@ function MultiverseDome() {
   }, []);
 
   return (
-    <group position={[0, -4, 0]}>
+    <group position={[0, -2, 0]}>
       {/* The table/platform */}
       <mesh position={[0, -0.5, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[6, 6, 0.3, 64]} />
         <meshStandardMaterial 
-          color="#1a1a2e"
-          metalness={0.9}
-          roughness={0.2}
+          color="#2a2a4e"
+          emissive="#1a1a3e"
+          emissiveIntensity={0.2}
+          metalness={0.7}
+          roughness={0.3}
         />
       </mesh>
 
       {/* Decorative ring */}
       <mesh position={[0, -0.3, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[6.2, 0.1, 8, 64]} />
+        <torusGeometry args={[6.2, 0.15, 8, 64]} />
         <meshStandardMaterial 
           color="#FFD700"
           emissive="#FFD700"
-          emissiveIntensity={0.3}
+          emissiveIntensity={1}
           metalness={1}
           roughness={0}
         />
       </mesh>
 
-      {/* The dome itself */}
+      {/* The dome itself - more visible glass effect */}
       <mesh ref={domeRef} position={[0, 0, 0]}>
         <sphereGeometry args={[5, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2]} />
         <meshStandardMaterial 
-          color="#0a0a1a"
+          color="#4444aa"
           transparent
-          opacity={0.3}
+          opacity={0.15}
           side={THREE.DoubleSide}
+          emissive="#6666ff"
+          emissiveIntensity={0.1}
         />
       </mesh>
 
@@ -338,45 +343,57 @@ function MultiverseDome() {
             />
           </bufferGeometry>
           <pointsMaterial
-            size={0.08}
+            size={0.15}
             vertexColors
             transparent
-            opacity={0.8}
+            opacity={1}
             sizeAttenuation
           />
         </points>
 
-        {/* Central bright core */}
+        {/* Central bright core - much brighter */}
         <mesh position={[0, 0, 0]}>
-          <sphereGeometry args={[0.5, 32, 32]} />
-          <meshStandardMaterial 
-            color="#ffffff"
-            emissive="#8B5CF6"
-            emissiveIntensity={2}
-          />
+          <sphereGeometry args={[0.8, 32, 32]} />
+          <meshBasicMaterial color="#ffffff" />
+        </mesh>
+        <mesh position={[0, 0, 0]}>
+          <sphereGeometry args={[1.2, 32, 32]} />
+          <meshBasicMaterial color="#8B5CF6" transparent opacity={0.5} />
         </mesh>
 
-        {/* Orbiting mini-systems */}
-        {[0, 1, 2, 3, 4].map((i) => (
-          <Float key={i} speed={1 + i * 0.2} floatIntensity={0.2}>
-            <mesh position={[
-              Math.cos(i * Math.PI * 0.4) * (2 + i * 0.3),
-              -1 + Math.random(),
-              Math.sin(i * Math.PI * 0.4) * (2 + i * 0.3)
-            ]}>
-              <sphereGeometry args={[0.15, 16, 16]} />
-              <meshStandardMaterial 
-                color={['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181'][i]}
-                emissive={['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181'][i]}
-                emissiveIntensity={0.5}
-              />
-            </mesh>
-          </Float>
+        {/* Orbiting mini-systems - brighter */}
+        {[0, 1, 2, 3, 4].map((i) => {
+          const colors = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181'];
+          return (
+            <Float key={i} speed={1 + i * 0.2} floatIntensity={0.3}>
+              <mesh position={[
+                Math.cos(i * Math.PI * 0.4) * (2 + i * 0.3),
+                -0.5 + (i % 3) * 0.3,
+                Math.sin(i * Math.PI * 0.4) * (2 + i * 0.3)
+              ]}>
+                <sphereGeometry args={[0.2, 16, 16]} />
+                <meshBasicMaterial color={colors[i]} />
+              </mesh>
+            </Float>
+          );
+        })}
+
+        {/* Nebula rings */}
+        {[1.5, 2.5, 3.5].map((radius, i) => (
+          <mesh key={i} rotation={[Math.PI / 2 + i * 0.2, 0, i * 0.5]}>
+            <torusGeometry args={[radius, 0.05, 8, 64]} />
+            <meshBasicMaterial 
+              color={['#ff66aa', '#66aaff', '#ffaa66'][i]} 
+              transparent 
+              opacity={0.6} 
+            />
+          </mesh>
         ))}
       </group>
 
-      {/* Dome glow effect */}
-      <pointLight position={[0, 1, 0]} color="#8B5CF6" intensity={2} distance={10} />
+      {/* Strong lighting for dome */}
+      <pointLight position={[0, 2, 0]} color="#8B5CF6" intensity={5} distance={15} />
+      <pointLight position={[0, -1, 0]} color="#ffffff" intensity={3} distance={10} />
     </group>
   );
 }
@@ -409,16 +426,17 @@ function ThroneRoomScene({
 
   return (
     <>
-      {/* Ambient and dramatic lighting */}
-      <ambientLight intensity={0.2} />
-      <pointLight position={[0, 10, 0]} intensity={1} color="#8B5CF6" />
-      <pointLight position={[-10, 5, -10]} intensity={0.5} color="#FFD700" />
-      <pointLight position={[10, 5, -10]} intensity={0.5} color="#FFD700" />
+      {/* Ambient and dramatic lighting - much brighter */}
+      <ambientLight intensity={0.6} />
+      <pointLight position={[0, 10, 0]} intensity={3} color="#8B5CF6" />
+      <pointLight position={[-10, 5, -10]} intensity={1.5} color="#FFD700" />
+      <pointLight position={[10, 5, -10]} intensity={1.5} color="#FFD700" />
+      <pointLight position={[0, 3, 8]} intensity={2} color="#ffffff" />
       <spotLight 
         position={[0, 15, 0]} 
-        angle={0.4} 
+        angle={0.6} 
         penumbra={0.5} 
-        intensity={2} 
+        intensity={4} 
         color="#ffffff"
         castShadow
       />
@@ -426,13 +444,15 @@ function ThroneRoomScene({
       {/* Background stars */}
       <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
 
-      {/* The floor */}
+      {/* The floor - slightly visible */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]}>
         <planeGeometry args={[50, 50]} />
         <meshStandardMaterial 
-          color="#0a0a1a"
-          metalness={0.8}
-          roughness={0.3}
+          color="#1a1a3e"
+          emissive="#0a0a1e"
+          emissiveIntensity={0.1}
+          metalness={0.6}
+          roughness={0.4}
         />
       </mesh>
 
