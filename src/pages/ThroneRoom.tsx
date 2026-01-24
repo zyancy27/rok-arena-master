@@ -263,24 +263,26 @@ function MultiverseDome() {
     }
   });
 
-  // Create galaxy/multiverse particles inside the dome
+  // Create galaxy/multiverse particles - positioned in upper half of dome
   const particles = useMemo(() => {
-    const positions = new Float32Array(2000 * 3);
-    const colors = new Float32Array(2000 * 3);
+    const positions = new Float32Array(3000 * 3);
+    const colors = new Float32Array(3000 * 3);
     
-    for (let i = 0; i < 2000; i++) {
+    for (let i = 0; i < 3000; i++) {
       const theta = Math.random() * Math.PI * 2;
-      const phi = Math.random() * Math.PI * 0.5;
-      const r = Math.random() * 4 + 1;
+      // phi from 0 to PI/2 keeps particles in upper hemisphere
+      const phi = Math.random() * Math.PI * 0.45;
+      const r = Math.random() * 3.5 + 0.5;
       
+      // Position particles in upper half, above the table
       positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
-      positions[i * 3 + 1] = r * Math.cos(phi) * 0.3 - 2;
+      positions[i * 3 + 1] = r * Math.cos(phi) + 0.5; // Offset up from table
       positions[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
 
       // Colorful galaxy colors
       const colorChoice = Math.random();
       if (colorChoice < 0.3) {
-        colors[i * 3] = 0.5 + Math.random() * 0.5;
+        colors[i * 3] = 0.6 + Math.random() * 0.4;
         colors[i * 3 + 1] = 0.2;
         colors[i * 3 + 2] = 0.8 + Math.random() * 0.2;
       } else if (colorChoice < 0.6) {
@@ -290,7 +292,7 @@ function MultiverseDome() {
       } else {
         colors[i * 3] = 0.9 + Math.random() * 0.1;
         colors[i * 3 + 1] = 0.7 + Math.random() * 0.3;
-        colors[i * 3 + 2] = 0.3;
+        colors[i * 3 + 2] = 0.4;
       }
     }
     
@@ -299,62 +301,88 @@ function MultiverseDome() {
 
   return (
     <group position={[0, -2, 0]}>
-      {/* The table/platform */}
-      <mesh position={[0, -0.5, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[6, 6, 0.3, 64]} />
+      {/* THE TABLE */}
+      {/* Table top surface - where the dome sits */}
+      <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[5.5, 64]} />
         <meshStandardMaterial 
-          color="#2a2a4e"
-          emissive="#1a1a3e"
+          color="#1a1a3e"
+          emissive="#0a0a2e"
           emissiveIntensity={0.2}
+          metalness={0.8}
+          roughness={0.2}
+        />
+      </mesh>
+
+      {/* Table rim/edge */}
+      <mesh position={[0, -0.15, 0]}>
+        <cylinderGeometry args={[5.5, 5.8, 0.3, 64]} />
+        <meshStandardMaterial 
+          color="#2a2a5e"
+          emissive="#1a1a4e"
+          emissiveIntensity={0.3}
           metalness={0.7}
           roughness={0.3}
         />
       </mesh>
 
-      {/* Decorative ring */}
-      <mesh position={[0, -0.3, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[6.2, 0.15, 8, 64]} />
+      {/* Decorative gold ring on table edge */}
+      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[5.3, 0.08, 8, 64]} />
+        <meshBasicMaterial color="#FFD700" />
+      </mesh>
+
+      {/* Inner decorative ring */}
+      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[4, 0.05, 8, 64]} />
+        <meshBasicMaterial color="#8B5CF6" transparent opacity={0.8} />
+      </mesh>
+
+      {/* THE HALF-DOME (glass cover) */}
+      <mesh ref={domeRef} position={[0, 0, 0]}>
+        <sphereGeometry args={[4.5, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial 
+          color="#6666cc"
+          transparent
+          opacity={0.12}
+          side={THREE.DoubleSide}
+          emissive="#8888ff"
+          emissiveIntensity={0.15}
+        />
+      </mesh>
+
+      {/* Dome base ring where it meets the table */}
+      <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[4.5, 0.12, 16, 64]} />
         <meshStandardMaterial 
           color="#FFD700"
           emissive="#FFD700"
-          emissiveIntensity={1}
+          emissiveIntensity={0.8}
           metalness={1}
           roughness={0}
         />
       </mesh>
 
-      {/* The dome itself - more visible glass effect */}
-      <mesh ref={domeRef} position={[0, 0, 0]}>
-        <sphereGeometry args={[5, 64, 32, 0, Math.PI * 2, 0, Math.PI / 2]} />
-        <meshStandardMaterial 
-          color="#4444aa"
-          transparent
-          opacity={0.15}
-          side={THREE.DoubleSide}
-          emissive="#6666ff"
-          emissiveIntensity={0.1}
-        />
-      </mesh>
-
-      {/* Inner rotating galaxy */}
+      {/* THE MULTIVERSE INSIDE */}
       <group ref={innerRef}>
+        {/* Galaxy particles */}
         <points>
           <bufferGeometry>
             <bufferAttribute
               attach="attributes-position"
-              count={2000}
+              count={3000}
               array={particles.positions}
               itemSize={3}
             />
             <bufferAttribute
               attach="attributes-color"
-              count={2000}
+              count={3000}
               array={particles.colors}
               itemSize={3}
             />
           </bufferGeometry>
           <pointsMaterial
-            size={0.15}
+            size={0.12}
             vertexColors
             transparent
             opacity={1}
@@ -362,49 +390,51 @@ function MultiverseDome() {
           />
         </points>
 
-        {/* Central bright core - much brighter */}
-        <mesh position={[0, 0, 0]}>
-          <sphereGeometry args={[0.8, 32, 32]} />
+        {/* Central bright core - positioned above table */}
+        <mesh position={[0, 1.5, 0]}>
+          <sphereGeometry args={[0.6, 32, 32]} />
           <meshBasicMaterial color="#ffffff" />
         </mesh>
-        <mesh position={[0, 0, 0]}>
-          <sphereGeometry args={[1.2, 32, 32]} />
-          <meshBasicMaterial color="#8B5CF6" transparent opacity={0.5} />
+        <mesh position={[0, 1.5, 0]}>
+          <sphereGeometry args={[0.9, 32, 32]} />
+          <meshBasicMaterial color="#8B5CF6" transparent opacity={0.4} />
         </mesh>
 
-        {/* Orbiting mini-systems - brighter */}
+        {/* Orbiting mini-systems - in upper half */}
         {[0, 1, 2, 3, 4].map((i) => {
           const colors = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181'];
+          const radius = 1.5 + i * 0.4;
+          const height = 1 + (i % 3) * 0.5;
           return (
-            <Float key={i} speed={1 + i * 0.2} floatIntensity={0.3}>
+            <Float key={i} speed={1.5 + i * 0.2} floatIntensity={0.2}>
               <mesh position={[
-                Math.cos(i * Math.PI * 0.4) * (2 + i * 0.3),
-                -0.5 + (i % 3) * 0.3,
-                Math.sin(i * Math.PI * 0.4) * (2 + i * 0.3)
+                Math.cos(i * Math.PI * 0.4) * radius,
+                height,
+                Math.sin(i * Math.PI * 0.4) * radius
               ]}>
-                <sphereGeometry args={[0.2, 16, 16]} />
+                <sphereGeometry args={[0.15, 16, 16]} />
                 <meshBasicMaterial color={colors[i]} />
               </mesh>
             </Float>
           );
         })}
 
-        {/* Nebula rings */}
-        {[1.5, 2.5, 3.5].map((radius, i) => (
-          <mesh key={i} rotation={[Math.PI / 2 + i * 0.2, 0, i * 0.5]}>
-            <torusGeometry args={[radius, 0.05, 8, 64]} />
+        {/* Horizontal galaxy disc/rings - in upper portion */}
+        {[1.2, 2.2, 3.2].map((radius, i) => (
+          <mesh key={i} position={[0, 1.2 + i * 0.3, 0]} rotation={[Math.PI / 2, 0, i * 0.3]}>
+            <torusGeometry args={[radius, 0.04, 8, 64]} />
             <meshBasicMaterial 
               color={['#ff66aa', '#66aaff', '#ffaa66'][i]} 
               transparent 
-              opacity={0.6} 
+              opacity={0.5} 
             />
           </mesh>
         ))}
       </group>
 
-      {/* Strong lighting for dome */}
-      <pointLight position={[0, 2, 0]} color="#8B5CF6" intensity={5} distance={15} />
-      <pointLight position={[0, -1, 0]} color="#ffffff" intensity={3} distance={10} />
+      {/* Lighting for the dome */}
+      <pointLight position={[0, 3, 0]} color="#8B5CF6" intensity={4} distance={12} />
+      <pointLight position={[0, 1, 0]} color="#ffffff" intensity={2} distance={8} />
     </group>
   );
 }
