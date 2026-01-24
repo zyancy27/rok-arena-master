@@ -43,6 +43,8 @@ interface UserCharacter {
   powers: string | null;
   abilities: string | null;
   stat_skill?: number | null;
+  personality?: string | null;
+  mentality?: string | null;
 }
 
 interface Message {
@@ -380,7 +382,7 @@ export default function MockBattle() {
   const fetchUserCharacters = async () => {
     const { data } = await supabase
       .from('characters')
-      .select('id, name, level, image_url, powers, abilities, stat_skill')
+      .select('id, name, level, image_url, powers, abilities, stat_skill, personality, mentality')
       .eq('user_id', user?.id);
     
     if (data && data.length > 0) {
@@ -502,6 +504,8 @@ export default function MockBattle() {
               powers: selectedCharacter.powers,
               abilities: selectedCharacter.abilities,
               skill: userSkill,
+              personality: selectedCharacter.personality,
+              mentality: selectedCharacter.mentality,
             },
             opponent: {
               ...currentOpponent,
@@ -513,8 +517,6 @@ export default function MockBattle() {
             battleLocation,
             dynamicEnvironment: dynamicEnvironment && !!battleEnvironment,
             environmentEffects: battleEnvironment?.effectsPrompt || '',
-            physicsContext,
-            skillContext,
             userGoesFirst: false,
             isFirstMove: true,
             characterStoryLore: characterStoryLore || undefined,
@@ -651,6 +653,8 @@ export default function MockBattle() {
             powers: selectedCharacter.powers,
             abilities: selectedCharacter.abilities,
             skill: userSkill,
+            personality: selectedCharacter.personality,
+            mentality: selectedCharacter.mentality,
           },
           opponent: {
             ...currentOpponent,
@@ -663,8 +667,6 @@ export default function MockBattle() {
           dynamicEnvironment: dynamicEnvironment && !!battleEnvironment,
           environmentEffects: battleEnvironment?.effectsPrompt || '',
           hazardEvent,
-          physicsContext,
-          skillContext,
           userGoesFirst,
           isFirstMove: false,
           characterStoryLore: characterStoryLore || undefined,

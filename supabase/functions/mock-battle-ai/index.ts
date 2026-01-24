@@ -13,6 +13,8 @@ interface BattleRequest {
     powers: string | null;
     abilities: string | null;
     skill: number;
+    personality?: string | null;
+    mentality?: string | null;
   };
   opponent: {
     id: string;
@@ -33,8 +35,6 @@ interface BattleRequest {
   dynamicEnvironment?: boolean;
   environmentEffects?: string;
   hazardEvent?: string;
-  physicsContext?: string;
-  skillContext?: string;
   userGoesFirst?: boolean;
   isFirstMove?: boolean;
   characterStoryLore?: string;
@@ -80,8 +80,6 @@ serve(async (req) => {
       dynamicEnvironment, 
       environmentEffects, 
       hazardEvent,
-      physicsContext,
-      skillContext,
       userGoesFirst,
       isFirstMove,
       characterStoryLore,
@@ -98,7 +96,7 @@ serve(async (req) => {
     if (dynamicEnvironment && environmentEffects) {
       locationContext += environmentEffects;
     } else if (battleLocation) {
-      locationContext += `\nIncorporate this environment into your actions and descriptions. Use the terrain, elements, and atmosphere of this location in your combat responses.`;
+      locationContext += `\nIncorporate this environment naturally into your actions.`;
     }
 
     // Add hazard event if triggered
@@ -107,13 +105,17 @@ serve(async (req) => {
       hazardContext = hazardEvent;
     }
 
-    // Build physics and skill context
-    let advancedContext = '';
-    if (physicsContext) {
-      advancedContext += physicsContext;
-    }
-    if (skillContext) {
-      advancedContext += skillContext;
+    // Build character personality context for portraying the user's character
+    let characterPersonalityContext = '';
+    if (userCharacter.personality || userCharacter.mentality) {
+      characterPersonalityContext = `\n\nUSER CHARACTER PERSONALITY & MENTALITY (Use this heavily to understand how ${userCharacter.name} acts, thinks, and fights):`;
+      if (userCharacter.personality) {
+        characterPersonalityContext += `\nPersonality: ${userCharacter.personality}`;
+      }
+      if (userCharacter.mentality) {
+        characterPersonalityContext += `\nMentality: ${userCharacter.mentality}`;
+      }
+      characterPersonalityContext += `\n\nWhen ${userCharacter.name} takes an action, interpret it through their personality. A cold, calculating character attacks differently than a hot-headed berserker.`;
     }
 
     // Build character story lore context
@@ -143,25 +145,29 @@ ${opponent.skill ? `- Skill Proficiency: ${opponent.skill}/100` : ''}
 You are in a practice battle against ${userCharacter.name} (Tier ${userCharacter.level}).
 Their powers: ${userCharacter.powers || 'Unknown'}
 Their abilities: ${userCharacter.abilities || 'Unknown'}
-Their skill: ${userCharacter.skill || 50}/100${locationContext}${advancedContext}${storyLoreContext}${firstMoveContext}
+Their skill: ${userCharacter.skill || 50}/100${characterPersonalityContext}${locationContext}${storyLoreContext}${firstMoveContext}
+
+WRITING STYLE - CRITICAL:
+- Write naturally and organically. Avoid over-the-top anime/comic book narration.
+- NO physics explanations in dialogue or actions. Characters don't say "the gravity here makes my punch hit harder" - they just punch harder.
+- Describe moves with flair but don't over-detail every micro-action. A single punchy sentence can convey a powerful attack.
+- Environmental effects (craters forming, buildings shaking, ground cracking) should flow naturally from actions, not be explicitly narrated as separate events.
+- Focus on the FEEL of the fight: tension, momentum, emotion - not technical breakdowns.
 
 RULES FOR ROLEPLAY:
-1. Stay in character as ${opponent.name}
-2. React appropriately to the opponent's actions
+1. Stay in character as ${opponent.name} - your personality drives HOW you fight
+2. React appropriately to the opponent's actions based on THEIR personality and fighting style
 3. Use *asterisks* for action descriptions
-4. Use "quotes" for speech
-5. Be theatrical and engaging
-6. If they attack, respond with defense/counter (don't auto-dodge everything)
-7. If outmatched by tier difference, acknowledge the power gap
-8. Keep responses concise (2-4 paragraphs max)
-9. Follow R.O.K. rules: one base power, no godmodding
-10. Make the battle fun and educational
-11. Use the battle environment creatively in your actions
-${dynamicEnvironment ? '12. CRITICAL: When describing any physical action (throwing, jumping, running, lifting), explicitly describe how the environmental conditions affect that action. Be specific about the physics.' : ''}
-${hazardEvent ? '13. CRITICAL PRIORITY: An environmental hazard has just occurred! You MUST start your response by narrating this hazard event dramatically, then show how BOTH fighters react to it before continuing the battle. The hazard affects both combatants equally.' : ''}
-${userCharacter.skill && userCharacter.skill <= 30 ? '14. SKILL FACTOR: The opponent has LOW SKILL. Occasionally describe their attacks misfiring, powers behaving erratically, or techniques failing mid-execution. They are learning!' : ''}
-${opponent.skill && opponent.skill <= 30 ? '15. YOUR SKILL: You have LOW SKILL proficiency. Occasionally let your own attacks falter, powers surge unexpectedly, or show inexperience. Struggle realistically!' : ''}
-${characterStoryLore ? '16. STORY INTEGRATION: When appropriate, reference the character\'s backstory, past battles, or narrative events. This adds depth and makes the opponent feel like they know about the character\'s history.' : ''}`
+4. Use "quotes" for speech (keep dialogue punchy, in-character)
+5. If they attack, respond with defense/counter (don't auto-dodge everything)
+6. If outmatched by tier difference, acknowledge the power gap through action, not exposition
+7. Keep responses concise (2-3 paragraphs max)
+8. Follow R.O.K. rules: one base power, no godmodding
+9. Let the battle environment affect things naturally without calling attention to it
+${hazardEvent ? '10. An environmental hazard occurs! Weave it naturally into the action - don\'t announce it like a narrator.' : ''}
+${userCharacter.skill && userCharacter.skill <= 30 ? '11. The opponent is inexperienced - their techniques sometimes falter or misfire. Show this through action, not commentary.' : ''}
+${opponent.skill && opponent.skill <= 30 ? '12. You\'re still learning your powers - occasionally stumble or overextend. Show growth through struggle.' : ''}
+${characterStoryLore ? '13. Reference the character\'s history naturally when it fits - callbacks to past events add depth.' : ''}`
       : `You are ${opponent.name} speaking out-of-character (OOC) to help a player learn the Realm of Kings battle system.
 
 Provide helpful feedback about:
