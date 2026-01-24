@@ -8,6 +8,13 @@ import Moon from './Moon';
 import { getGravityClass } from '@/lib/planet-physics';
 import { parseTerrainFromLore, generateTerrainVisuals } from '@/lib/planet-terrain';
 import { useIsMobile } from '@/hooks/use-mobile';
+export interface MoonData {
+  name: string;
+  displayName?: string;
+  color?: string;
+  characterCount: number;
+}
+
 interface PlanetProps {
   name: string;
   orbitRadius: number;
@@ -29,6 +36,9 @@ interface PlanetProps {
   gravity?: number | null;
   // Planet lore for terrain parsing
   description?: string;
+  // Moon customization data
+  moonCustomizations?: MoonData[];
+  onMoonClick?: (moonName: string, position: { x: number; y: number; z: number }) => void;
 }
 
 // Determine planet features based on name hash for consistency
@@ -69,6 +79,8 @@ export default function Planet({
   habitableZoneOuter = 6.85,
   gravity,
   description = '',
+  moonCustomizations = [],
+  onMoonClick,
 }: PlanetProps) {
   const groupRef = useRef<THREE.Group>(null);
   const planetRef = useRef<THREE.Mesh>(null);
@@ -294,17 +306,35 @@ export default function Planet({
         />
       )}
 
-      {/* Moons (for larger planets) */}
-      {Array.from({ length: moonCount }).map((_, index) => (
-        <Moon
-          key={index}
-          orbitRadius={planetSize * (1.8 + index * 0.6)}
-          moonSize={planetSize * (0.15 - index * 0.03)}
-          orbitSpeed={2 + index * 0.5}
-          color={moonColors[index]}
-          startAngle={(index * Math.PI * 2) / moonCount}
-        />
-      ))}
+      {/* Moons (for larger planets) - either from customizations or auto-generated */}
+      {moonCustomizations.length > 0 ? (
+        // Render customized moons with character counts
+        moonCustomizations.map((moon, index) => (
+          <Moon
+            key={moon.name}
+            orbitRadius={planetSize * (1.8 + index * 0.6)}
+            moonSize={planetSize * (0.15 - Math.min(index, 3) * 0.03)}
+            orbitSpeed={2 + index * 0.5}
+            color={moon.color || moonColors[index % moonColors.length]}
+            startAngle={(index * Math.PI * 2) / moonCustomizations.length}
+            name={moon.displayName || moon.name}
+            characterCount={moon.characterCount}
+            onClick={onMoonClick ? (pos) => onMoonClick(moon.name, pos) : undefined}
+          />
+        ))
+      ) : (
+        // Auto-generated moons (visual only)
+        Array.from({ length: moonCount }).map((_, index) => (
+          <Moon
+            key={index}
+            orbitRadius={planetSize * (1.8 + index * 0.6)}
+            moonSize={planetSize * (0.15 - index * 0.03)}
+            orbitSpeed={2 + index * 0.5}
+            color={moonColors[index]}
+            startAngle={(index * Math.PI * 2) / moonCount}
+          />
+        ))
+      )}
 
       {/* Label */}
       <Html

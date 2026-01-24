@@ -160,6 +160,7 @@ export type Database = {
           abilities: string | null
           age: number | null
           created_at: string
+          home_moon: string | null
           home_planet: string | null
           id: string
           image_url: string | null
@@ -188,6 +189,7 @@ export type Database = {
           abilities?: string | null
           age?: number | null
           created_at?: string
+          home_moon?: string | null
           home_planet?: string | null
           id?: string
           image_url?: string | null
@@ -216,6 +218,7 @@ export type Database = {
           abilities?: string | null
           age?: number | null
           created_at?: string
+          home_moon?: string | null
           home_planet?: string | null
           id?: string
           image_url?: string | null
@@ -319,6 +322,59 @@ export type Database = {
           visual_effects?: Json | null
         }
         Relationships: []
+      }
+      moon_customizations: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          display_name: string | null
+          gravity: number | null
+          id: string
+          moon_name: string
+          planet_name: string
+          radius: number | null
+          solar_system_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          display_name?: string | null
+          gravity?: number | null
+          id?: string
+          moon_name: string
+          planet_name: string
+          radius?: number | null
+          solar_system_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          display_name?: string | null
+          gravity?: number | null
+          id?: string
+          moon_name?: string
+          planet_name?: string
+          radius?: number | null
+          solar_system_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moon_customizations_solar_system_id_fkey"
+            columns: ["solar_system_id"]
+            isOneToOne: false
+            referencedRelation: "solar_systems"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       planet_customizations: {
         Row: {

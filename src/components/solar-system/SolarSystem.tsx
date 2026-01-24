@@ -37,6 +37,7 @@ interface Character {
   level: number;
   race: string | null;
   home_planet: string | null;
+  home_moon: string | null;
   user_id: string;
   username?: string;
   solar_system_id?: string | null;
@@ -112,6 +113,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
   const [viewState, setViewState] = useState<ViewState>('galaxy');
   const [selectedPlanet, setSelectedPlanet] = useState<PlanetData | null>(null);
   const [planetCustomizations, setPlanetCustomizations] = useState<Record<string, StoredCustomization>>({});
+  const [moonCustomizations, setMoonCustomizations] = useState<{ moon_name: string; display_name: string | null; planet_name: string; color: string | null }[]>([]);
   const [sunData, setSunData] = useState<SunData>({
     name: 'Sol',
     description: '',
@@ -246,7 +248,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
     // Fetch characters that belong to this system OR have a home_planet matching a planet in this system
     let query = supabase
       .from('characters')
-      .select('id, name, level, race, home_planet, user_id, solar_system_id, lore, powers')
+      .select('id, name, level, race, home_planet, home_moon, user_id, solar_system_id, lore, powers')
       .order('created_at', { ascending: false });
 
     // Filter by solar_system_id if set, otherwise show characters with planets in this system
@@ -301,6 +303,18 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
       setPlanetCustomizations(customMap);
     } else {
       setPlanetCustomizations({});
+    }
+    
+    // Fetch moon customizations
+    const { data: moonData } = await supabase
+      .from('moon_customizations')
+      .select('moon_name, display_name, planet_name, color')
+      .eq('solar_system_id', currentSystem.id);
+    
+    if (moonData) {
+      setMoonCustomizations(moonData);
+    } else {
+      setMoonCustomizations([]);
     }
   };
 
@@ -415,6 +429,52 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
     return planetArray;
   }, [characters, planetCustomizations]);
 
+  // Calculate moon data per planet with character counts
+  const moonDataByPlanet = useMemo(() => {
+    const result: Record<string, { name: string; displayName: string; color: string; characterCount: number }[]> = {};
+    
+    // Group moon customizations by planet
+    moonCustomizations.forEach(moon => {
+      if (!result[moon.planet_name]) {
+        result[moon.planet_name] = [];
+      }
+      // Count characters living on this moon
+      const moonResidents = characters.filter(c => 
+        c.home_planet === moon.planet_name && c.home_moon === moon.moon_name
+      ).length;
+      
+      result[moon.planet_name].push({
+        name: moon.moon_name,
+        displayName: moon.display_name || moon.moon_name,
+        color: moon.color || '#9CA3AF',
+        characterCount: moonResidents,
+      });
+    });
+    
+    // Also check for characters living on moons that aren't in customizations yet
+    characters.forEach(char => {
+      if (char.home_moon && char.home_planet) {
+        if (!result[char.home_planet]) {
+          result[char.home_planet] = [];
+        }
+        const existingMoon = result[char.home_planet].find(m => m.name === char.home_moon);
+        if (!existingMoon) {
+          // Count all residents of this moon
+          const moonResidents = characters.filter(c => 
+            c.home_planet === char.home_planet && c.home_moon === char.home_moon
+          ).length;
+          result[char.home_planet].push({
+            name: char.home_moon,
+            displayName: char.home_moon,
+            color: '#9CA3AF',
+            characterCount: moonResidents,
+          });
+        }
+      }
+    });
+    
+    return result;
+  }, [characters, moonCustomizations]);
   // Identify planet-sized characters that should be rendered as giant humanoid figures
   const giantCharacters = useMemo(() => {
     return characters.filter(char => isPlanetSizedCharacter({
@@ -956,7 +1016,8 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
             const habitableZone = getHabitableZone(sunData.temperature);
             // Create a unique key that includes customization values to force re-render
             const descHash = planet.description ? planet.description.slice(0, 50) : '';
-            const planetKey = `${planet.name}-${planet.orbitRadius}-${planet.planetSize}-${planet.color}-${descHash}`;
+            const planetMoons = moonDataByPlanet[planet.name] || [];
+            const planetKey = `${planet.name}-${planet.orbitRadius}-${planet.planetSize}-${planet.color}-${descHash}-${planetMoons.length}`;
             return (
               <group key={planetKey}>
                 <OrbitRing radius={planet.orbitRadius} />
@@ -970,13 +1031,14 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
                   onClick={(pos) => handlePlanetClick(planet, pos)}
                   isSelected={selectedPlanet?.name === planet.name}
                   hasRingsOverride={planet.hasRings}
-                  moonCountOverride={planet.moonCount}
+                  moonCountOverride={planetMoons.length > 0 ? planetMoons.length : planet.moonCount}
                   sunTemperature={sunData.temperature}
                   sunLuminosity={sunLuminosity}
                   habitableZoneInner={habitableZone.inner}
                   habitableZoneOuter={habitableZone.outer}
                   gravity={planet.gravity}
                   description={planet.description}
+                  moonCustomizations={planetMoons}
                 />
               </group>
             );

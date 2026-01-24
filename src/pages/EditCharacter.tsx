@@ -14,6 +14,7 @@ interface CharacterData {
   powers: string;
   abilities: string;
   home_planet: string;
+  home_moon: string;
   race: string;
   sub_race: string;
   age: string;
@@ -70,6 +71,7 @@ export default function EditCharacter() {
       powers: data.powers || '',
       abilities: data.abilities || '',
       home_planet: data.home_planet || '',
+      home_moon: data.home_moon || '',
       race: data.race || '',
       sub_race: data.sub_race || '',
       age: data.age?.toString() || '',
