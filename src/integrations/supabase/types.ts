@@ -522,6 +522,44 @@ export type Database = {
           },
         ]
       }
+      story_chapters: {
+        Row: {
+          chapter_number: number
+          content: string
+          created_at: string
+          id: string
+          story_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          chapter_number?: number
+          content: string
+          created_at?: string
+          id?: string
+          story_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          chapter_number?: number
+          content?: string
+          created_at?: string
+          id?: string
+          story_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_chapters_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sun_customizations: {
         Row: {
           color: string

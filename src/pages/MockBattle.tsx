@@ -301,6 +301,9 @@ export default function MockBattle() {
   const [turnOrderDetermined, setTurnOrderDetermined] = useState(false);
   const [userGoesFirst, setUserGoesFirst] = useState(true);
   const [isFirstMove, setIsFirstMove] = useState(true);
+  
+  // Character story lore for AI battles
+  const [characterStoryLore, setCharacterStoryLore] = useState<string>('');
 
   useEffect(() => {
     if (user) {
@@ -308,6 +311,65 @@ export default function MockBattle() {
       fetchUserPlanets();
     }
   }, [user]);
+  
+  // Fetch character stories when character is selected
+  useEffect(() => {
+    if (selectedCharacter?.id) {
+      fetchCharacterStories(selectedCharacter.id);
+    } else {
+      setCharacterStoryLore('');
+    }
+  }, [selectedCharacter?.id]);
+  
+  const fetchCharacterStories = async (characterId: string) => {
+    try {
+      // Fetch stories linked to this character
+      const { data: stories } = await supabase
+        .from('stories')
+        .select('id, title, content, summary')
+        .eq('character_id', characterId)
+        .order('updated_at', { ascending: false })
+        .limit(3);
+      
+      if (stories && stories.length > 0) {
+        // Fetch chapters for each story
+        const storiesWithChapters = await Promise.all(stories.map(async (story) => {
+          const { data: chapters } = await supabase
+            .from('story_chapters')
+            .select('title, content')
+            .eq('story_id', (story as any).id)
+            .order('chapter_number', { ascending: true })
+            .limit(3);
+          
+          return { ...story, chapters: chapters || [] };
+        }));
+        
+        // Build lore summary (keep it concise for prompt efficiency)
+        let loreSummary = storiesWithChapters.map(story => {
+          let storyText = `STORY: "${story.title}"`;
+          if (story.summary) {
+            storyText += `\nSummary: ${story.summary}`;
+          }
+          // Include first 500 chars of content
+          storyText += `\nExcerpt: ${story.content.substring(0, 500)}${story.content.length > 500 ? '...' : ''}`;
+          
+          // Add chapter excerpts if available
+          if ((story as any).chapters && (story as any).chapters.length > 0) {
+            storyText += `\nChapters: ${(story as any).chapters.map((c: any) => c.title).join(', ')}`;
+          }
+          
+          return storyText;
+        }).join('\n\n');
+        
+        setCharacterStoryLore(loreSummary);
+      } else {
+        setCharacterStoryLore('');
+      }
+    } catch (error) {
+      console.error('Failed to fetch character stories:', error);
+      setCharacterStoryLore('');
+    }
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -455,6 +517,7 @@ export default function MockBattle() {
             skillContext,
             userGoesFirst: false,
             isFirstMove: true,
+            characterStoryLore: characterStoryLore || undefined,
           },
         });
 
@@ -604,6 +667,7 @@ export default function MockBattle() {
           skillContext,
           userGoesFirst,
           isFirstMove: false,
+          characterStoryLore: characterStoryLore || undefined,
         },
       });
 
