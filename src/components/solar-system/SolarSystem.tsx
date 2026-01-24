@@ -1289,6 +1289,12 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
               planet_name: m.planet_name,
               color: m.color,
             }))}
+          allMoons={moonCustomizations.map(m => ({
+            moon_name: m.moon_name,
+            display_name: m.display_name,
+            planet_name: m.planet_name,
+            color: m.color,
+          }))}
           characters={characters.map(c => ({
             id: c.id,
             name: c.name,
