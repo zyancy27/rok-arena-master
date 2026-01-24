@@ -12,7 +12,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Users, Settings, ArrowLeft, Trash2, Loader2 } from 'lucide-react';
+import { Users, Settings, ArrowLeft, Trash2, Loader2, Merge } from 'lucide-react';
 
 interface PlanetMenuProps {
   planetName: string;
@@ -20,8 +20,10 @@ interface PlanetMenuProps {
   onViewCharacters: () => void;
   onEditPlanet: () => void;
   onDeletePlanet?: () => Promise<void>;
+  onMergePlanet?: () => void;
   onBack: () => void;
   canDelete?: boolean;
+  canMerge?: boolean;
 }
 
 export default function PlanetMenu({
@@ -30,8 +32,10 @@ export default function PlanetMenu({
   onViewCharacters,
   onEditPlanet,
   onDeletePlanet,
+  onMergePlanet,
   onBack,
   canDelete = false,
+  canMerge = false,
 }: PlanetMenuProps) {
   const [deleting, setDeleting] = useState(false);
 
@@ -81,6 +85,18 @@ export default function PlanetMenu({
             <Settings className="w-4 h-4" />
             Edit Planet Info
           </Button>
+
+          {/* Merge Planet Button */}
+          {canMerge && onMergePlanet && (
+            <Button
+              variant="secondary"
+              className="w-full h-10 gap-2"
+              onClick={onMergePlanet}
+            >
+              <Merge className="w-4 h-4" />
+              Merge Into Another Planet
+            </Button>
+          )}
           
           {canDelete && onDeletePlanet && (
             <AlertDialog>

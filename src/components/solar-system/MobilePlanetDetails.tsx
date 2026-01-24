@@ -1,7 +1,7 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, Eye, Pencil, Trash2, Thermometer, Scale, Globe, Sparkles } from 'lucide-react';
+import { Users, Eye, Pencil, Trash2, Thermometer, Scale, Globe, Sparkles, Merge } from 'lucide-react';
 import { getGravityClass } from '@/lib/planet-physics';
 
 interface PlanetData {
@@ -26,9 +26,11 @@ interface MobilePlanetDetailsProps {
   onViewCharacters: () => void;
   onEditPlanet: () => void;
   onDeletePlanet: () => void;
+  onMergePlanet?: () => void;
   sunTemperature: number;
   sunLuminosity: number;
   canEdit: boolean;
+  canMerge?: boolean;
 }
 
 // Calculate planet temperature based on distance and sun luminosity
@@ -53,9 +55,11 @@ export default function MobilePlanetDetails({
   onViewCharacters,
   onEditPlanet,
   onDeletePlanet,
+  onMergePlanet,
   sunTemperature,
   sunLuminosity,
   canEdit,
+  canMerge = false,
 }: MobilePlanetDetailsProps) {
   if (!planet) return null;
 
@@ -167,32 +171,49 @@ export default function MobilePlanetDetails({
           </Button>
           
           {canEdit && (
-            <div className="flex gap-2">
-              <Button 
-                onClick={() => {
-                  onEditPlanet();
-                  onClose();
-                }}
-                className="flex-1"
-                variant="outline"
-              >
-                <Pencil className="w-4 h-4 mr-2" />
-                Edit Planet
-              </Button>
-              
-              {planet.isUserCreated && (
+            <>
+              <div className="flex gap-2">
                 <Button 
                   onClick={() => {
-                    onDeletePlanet();
+                    onEditPlanet();
                     onClose();
                   }}
-                  variant="destructive"
-                  size="icon"
+                  className="flex-1"
+                  variant="outline"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Edit Planet
+                </Button>
+                
+                {planet.isUserCreated && (
+                  <Button 
+                    onClick={() => {
+                      onDeletePlanet();
+                      onClose();
+                    }}
+                    variant="destructive"
+                    size="icon"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                )}
+              </div>
+              
+              {/* Merge Planet Button */}
+              {canMerge && onMergePlanet && (
+                <Button 
+                  onClick={() => {
+                    onMergePlanet();
+                    onClose();
+                  }}
+                  className="w-full"
+                  variant="secondary"
+                >
+                  <Merge className="w-4 h-4 mr-2" />
+                  Merge Into Another Planet
                 </Button>
               )}
-            </div>
+            </>
           )}
         </div>
       </SheetContent>
