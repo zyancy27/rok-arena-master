@@ -24,6 +24,7 @@ import Friends from "@/pages/Friends";
 import Admin from "@/pages/Admin";
 import Terms from "@/pages/Terms";
 import Races from "@/pages/Races";
+import Stories from "@/pages/Stories";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -53,6 +54,7 @@ const App = () => (
               <Route path="/profile" element={<Profile />} />
               <Route path="/friends" element={<Friends />} />
               <Route path="/races" element={<Races />} />
+              <Route path="/stories" element={<Stories />} />
               <Route path="/admin" element={<ProtectedRoute requireModerator><Admin /></ProtectedRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />
