@@ -270,24 +270,26 @@ export default function GiantCharacter({
 }
 
 // Helper to determine if a character should be rendered as planet-sized
+// Only renders giant if user explicitly describes them as such in lore/powers
 export function isPlanetSizedCharacter(character: {
   level: number;
   lore?: string | null;
   powers?: string | null;
   race?: string | null;
 }): boolean {
-  // Tier 4+ characters are cosmic/god-like entities
-  if (character.level >= 4) return true;
-  
-  // Check lore and powers for size-related keywords
+  // Check lore, powers, and race for size-related keywords
+  // Level alone does NOT make a character planet-sized
   const text = `${character.lore || ''} ${character.powers || ''} ${character.race || ''}`.toLowerCase();
   
   const sizeKeywords = [
-    'planet-sized', 'planet sized', 'planetary', 'colossal', 'titanic',
+    'planet-sized', 'planet sized', 'planetary scale', 'colossal', 'titanic',
     'cosmic giant', 'world-sized', 'celestial body', 'living planet',
     'star-sized', 'moon-sized', 'continental', 'kaiju', 'behemoth',
-    'cosmic entity', 'eldritch', 'primordial titan', 'world eater',
-    'galactic', 'universe-sized', 'dimension-spanning'
+    'cosmic entity', 'primordial titan', 'world eater', 'giant form',
+    'galactic scale', 'universe-sized', 'dimension-spanning', 'towering over planets',
+    'dwarfs planets', 'size of a planet', 'size of a moon', 'size of a star',
+    'larger than planets', 'planet-scale', 'cosmic scale being', 'titan-sized',
+    'mountain-sized', 'city-sized', 'continent-sized', 'celestial giant'
   ];
   
   return sizeKeywords.some(keyword => text.includes(keyword));
