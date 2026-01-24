@@ -450,9 +450,10 @@ interface GalaxyViewProps {
   currentSystemId: string | null;
   onEnterSystem: (systemId: string) => void;
   onBack: () => void;
+  refreshTrigger?: number;
 }
 
-export default function GalaxyView({ currentSystemId, onEnterSystem, onBack }: GalaxyViewProps) {
+export default function GalaxyView({ currentSystemId, onEnterSystem, onBack, refreshTrigger }: GalaxyViewProps) {
   const { user } = useAuth();
   const { friends, following } = useFriends();
   const isMobile = useIsMobile();
@@ -463,7 +464,7 @@ export default function GalaxyView({ currentSystemId, onEnterSystem, onBack }: G
 
   useEffect(() => {
     fetchAllSystems();
-  }, [user, friends, following]);
+  }, [user, friends, following, refreshTrigger]);
 
   const fetchAllSystems = async () => {
     if (!user) {
