@@ -113,7 +113,7 @@ const figureConfigs: Record<number, {
   3: { pose: 'contemplative', headTilt: 0.2, armSpread: 0.2, leanAngle: 0.05 },
 };
 
-// Ethereal cosmic figure - flowing energy being
+// Wireframe holographic figure - cosmic energy being
 function SeatedFigure({ holderId, color }: { holderId: number; color: string }) {
   const figRef = useRef<THREE.Group>(null);
   const config = figureConfigs[holderId] || figureConfigs[1];
@@ -125,6 +125,25 @@ function SeatedFigure({ holderId, color }: { holderId: number; color: string }) 
     }
   });
 
+  // Wireframe material for holographic look
+  const wireframeMaterial = useMemo(() => (
+    <meshBasicMaterial 
+      color={color}
+      wireframe
+      transparent
+      opacity={0.8}
+    />
+  ), [color]);
+
+  // Solid glow core material
+  const glowMaterial = useMemo(() => (
+    <meshBasicMaterial 
+      color={color}
+      transparent
+      opacity={0.3}
+    />
+  ), [color]);
+
   return (
     <group ref={figRef} position={[0, 0.6, 0.1]}>
       {/* Energy aura behind figure */}
@@ -133,139 +152,104 @@ function SeatedFigure({ holderId, color }: { holderId: number; color: string }) 
         <meshBasicMaterial 
           color={color}
           transparent
-          opacity={0.15}
+          opacity={0.1}
           side={THREE.DoubleSide}
         />
       </mesh>
 
-      {/* Head - smooth orb with inner glow */}
+      {/* HEAD */}
       <group position={[0, 1.55, 0]} rotation={[config.headTilt, 0, 0]}>
-        {/* Outer head */}
+        {/* Wireframe skull */}
         <mesh>
-          <sphereGeometry args={[0.16, 32, 32]} />
-          <meshStandardMaterial 
-            color="#0a0a1a"
-            emissive={color}
-            emissiveIntensity={0.4}
-            metalness={0.9}
-            roughness={0.1}
-          />
+          <sphereGeometry args={[0.16, 12, 8]} />
+          {wireframeMaterial}
         </mesh>
-        {/* Face glow/mask */}
-        <mesh position={[0, 0, 0.08]}>
-          <sphereGeometry args={[0.12, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.5]} />
-          <meshBasicMaterial color={color} transparent opacity={0.4} />
+        {/* Inner glow */}
+        <mesh>
+          <sphereGeometry args={[0.12, 8, 6]} />
+          {glowMaterial}
+        </mesh>
+        {/* Eyes - solid glow points */}
+        <mesh position={[0.05, 0.02, 0.12]}>
+          <sphereGeometry args={[0.025, 8, 8]} />
+          <meshBasicMaterial color={color} />
+        </mesh>
+        <mesh position={[-0.05, 0.02, 0.12]}>
+          <sphereGeometry args={[0.025, 8, 8]} />
+          <meshBasicMaterial color={color} />
         </mesh>
         {/* Crown/halo */}
-        <mesh position={[0, 0.12, 0]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[0.18, 0.015, 8, 32]} />
+        <mesh position={[0, 0.14, 0]} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[0.2, 0.02, 6, 24]} />
           <meshBasicMaterial color={color} />
         </mesh>
       </group>
 
-      {/* Neck - elegant taper */}
-      <mesh position={[0, 1.35, 0]}>
-        <cylinderGeometry args={[0.05, 0.08, 0.12, 16]} />
-        <meshStandardMaterial 
-          color="#0a0a1a"
-          emissive={color}
-          emissiveIntensity={0.2}
-          metalness={0.8}
-          roughness={0.2}
-        />
+      {/* NECK */}
+      <mesh position={[0, 1.38, 0]}>
+        <cylinderGeometry args={[0.04, 0.06, 0.12, 8]} />
+        {wireframeMaterial}
       </mesh>
 
-      {/* Torso - flowing robed form */}
+      {/* TORSO */}
       <group position={[0, 0.95, 0]} rotation={[config.leanAngle, 0, 0]}>
-        {/* Upper chest */}
+        {/* Ribcage wireframe */}
         <mesh>
-          <cylinderGeometry args={[0.22, 0.18, 0.35, 16]} />
-          <meshStandardMaterial 
-            color="#0a0a1a"
-            emissive={color}
-            emissiveIntensity={0.25}
-            metalness={0.7}
-            roughness={0.3}
-          />
+          <cylinderGeometry args={[0.2, 0.15, 0.4, 10]} />
+          {wireframeMaterial}
         </mesh>
-        {/* Shoulder cape/pauldrons */}
-        <mesh position={[0, 0.1, 0]}>
-          <cylinderGeometry args={[0.28, 0.22, 0.1, 16]} />
-          <meshStandardMaterial 
-            color={color}
-            emissive={color}
-            emissiveIntensity={0.4}
-            metalness={0.8}
-            roughness={0.2}
-          />
+        {/* Inner chest glow */}
+        <mesh>
+          <cylinderGeometry args={[0.12, 0.1, 0.3, 6]} />
+          {glowMaterial}
+        </mesh>
+        {/* Shoulders */}
+        <mesh position={[0, 0.15, 0]}>
+          <boxGeometry args={[0.5, 0.08, 0.15]} />
+          {wireframeMaterial}
         </mesh>
       </group>
 
-      {/* Lower torso/seated robe */}
+      {/* PELVIS/HIPS - seated */}
       <mesh position={[0, 0.55, 0.05]}>
-        <cylinderGeometry args={[0.18, 0.28, 0.5, 16]} />
-        <meshStandardMaterial 
-          color="#0a0a1a"
-          emissive={color}
-          emissiveIntensity={0.2}
-          metalness={0.6}
-          roughness={0.4}
-        />
+        <boxGeometry args={[0.3, 0.2, 0.2]} />
+        {wireframeMaterial}
       </mesh>
 
-      {/* Flowing robe bottom - spreads out on seat */}
-      <mesh position={[0, 0.25, 0.1]} rotation={[-0.2, 0, 0]}>
-        <coneGeometry args={[0.45, 0.3, 16, 1, true]} />
-        <meshStandardMaterial 
-          color="#0a0a1a"
-          emissive={color}
-          emissiveIntensity={0.15}
-          metalness={0.5}
-          roughness={0.5}
-          side={THREE.DoubleSide}
-        />
-      </mesh>
-
-      {/* Left Arm - flowing sleeve */}
+      {/* LEFT ARM */}
       <group position={[-0.28, 1.05, 0]} rotation={[-0.5, 0, config.armSpread]}>
         {/* Upper arm */}
-        <mesh position={[0, -0.18, 0]}>
-          <capsuleGeometry args={[0.055, 0.28, 8, 16]} />
-          <meshStandardMaterial 
-            color="#0a0a1a"
-            emissive={color}
-            emissiveIntensity={0.2}
-            metalness={0.7}
-            roughness={0.3}
-          />
+        <mesh position={[0, -0.15, 0]}>
+          <cylinderGeometry args={[0.035, 0.04, 0.25, 6]} />
+          {wireframeMaterial}
         </mesh>
-        {/* Forearm with flowing sleeve */}
-        <group position={[0, -0.4, 0.15]} rotation={[-0.6, 0, 0]}>
-          <mesh>
-            <coneGeometry args={[0.08, 0.3, 12]} />
-            <meshStandardMaterial 
-              color="#0a0a1a"
-              emissive={color}
-              emissiveIntensity={0.2}
-              metalness={0.6}
-              roughness={0.4}
-            />
+        {/* Elbow joint */}
+        <mesh position={[0, -0.3, 0]}>
+          <sphereGeometry args={[0.04, 6, 4]} />
+          {wireframeMaterial}
+        </mesh>
+        {/* Forearm */}
+        <group position={[0, -0.35, 0.1]} rotation={[-0.7, 0, 0]}>
+          <mesh position={[0, -0.1, 0]}>
+            <cylinderGeometry args={[0.03, 0.035, 0.22, 6]} />
+            {wireframeMaterial}
           </mesh>
-          {/* Hand - elegant orb */}
-          <mesh position={[0, -0.2, 0]}>
-            <sphereGeometry args={[0.045, 16, 16]} />
-            <meshStandardMaterial 
-              color="#0a0a1a"
-              emissive={color}
-              emissiveIntensity={0.5}
-              metalness={0.9}
-              roughness={0.1}
-            />
+          {/* Hand */}
+          <mesh position={[0, -0.25, 0]}>
+            <sphereGeometry args={[0.04, 6, 4]} />
+            {wireframeMaterial}
           </mesh>
+          {/* Fingers */}
+          {[-0.02, 0, 0.02].map((offset, i) => (
+            <mesh key={i} position={[offset, -0.32, 0]}>
+              <cylinderGeometry args={[0.008, 0.01, 0.06, 4]} />
+              {wireframeMaterial}
+            </mesh>
+          ))}
         </group>
       </group>
 
-      {/* Right Arm - different pose per config */}
+      {/* RIGHT ARM */}
       <group 
         position={[0.28, 1.05, 0]} 
         rotation={[
@@ -275,76 +259,126 @@ function SeatedFigure({ holderId, color }: { holderId: number; color: string }) 
         ]}
       >
         {/* Upper arm */}
-        <mesh position={[0, -0.18, 0]}>
-          <capsuleGeometry args={[0.055, 0.28, 8, 16]} />
-          <meshStandardMaterial 
-            color="#0a0a1a"
-            emissive={color}
-            emissiveIntensity={0.2}
-            metalness={0.7}
-            roughness={0.3}
-          />
+        <mesh position={[0, -0.15, 0]}>
+          <cylinderGeometry args={[0.035, 0.04, 0.25, 6]} />
+          {wireframeMaterial}
+        </mesh>
+        {/* Elbow joint */}
+        <mesh position={[0, -0.3, 0]}>
+          <sphereGeometry args={[0.04, 6, 4]} />
+          {wireframeMaterial}
         </mesh>
         {/* Forearm */}
         <group 
-          position={[0, -0.4, 0.15]} 
-          rotation={[config.pose === 'contemplative' ? -1.0 : -0.6, 0, 0]}
+          position={[0, -0.35, 0.1]} 
+          rotation={[config.pose === 'contemplative' ? -1.0 : -0.7, 0, 0]}
         >
-          <mesh>
-            <coneGeometry args={[0.08, 0.3, 12]} />
-            <meshStandardMaterial 
-              color="#0a0a1a"
-              emissive={color}
-              emissiveIntensity={0.2}
-              metalness={0.6}
-              roughness={0.4}
-            />
+          <mesh position={[0, -0.1, 0]}>
+            <cylinderGeometry args={[0.03, 0.035, 0.22, 6]} />
+            {wireframeMaterial}
           </mesh>
           {/* Hand */}
-          <mesh position={[0, -0.2, 0]}>
-            <sphereGeometry args={[0.045, 16, 16]} />
-            <meshStandardMaterial 
-              color="#0a0a1a"
-              emissive={color}
-              emissiveIntensity={0.5}
-              metalness={0.9}
-              roughness={0.1}
-            />
+          <mesh position={[0, -0.25, 0]}>
+            <sphereGeometry args={[0.04, 6, 4]} />
+            {wireframeMaterial}
           </mesh>
+          {/* Fingers */}
+          {[-0.02, 0, 0.02].map((offset, i) => (
+            <mesh key={i} position={[offset, -0.32, 0]}>
+              <cylinderGeometry args={[0.008, 0.01, 0.06, 4]} />
+              {wireframeMaterial}
+            </mesh>
+          ))}
           {/* Holding orb for commanding pose */}
           {config.pose === 'commanding' && (
             <Float speed={3} floatIntensity={0.2}>
-              <mesh position={[0, -0.35, 0.1]}>
-                <sphereGeometry args={[0.08, 16, 16]} />
-                <meshBasicMaterial color={color} />
+              <mesh position={[0, -0.4, 0.1]}>
+                <icosahedronGeometry args={[0.08, 0]} />
+                <meshBasicMaterial color={color} wireframe />
+              </mesh>
+              <mesh position={[0, -0.4, 0.1]}>
+                <sphereGeometry args={[0.05, 8, 8]} />
+                <meshBasicMaterial color={color} transparent opacity={0.5} />
               </mesh>
             </Float>
           )}
         </group>
       </group>
 
+      {/* LEFT LEG */}
+      <group position={[-0.12, 0.4, 0.15]}>
+        {/* Thigh */}
+        <mesh rotation={[1.3, 0, 0.1]} position={[0, 0, 0.1]}>
+          <cylinderGeometry args={[0.05, 0.04, 0.3, 6]} />
+          {wireframeMaterial}
+        </mesh>
+        {/* Knee */}
+        <mesh position={[-0.02, -0.1, 0.28]}>
+          <sphereGeometry args={[0.04, 6, 4]} />
+          {wireframeMaterial}
+        </mesh>
+        {/* Shin */}
+        <mesh position={[-0.02, -0.25, 0.35]} rotation={[0.2, 0, 0]}>
+          <cylinderGeometry args={[0.035, 0.04, 0.28, 6]} />
+          {wireframeMaterial}
+        </mesh>
+        {/* Foot */}
+        <mesh position={[-0.02, -0.42, 0.42]}>
+          <boxGeometry args={[0.06, 0.03, 0.12]} />
+          {wireframeMaterial}
+        </mesh>
+      </group>
+
+      {/* RIGHT LEG */}
+      <group position={[0.12, 0.4, 0.15]}>
+        {/* Thigh */}
+        <mesh rotation={[1.3, 0, -0.1]} position={[0, 0, 0.1]}>
+          <cylinderGeometry args={[0.05, 0.04, 0.3, 6]} />
+          {wireframeMaterial}
+        </mesh>
+        {/* Knee */}
+        <mesh position={[0.02, -0.1, 0.28]}>
+          <sphereGeometry args={[0.04, 6, 4]} />
+          {wireframeMaterial}
+        </mesh>
+        {/* Shin */}
+        <mesh position={[0.02, -0.25, 0.35]} rotation={[0.2, 0, 0]}>
+          <cylinderGeometry args={[0.035, 0.04, 0.28, 6]} />
+          {wireframeMaterial}
+        </mesh>
+        {/* Foot */}
+        <mesh position={[0.02, -0.42, 0.42]}>
+          <boxGeometry args={[0.06, 0.03, 0.12]} />
+          {wireframeMaterial}
+        </mesh>
+      </group>
+
+      {/* SPINE - visible through wireframe */}
+      {[0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2].map((y, i) => (
+        <mesh key={i} position={[0, y, -0.08]}>
+          <boxGeometry args={[0.04, 0.06, 0.04]} />
+          {wireframeMaterial}
+        </mesh>
+      ))}
+
       {/* Sparkle particles around figure */}
       <Sparkles
-        count={15}
-        scale={[0.8, 1.5, 0.5]}
+        count={20}
+        scale={[1, 1.8, 0.6]}
         position={[0, 0.9, 0]}
-        size={1.5}
-        speed={0.3}
+        size={2}
+        speed={0.4}
         color={color}
       />
 
-      {/* Back cape flowing down */}
-      <mesh position={[0, 0.8, -0.25]} rotation={[-0.3, 0, 0]}>
-        <planeGeometry args={[0.6, 1.0]} />
-        <meshStandardMaterial 
+      {/* Energy field outline */}
+      <mesh position={[0, 0.9, 0]}>
+        <capsuleGeometry args={[0.35, 0.9, 4, 12]} />
+        <meshBasicMaterial 
           color={color}
-          emissive={color}
-          emissiveIntensity={0.3}
-          metalness={0.5}
-          roughness={0.5}
-          side={THREE.DoubleSide}
+          wireframe
           transparent
-          opacity={0.8}
+          opacity={0.15}
         />
       </mesh>
     </group>
