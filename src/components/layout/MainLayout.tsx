@@ -1,5 +1,6 @@
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useBattleNotifications } from '@/hooks/use-battle-notifications';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -13,6 +14,8 @@ import OwnershipNotice from '@/components/legal/OwnershipNotice';
 import { Swords, Users, BookOpen, Shield, LogOut, User, Home, Dna, Heart, ChevronDown, FileText } from 'lucide-react';
 
 export default function MainLayout() {
+  // Enable real-time battle challenge notifications
+  useBattleNotifications();
   const { user, profile, signOut, isAdmin, isModerator } = useAuth();
   const navigate = useNavigate();
 

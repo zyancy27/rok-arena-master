@@ -25,8 +25,43 @@ export default function Battles() {
   useEffect(() => {
     if (user) {
       fetchBattles();
+      setupRealtime();
     }
+
+    return () => {
+      supabase.removeChannel(supabase.channel('my-battles'));
+    };
   }, [user]);
+
+  const setupRealtime = () => {
+    supabase
+      .channel('my-battles')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'battle_participants',
+        },
+        () => {
+          // Refetch battles when participants change
+          fetchBattles();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'battles',
+        },
+        () => {
+          // Refetch battles when status changes
+          fetchBattles();
+        }
+      )
+      .subscribe();
+  };
 
   const fetchBattles = async () => {
     // Get user's character IDs first
@@ -49,6 +84,7 @@ export default function Battles() {
       .in('character_id', charIds);
 
     if (!participations || participations.length === 0) {
+      setBattles([]);
       setLoading(false);
       return;
     }
