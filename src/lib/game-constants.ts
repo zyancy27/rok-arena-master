@@ -19,7 +19,7 @@ export const POWER_TIERS = [
   },
   { 
     level: 4, 
-    name: 'Title of God', 
+    name: 'Legend', 
     description: 'Uses surroundings as an extension of body. Can control and manipulate vast amounts of mass to create objects. Does not need a physical body but is still composed of energy—tangible and killable. Exists in a single dimension, cannot move outside the 5th dimensional wall. Can exist outside of time but cannot control other dimensions.',
     examples: 'Cosmic entities, lesser deities'
   },
@@ -98,7 +98,7 @@ export function getTierSummary(level: number): string {
     1: 'No special abilities. Normal human limitations.',
     2: 'Peak physical abilities, but still human. Subject to fatigue.',
     3: 'Superhuman powers, healing, psychic abilities. Not limited by body.',
-    4: 'Godlike control over mass and energy. Exists in single dimension.',
+    4: 'Legendary control over mass and energy. Exists in single dimension.',
     5: 'Can create dimensions and rewrite reality. Cannot be killed.',
     6: 'Logic-bending powers. Exists outside normal rules.',
     7: 'Paradox tier. Willpower nullifies attacks. Functions as Tier 1 and 7.',
