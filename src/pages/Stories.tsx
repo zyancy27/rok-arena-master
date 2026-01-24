@@ -13,7 +13,17 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { toast } from 'sonner';
-import { Plus, FileText, Edit, Trash2, Eye, EyeOff, BookOpen, User } from 'lucide-react';
+import { Plus, FileText, Edit, Trash2, Eye, EyeOff, BookOpen, User, ChevronLeft, ChevronRight, Book, ListOrdered } from 'lucide-react';
+
+interface Chapter {
+  id: string;
+  story_id: string;
+  chapter_number: number;
+  title: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
 
 interface Story {
   id: string;
@@ -28,6 +38,7 @@ interface Story {
     id: string;
     name: string;
   } | null;
+  chapters?: Chapter[];
 }
 
 interface Character {
@@ -41,8 +52,12 @@ export default function Stories() {
   const [characters, setCharacters] = useState<Character[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isChapterDialogOpen, setIsChapterDialogOpen] = useState(false);
   const [editingStory, setEditingStory] = useState<Story | null>(null);
+  const [editingChapter, setEditingChapter] = useState<Chapter | null>(null);
+  const [selectedStoryForChapter, setSelectedStoryForChapter] = useState<Story | null>(null);
   const [expandedStory, setExpandedStory] = useState<string | null>(null);
+  const [currentChapterIndex, setCurrentChapterIndex] = useState<Record<string, number>>({});
   
   const [formData, setFormData] = useState({
     title: '',
@@ -50,6 +65,12 @@ export default function Stories() {
     summary: '',
     character_id: '',
     is_published: false,
+  });
+
+  const [chapterFormData, setChapterFormData] = useState({
+    title: '',
+    content: '',
+    chapter_number: 1,
   });
 
   useEffect(() => {
@@ -75,7 +96,18 @@ export default function Stories() {
       console.error('Failed to fetch stories:', error);
       toast.error('Failed to load stories');
     } else {
-      setStories(data || []);
+      // Fetch chapters for each story
+      const storiesWithChapters = await Promise.all((data || []).map(async (story) => {
+        const { data: chapters } = await supabase
+          .from('story_chapters')
+          .select('*')
+          .eq('story_id', story.id)
+          .order('chapter_number', { ascending: true });
+        
+        return { ...story, chapters: chapters || [] };
+      }));
+      
+      setStories(storiesWithChapters);
     }
     setLoading(false);
   };
@@ -105,6 +137,16 @@ export default function Stories() {
     setEditingStory(null);
   };
 
+  const resetChapterForm = () => {
+    setChapterFormData({
+      title: '',
+      content: '',
+      chapter_number: 1,
+    });
+    setEditingChapter(null);
+    setSelectedStoryForChapter(null);
+  };
+
   const handleEdit = (story: Story) => {
     setEditingStory(story);
     setFormData({
@@ -115,6 +157,28 @@ export default function Stories() {
       is_published: story.is_published,
     });
     setIsDialogOpen(true);
+  };
+
+  const handleAddChapter = (story: Story) => {
+    setSelectedStoryForChapter(story);
+    const nextChapterNum = (story.chapters?.length || 0) + 1;
+    setChapterFormData({
+      title: `Chapter ${nextChapterNum}`,
+      content: '',
+      chapter_number: nextChapterNum,
+    });
+    setIsChapterDialogOpen(true);
+  };
+
+  const handleEditChapter = (story: Story, chapter: Chapter) => {
+    setSelectedStoryForChapter(story);
+    setEditingChapter(chapter);
+    setChapterFormData({
+      title: chapter.title,
+      content: chapter.content,
+      chapter_number: chapter.chapter_number,
+    });
+    setIsChapterDialogOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -165,6 +229,70 @@ export default function Stories() {
     }
   };
 
+  const handleChapterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !selectedStoryForChapter) return;
+
+    if (!chapterFormData.title.trim() || !chapterFormData.content.trim()) {
+      toast.error('Chapter title and content are required');
+      return;
+    }
+
+    const chapterData = {
+      story_id: selectedStoryForChapter.id,
+      title: chapterFormData.title.trim(),
+      content: chapterFormData.content.trim(),
+      chapter_number: chapterFormData.chapter_number,
+    };
+
+    if (editingChapter) {
+      const { error } = await supabase
+        .from('story_chapters')
+        .update({
+          title: chapterData.title,
+          content: chapterData.content,
+        })
+        .eq('id', editingChapter.id);
+
+      if (error) {
+        toast.error('Failed to update chapter');
+      } else {
+        toast.success('Chapter updated!');
+        fetchStories();
+        setIsChapterDialogOpen(false);
+        resetChapterForm();
+      }
+    } else {
+      const { error } = await supabase
+        .from('story_chapters')
+        .insert(chapterData);
+
+      if (error) {
+        toast.error('Failed to create chapter');
+        console.error(error);
+      } else {
+        toast.success('Chapter added!');
+        fetchStories();
+        setIsChapterDialogOpen(false);
+        resetChapterForm();
+      }
+    }
+  };
+
+  const handleDeleteChapter = async (chapterId: string) => {
+    const { error } = await supabase
+      .from('story_chapters')
+      .delete()
+      .eq('id', chapterId);
+
+    if (error) {
+      toast.error('Failed to delete chapter');
+    } else {
+      toast.success('Chapter deleted');
+      fetchStories();
+    }
+  };
+
   const handleDelete = async (storyId: string) => {
     const { error } = await supabase
       .from('stories')
@@ -193,6 +321,18 @@ export default function Stories() {
     }
   };
 
+  const navigateChapter = (storyId: string, direction: 'prev' | 'next', totalChapters: number) => {
+    setCurrentChapterIndex(prev => {
+      const current = prev[storyId] || 0;
+      if (direction === 'prev' && current > 0) {
+        return { ...prev, [storyId]: current - 1 };
+      } else if (direction === 'next' && current < totalChapters - 1) {
+        return { ...prev, [storyId]: current + 1 };
+      }
+      return prev;
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -211,7 +351,7 @@ export default function Stories() {
             My Stories
           </h1>
           <p className="text-muted-foreground mt-1">
-            Write and manage stories about your characters
+            Write stories with chapters - your character lore is used in AI battles!
           </p>
         </div>
         
@@ -232,7 +372,7 @@ export default function Stories() {
                 {editingStory ? 'Edit Story' : 'Create New Story'}
               </DialogTitle>
               <DialogDescription>
-                Write a story about your character's adventures
+                Write a story about your character's adventures. Add chapters for longer narratives.
               </DialogDescription>
             </DialogHeader>
             
@@ -266,6 +406,9 @@ export default function Stories() {
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">
+                  Link to a character to include their story lore in AI battles
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -280,13 +423,13 @@ export default function Stories() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="content">Story Content *</Label>
+                <Label htmlFor="content">Prologue / Main Content *</Label>
                 <Textarea
                   id="content"
-                  placeholder="Write your story here..."
+                  placeholder="Write your story's prologue or main content here. You can add chapters after creating the story."
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  rows={12}
+                  rows={10}
                   className="font-serif"
                   required
                 />
@@ -321,6 +464,62 @@ export default function Stories() {
         </Dialog>
       </div>
 
+      {/* Chapter Dialog */}
+      <Dialog open={isChapterDialogOpen} onOpenChange={(open) => {
+        setIsChapterDialogOpen(open);
+        if (!open) resetChapterForm();
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Book className="w-5 h-5" />
+              {editingChapter ? 'Edit Chapter' : 'Add New Chapter'}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedStoryForChapter && `Adding chapter to: ${selectedStoryForChapter.title}`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <form onSubmit={handleChapterSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="chapter-title">Chapter Title *</Label>
+              <Input
+                id="chapter-title"
+                placeholder="Chapter 1: The Beginning"
+                value={chapterFormData.title}
+                onChange={(e) => setChapterFormData({ ...chapterFormData, title: e.target.value })}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="chapter-content">Chapter Content *</Label>
+              <Textarea
+                id="chapter-content"
+                placeholder="Write your chapter here..."
+                value={chapterFormData.content}
+                onChange={(e) => setChapterFormData({ ...chapterFormData, content: e.target.value })}
+                rows={14}
+                className="font-serif"
+                required
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button type="button" variant="outline" onClick={() => {
+                setIsChapterDialogOpen(false);
+                resetChapterForm();
+              }}>
+                Cancel
+              </Button>
+              <Button type="submit">
+                {editingChapter ? 'Update Chapter' : 'Add Chapter'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Stories List */}
       {stories.length === 0 ? (
         <Card className="bg-card-gradient border-border">
@@ -328,7 +527,7 @@ export default function Stories() {
             <FileText className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
             <h3 className="text-lg font-semibold mb-2">No stories yet</h3>
             <p className="text-muted-foreground mb-4">
-              Start writing stories about your characters' adventures!
+              Start writing stories about your characters! Their lore will be used in AI battles.
             </p>
             <Button onClick={() => setIsDialogOpen(true)}>
               <Plus className="w-4 h-4 mr-2" />
@@ -338,109 +537,201 @@ export default function Stories() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {stories.map((story) => (
-            <Card key={story.id} className="bg-card-gradient border-border">
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="flex items-center gap-2">
-                      <FileText className="w-5 h-5 text-primary" />
-                      {story.title}
-                      {story.is_published ? (
-                        <Eye className="w-4 h-4 text-green-500" />
-                      ) : (
-                        <EyeOff className="w-4 h-4 text-muted-foreground" />
+          {stories.map((story) => {
+            const hasChapters = story.chapters && story.chapters.length > 0;
+            const currentIdx = currentChapterIndex[story.id] || 0;
+            const currentChapter = hasChapters ? story.chapters![currentIdx] : null;
+
+            return (
+              <Card key={story.id} className="bg-card-gradient border-border">
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-primary" />
+                        {story.title}
+                        {story.is_published ? (
+                          <Eye className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <EyeOff className="w-4 h-4 text-muted-foreground" />
+                        )}
+                        {hasChapters && (
+                          <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <ListOrdered className="w-3 h-3" />
+                            {story.chapters!.length} chapters
+                          </span>
+                        )}
+                      </CardTitle>
+                      {story.character && (
+                        <CardDescription className="flex items-center gap-1 mt-1">
+                          <User className="w-3 h-3" />
+                          <Link to={`/characters/${story.character.id}`} className="hover:underline text-primary">
+                            {story.character.name}
+                          </Link>
+                          <span className="text-xs text-muted-foreground ml-2">• Lore available in AI battles</span>
+                        </CardDescription>
                       )}
-                    </CardTitle>
-                    {story.character && (
-                      <CardDescription className="flex items-center gap-1 mt-1">
-                        <User className="w-3 h-3" />
-                        <Link to={`/characters/${story.character.id}`} className="hover:underline text-primary">
-                          {story.character.name}
-                        </Link>
-                      </CardDescription>
-                    )}
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleAddChapter(story)}
+                        title="Add Chapter"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => togglePublish(story)}
+                        title={story.is_published ? 'Unpublish' : 'Publish'}
+                      >
+                        {story.is_published ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(story)}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="text-destructive">
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Story</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete "{story.title}"? This will also delete all chapters. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDelete(story.id)}
+                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            >
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
+                </CardHeader>
+                
+                <CardContent>
+                  {story.summary && (
+                    <p className="text-muted-foreground text-sm mb-3 italic">
+                      {story.summary}
+                    </p>
+                  )}
                   
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => togglePublish(story)}
-                      title={story.is_published ? 'Unpublish' : 'Publish'}
-                    >
-                      {story.is_published ? (
-                        <EyeOff className="w-4 h-4" />
-                      ) : (
-                        <Eye className="w-4 h-4" />
-                      )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleEdit(story)}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="sm" className="text-destructive">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Story</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete "{story.title}"? This action cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDelete(story.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                  <Accordion type="single" collapsible value={expandedStory === story.id ? story.id : undefined}>
+                    <AccordionItem value={story.id} className="border-none">
+                      <AccordionTrigger 
+                        onClick={() => setExpandedStory(expandedStory === story.id ? null : story.id)}
+                        className="py-2 text-sm text-muted-foreground hover:text-foreground"
+                      >
+                        {expandedStory === story.id ? 'Hide story' : 'Read story'}
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        {/* Prologue / Main content */}
+                        <div className="prose prose-invert max-w-none mt-2 p-4 bg-background/50 rounded-lg">
+                          <h4 className="text-sm font-semibold text-muted-foreground mb-2">Prologue</h4>
+                          <p className="whitespace-pre-wrap font-serif leading-relaxed">
+                            {story.content}
+                          </p>
+                        </div>
+
+                        {/* Chapter Navigation */}
+                        {hasChapters && (
+                          <div className="mt-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-sm font-semibold flex items-center gap-2">
+                                <Book className="w-4 h-4 text-primary" />
+                                {currentChapter?.title}
+                              </h4>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => navigateChapter(story.id, 'prev', story.chapters!.length)}
+                                  disabled={currentIdx === 0}
+                                >
+                                  <ChevronLeft className="w-4 h-4" />
+                                </Button>
+                                <span className="text-sm text-muted-foreground">
+                                  {currentIdx + 1} / {story.chapters!.length}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => navigateChapter(story.id, 'next', story.chapters!.length)}
+                                  disabled={currentIdx === story.chapters!.length - 1}
+                                >
+                                  <ChevronRight className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditChapter(story, currentChapter!)}
+                                >
+                                  <Edit className="w-3 h-3" />
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="text-destructive">
+                                      <Trash2 className="w-3 h-3" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Chapter</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete "{currentChapter?.title}"?
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() => handleDeleteChapter(currentChapter!.id)}
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
+                            </div>
+                            <div className="prose prose-invert max-w-none p-4 bg-background/50 rounded-lg border border-border">
+                              <p className="whitespace-pre-wrap font-serif leading-relaxed">
+                                {currentChapter?.content}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                  
+                  <div className="text-xs text-muted-foreground mt-2">
+                    Last updated: {new Date(story.updated_at).toLocaleDateString()}
                   </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent>
-                {story.summary && (
-                  <p className="text-muted-foreground text-sm mb-3 italic">
-                    {story.summary}
-                  </p>
-                )}
-                
-                <Accordion type="single" collapsible value={expandedStory === story.id ? story.id : undefined}>
-                  <AccordionItem value={story.id} className="border-none">
-                    <AccordionTrigger 
-                      onClick={() => setExpandedStory(expandedStory === story.id ? null : story.id)}
-                      className="py-2 text-sm text-muted-foreground hover:text-foreground"
-                    >
-                      {expandedStory === story.id ? 'Hide story' : 'Read story'}
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="prose prose-invert max-w-none mt-2 p-4 bg-background/50 rounded-lg">
-                        <p className="whitespace-pre-wrap font-serif leading-relaxed">
-                          {story.content}
-                        </p>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-                
-                <div className="text-xs text-muted-foreground mt-2">
-                  Last updated: {new Date(story.updated_at).toLocaleDateString()}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
     </div>

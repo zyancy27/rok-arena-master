@@ -36,6 +36,7 @@ interface BattleRequest {
   skillContext?: string;
   userGoesFirst?: boolean;
   isFirstMove?: boolean;
+  characterStoryLore?: string;
 }
 
 serve(async (req) => {
@@ -58,6 +59,7 @@ serve(async (req) => {
       skillContext,
       userGoesFirst,
       isFirstMove,
+      characterStoryLore,
     }: BattleRequest = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -89,6 +91,15 @@ serve(async (req) => {
       advancedContext += skillContext;
     }
 
+    // Build character story lore context
+    let storyLoreContext = '';
+    if (characterStoryLore) {
+      storyLoreContext = `\n\nCHARACTER STORY LORE (Use this to understand ${userCharacter.name}'s history, motivations, and past experiences):
+${characterStoryLore}
+
+INSTRUCTIONS: Reference this lore when appropriate - mention past events, use established relationships, acknowledge character growth and experiences from their stories. This makes the battle feel connected to the character's larger narrative.`;
+    }
+
     // Handle first move when opponent goes first
     let firstMoveContext = '';
     if (isFirstMove && !userGoesFirst) {
@@ -107,7 +118,7 @@ ${opponent.skill ? `- Skill Proficiency: ${opponent.skill}/100` : ''}
 You are in a practice battle against ${userCharacter.name} (Tier ${userCharacter.level}).
 Their powers: ${userCharacter.powers || 'Unknown'}
 Their abilities: ${userCharacter.abilities || 'Unknown'}
-Their skill: ${userCharacter.skill || 50}/100${locationContext}${advancedContext}${firstMoveContext}
+Their skill: ${userCharacter.skill || 50}/100${locationContext}${advancedContext}${storyLoreContext}${firstMoveContext}
 
 RULES FOR ROLEPLAY:
 1. Stay in character as ${opponent.name}
@@ -124,7 +135,8 @@ RULES FOR ROLEPLAY:
 ${dynamicEnvironment ? '12. CRITICAL: When describing any physical action (throwing, jumping, running, lifting), explicitly describe how the environmental conditions affect that action. Be specific about the physics.' : ''}
 ${hazardEvent ? '13. CRITICAL PRIORITY: An environmental hazard has just occurred! You MUST start your response by narrating this hazard event dramatically, then show how BOTH fighters react to it before continuing the battle. The hazard affects both combatants equally.' : ''}
 ${userCharacter.skill && userCharacter.skill <= 30 ? '14. SKILL FACTOR: The opponent has LOW SKILL. Occasionally describe their attacks misfiring, powers behaving erratically, or techniques failing mid-execution. They are learning!' : ''}
-${opponent.skill && opponent.skill <= 30 ? '15. YOUR SKILL: You have LOW SKILL proficiency. Occasionally let your own attacks falter, powers surge unexpectedly, or show inexperience. Struggle realistically!' : ''}`
+${opponent.skill && opponent.skill <= 30 ? '15. YOUR SKILL: You have LOW SKILL proficiency. Occasionally let your own attacks falter, powers surge unexpectedly, or show inexperience. Struggle realistically!' : ''}
+${characterStoryLore ? '16. STORY INTEGRATION: When appropriate, reference the character\'s backstory, past battles, or narrative events. This adds depth and makes the opponent feel like they know about the character\'s history.' : ''}`
       : `You are ${opponent.name} speaking out-of-character (OOC) to help a player learn the Realm of Kings battle system.
 
 Provide helpful feedback about:
