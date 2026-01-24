@@ -26,9 +26,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
-import { Plus, Globe, Sparkles } from 'lucide-react';
+import { Plus, Globe } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import SolarSystemTabs from './SolarSystemTabs';
 
 interface Character {
   id: string;
@@ -890,30 +891,20 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
         </div>
       )}
 
-      {/* Action Buttons - hide when viewing friend's system */}
-      {!isViewingFriend && (
-        <div className="absolute top-4 right-4 z-10 flex gap-2">
-          <Button variant="outline" onClick={handleViewGalaxy}>
-            <Sparkles className="w-4 h-4 mr-2" />
-            My Galaxy
-          </Button>
-          <Button variant="outline" onClick={handleCreatePlanet}>
-            <Globe className="w-4 h-4 mr-2" />
-            Create Planet
-          </Button>
-          <Button asChild>
-            <Link to="/characters/new">
-              <Plus className="w-4 h-4 mr-2" />
-              Create Character
-            </Link>
-          </Button>
+      {/* Action Tabs - centered at top, hide when viewing friend's system */}
+      {!isViewingFriend && viewState === 'galaxy' && (
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20">
+          <SolarSystemTabs
+            onGalaxyClick={handleViewGalaxy}
+            onCreatePlanetClick={handleCreatePlanet}
+          />
         </div>
       )}
 
-      {/* Header */}
-      <div className={`absolute ${isViewingFriend ? 'top-14' : 'top-4'} left-4 z-10 space-y-2`}>
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-cosmic-pink to-accent bg-clip-text text-transparent">
-          Solar System Map
+      {/* Header - positioned below tabs on mobile */}
+      <div className={`absolute ${isViewingFriend ? 'top-14' : 'top-16 sm:top-4'} left-4 z-10 space-y-1 sm:space-y-2`}>
+        <h1 className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-primary via-cosmic-pink to-accent bg-clip-text text-transparent">
+          Solar System
         </h1>
         <SolarSystemSelector
           systems={solarSystems}
@@ -922,7 +913,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
           onSystemCreated={handleSystemCreated}
           onSystemDeleted={handleSystemDeleted}
         />
-        <p className="text-muted-foreground text-sm">
+        <p className="text-muted-foreground text-xs sm:text-sm hidden sm:block">
           {viewState === 'zooming' || viewState === 'zooming-in' 
             ? 'Traveling...' 
             : isViewingFriend 
