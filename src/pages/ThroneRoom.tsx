@@ -448,17 +448,19 @@ function ThroneRoomScene({
   onSelectThrone: (id: number | null) => void;
 }) {
   // Arrange thrones in a semi-circle facing the dome
+  // Thrones lowered so dome is at chest height of seated figures
   const thronePositions: [number, number, number][] = useMemo(() => {
     const positions: [number, number, number][] = [];
     const radius = 10;
     const startAngle = Math.PI * 0.15;
     const endAngle = Math.PI * 0.85;
+    const throneY = -3; // Lowered so dome (at y=-2) is at chest height
     
     for (let i = 0; i < 7; i++) {
       const angle = startAngle + (endAngle - startAngle) * (i / 6);
       positions.push([
         Math.cos(angle) * radius,
-        0,
+        throneY,
         Math.sin(angle) * radius - 5
       ]);
     }
@@ -485,8 +487,8 @@ function ThroneRoomScene({
       {/* Background stars */}
       <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
 
-      {/* The floor - more visible with glow */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]}>
+      {/* The floor - at throne level */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -3.5, 0]}>
         <planeGeometry args={[50, 50]} />
         <meshStandardMaterial 
           color="#2a2a5e"
@@ -498,7 +500,7 @@ function ThroneRoomScene({
       </mesh>
 
       {/* Floor glow ring around dome area */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.48, 0]}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -3.48, 0]}>
         <ringGeometry args={[6, 8, 64]} />
         <meshBasicMaterial color="#8B5CF6" transparent opacity={0.3} />
       </mesh>
