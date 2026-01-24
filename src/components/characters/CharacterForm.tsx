@@ -19,7 +19,7 @@ import StatSlider from './StatSlider';
 import OwnershipNotice from '@/components/legal/OwnershipNotice';
 import { useAutoSave } from '@/hooks/use-auto-save';
 import { AutoSaveIndicator } from '@/components/ui/auto-save-indicator';
-import { ArrowLeft, Save, Sparkles, Camera, Brain, Dumbbell, Flame, Zap, Shield, Heart, Target, Wand2, Smile, Lightbulb, Globe, Mountain, Thermometer } from 'lucide-react';
+import { ArrowLeft, Save, Sparkles, Camera, Brain, Dumbbell, Flame, Zap, Shield, Heart, Target, Wand2, Smile, Lightbulb, Globe, Mountain, Thermometer, FileText, Loader2 } from 'lucide-react';
 
 const iconMap = {
   Brain: <Brain className="w-4 h-4" />,
@@ -56,6 +56,8 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
   const { user } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [isParsingNotes, setIsParsingNotes] = useState(false);
+  const [characterNotes, setCharacterNotes] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [planetGravity, setPlanetGravity] = useState<number | null>(null);
   const [planetData, setPlanetData] = useState<{
@@ -189,6 +191,71 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
 
   const handleChange = (field: keyof CharacterFormData, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  // AI Auto-fill from notes
+  const handleAutoFillFromNotes = async () => {
+    if (!characterNotes.trim()) {
+      toast.error('Please enter your character notes first');
+      return;
+    }
+
+    setIsParsingNotes(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-character-notes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ notes: characterNotes }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to parse notes');
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        const parsed = result.data;
+        
+        // Update form data with parsed values (only if they exist)
+        setFormData(prev => ({
+          ...prev,
+          name: parsed.name || prev.name,
+          race: parsed.race || prev.race,
+          sub_race: parsed.sub_race || prev.sub_race,
+          age: parsed.age?.toString() || prev.age,
+          home_planet: parsed.home_planet || prev.home_planet,
+          powers: parsed.powers || prev.powers,
+          abilities: parsed.abilities || prev.abilities,
+          personality: parsed.personality || prev.personality,
+          mentality: parsed.mentality || prev.mentality,
+          lore: parsed.lore || prev.lore,
+          level: parsed.level || prev.level,
+        }));
+
+        // Enable custom inputs if parsed values don't match existing options
+        if (parsed.race && !availableRaces.find(r => r.name === parsed.race)) {
+          setUseCustomRace(true);
+        }
+        if (parsed.home_planet && !availablePlanets.find(p => p.name === parsed.home_planet)) {
+          setUseCustomPlanet(true);
+        }
+
+        toast.success('Character information extracted! Review and adjust as needed.');
+      }
+    } catch (error: any) {
+      console.error('Auto-fill error:', error);
+      toast.error(error.message || 'Failed to parse character notes');
+    } finally {
+      setIsParsingNotes(false);
+    }
   };
 
   // Memoize data for auto-save (edit mode only)
@@ -438,6 +505,45 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                 <p className="text-xs">Max 5MB, JPG/PNG recommended</p>
               </div>
             </div>
+
+            {/* AI Auto-fill from Notes */}
+            {mode === 'create' && (
+              <div className="p-4 rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 space-y-3">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-primary" />
+                  <Label className="text-base font-semibold">Quick Fill from Notes</Label>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Paste your character notes, descriptions, or ideas below and let AI extract the information to auto-fill the form.
+                </p>
+                <Textarea
+                  placeholder="Paste your character notes here... e.g., 'My character is named Kira, a 500-year-old celestial being from Planet Aethoria. She has the power of light manipulation and can create solid constructs from pure energy...'"
+                  value={characterNotes}
+                  onChange={(e) => setCharacterNotes(e.target.value)}
+                  rows={5}
+                  className="bg-background"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleAutoFillFromNotes}
+                  disabled={isParsingNotes || !characterNotes.trim()}
+                  className="w-full"
+                >
+                  {isParsingNotes ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Extracting Character Info...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Auto-Fill from Notes
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
 
             {/* Basic Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
