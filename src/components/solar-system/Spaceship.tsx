@@ -12,7 +12,7 @@ interface SpaceshipProps {
   color: string;
   characterCount: number;
   isFleet?: boolean;
-  onClick?: (position: { x: number; y: number; z: number }) => void;
+  onClick?: () => void;
 }
 
 // Keywords that identify a ship or fleet home
@@ -171,13 +171,7 @@ export default function Spaceship({
 
   const handleClick = (e: any) => {
     e.stopPropagation?.();
-    if (onClick && groupRef.current) {
-      onClick({
-        x: groupRef.current.position.x,
-        y: groupRef.current.position.y,
-        z: groupRef.current.position.z,
-      });
-    }
+    onClick?.();
   };
 
   return (
