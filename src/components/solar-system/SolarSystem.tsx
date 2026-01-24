@@ -17,6 +17,7 @@ import SolarSystemSelector, { SolarSystemData } from './SolarSystemSelector';
 import GalaxyView from './GalaxyView';
 import GiantCharacter, { isPlanetSizedCharacter, getCharacterGender, getCosmicColor } from './GiantCharacter';
 import Spaceship, { isShipOrFleetHome } from './Spaceship';
+import MobilePlanetDetails from './MobilePlanetDetails';
 
 import { getHabitableZone } from './Sun';
 import { supabase } from '@/integrations/supabase/client';
@@ -131,6 +132,9 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
   const [warpActive, setWarpActive] = useState(false);
   const [warpDirection, setWarpDirection] = useState<'in' | 'out'>('out');
   const [pendingSystemId, setPendingSystemId] = useState<string | null>(null);
+  
+  // Mobile planet details sheet state
+  const [mobilePlanetSheetOpen, setMobilePlanetSheetOpen] = useState(false);
 
   // Fetch solar systems first
   useEffect(() => {
@@ -465,6 +469,13 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
 
   const handlePlanetClick = useCallback((planet: PlanetData, position: { x: number; y: number; z: number }) => {
     setSelectedPlanet(planet);
+    
+    // On mobile, show the bottom sheet instead of zooming
+    if (isMobile) {
+      setMobilePlanetSheetOpen(true);
+      return;
+    }
+    
     setViewState('zooming');
     setControlsEnabled(false);
     
@@ -479,7 +490,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
     setCameraTarget(cameraPos);
     setCameraLookAt(planetPos);
     setIsZooming(true);
-  }, []);
+  }, [isMobile]);
 
   const handleZoomComplete = useCallback(() => {
     setIsZooming(false);
@@ -491,6 +502,12 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
   }, [viewState]);
 
   const handleViewCharacters = useCallback(() => {
+    // On mobile, go directly to character view without zoom animation
+    if (isMobile) {
+      setViewState('characters');
+      return;
+    }
+    
     // Zoom in even closer for character view
     if (cameraLookAt) {
       const closePos = cameraLookAt.clone().add(new THREE.Vector3(0, 1, 3));
@@ -498,11 +515,15 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
       setIsZooming(true);
       setViewState('zooming-in');
     }
-  }, [cameraLookAt]);
+  }, [cameraLookAt, isMobile]);
 
-  const handleEditPlanet = () => {
+  const handleEditPlanet = useCallback(() => {
     setViewState('editor');
-  };
+  }, []);
+  
+  const handleMobilePlanetSheetClose = useCallback(() => {
+    setMobilePlanetSheetOpen(false);
+  }, []);
 
   const handleBack = useCallback(() => {
     if (viewState === 'menu') {
@@ -525,6 +546,13 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
   }, [viewState]);
 
   const handleBackToGalaxy = useCallback(() => {
+    // On mobile, skip the zoom animation
+    if (isMobile) {
+      setSelectedPlanet(null);
+      setViewState('galaxy');
+      return;
+    }
+    
     setCameraTarget(GALAXY_CAMERA_POSITION.clone());
     setCameraLookAt(GALAXY_LOOK_AT.clone());
     setIsZooming(true);
@@ -535,7 +563,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
       setControlsEnabled(true);
       setIsZooming(false);
     }, 1200);
-  }, []);
+  }, [isMobile]);
 
   const handleSavePlanet = async (data: PlanetCustomization) => {
     if (!selectedPlanet || !user || !currentSystem) return;
@@ -947,8 +975,8 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
         />
       </Canvas>
 
-      {/* Planet Menu Overlay */}
-      {viewState === 'menu' && selectedPlanet && (
+      {/* Planet Menu Overlay (Desktop) */}
+      {viewState === 'menu' && selectedPlanet && !isMobile && (
         <PlanetMenu
           planetName={selectedPlanet.displayName}
           characterCount={selectedPlanet.characterCount}
@@ -959,6 +987,19 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
           canDelete={selectedPlanet.isUserCreated === true}
         />
       )}
+
+      {/* Mobile Planet Details Sheet */}
+      <MobilePlanetDetails
+        planet={selectedPlanet}
+        isOpen={mobilePlanetSheetOpen}
+        onClose={handleMobilePlanetSheetClose}
+        onViewCharacters={handleViewCharacters}
+        onEditPlanet={handleEditPlanet}
+        onDeletePlanet={handleDeletePlanet}
+        sunTemperature={sunData.temperature}
+        sunLuminosity={getSunLuminosityFromTemperature(sunData.temperature)}
+        canEdit={!isViewingFriend}
+      />
 
       {/* Character List View */}
       {viewState === 'characters' && selectedPlanet && (
