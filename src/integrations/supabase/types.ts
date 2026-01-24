@@ -100,6 +100,8 @@ export type Database = {
           chosen_location: string | null
           coin_flip_winner_id: string | null
           created_at: string
+          dynamic_environment: boolean
+          environment_effects: string | null
           id: string
           location_1: string | null
           location_2: string | null
@@ -112,6 +114,8 @@ export type Database = {
           chosen_location?: string | null
           coin_flip_winner_id?: string | null
           created_at?: string
+          dynamic_environment?: boolean
+          environment_effects?: string | null
           id?: string
           location_1?: string | null
           location_2?: string | null
@@ -124,6 +128,8 @@ export type Database = {
           chosen_location?: string | null
           coin_flip_winner_id?: string | null
           created_at?: string
+          dynamic_environment?: boolean
+          environment_effects?: string | null
           id?: string
           location_1?: string | null
           location_2?: string | null

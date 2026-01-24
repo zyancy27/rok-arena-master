@@ -9,6 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +24,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { ROK_RULES } from '@/lib/game-constants';
+import { generateBattleEnvironment, BattleEnvironment } from '@/lib/battle-environment';
 import {
   ArrowLeft,
   Send,
@@ -33,6 +36,11 @@ import {
   Sparkles,
   MapPin,
   Coins,
+  Atom,
+  Zap,
+  Wind,
+  Flame,
+  Snowflake,
 } from 'lucide-react';
 
 interface Battle {
@@ -45,6 +53,8 @@ interface Battle {
   location_2: string | null;
   chosen_location: string | null;
   coin_flip_winner_id: string | null;
+  dynamic_environment: boolean;
+  environment_effects: string | null;
 }
 
 interface Participant {
@@ -84,6 +94,16 @@ export default function BattleView() {
   const [showRules, setShowRules] = useState(false);
   const [locationInput, setLocationInput] = useState('');
   const [isFlippingCoin, setIsFlippingCoin] = useState(false);
+  const [dynamicEnvironmentEnabled, setDynamicEnvironmentEnabled] = useState(true);
+  const [battleEnvironment, setBattleEnvironment] = useState<BattleEnvironment | null>(null);
+
+  // Generate environment when battle becomes active with a location
+  useEffect(() => {
+    if (battle?.chosen_location && battle?.dynamic_environment) {
+      const env = generateBattleEnvironment(battle.chosen_location, null, null);
+      setBattleEnvironment(env);
+    }
+  }, [battle?.chosen_location, battle?.dynamic_environment]);
 
   useEffect(() => {
     if (id && user) {
@@ -339,12 +359,21 @@ export default function BattleView() {
       ? participants[0]?.character_id 
       : participants[1]?.character_id;
 
+    // Generate environment effects if dynamic environment is enabled
+    let environmentEffects: string | null = null;
+    if (dynamicEnvironmentEnabled && chosenLocation) {
+      const env = generateBattleEnvironment(chosenLocation, null, null);
+      environmentEffects = env.effectsPrompt;
+    }
+
     const { error } = await supabase
       .from('battles')
       .update({ 
         status: 'active',
         chosen_location: chosenLocation,
-        coin_flip_winner_id: winnerCharacterId
+        coin_flip_winner_id: winnerCharacterId,
+        dynamic_environment: dynamicEnvironmentEnabled,
+        environment_effects: environmentEffects
       })
       .eq('id', battle.id);
 
@@ -358,11 +387,16 @@ export default function BattleView() {
       ...battle, 
       status: 'active', 
       chosen_location: chosenLocation,
-      coin_flip_winner_id: winnerCharacterId
+      coin_flip_winner_id: winnerCharacterId,
+      dynamic_environment: dynamicEnvironmentEnabled,
+      environment_effects: environmentEffects
     });
     
     const winnerName = participants[winnerIndex]?.character?.name || 'Unknown';
     toast.success(`🪙 ${winnerName}'s location was chosen: ${chosenLocation}!`);
+    if (dynamicEnvironmentEnabled) {
+      toast.info('⚛️ Dynamic battlefield effects are active!');
+    }
     setIsFlippingCoin(false);
   };
 
@@ -481,6 +515,24 @@ export default function BattleView() {
                   Both locations submitted! Flip the coin to decide the battle arena.
                 </p>
                 
+                {/* Dynamic Environment Toggle */}
+                <div className="flex items-center justify-center gap-3 p-3 bg-background/50 rounded-lg">
+                  <Atom className="w-4 h-4 text-primary" />
+                  <Label htmlFor="dynamic-env" className="text-sm">
+                    Dynamic Battlefield Effects
+                  </Label>
+                  <Switch
+                    id="dynamic-env"
+                    checked={dynamicEnvironmentEnabled}
+                    onCheckedChange={setDynamicEnvironmentEnabled}
+                  />
+                </div>
+                {dynamicEnvironmentEnabled && (
+                  <p className="text-xs text-muted-foreground">
+                    ⚛️ Gravity, weather, and terrain will affect combat narration
+                  </p>
+                )}
+                
                 {isFlippingCoin && (
                   <div className="flex justify-center">
                     <div className="w-16 h-16 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 animate-spin flex items-center justify-center shadow-lg">
@@ -516,13 +568,60 @@ export default function BattleView() {
       {battle.chosen_location && (
         <Card className="bg-gradient-to-br from-primary/10 to-accent/10 border-primary/30">
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <MapPin className="w-5 h-5 text-primary" />
-              <div>
-                <p className="text-sm text-muted-foreground">Battle Location</p>
-                <p className="font-semibold text-lg">{battle.chosen_location}</p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <MapPin className="w-5 h-5 text-primary" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Battle Location</p>
+                  <p className="font-semibold text-lg">{battle.chosen_location}</p>
+                </div>
               </div>
+              {battle.dynamic_environment && (
+                <Badge variant="outline" className="flex items-center gap-1 text-primary border-primary/30">
+                  <Atom className="w-3 h-3" />
+                  Dynamic Effects Active
+                </Badge>
+              )}
             </div>
+            
+            {/* Environment Effects Display */}
+            {battle.dynamic_environment && battleEnvironment && (
+              <div className="mt-4 p-3 bg-background/50 rounded-lg space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Zap className="w-4 h-4 text-amber-400" />
+                  Battlefield Conditions
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                  <div className="flex items-center gap-1 text-muted-foreground">
+                    <span className="text-primary">⬇️</span>
+                    Gravity: {battleEnvironment.gravity.toFixed(2)}g ({battleEnvironment.gravityClass.name})
+                  </div>
+                  {battleEnvironment.terrainFeatures?.atmosphereType && (
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Wind className="w-3 h-3 text-cyan-400" />
+                      {battleEnvironment.terrainFeatures.atmosphereType} atmosphere
+                    </div>
+                  )}
+                  {battleEnvironment.terrainFeatures?.primaryBiome && (
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      {battleEnvironment.terrainFeatures.hasVolcanoes ? (
+                        <Flame className="w-3 h-3 text-orange-400" />
+                      ) : battleEnvironment.terrainFeatures.hasTundra ? (
+                        <Snowflake className="w-3 h-3 text-blue-400" />
+                      ) : (
+                        <Sparkles className="w-3 h-3 text-purple-400" />
+                      )}
+                      {battleEnvironment.terrainFeatures.primaryBiome}
+                    </div>
+                  )}
+                </div>
+                {battleEnvironment.shortSummary && (
+                  <p className="text-xs text-muted-foreground italic mt-1">
+                    {battleEnvironment.shortSummary}
+                  </p>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
