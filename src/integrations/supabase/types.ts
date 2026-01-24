@@ -679,6 +679,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      can_add_battle_participant: {
+        Args: { _battle_id: string; _character_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
