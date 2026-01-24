@@ -122,8 +122,7 @@ function Throne({
     }
   });
 
-  const throneColor = holder.isEmpty && !holder.isCreator ? '#2D3748' : holder.color;
-  const emissiveIntensity = hovered || isSelected ? 0.4 : holder.isCreator ? 0.2 : 0.05;
+  const throneColor = holder.isEmpty && !holder.isCreator ? '#4a5a6a' : holder.color;
 
   // Calculate rotation to face the dome center (0, -2, 0)
   const domeCenter = { x: 0, z: 0 };
@@ -143,10 +142,10 @@ function Throne({
         <boxGeometry args={[1.2, 0.6, 1]} />
         <meshStandardMaterial 
           color={throneColor} 
-          metalness={0.8} 
-          roughness={0.2}
+          metalness={0.6} 
+          roughness={0.3}
           emissive={throneColor}
-          emissiveIntensity={emissiveIntensity}
+          emissiveIntensity={hovered || isSelected ? 0.8 : holder.isCreator ? 0.5 : 0.2}
         />
       </mesh>
 
@@ -155,21 +154,33 @@ function Throne({
         <boxGeometry args={[1.2, 2.4, 0.2]} />
         <meshStandardMaterial 
           color={throneColor} 
-          metalness={0.8} 
-          roughness={0.2}
+          metalness={0.6} 
+          roughness={0.3}
           emissive={throneColor}
-          emissiveIntensity={emissiveIntensity}
+          emissiveIntensity={hovered || isSelected ? 0.8 : holder.isCreator ? 0.5 : 0.2}
         />
       </mesh>
 
       {/* Armrests */}
       <mesh position={[-0.55, 0.8, 0]}>
         <boxGeometry args={[0.15, 0.4, 0.8]} />
-        <meshStandardMaterial color={throneColor} metalness={0.9} roughness={0.1} />
+        <meshStandardMaterial 
+          color={throneColor} 
+          emissive={throneColor}
+          emissiveIntensity={0.3}
+          metalness={0.7} 
+          roughness={0.2} 
+        />
       </mesh>
       <mesh position={[0.55, 0.8, 0]}>
         <boxGeometry args={[0.15, 0.4, 0.8]} />
-        <meshStandardMaterial color={throneColor} metalness={0.9} roughness={0.1} />
+        <meshStandardMaterial 
+          color={throneColor} 
+          emissive={throneColor}
+          emissiveIntensity={0.3}
+          metalness={0.7} 
+          roughness={0.2} 
+        />
       </mesh>
 
       {/* Crown ornament on top */}
@@ -444,16 +455,22 @@ function ThroneRoomScene({
       {/* Background stars */}
       <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
 
-      {/* The floor - slightly visible */}
+      {/* The floor - more visible with glow */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]}>
         <planeGeometry args={[50, 50]} />
         <meshStandardMaterial 
-          color="#1a1a3e"
-          emissive="#0a0a1e"
-          emissiveIntensity={0.1}
-          metalness={0.6}
-          roughness={0.4}
+          color="#2a2a5e"
+          emissive="#1a1a4e"
+          emissiveIntensity={0.3}
+          metalness={0.4}
+          roughness={0.6}
         />
+      </mesh>
+
+      {/* Floor glow ring around dome area */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.48, 0]}>
+        <ringGeometry args={[6, 8, 64]} />
+        <meshBasicMaterial color="#8B5CF6" transparent opacity={0.3} />
       </mesh>
 
       {/* Thrones */}
@@ -513,6 +530,10 @@ export default function ThroneRoom() {
         camera={{ position: [0, 6, 16], fov: 55 }}
         className="!fixed inset-0"
         gl={{ antialias: true }}
+        onCreated={({ gl, scene }) => {
+          gl.setClearColor('#0a0a1f', 1);
+          scene.background = new THREE.Color('#0a0a1f');
+        }}
       >
         <ThroneRoomScene 
           selectedThrone={selectedThrone}
