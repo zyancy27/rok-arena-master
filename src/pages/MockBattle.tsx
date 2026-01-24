@@ -15,6 +15,9 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { getTierName } from '@/lib/game-constants';
 import { generateBattleEnvironment, getEnvironmentStatImpact, BattleEnvironment, shouldTriggerHazard, generateHazardEventPrompt } from '@/lib/battle-environment';
+import { generatePhysicsContext, generateSkillContext, shouldTriggerSkillMishap, shouldTriggerCritical } from '@/lib/battle-physics';
+import SkillProficiencyBar from '@/components/battles/SkillProficiencyBar';
+import TurnOrderIndicator from '@/components/battles/TurnOrderIndicator';
 import { 
   ArrowLeft, 
   Swords, 
@@ -27,7 +30,9 @@ import {
   User,
   MapPin,
   Globe,
-  Zap
+  Zap,
+  Atom,
+  AlertTriangle
 } from 'lucide-react';
 
 interface UserCharacter {
@@ -37,11 +42,12 @@ interface UserCharacter {
   image_url: string | null;
   powers: string | null;
   abilities: string | null;
+  stat_skill?: number | null;
 }
 
 interface Message {
   id: string;
-  role: 'user' | 'ai' | 'narrator';
+  role: 'user' | 'ai' | 'narrator' | 'system';
   content: string;
   channel: 'in_universe' | 'out_of_universe';
   characterName?: string;
@@ -54,6 +60,7 @@ interface AIOpponent {
   personality: string;
   powers: string;
   category: string;
+  skill?: number;
 }
 
 interface PlanetData {
@@ -63,7 +70,7 @@ interface PlanetData {
   description: string | null;
 }
 
-// Original AI opponent templates
+// Original AI opponent templates with skill levels
 const ORIGINAL_OPPONENTS = [
   {
     id: 'training-bot',
@@ -72,6 +79,7 @@ const ORIGINAL_OPPONENTS = [
     personality: 'A stoic training construct designed to help warriors hone their skills. Speaks formally and provides tactical feedback.',
     powers: 'Adaptive Combat Analysis - can analyze and counter fighting styles',
     category: 'original',
+    skill: 75, // Well-programmed training bot
   },
   {
     id: 'chaos-imp',
@@ -80,6 +88,7 @@ const ORIGINAL_OPPONENTS = [
     personality: 'A mischievous trickster who enjoys wordplay and unconventional attacks. Playful but cunning.',
     powers: 'Reality Pranks - minor reality distortions for comedic and tactical effect',
     category: 'original',
+    skill: 55, // Chaotic but effective
   },
   {
     id: 'ancient-guardian',
@@ -88,10 +97,11 @@ const ORIGINAL_OPPONENTS = [
     personality: 'An ancient guardian who speaks in riddles and tests worthy challengers. Wise and patient.',
     powers: 'Cosmic Wisdom - manipulation of celestial energies and precognition',
     category: 'original',
+    skill: 90, // Ancient master
   },
 ];
 
-// Iconic comic book character AI opponents
+// Iconic comic book character AI opponents with skill levels
 const ICONIC_OPPONENTS = [
   {
     id: 'hulk',
@@ -100,6 +110,7 @@ const ICONIC_OPPONENTS = [
     personality: 'HULK IS STRONGEST ONE THERE IS! Speaks in third person, simple sentences. Gets angrier as fight goes on. Surprisingly protective of innocent.',
     powers: 'Limitless Strength - grows stronger with rage, regeneration, thunderclap shockwaves, gamma radiation immunity',
     category: 'iconic',
+    skill: 35, // Brute force, low technique
   },
   {
     id: 'wolverine',
@@ -108,6 +119,7 @@ const ICONIC_OPPONENTS = [
     personality: 'Gruff, sarcastic Canadian mutant. Calls everyone "bub." Has a code of honor despite his feral nature. Cigar-chomping anti-hero.',
     powers: 'Adamantium Claws - indestructible skeleton, superhuman senses, regenerative healing factor that makes him nearly unkillable',
     category: 'iconic',
+    skill: 85, // Centuries of combat experience
   },
   {
     id: 'deadpool',
@@ -116,6 +128,7 @@ const ICONIC_OPPONENTS = [
     personality: 'Fourth-wall breaking merc with a mouth. Makes pop culture references, talks to the audience, chaotic and unpredictable. Maximum effort!',
     powers: 'Regenerative Healing - extreme regeneration, expert marksman and swordsman, unpredictable fighting style',
     category: 'iconic',
+    skill: 70, // Skilled but deliberately chaotic
   },
   {
     id: 'mr-fantastic',
@@ -124,6 +137,7 @@ const ICONIC_OPPONENTS = [
     personality: 'Brilliant scientist Reed Richards. Speaks technically, always calculating. Sometimes oblivious to social cues. Will explain the science.',
     powers: 'Elasticity - can stretch, reshape, and expand body infinitely. Genius-level intellect, one of the smartest beings alive',
     category: 'iconic',
+    skill: 55, // Smart but not a natural fighter
   },
   {
     id: 'thor',
@@ -132,6 +146,7 @@ const ICONIC_OPPONENTS = [
     personality: 'Asgardian God of Thunder. Speaks in archaic, noble manner. Honorable warrior who respects worthy opponents. "Have at thee!"',
     powers: 'Thunder God - Mjolnir control, lightning manipulation, superhuman strength, flight, near-immortality',
     category: 'iconic',
+    skill: 88, // Millennia of Asgardian combat training
   },
   {
     id: 'magneto',
@@ -140,6 +155,7 @@ const ICONIC_OPPONENTS = [
     personality: 'Master of magnetism and mutant supremacist. Eloquent, philosophical, sees himself as mutant savior. Holocaust survivor with complex morality.',
     powers: 'Magnetokinesis - control over all magnetic fields and metal, force fields, electromagnetic pulse generation',
     category: 'iconic',
+    skill: 82, // Decades of power mastery
   },
   {
     id: 'doctor-doom',
@@ -148,6 +164,7 @@ const ICONIC_OPPONENTS = [
     personality: 'Ruler of Latveria. Refers to himself in third person as "Doom." Arrogant genius who believes only he can save the world. Theatrical villain.',
     powers: 'Sorcery & Technology - genius inventor, powerful sorcerer, armored suit with vast weaponry, diplomatic immunity',
     category: 'iconic',
+    skill: 92, // Near-perfect mastery of all his disciplines
   },
   {
     id: 'spider-man',
@@ -156,10 +173,11 @@ const ICONIC_OPPONENTS = [
     personality: 'Friendly neighborhood wall-crawler. Cracks jokes constantly during fights. Great power, great responsibility. Queens accent optional.',
     powers: 'Spider Powers - wall-crawling, superhuman agility and strength, spider-sense danger detection, web-slinging',
     category: 'iconic',
+    skill: 72, // Self-taught but effective
   },
 ];
 
-// Anime & Manga character AI opponents
+// Anime & Manga character AI opponents with skill levels
 const ANIME_OPPONENTS = [
   {
     id: 'goku',
@@ -168,6 +186,7 @@ const ANIME_OPPONENTS = [
     personality: 'Pure-hearted Saiyan warrior who lives for the thrill of battle. Cheerful, naive about non-combat things. Always seeking stronger opponents. "Kamehameha!"',
     powers: 'Saiyan Might - Super Saiyan transformations, Ki manipulation, Instant Transmission, Kamehameha, Ultra Instinct',
     category: 'anime',
+    skill: 95, // Lifetime of training and Ultra Instinct
   },
   {
     id: 'naruto',
@@ -176,6 +195,7 @@ const ANIME_OPPONENTS = [
     personality: 'Hyperactive ninja who never gives up. Says "Believe it!" and "Dattebayo!" Wants to be acknowledged. Will talk-no-jutsu you into friendship.',
     powers: 'Nine-Tails Jinchuriki - Massive chakra reserves, Shadow Clone Jutsu, Rasengan, Sage Mode, Six Paths power',
     category: 'anime',
+    skill: 78, // Improved dramatically but still impulsive
   },
   {
     id: 'ichigo',
@@ -184,6 +204,7 @@ const ANIME_OPPONENTS = [
     personality: 'Orange-haired Soul Reaper with a scowl. Protective of friends, reluctant hero. Sarcastic but has a strong moral code.',
     powers: 'Shinigami Powers - Zangetsu sword, Bankai transformation, Hollow powers, Quincy abilities, Getsuga Tensho',
     category: 'anime',
+    skill: 70, // Relies on raw power often
   },
   {
     id: 'luffy',
@@ -192,6 +213,7 @@ const ANIME_OPPONENTS = [
     personality: 'Rubber pirate captain who will be King of the Pirates! Simple-minded, loves meat, fiercely loyal to crew. Gear transformations mid-fight.',
     powers: 'Gum-Gum Fruit - Rubber body, Gear Second/Third/Fourth/Fifth, Haki mastery, Nika awakening',
     category: 'anime',
+    skill: 75, // Creative but untrained
   },
   {
     id: 'saitama',
@@ -200,6 +222,7 @@ const ANIME_OPPONENTS = [
     personality: 'Bored hero who defeats everything in one punch. Deadpan, obsessed with supermarket sales. Existential crisis about being too strong.',
     powers: 'Limitless Strength - One punch knockout, immeasurable speed, invulnerability, Serious Series techniques',
     category: 'anime',
+    skill: 50, // Actually lazy/casual about fighting technique
   },
   {
     id: 'vegeta',
@@ -208,6 +231,7 @@ const ANIME_OPPONENTS = [
     personality: 'Prince of all Saiyans! Arrogant, prideful warrior with a rivalry complex. Has grown from villain to anti-hero. "Its over 9000!"',
     powers: 'Saiyan Pride - Super Saiyan forms, Final Flash, Big Bang Attack, Ultra Ego, intense training discipline',
     category: 'anime',
+    skill: 93, // Obsessive training and royal combat education
   },
   {
     id: 'zoro',
@@ -216,6 +240,7 @@ const ANIME_OPPONENTS = [
     personality: 'Three-sword style master who gets lost constantly. Stoic, loves sake and naps. Dreams of being worlds greatest swordsman.',
     powers: 'Santoryu - Three Sword Style, Haki mastery, Asura technique, superhuman endurance and strength',
     category: 'anime',
+    skill: 94, // Pure dedication to swordsmanship
   },
   {
     id: 'gojo',
@@ -224,6 +249,7 @@ const ANIME_OPPONENTS = [
     personality: 'Blindfolded sorcerer whos the strongest. Playful and arrogant, loves teasing people. Actually cares deeply but hides it behind jokes.',
     powers: 'Infinity & Six Eyes - Limitless cursed technique, Infinity barrier, Domain Expansion: Unlimited Void, Hollow Purple',
     category: 'anime',
+    skill: 98, // Born genius with perfect technique
   },
   {
     id: 'levi',
@@ -232,6 +258,7 @@ const ANIME_OPPONENTS = [
     personality: 'Humanitys strongest soldier. Short, clean-freak, blunt to the point of rudeness. Moves faster than the eye can follow.',
     powers: 'Ackerman Bloodline - Superhuman combat ability, ODM Gear mastery, incredible speed and precision',
     category: 'anime',
+    skill: 99, // Perfect technique, humanity's strongest
   },
   {
     id: 'all-might',
@@ -240,6 +267,7 @@ const ANIME_OPPONENTS = [
     personality: 'Symbol of Peace! Always smiling, speaks in dramatic heroic fashion. "I AM HERE!" Muscle form hero who inspires hope.',
     powers: 'One For All - Immense strength, speed, United States of Smash, Detroit Smash, Texas Smash',
     category: 'anime',
+    skill: 88, // Years as the #1 hero
   },
 ];
 
@@ -268,6 +296,11 @@ export default function MockBattle() {
   const [useCustomLocation, setUseCustomLocation] = useState(false);
   const [narratorEnabled, setNarratorEnabled] = useState(true);
   const [turnNumber, setTurnNumber] = useState(1);
+  
+  // New states for turn order and physics
+  const [turnOrderDetermined, setTurnOrderDetermined] = useState(false);
+  const [userGoesFirst, setUserGoesFirst] = useState(true);
+  const [isFirstMove, setIsFirstMove] = useState(true);
 
   useEffect(() => {
     if (user) {
@@ -285,7 +318,7 @@ export default function MockBattle() {
   const fetchUserCharacters = async () => {
     const { data } = await supabase
       .from('characters')
-      .select('id, name, level, image_url, powers, abilities')
+      .select('id, name, level, image_url, powers, abilities, stat_skill')
       .eq('user_id', user?.id);
     
     if (data && data.length > 0) {
@@ -330,11 +363,18 @@ export default function MockBattle() {
           level: selectedOwnCharacter.level,
           personality: `Your own character ${selectedOwnCharacter.name}. Roleplay based on their abilities and style.`,
           powers: selectedOwnCharacter.powers || 'Unknown powers',
-          category: 'own'
+          category: 'own',
+          skill: selectedOwnCharacter.stat_skill || 50,
         }
       : null;
 
-  const startBattle = () => {
+  // Handler for turn order determination
+  const handleTurnOrderDetermined = (userFirst: boolean) => {
+    setUserGoesFirst(userFirst);
+    setTurnOrderDetermined(true);
+  };
+
+  const startBattle = async () => {
     if (!selectedCharacter) {
       toast.error('Please select a character first');
       return;
@@ -347,16 +387,96 @@ export default function MockBattle() {
       toast.error('Please enter a battle location');
       return;
     }
+    if (!turnOrderDetermined) {
+      toast.error('Please roll for initiative first!');
+      return;
+    }
     
     setBattleStarted(true);
-    const introMessage: Message = {
+    
+    // Determine physics context based on tiers
+    const highestTier = Math.max(selectedCharacter.level, currentOpponent.level);
+    const physicsNote = highestTier >= 5 
+      ? `\n\n⚛️ *High-tier physics manipulation detected. Reality itself may bend during this battle.*`
+      : '';
+    
+    const introMessages: Message[] = [];
+    
+    // System message about who goes first
+    introMessages.push({
+      id: crypto.randomUUID(),
+      role: 'system',
+      content: `🎲 Initiative Roll Result: ${userGoesFirst ? selectedCharacter.name : currentOpponent.name} strikes first!${physicsNote}`,
+      channel: 'in_universe',
+      characterName: '⚔️ Battle System',
+    });
+    
+    // Arena setup message
+    introMessages.push({
       id: crypto.randomUUID(),
       role: 'ai',
       content: `*The arena shifts and transforms into ${battleLocation}*\n\n*${currentOpponent.name} materializes in the arena, ${currentOpponent.level <= 2 ? 'radiating calm focus' : currentOpponent.level <= 4 ? 'crackling with power' : 'warping reality around them'}*\n\n"${getOpponentIntro()}"`,
       channel: 'in_universe',
       characterName: currentOpponent.name,
-    };
-    setMessages([introMessage]);
+    });
+    
+    setMessages(introMessages);
+    
+    // If opponent goes first, trigger their opening move
+    if (!userGoesFirst) {
+      setIsLoading(true);
+      try {
+        const userSkill = selectedCharacter.stat_skill || 50;
+        const opponentSkill = currentOpponent.skill || 50;
+        
+        const physicsContext = generatePhysicsContext(selectedCharacter.level, currentOpponent.level);
+        const skillContext = generateSkillContext(userSkill, opponentSkill);
+        
+        const response = await supabase.functions.invoke('mock-battle-ai', {
+          body: {
+            userCharacter: {
+              name: selectedCharacter.name,
+              level: selectedCharacter.level,
+              powers: selectedCharacter.powers,
+              abilities: selectedCharacter.abilities,
+              skill: userSkill,
+            },
+            opponent: {
+              ...currentOpponent,
+              skill: opponentSkill,
+            },
+            userMessage: '[SYSTEM: You won the initiative roll and go first. Make your opening attack or tactical move!]',
+            channel: 'in_universe',
+            messageHistory: [],
+            battleLocation,
+            dynamicEnvironment: dynamicEnvironment && !!battleEnvironment,
+            environmentEffects: battleEnvironment?.effectsPrompt || '',
+            physicsContext,
+            skillContext,
+            userGoesFirst: false,
+            isFirstMove: true,
+          },
+        });
+
+        if (!response.error) {
+          const aiMessage: Message = {
+            id: crypto.randomUUID(),
+            role: 'ai',
+            content: response.data.response,
+            channel: 'in_universe',
+            characterName: currentOpponent.name,
+          };
+          setMessages(prev => [...prev, aiMessage]);
+        }
+      } catch (error) {
+        console.error('First move error:', error);
+      } finally {
+        setIsLoading(false);
+        setIsFirstMove(false);
+      }
+    } else {
+      setIsFirstMove(false);
+    }
   };
 
   const getOpponentIntro = () => {
@@ -442,6 +562,23 @@ export default function MockBattle() {
       ? generateHazardEventPrompt(battleEnvironment?.terrainFeatures || null)
       : undefined;
 
+    // Generate physics and skill context
+    const userSkill = selectedCharacter.stat_skill || 50;
+    const opponentSkill = currentOpponent?.skill || 50;
+    const physicsContext = generatePhysicsContext(selectedCharacter.level, currentOpponent?.level || 1);
+    const skillContext = generateSkillContext(userSkill, opponentSkill);
+
+    // Check for skill mishaps or criticals
+    const userMishap = shouldTriggerSkillMishap(userSkill);
+    const userCritical = !userMishap && shouldTriggerCritical(userSkill);
+    
+    let skillEventNote = '';
+    if (userMishap && activeChannel === 'in_universe') {
+      skillEventNote = '\n\n[SKILL MISHAP: The user\'s low skill caused their attack/ability to misfire or behave unexpectedly. Incorporate this into the narrative!]';
+    } else if (userCritical && activeChannel === 'in_universe') {
+      skillEventNote = '\n\n[CRITICAL SUCCESS: The user executed their technique with exceptional precision! Describe an impressive or unexpected positive outcome!]';
+    }
+
     try {
       const response = await supabase.functions.invoke('mock-battle-ai', {
         body: {
@@ -450,15 +587,23 @@ export default function MockBattle() {
             level: selectedCharacter.level,
             powers: selectedCharacter.powers,
             abilities: selectedCharacter.abilities,
+            skill: userSkill,
           },
-          opponent: currentOpponent,
-          userMessage: input,
+          opponent: {
+            ...currentOpponent,
+            skill: opponentSkill,
+          },
+          userMessage: input + skillEventNote,
           channel: activeChannel,
           messageHistory: messages.slice(-10),
           battleLocation,
           dynamicEnvironment: dynamicEnvironment && !!battleEnvironment,
           environmentEffects: battleEnvironment?.effectsPrompt || '',
           hazardEvent,
+          physicsContext,
+          skillContext,
+          userGoesFirst,
+          isFirstMove: false,
         },
       });
 
@@ -536,6 +681,9 @@ export default function MockBattle() {
     setBattleEnvironment(null);
     setUseCustomLocation(false);
     setTurnNumber(1);
+    setTurnOrderDetermined(false);
+    setUserGoesFirst(true);
+    setIsFirstMove(true);
   };
 
   if (userCharacters.length === 0) {
@@ -884,12 +1032,52 @@ export default function MockBattle() {
                 )}
               </div>
 
+              {/* Turn Order Roll */}
+              {selectedCharacter && currentOpponent && battleLocation.trim() && (
+                <TurnOrderIndicator
+                  userCharacterName={selectedCharacter.name}
+                  opponentName={currentOpponent.name}
+                  onOrderDetermined={handleTurnOrderDetermined}
+                  disabled={turnOrderDetermined}
+                />
+              )}
+
+              {/* Skill Proficiency Display */}
+              {selectedCharacter && turnOrderDetermined && (
+                <div className="grid md:grid-cols-2 gap-4">
+                  <SkillProficiencyBar 
+                    skillStat={selectedCharacter.stat_skill || 50} 
+                    characterName={selectedCharacter.name} 
+                  />
+                  {currentOpponent && (
+                    <SkillProficiencyBar 
+                      skillStat={currentOpponent.skill || 50} 
+                      characterName={currentOpponent.name} 
+                    />
+                  )}
+                </div>
+              )}
+
+              {/* Physics Notice for High Tiers */}
+              {selectedCharacter && currentOpponent && Math.max(selectedCharacter.level, currentOpponent.level) >= 5 && turnOrderDetermined && (
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-gradient-to-r from-purple-500/10 to-cyan-500/10 border border-purple-500/30">
+                  <Atom className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-purple-300">High-Tier Physics Active</p>
+                    <p className="text-xs text-muted-foreground">
+                      Tier 5+ fighters can bend physics and reality. Standard physical laws may be bypassed, 
+                      quantum effects may occur, and theoretical physics concepts may come into play.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="text-center">
                 <Button 
                   onClick={startBattle} 
                   className="glow-primary" 
                   size="lg"
-                  disabled={!selectedCharacter || !currentOpponent || !battleLocation.trim()}
+                  disabled={!selectedCharacter || !currentOpponent || !battleLocation.trim() || !turnOrderDetermined}
                 >
                   <Swords className="w-5 h-5 mr-2" />
                   Begin Practice Battle
@@ -1034,10 +1222,18 @@ function MessageArea({
                   ? 'bg-primary/20 border-l-4 border-primary ml-8'
                   : message.role === 'narrator'
                   ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-l-4 border-purple-500 mx-4 italic'
+                  : message.role === 'system'
+                  ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border-l-4 border-cyan-500 mx-4 text-center'
                   : 'bg-muted/50 border-l-4 border-accent mr-8'
               }`}
             >
-              <p className={`text-xs mb-1 ${message.role === 'narrator' ? 'text-purple-400 font-semibold' : 'text-muted-foreground'}`}>
+              <p className={`text-xs mb-1 ${
+                message.role === 'narrator' 
+                  ? 'text-purple-400 font-semibold' 
+                  : message.role === 'system'
+                  ? 'text-cyan-400 font-semibold'
+                  : 'text-muted-foreground'
+              }`}>
                 {message.characterName}
               </p>
               <p className="whitespace-pre-wrap">{message.content}</p>

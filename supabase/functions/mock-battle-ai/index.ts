@@ -11,6 +11,7 @@ interface BattleRequest {
     level: number;
     powers: string | null;
     abilities: string | null;
+    skill: number;
   };
   opponent: {
     id: string;
@@ -18,6 +19,7 @@ interface BattleRequest {
     level: number;
     personality: string;
     powers: string;
+    skill?: number;
   };
   userMessage: string;
   channel: 'in_universe' | 'out_of_universe';
@@ -30,6 +32,10 @@ interface BattleRequest {
   dynamicEnvironment?: boolean;
   environmentEffects?: string;
   hazardEvent?: string;
+  physicsContext?: string;
+  skillContext?: string;
+  userGoesFirst?: boolean;
+  isFirstMove?: boolean;
 }
 
 serve(async (req) => {
@@ -38,7 +44,21 @@ serve(async (req) => {
   }
 
   try {
-    const { userCharacter, opponent, userMessage, channel, messageHistory, battleLocation, dynamicEnvironment, environmentEffects, hazardEvent }: BattleRequest = await req.json();
+    const { 
+      userCharacter, 
+      opponent, 
+      userMessage, 
+      channel, 
+      messageHistory, 
+      battleLocation, 
+      dynamicEnvironment, 
+      environmentEffects, 
+      hazardEvent,
+      physicsContext,
+      skillContext,
+      userGoesFirst,
+      isFirstMove,
+    }: BattleRequest = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -60,6 +80,21 @@ serve(async (req) => {
       hazardContext = hazardEvent;
     }
 
+    // Build physics and skill context
+    let advancedContext = '';
+    if (physicsContext) {
+      advancedContext += physicsContext;
+    }
+    if (skillContext) {
+      advancedContext += skillContext;
+    }
+
+    // Handle first move when opponent goes first
+    let firstMoveContext = '';
+    if (isFirstMove && !userGoesFirst) {
+      firstMoveContext = `\n\nFIRST MOVE: The initiative roll determined that YOU (${opponent.name}) strike first! Open with an aggressive action or tactical positioning. The opponent must react to your opening move.`;
+    }
+
     const systemPrompt = channel === 'in_universe'
       ? `You are roleplaying as ${opponent.name}, a ${opponent.personality}
 
@@ -67,10 +102,12 @@ Your character details:
 - Name: ${opponent.name}
 - Power Tier: ${opponent.level}
 - Powers: ${opponent.powers}
+${opponent.skill ? `- Skill Proficiency: ${opponent.skill}/100` : ''}
 
 You are in a practice battle against ${userCharacter.name} (Tier ${userCharacter.level}).
 Their powers: ${userCharacter.powers || 'Unknown'}
-Their abilities: ${userCharacter.abilities || 'Unknown'}${locationContext}
+Their abilities: ${userCharacter.abilities || 'Unknown'}
+Their skill: ${userCharacter.skill || 50}/100${locationContext}${advancedContext}${firstMoveContext}
 
 RULES FOR ROLEPLAY:
 1. Stay in character as ${opponent.name}
@@ -85,7 +122,9 @@ RULES FOR ROLEPLAY:
 10. Make the battle fun and educational
 11. Use the battle environment creatively in your actions
 ${dynamicEnvironment ? '12. CRITICAL: When describing any physical action (throwing, jumping, running, lifting), explicitly describe how the environmental conditions affect that action. Be specific about the physics.' : ''}
-${hazardEvent ? '13. CRITICAL PRIORITY: An environmental hazard has just occurred! You MUST start your response by narrating this hazard event dramatically, then show how BOTH fighters react to it before continuing the battle. The hazard affects both combatants equally.' : ''}`
+${hazardEvent ? '13. CRITICAL PRIORITY: An environmental hazard has just occurred! You MUST start your response by narrating this hazard event dramatically, then show how BOTH fighters react to it before continuing the battle. The hazard affects both combatants equally.' : ''}
+${userCharacter.skill && userCharacter.skill <= 30 ? '14. SKILL FACTOR: The opponent has LOW SKILL. Occasionally describe their attacks misfiring, powers behaving erratically, or techniques failing mid-execution. They are learning!' : ''}
+${opponent.skill && opponent.skill <= 30 ? '15. YOUR SKILL: You have LOW SKILL proficiency. Occasionally let your own attacks falter, powers surge unexpectedly, or show inexperience. Struggle realistically!' : ''}`
       : `You are ${opponent.name} speaking out-of-character (OOC) to help a player learn the Realm of Kings battle system.
 
 Provide helpful feedback about:
