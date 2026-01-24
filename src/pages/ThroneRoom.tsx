@@ -125,10 +125,14 @@ function Throne({
   const throneColor = holder.isEmpty && !holder.isCreator ? '#2D3748' : holder.color;
   const emissiveIntensity = hovered || isSelected ? 0.4 : holder.isCreator ? 0.2 : 0.05;
 
+  // Calculate rotation to face the dome center (0, -4, 0)
+  const rotationY = Math.atan2(-position[0], -(position[2] + 4));
+
   return (
     <group 
       ref={throneRef} 
       position={position}
+      rotation={[0, rotationY, 0]}
       onClick={(e) => { e.stopPropagation(); onClick(); }}
       onPointerOver={() => setHovered(true)}
       onPointerOut={() => setHovered(false)}
@@ -451,9 +455,9 @@ function ThroneRoomScene({
         enablePan={false}
         minDistance={8}
         maxDistance={25}
-        minPolarAngle={Math.PI * 0.2}
-        maxPolarAngle={Math.PI * 0.6}
-        target={[0, 0, 0]}
+        minPolarAngle={Math.PI * 0.15}
+        maxPolarAngle={Math.PI * 0.55}
+        target={[0, -2, 0]}
       />
     </>
   );
@@ -486,7 +490,7 @@ export default function ThroneRoom() {
 
       {/* 3D Canvas */}
       <Canvas
-        camera={{ position: [0, 8, 18], fov: 50 }}
+        camera={{ position: [0, 6, 16], fov: 55 }}
         className="!fixed inset-0"
         gl={{ antialias: true }}
       >
