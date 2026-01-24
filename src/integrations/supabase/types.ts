@@ -478,6 +478,50 @@ export type Database = {
         }
         Relationships: []
       }
+      stories: {
+        Row: {
+          character_id: string | null
+          content: string
+          created_at: string
+          id: string
+          is_published: boolean
+          summary: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          character_id?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          summary?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          character_id?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          is_published?: boolean
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stories_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sun_customizations: {
         Row: {
           color: string

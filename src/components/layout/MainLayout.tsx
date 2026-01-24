@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import OwnershipNotice from '@/components/legal/OwnershipNotice';
-import { Swords, Users, BookOpen, Shield, LogOut, User, Home, Dna, Heart } from 'lucide-react';
+import { Swords, Users, BookOpen, Shield, LogOut, User, Home, Dna, Heart, ChevronDown, FileText } from 'lucide-react';
 
 export default function MainLayout() {
   const { user, profile, signOut, isAdmin, isModerator } = useAuth();
@@ -42,18 +42,37 @@ export default function MainLayout() {
                 <span className="hidden sm:inline">Hub</span>
               </Link>
             </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/characters" className="flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                <span className="hidden sm:inline">Characters</span>
-              </Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/races" className="flex items-center gap-2">
-                <Dna className="w-4 h-4" />
-                <span className="hidden sm:inline">Races</span>
-              </Link>
-            </Button>
+            
+            {/* Characters Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                  <Users className="w-4 h-4" />
+                  <span className="hidden sm:inline">Characters</span>
+                  <ChevronDown className="w-3 h-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48 bg-popover z-50">
+                <DropdownMenuItem asChild>
+                  <Link to="/characters" className="flex items-center cursor-pointer">
+                    <Users className="mr-2 h-4 w-4" />
+                    All Characters
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/races" className="flex items-center cursor-pointer">
+                    <Dna className="mr-2 h-4 w-4" />
+                    Races
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/stories" className="flex items-center cursor-pointer">
+                    <FileText className="mr-2 h-4 w-4" />
+                    Stories
+                  </Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button variant="ghost" size="sm" asChild>
               <Link to="/battles" className="flex items-center gap-2">
                 <Swords className="w-4 h-4" />
