@@ -1,4 +1,4 @@
-import { Suspense, useState, useEffect, useMemo, useCallback } from 'react';
+import { Suspense, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stars, PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
@@ -21,6 +21,7 @@ import Spaceship, { isShipOrFleetHome } from './Spaceship';
 import { getHabitableZone } from './Sun';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
 import { Plus, Globe, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -101,6 +102,7 @@ interface SolarSystemProps {
 
 export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [characters, setCharacters] = useState<Character[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewState, setViewState] = useState<ViewState>('galaxy');
@@ -123,6 +125,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
   const [cameraLookAt, setCameraLookAt] = useState<THREE.Vector3 | null>(null);
   const [isZooming, setIsZooming] = useState(false);
   const [controlsEnabled, setControlsEnabled] = useState(true);
+  const orbitControlsRef = useRef<any>(null);
   
   // Warp transition state
   const [warpActive, setWarpActive] = useState(false);
@@ -922,11 +925,25 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
         />
 
         <OrbitControls
+          ref={orbitControlsRef}
           enabled={controlsEnabled}
           enablePan={false}
           minDistance={10}
           maxDistance={50}
           maxPolarAngle={Math.PI / 2.2}
+          // Improved touch controls for mobile
+          enableDamping={true}
+          dampingFactor={isMobile ? 0.08 : 0.05}
+          rotateSpeed={isMobile ? 0.5 : 0.8}
+          zoomSpeed={isMobile ? 0.6 : 1}
+          // Touch-specific settings
+          touches={{
+            ONE: THREE.TOUCH.ROTATE,
+            TWO: THREE.TOUCH.DOLLY_PAN
+          }}
+          // Smoother zoom on mobile
+          zoomToCursor={false}
+          enableZoom={true}
         />
       </Canvas>
 

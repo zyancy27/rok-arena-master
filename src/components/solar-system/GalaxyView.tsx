@@ -8,6 +8,7 @@ import { ArrowLeft, Sparkles, Users, Globe } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFriends } from '@/hooks/use-friends';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Component to detect zoom-in and trigger solar system entry
 function GalaxyZoomController({
@@ -454,9 +455,11 @@ interface GalaxyViewProps {
 export default function GalaxyView({ currentSystemId, onEnterSystem, onBack }: GalaxyViewProps) {
   const { user } = useAuth();
   const { friends, following } = useFriends();
+  const isMobile = useIsMobile();
   const [systems, setSystems] = useState<SolarSystemNode[]>([]);
   const [hoveredSystem, setHoveredSystem] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const orbitControlsRef = useRef<any>(null);
 
   useEffect(() => {
     fetchAllSystems();
@@ -668,10 +671,23 @@ export default function GalaxyView({ currentSystemId, onEnterSystem, onBack }: G
         </Suspense>
         
         <OrbitControls
+          ref={orbitControlsRef}
           enablePan={false}
           minDistance={12}
           maxDistance={80}
           maxPolarAngle={Math.PI / 2}
+          // Improved touch controls for mobile
+          enableDamping={true}
+          dampingFactor={isMobile ? 0.08 : 0.05}
+          rotateSpeed={isMobile ? 0.5 : 0.8}
+          zoomSpeed={isMobile ? 0.6 : 1}
+          // Touch-specific settings
+          touches={{
+            ONE: THREE.TOUCH.ROTATE,
+            TWO: THREE.TOUCH.DOLLY_PAN
+          }}
+          zoomToCursor={false}
+          enableZoom={true}
         />
       </Canvas>
 
