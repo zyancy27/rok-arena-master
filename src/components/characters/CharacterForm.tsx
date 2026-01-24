@@ -755,34 +755,71 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="home_planet">Home Planet</Label>
-              {availablePlanets.length > 0 && !useCustomPlanet ? (
+              <Label htmlFor="home_location" className="flex items-center gap-2">
+                <Globe className="w-4 h-4" />
+                Home Location
+              </Label>
+              {(availablePlanets.length > 0 || availableMoons.length > 0) && !useCustomPlanet ? (
                 <div className="space-y-2">
                   <Select
-                    value={formData.home_planet}
+                    value={formData.home_moon ? `moon:${formData.home_planet}:${formData.home_moon}` : formData.home_planet}
                     onValueChange={(value) => {
                       if (value === '__custom__') {
                         setUseCustomPlanet(true);
                         handleChange('home_planet', '');
+                        handleChange('home_moon', '');
+                      } else if (value.startsWith('moon:')) {
+                        // Format: moon:planet_name:moon_name
+                        const parts = value.split(':');
+                        handleChange('home_planet', parts[1]);
+                        handleChange('home_moon', parts[2]);
                       } else {
                         handleChange('home_planet', value);
+                        handleChange('home_moon', '');
                       }
                     }}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a planet..." />
+                    <SelectTrigger className="bg-background">
+                      <SelectValue placeholder="Select planet or moon..." />
                     </SelectTrigger>
-                    <SelectContent className="bg-popover z-50">
-                      {availablePlanets.map((planet) => (
-                        <SelectItem key={planet.name} value={planet.name}>
-                          {planet.display_name || planet.name}
-                        </SelectItem>
-                      ))}
+                    <SelectContent className="bg-popover z-50 max-h-[300px]">
+                      {/* Planets with their moons grouped */}
+                      {availablePlanets.map((planet) => {
+                        const planetMoons = availableMoons.filter(m => 
+                          m.planet_name.toLowerCase() === planet.name.toLowerCase()
+                        );
+                        return (
+                          <div key={planet.name}>
+                            <SelectItem value={planet.name} className="font-medium">
+                              🪐 {planet.display_name || planet.name}
+                            </SelectItem>
+                            {planetMoons.map((moon) => (
+                              <SelectItem 
+                                key={`${planet.name}-${moon.name}`} 
+                                value={`moon:${planet.name}:${moon.name}`}
+                                className="pl-6 text-muted-foreground"
+                              >
+                                ↳ 🌙 {moon.display_name || moon.name}
+                              </SelectItem>
+                            ))}
+                          </div>
+                        );
+                      })}
                       <SelectItem value="__custom__" className="text-muted-foreground border-t mt-1 pt-2">
-                        + Enter custom planet...
+                        + Enter custom location...
                       </SelectItem>
                     </SelectContent>
                   </Select>
+                  {/* Show selected location info */}
+                  {formData.home_planet && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                      {formData.home_moon ? (
+                        <>🌙 Living on moon <span className="text-primary">{formData.home_moon}</span> orbiting <span className="text-primary">{formData.home_planet}</span></>
+                      ) : (
+                        <>🪐 Living on planet <span className="text-primary">{formData.home_planet}</span></>
+                      )}
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -794,7 +831,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                       onChange={(e) => handleChange('home_planet', e.target.value)}
                       className="flex-1"
                     />
-                    {availablePlanets.length > 0 && (
+                    {(availablePlanets.length > 0 || availableMoons.length > 0) && (
                       <Button
                         type="button"
                         variant="outline"
@@ -802,6 +839,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                         onClick={() => {
                           setUseCustomPlanet(false);
                           handleChange('home_planet', '');
+                          handleChange('home_moon', '');
                         }}
                       >
                         Select Existing
@@ -838,7 +876,36 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                     }
                     return null;
                   })()}
-                  {availablePlanets.length === 0 && !formData.home_planet.trim() && (
+                  {/* Moon input when in custom mode and planet is set */}
+                  {formData.home_planet.trim() && (() => {
+                    const homeLower = formData.home_planet.trim().toLowerCase();
+                    const isShip = ['ship', 'vessel', 'cruiser', 'destroyer', 'carrier', 'frigate', 'corvette', 'battleship', 'dreadnought', 'starship', 'spacecraft', 'shuttle', 'station', 'ark', 'flagship', 'warship', 'gunship'].some(k => homeLower.includes(k));
+                    const isFleet = ['fleet', 'armada', 'flotilla', 'squadron', 'navy', 'convoy', 'taskforce', 'task force', 'battle group', 'battlegroup'].some(k => homeLower.includes(k));
+                    
+                    if (isShip || isFleet) return null;
+                    
+                    return (
+                      <div className="pt-2 border-t border-border/50">
+                        <Label htmlFor="home_moon" className="text-xs text-muted-foreground mb-1 block">
+                          Moon (optional)
+                        </Label>
+                        <Input
+                          id="home_moon"
+                          placeholder="Enter moon name if living on a moon..."
+                          value={formData.home_moon}
+                          onChange={(e) => handleChange('home_moon', e.target.value)}
+                          className="text-sm"
+                        />
+                        {formData.home_moon.trim() && (
+                          <p className="text-xs text-amber-400 flex items-center gap-1 mt-1">
+                            <Sparkles className="w-3 h-3" />
+                            Moon will orbit {formData.home_planet} in your Solar System!
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
+                  {availablePlanets.length === 0 && availableMoons.length === 0 && !formData.home_planet.trim() && (
                     <p className="text-xs text-muted-foreground">
                       Enter a planet name, ship, or fleet - it will appear in your Solar System Map
                     </p>
@@ -900,94 +967,6 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                 </div>
               )}
             </div>
-
-            {/* Home Moon - optional, only shown when a planet is selected */}
-            {formData.home_planet.trim() && (() => {
-              const homeLower = formData.home_planet.trim().toLowerCase();
-              const isShip = ['ship', 'vessel', 'cruiser', 'destroyer', 'carrier', 'frigate', 'corvette', 'battleship', 'dreadnought', 'starship', 'spacecraft', 'shuttle', 'station', 'ark', 'flagship', 'warship', 'gunship'].some(k => homeLower.includes(k));
-              const isFleet = ['fleet', 'armada', 'flotilla', 'squadron', 'navy', 'convoy', 'taskforce', 'task force', 'battle group', 'battlegroup'].some(k => homeLower.includes(k));
-              
-              // Don't show moon selection for ships/fleets
-              if (isShip || isFleet) return null;
-              
-              // Get moons for the selected planet
-              const moonsForPlanet = availableMoons.filter(m => 
-                m.planet_name.toLowerCase() === formData.home_planet.trim().toLowerCase()
-              );
-              
-              return (
-                <div className="space-y-2">
-                  <Label htmlFor="home_moon" className="flex items-center gap-2">
-                    🌙 Home Moon
-                    <span className="text-xs text-muted-foreground">(Optional)</span>
-                  </Label>
-                  {moonsForPlanet.length > 0 && !useCustomMoon ? (
-                    <Select
-                      value={formData.home_moon}
-                      onValueChange={(value) => {
-                        if (value === '__custom__') {
-                          setUseCustomMoon(true);
-                          handleChange('home_moon', '');
-                        } else if (value === '__none__') {
-                          handleChange('home_moon', '');
-                        } else {
-                          handleChange('home_moon', value);
-                        }
-                      }}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a moon (optional)..." />
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover z-50">
-                        <SelectItem value="__none__" className="text-muted-foreground">
-                          No moon (lives on planet surface)
-                        </SelectItem>
-                        {moonsForPlanet.map((moon) => (
-                          <SelectItem key={moon.name} value={moon.name}>
-                            🌙 {moon.display_name || moon.name}
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="__custom__" className="text-muted-foreground border-t mt-1 pt-2">
-                          + Create new moon...
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <div className="flex gap-2">
-                      <Input
-                        id="home_moon"
-                        placeholder="Enter moon name (e.g., Luna, Titan)..."
-                        value={formData.home_moon}
-                        onChange={(e) => handleChange('home_moon', e.target.value)}
-                        className="flex-1"
-                      />
-                      {moonsForPlanet.length > 0 && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setUseCustomMoon(false);
-                            handleChange('home_moon', '');
-                          }}
-                        >
-                          Select
-                        </Button>
-                      )}
-                    </div>
-                  )}
-                  {formData.home_moon.trim() && !moonsForPlanet.some(m => m.name.toLowerCase() === formData.home_moon.trim().toLowerCase()) && (
-                    <p className="text-xs text-amber-400 flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" />
-                      New moon will orbit {formData.home_planet} in your Solar System!
-                    </p>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    If your character lives on a moon rather than the planet surface
-                  </p>
-                </div>
-              );
-            })()}
             <div className="space-y-2">
               <Label htmlFor="lore">Lore & Backstory</Label>
               <Textarea
