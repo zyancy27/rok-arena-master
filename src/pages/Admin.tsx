@@ -104,19 +104,21 @@ export default function Admin() {
   };
 
   const handleSetRole = async (userId: string, role: 'admin' | 'moderator' | 'user') => {
-    // First delete existing role
-    await supabase
-      .from('user_roles')
-      .delete()
-      .eq('user_id', userId);
-
-    // Insert new role
-    const { error } = await supabase
-      .from('user_roles')
-      .insert({ user_id: userId, role });
+    // Use secure RPC function that enforces admin authorization server-side
+    const { error } = await supabase.rpc('admin_set_user_role', {
+      target_user_id: userId,
+      new_role: role
+    });
 
     if (error) {
-      toast.error('Failed to update role');
+      if (error.message?.includes('Unauthorized')) {
+        toast.error('You do not have permission to change user roles');
+      } else if (error.message?.includes('Cannot modify your own role')) {
+        toast.error('You cannot modify your own role');
+      } else {
+        toast.error('Failed to update role');
+      }
+      console.error('Role update error:', error);
       return;
     }
 
