@@ -16,19 +16,25 @@ interface Character {
 }
 
 export default function Hub() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const [characters, setCharacters] = useState<Character[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchCharacters();
-  }, []);
+    if (user) {
+      fetchCharacters();
+    }
+  }, [user]);
 
   const fetchCharacters = async () => {
+    if (!user) return;
+    
     const { data, error } = await supabase
       .from('characters')
       .select('id, name, level, race, home_planet')
-      .order('created_at', { ascending: false });
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(6);
 
     if (!error && data) {
       setCharacters(data);
@@ -36,8 +42,7 @@ export default function Hub() {
     setLoading(false);
   };
 
-  // Get user's characters (we'll filter by user_id when we have auth)
-  const userCharacters = characters.slice(0, 6); // Show first 6 for now
+  const userCharacters = characters;
 
   return (
     <div className="space-y-8">
