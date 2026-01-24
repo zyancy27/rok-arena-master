@@ -16,6 +16,7 @@ import CreatePlanetDialog from './CreatePlanetDialog';
 import SolarSystemSelector, { SolarSystemData } from './SolarSystemSelector';
 import GalaxyView from './GalaxyView';
 import GiantCharacter, { isPlanetSizedCharacter, getCharacterGender, getCosmicColor } from './GiantCharacter';
+import Spaceship, { isShipOrFleetHome } from './Spaceship';
 
 import { getHabitableZone } from './Sun';
 import { supabase } from '@/integrations/supabase/client';
@@ -410,6 +411,54 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
       };
     });
   }, [characters, planets]);
+
+  // Identify ships and fleets from characters' home locations
+  const spaceVessels = useMemo(() => {
+    // Group characters by their ship/fleet home
+    const vesselMap = new Map<string, { characters: Character[]; isFleet: boolean }>();
+    
+    characters.forEach(char => {
+      const { isShip, isFleet } = isShipOrFleetHome(char.home_planet);
+      if (isShip || isFleet) {
+        const key = char.home_planet || '';
+        if (!vesselMap.has(key)) {
+          vesselMap.set(key, { characters: [], isFleet });
+        }
+        vesselMap.get(key)!.characters.push(char);
+      }
+    });
+
+    // Convert to array with orbit data
+    const vessels: {
+      name: string;
+      orbitRadius: number;
+      orbitSpeed: number;
+      size: number;
+      color: string;
+      characterCount: number;
+      isFleet: boolean;
+    }[] = [];
+
+    let vesselIndex = 0;
+    vesselMap.forEach((data, name) => {
+      // Place ships in inner-mid orbits, between planets
+      const baseOrbit = sunRadius + 3 + vesselIndex * 2.5;
+      
+      vessels.push({
+        name,
+        orbitRadius: baseOrbit,
+        orbitSpeed: 0.4 / Math.pow(vesselIndex + 1, 0.3), // Faster than planets
+        size: data.isFleet ? 1.2 : 0.8,
+        color: data.isFleet ? '#00ffff' : '#ff6600',
+        characterCount: data.characters.length,
+        isFleet: data.isFleet,
+      });
+      
+      vesselIndex++;
+    });
+
+    return vessels;
+  }, [characters, sunRadius]);
 
   const handlePlanetClick = useCallback((planet: PlanetData, position: { x: number; y: number; z: number }) => {
     setSelectedPlanet(planet);
@@ -844,6 +893,22 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
                 color={giant.color}
                 isMale={giant.isMale}
                 level={giant.level}
+              />
+            </group>
+          ))}
+
+          {/* Render ships and fleets */}
+          {spaceVessels.map((vessel) => (
+            <group key={`vessel-${vessel.name}`}>
+              <OrbitRing radius={vessel.orbitRadius} color={vessel.color} opacity={0.2} />
+              <Spaceship
+                name={vessel.name}
+                orbitRadius={vessel.orbitRadius}
+                orbitSpeed={vessel.orbitSpeed}
+                size={vessel.size}
+                color={vessel.color}
+                characterCount={vessel.characterCount}
+                isFleet={vessel.isFleet}
               />
             </group>
           ))}

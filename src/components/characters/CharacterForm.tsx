@@ -644,15 +644,39 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                       </Button>
                     )}
                   </div>
-                  {formData.home_planet.trim() && !availablePlanets.some(p => p.name.toLowerCase() === formData.home_planet.trim().toLowerCase()) && (
-                    <p className="text-xs text-primary flex items-center gap-1">
-                      <Globe className="w-3 h-3" />
-                      New planet will be auto-added to your Solar System Map!
-                    </p>
-                  )}
+                  {formData.home_planet.trim() && (() => {
+                    const homeLower = formData.home_planet.trim().toLowerCase();
+                    const isShip = ['ship', 'vessel', 'cruiser', 'destroyer', 'carrier', 'frigate', 'corvette', 'battleship', 'dreadnought', 'starship', 'spacecraft', 'shuttle', 'station', 'ark', 'flagship', 'warship', 'gunship'].some(k => homeLower.includes(k));
+                    const isFleet = ['fleet', 'armada', 'flotilla', 'squadron', 'navy', 'convoy', 'taskforce', 'task force', 'battle group', 'battlegroup'].some(k => homeLower.includes(k));
+                    const isNewPlanet = !availablePlanets.some(p => p.name.toLowerCase() === homeLower);
+                    
+                    if (isFleet) {
+                      return (
+                        <p className="text-xs text-cyan-400 flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" />
+                          Fleet will appear as ships orbiting in your Solar System Map!
+                        </p>
+                      );
+                    } else if (isShip) {
+                      return (
+                        <p className="text-xs text-cyan-400 flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" />
+                          Ship will appear orbiting in your Solar System Map!
+                        </p>
+                      );
+                    } else if (isNewPlanet) {
+                      return (
+                        <p className="text-xs text-primary flex items-center gap-1">
+                          <Globe className="w-3 h-3" />
+                          New planet will be auto-added to your Solar System Map!
+                        </p>
+                      );
+                    }
+                    return null;
+                  })()}
                   {availablePlanets.length === 0 && !formData.home_planet.trim() && (
                     <p className="text-xs text-muted-foreground">
-                      Enter a planet name - it will be added to your Solar System Map automatically
+                      Enter a planet name, ship, or fleet - it will appear in your Solar System Map
                     </p>
                   )}
                 </div>
