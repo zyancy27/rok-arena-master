@@ -151,6 +151,9 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
   // Convert to moon dialog state
   const [convertToMoonDialogOpen, setConvertToMoonDialogOpen] = useState(false);
   
+  // Galaxy refresh trigger - increment to force GalaxyView refresh
+  const [galaxyRefreshTrigger, setGalaxyRefreshTrigger] = useState(0);
+  
   // Selected vessel/giant for mobile sheets
   const [selectedVessel, setSelectedVessel] = useState<{
     name: string;
@@ -1020,8 +1023,9 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
       console.warn('Failed to delete source planet:', deleteError);
     }
 
-    // 4. Refresh data
+    // 4. Refresh data including galaxy view
     await Promise.all([fetchCharacters(), fetchCustomizations()]);
+    setGalaxyRefreshTrigger(prev => prev + 1);
 
     const targetPlanet = planets.find(p => p.name === targetPlanetName);
     
@@ -1072,6 +1076,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
           currentSystemId={currentSystem?.id || null}
           onEnterSystem={handleEnterSystemFromGalaxy}
           onBack={handleExitGalaxy}
+          refreshTrigger={galaxyRefreshTrigger}
         />
       </>
     );
@@ -1413,7 +1418,10 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
           solarSystemId={currentSystem.id}
           onSave={handleSavePlanet}
           onMoonsChange={fetchCustomizations}
-          onCharactersChange={fetchCharacters}
+          onCharactersChange={() => {
+            fetchCharacters();
+            setGalaxyRefreshTrigger(prev => prev + 1);
+          }}
           onBack={handleBack}
         />
       )}
