@@ -10,7 +10,7 @@ import ZoomTransitionController from './ZoomTransitionController';
 import WarpTransition from './WarpTransition';
 import PlanetMenu from './PlanetMenu';
 import CharacterList from './CharacterList';
-import PlanetEditor, { PlanetCustomization } from './PlanetEditor';
+import PlanetEditor, { PlanetCustomization, MoonData, CharacterData } from './PlanetEditor';
 import SunEditor, { SunCustomization, getColorFromTemperature, getSunLuminosityFromTemperature, getSunSizeFromTemperature } from './SunEditor';
 import CreatePlanetDialog from './CreatePlanetDialog';
 import SolarSystemSelector, { SolarSystemData } from './SolarSystemSelector';
@@ -1268,7 +1268,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
       )}
 
       {/* Planet Editor View */}
-      {viewState === 'editor' && selectedPlanet && (
+      {viewState === 'editor' && selectedPlanet && currentSystem && (
         <PlanetEditor
           planet={{
             name: selectedPlanet.name,
@@ -1281,7 +1281,28 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
             radius: selectedPlanet.radius,
             orbitalDistance: selectedPlanet.orbitalDistance,
           }}
+          moons={moonCustomizations
+            .filter(m => m.planet_name === selectedPlanet.name)
+            .map(m => ({
+              moon_name: m.moon_name,
+              display_name: m.display_name,
+              planet_name: m.planet_name,
+              color: m.color,
+            }))}
+          characters={characters.map(c => ({
+            id: c.id,
+            name: c.name,
+            level: c.level,
+            race: c.race,
+            home_planet: c.home_planet,
+            home_moon: c.home_moon,
+            user_id: c.user_id,
+          }))}
+          allPlanets={Object.keys(planetCustomizations)}
+          solarSystemId={currentSystem.id}
           onSave={handleSavePlanet}
+          onMoonsChange={fetchCustomizations}
+          onCharactersChange={fetchCharacters}
           onBack={handleBack}
         />
       )}
