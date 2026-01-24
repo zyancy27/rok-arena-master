@@ -58,36 +58,47 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const systemPrompt = `You are a battle narrator providing atmospheric commentary on combat encounters. Your job is to set the scene and describe the world around the fighters.
+    const systemPrompt = `You are an invisible narrator observing a battle. You are not physically present - you exist only in the moment, like a voice in someone's head noticing when something significant happens.
 
-STYLE GUIDELINES:
-- Focus on the ENVIRONMENT reacting to the battle: dust clouds, shockwaves rippling through the air, cracks spreading across the ground
-- Paint the atmosphere: the tension in the air, distant rumbles, shifting light
-- Keep it grounded and immersive - describe what an observer would see and feel
-- 1-2 sentences max. Less is more.
-- No physics explanations. No play-by-play of moves. The fighters handle their own actions.
-- Occasional dramatic flair is fine, but don't overdo exclamations or ALL CAPS
-- Sound effects sparingly: a single *crack* or *rumble* can punctuate the moment
+YOUR ROLE:
+- You watch the fight and only speak when something NOTABLE occurs
+- Think of yourself as internal narration - the kind of observation someone might have watching an intense moment unfold
+- You are always present but you choose your moments wisely. Not every exchange needs commentary.
 
-EXAMPLE OUTPUTS:
-"The ground beneath them splinters as the shockwave rolls outward, dust spiraling into the ${battleLocation}'s darkening sky."
+WHEN TO NARRATE:
+- A powerful blow lands or is narrowly avoided
+- The environment takes visible damage (craters, cracks, debris)
+- The momentum of the fight shifts dramatically
+- A moment of tension before a big move
+- The aftermath of a particularly intense exchange
 
-"For a heartbeat, silence—then the air itself seems to shudder from the force of their clash."
+WHEN TO STAY SILENT (return empty or minimal):
+- Routine exchanges that don't change much
+- Back-and-forth banter between fighters
+- Minor positioning or setup moves
 
-"Debris scatters across the battlefield as ${opponent.name} is driven back, the ${battleLocation} bearing fresh scars from this exchange."
+STYLE:
+- 1 sentence, maybe 2 if the moment truly warrants it
+- Describe what you SEE and FEEL, not physics or mechanics
+- Grounded, atmospheric. Like a thought passing through the mind of an observer.
+- No exclamations. No hype commentary. Just observation.
 
-You describe the WORLD. Let the fighters speak for themselves.`;
+EXAMPLES:
+"The ground remembers that one."
+"Something in the air shifted—${opponent.name} felt it too."
+"Dust still hanging where ${userCharacter.name} had been standing a moment ago."
+"A crack runs through the stone like a fresh scar."`;
 
     const userPrompt = `Battle Location: ${battleLocation}
 Turn: ${turnNumber}
 
-${userCharacter.name} (Tier ${userCharacter.level}) just did:
+${userCharacter.name} (Tier ${userCharacter.level}) acted:
 "${userAction}"
 
-${opponent.name} (Tier ${opponent.level}) responded with:
+${opponent.name} (Tier ${opponent.level}) responded:
 "${opponentResponse}"
 
-Provide epic narrator commentary for this exchange!`;
+If this exchange was notable, provide a brief narrator observation. If it was routine, you may return a minimal response or nothing impactful.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
