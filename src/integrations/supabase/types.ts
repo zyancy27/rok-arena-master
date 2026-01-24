@@ -566,6 +566,42 @@ export type Database = {
           },
         ]
       }
+      story_characters: {
+        Row: {
+          character_id: string
+          created_at: string
+          id: string
+          story_id: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          id?: string
+          story_id: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          id?: string
+          story_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_characters_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_characters_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sun_customizations: {
         Row: {
           color: string
