@@ -12,7 +12,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Users, Settings, ArrowLeft, Trash2, Loader2, Merge } from 'lucide-react';
+import { Users, Settings, ArrowLeft, Trash2, Loader2, Merge, Moon } from 'lucide-react';
 
 interface PlanetMenuProps {
   planetName: string;
@@ -21,9 +21,11 @@ interface PlanetMenuProps {
   onEditPlanet: () => void;
   onDeletePlanet?: () => Promise<void>;
   onMergePlanet?: () => void;
+  onConvertToMoon?: () => void;
   onBack: () => void;
   canDelete?: boolean;
   canMerge?: boolean;
+  canConvertToMoon?: boolean;
 }
 
 export default function PlanetMenu({
@@ -33,9 +35,11 @@ export default function PlanetMenu({
   onEditPlanet,
   onDeletePlanet,
   onMergePlanet,
+  onConvertToMoon,
   onBack,
   canDelete = false,
   canMerge = false,
+  canConvertToMoon = false,
 }: PlanetMenuProps) {
   const [deleting, setDeleting] = useState(false);
 
@@ -95,6 +99,18 @@ export default function PlanetMenu({
             >
               <Merge className="w-4 h-4" />
               Merge Into Another Planet
+            </Button>
+          )}
+
+          {/* Convert to Moon Button */}
+          {canConvertToMoon && onConvertToMoon && (
+            <Button
+              variant="secondary"
+              className="w-full h-10 gap-2"
+              onClick={onConvertToMoon}
+            >
+              <Moon className="w-4 h-4" />
+              Convert to Moon
             </Button>
           )}
           

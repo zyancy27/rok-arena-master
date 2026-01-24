@@ -1,7 +1,7 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, Eye, Pencil, Trash2, Thermometer, Scale, Globe, Sparkles, Merge } from 'lucide-react';
+import { Users, Eye, Pencil, Trash2, Thermometer, Scale, Globe, Sparkles, Merge, Moon } from 'lucide-react';
 import { getGravityClass } from '@/lib/planet-physics';
 
 interface PlanetData {
@@ -27,10 +27,12 @@ interface MobilePlanetDetailsProps {
   onEditPlanet: () => void;
   onDeletePlanet: () => void;
   onMergePlanet?: () => void;
+  onConvertToMoon?: () => void;
   sunTemperature: number;
   sunLuminosity: number;
   canEdit: boolean;
   canMerge?: boolean;
+  canConvertToMoon?: boolean;
 }
 
 // Calculate planet temperature based on distance and sun luminosity
@@ -56,10 +58,12 @@ export default function MobilePlanetDetails({
   onEditPlanet,
   onDeletePlanet,
   onMergePlanet,
+  onConvertToMoon,
   sunTemperature,
   sunLuminosity,
   canEdit,
   canMerge = false,
+  canConvertToMoon = false,
 }: MobilePlanetDetailsProps) {
   if (!planet) return null;
 
@@ -211,6 +215,21 @@ export default function MobilePlanetDetails({
                 >
                   <Merge className="w-4 h-4 mr-2" />
                   Merge Into Another Planet
+                </Button>
+              )}
+
+              {/* Convert to Moon Button */}
+              {canConvertToMoon && onConvertToMoon && (
+                <Button 
+                  onClick={() => {
+                    onConvertToMoon();
+                    onClose();
+                  }}
+                  className="w-full"
+                  variant="secondary"
+                >
+                  <Moon className="w-4 h-4 mr-2" />
+                  Convert to Moon
                 </Button>
               )}
             </>

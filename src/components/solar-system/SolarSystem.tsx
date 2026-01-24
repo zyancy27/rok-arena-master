@@ -21,6 +21,7 @@ import MobilePlanetDetails from './MobilePlanetDetails';
 import MobileSpaceshipDetails from './MobileSpaceshipDetails';
 import MobileGiantCharacterDetails from './MobileGiantCharacterDetails';
 import MergePlanetDialog from './MergePlanetDialog';
+import ConvertToMoonDialog from './ConvertToMoonDialog';
 
 import { getHabitableZone } from './Sun';
 import { supabase } from '@/integrations/supabase/client';
@@ -146,6 +147,9 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
   
   // Merge planet dialog state
   const [mergePlanetDialogOpen, setMergePlanetDialogOpen] = useState(false);
+  
+  // Convert to moon dialog state
+  const [convertToMoonDialogOpen, setConvertToMoonDialogOpen] = useState(false);
   
   // Selected vessel/giant for mobile sheets
   const [selectedVessel, setSelectedVessel] = useState<{
@@ -946,6 +950,85 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
     handleBackToGalaxy();
   }, [user, currentSystem, planets, handleBackToGalaxy]);
 
+  // Open convert to moon dialog
+  const handleOpenConvertToMoon = useCallback(() => {
+    setConvertToMoonDialogOpen(true);
+  }, []);
+
+  // Convert planet to moon: create moon from planet, transfer characters, delete planet
+  const handleConvertToMoon = useCallback(async (sourcePlanetName: string, targetPlanetName: string) => {
+    if (!user || !currentSystem) return;
+
+    const sourcePlanet = planets.find(p => p.name === sourcePlanetName);
+    const sourceCustomization = planetCustomizations[sourcePlanetName];
+
+    // 1. Create moon customization from the source planet
+    const { error: moonError } = await supabase
+      .from('moon_customizations')
+      .insert({
+        user_id: user.id,
+        planet_name: targetPlanetName,
+        moon_name: sourcePlanetName,
+        display_name: sourceCustomization?.display_name || sourcePlanet?.displayName || sourcePlanetName,
+        description: sourceCustomization?.description || null,
+        color: sourceCustomization?.color || sourcePlanet?.color || '#9CA3AF',
+        gravity: sourceCustomization?.gravity ? Math.min(sourceCustomization.gravity * 0.16, 0.5) : 0.16,
+        radius: sourceCustomization?.radius ? Math.min(sourceCustomization.radius * 0.27, 0.5) : 0.27,
+        solar_system_id: currentSystem.id,
+      });
+
+    if (moonError) {
+      toast.error('Failed to create moon');
+      throw moonError;
+    }
+
+    // 2. Update all characters from source planet to target planet + new moon
+    const { error: charError } = await supabase
+      .from('characters')
+      .update({ 
+        home_planet: targetPlanetName,
+        home_moon: sourcePlanetName
+      })
+      .eq('home_planet', sourcePlanetName)
+      .eq('solar_system_id', currentSystem.id);
+
+    if (charError) {
+      const { error: charError2 } = await supabase
+        .from('characters')
+        .update({ 
+          home_planet: targetPlanetName,
+          home_moon: sourcePlanetName
+        })
+        .eq('home_planet', sourcePlanetName)
+        .eq('user_id', user.id);
+
+      if (charError2) {
+        toast.error('Failed to transfer characters');
+        throw charError2;
+      }
+    }
+
+    // 3. Delete the source planet customization
+    const { error: deleteError } = await supabase
+      .from('planet_customizations')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('planet_name', sourcePlanetName)
+      .eq('solar_system_id', currentSystem.id);
+
+    if (deleteError) {
+      console.warn('Failed to delete source planet:', deleteError);
+    }
+
+    // 4. Refresh data
+    await Promise.all([fetchCharacters(), fetchCustomizations()]);
+
+    const targetPlanet = planets.find(p => p.name === targetPlanetName);
+    
+    toast.success(`${sourcePlanet?.displayName || sourcePlanetName} is now a moon of ${targetPlanet?.displayName || targetPlanetName}`);
+    handleBackToGalaxy();
+  }, [user, currentSystem, planets, planetCustomizations, handleBackToGalaxy]);
+
   const handleSystemChange = useCallback((system: SolarSystemData) => {
     setCurrentSystem(system);
     setSelectedPlanet(null);
@@ -1202,9 +1285,11 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
           onEditPlanet={handleEditPlanet}
           onDeletePlanet={handleDeletePlanet}
           onMergePlanet={handleOpenMergePlanet}
+          onConvertToMoon={handleOpenConvertToMoon}
           onBack={handleBack}
           canDelete={selectedPlanet.isUserCreated === true}
           canMerge={!isViewingFriend && planets.length > 1}
+          canConvertToMoon={!isViewingFriend && planets.length > 1}
         />
       )}
 
@@ -1217,10 +1302,12 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
         onEditPlanet={handleEditPlanet}
         onDeletePlanet={handleDeletePlanet}
         onMergePlanet={handleOpenMergePlanet}
+        onConvertToMoon={handleOpenConvertToMoon}
         sunTemperature={sunData.temperature}
         sunLuminosity={getSunLuminosityFromTemperature(sunData.temperature)}
         canEdit={!isViewingFriend}
         canMerge={!isViewingFriend && planets.length > 1}
+        canConvertToMoon={!isViewingFriend && planets.length > 1}
       />
 
       {/* Merge Planet Dialog */}
@@ -1242,7 +1329,25 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
         onMerge={handleMergePlanets}
       />
 
-      {/* Mobile Spaceship/Fleet Details Sheet */}
+      {/* Convert to Moon Dialog */}
+      <ConvertToMoonDialog
+        isOpen={convertToMoonDialogOpen}
+        onClose={() => setConvertToMoonDialogOpen(false)}
+        sourcePlanet={selectedPlanet ? {
+          name: selectedPlanet.name,
+          displayName: selectedPlanet.displayName,
+          characterCount: selectedPlanet.characterCount,
+          color: selectedPlanet.color,
+        } : null}
+        availablePlanets={planets.map(p => ({
+          name: p.name,
+          displayName: p.displayName,
+          characterCount: p.characterCount,
+          color: p.color,
+        }))}
+        onConvert={handleConvertToMoon}
+      />
+
       <MobileSpaceshipDetails
         vessel={selectedVessel}
         isOpen={mobileSpaceshipSheetOpen}
