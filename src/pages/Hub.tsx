@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import CharacterCard from '@/components/characters/CharacterCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Swords, Plus, Users, BookOpen, Globe, Sparkles } from 'lucide-react';
+import { Swords, Plus, Users, BookOpen, Globe } from 'lucide-react';
 
 interface Character {
   id: string;
@@ -78,12 +78,12 @@ export default function Hub() {
           </Card>
         </Link>
 
-        <Link to="/planet-hub">
+        <Link to="/hub">
           <Card className="bg-card-gradient border-border hover:glow-cosmic transition-all cursor-pointer h-full">
             <CardHeader className="text-center">
-              <Sparkles className="w-12 h-12 mx-auto text-cosmic-pink mb-2" />
-              <CardTitle>Planet Lab</CardTitle>
-              <CardDescription>Experiment with procedural worlds</CardDescription>
+              <Globe className="w-12 h-12 mx-auto text-cosmic-pink mb-2" />
+              <CardTitle>Solar System</CardTitle>
+              <CardDescription>Explore and edit your galaxy</CardDescription>
             </CardHeader>
           </Card>
         </Link>
