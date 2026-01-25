@@ -115,6 +115,9 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
   const [viewState, setViewState] = useState<ViewState>('galaxy');
   const [selectedPlanet, setSelectedPlanet] = useState<PlanetData | null>(null);
   const [planetCustomizations, setPlanetCustomizations] = useState<Record<string, StoredCustomization>>({});
+  // Forces a deterministic re-mount of 3D planet nodes after saves/refetches.
+  // This avoids any lingering WebGL/material caching edge cases and guarantees immediate visual updates.
+  const [customizationsVersion, setCustomizationsVersion] = useState(0);
   const [moonCustomizations, setMoonCustomizations] = useState<{ moon_name: string; display_name: string | null; planet_name: string; color: string | null }[]>([]);
   const [sunData, setSunData] = useState<SunData>({
     name: 'Sol',
@@ -312,8 +315,10 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
         customMap[c.planet_name] = c;
       });
       setPlanetCustomizations(customMap);
+      setCustomizationsVersion(v => v + 1);
     } else {
       setPlanetCustomizations({});
+      setCustomizationsVersion(v => v + 1);
     }
     
     // Fetch moon customizations
@@ -769,6 +774,13 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
       radius: data.radius,
       orbitalDistance: data.orbitalDistance,
     } : null);
+
+    // Guarantee immediate visual update in the 3D view.
+    setCustomizationsVersion(v => v + 1);
+
+    // Also refetch from backend to avoid any mismatch between optimistic state and stored values.
+    // (E.g. numeric coercion, null handling, etc.)
+    await fetchCustomizations();
   };
 
   const handleSunClick = useCallback(() => {
@@ -1181,7 +1193,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
             // Create a unique key that includes customization values to force re-render
             const descHash = planet.description ? planet.description.slice(0, 50) : '';
             const planetMoons = moonDataByPlanet[planet.name] || [];
-            const planetKey = `${planet.name}-${planet.orbitRadius}-${planet.planetSize}-${planet.color}-${planet.hasRings}-${descHash}-${planetMoons.length}`;
+            const planetKey = `${planet.name}-${planet.orbitRadius}-${planet.planetSize}-${planet.color}-${planet.hasRings}-${descHash}-${planetMoons.length}-v${customizationsVersion}`;
             return (
               <group key={planetKey}>
                 <OrbitRing radius={planet.orbitRadius} />
