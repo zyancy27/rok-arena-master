@@ -397,8 +397,96 @@ export default function PlanetSurface({
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     geo.computeVertexNormals();
     
-    // Ocean surface geometry
-    const oceanGeo = new THREE.SphereGeometry(size * 1.001, 48, 48);
+    // Ocean surface geometry with wave displacement
+    const oceanSegments = lodLevel === LOD_LEVELS.ULTRA ? 96 : lodLevel === LOD_LEVELS.HIGH ? 72 : 48;
+    const oceanGeo = new THREE.SphereGeometry(size * 1.002, oceanSegments, oceanSegments);
+    const oceanPositions = oceanGeo.attributes.position;
+    const oceanColors = new Float32Array(oceanPositions.count * 3);
+    
+    // Get ocean base colors
+    const oceanBaseColor = new THREE.Color(terrainVisuals.oceanColor);
+    const oceanDeepColor = new THREE.Color(terrainVisuals.oceanColor).multiplyScalar(0.3);
+    const oceanShallowColor = new THREE.Color(terrainVisuals.oceanColor).lerp(new THREE.Color('#60C8FA'), 0.4);
+    const oceanFoamColor = new THREE.Color('#E8F4F8');
+    
+    for (let i = 0; i < oceanPositions.count; i++) {
+      const x = oceanPositions.getX(i);
+      const y = oceanPositions.getY(i);
+      const z = oceanPositions.getZ(i);
+      const length = Math.sqrt(x * x + y * y + z * z);
+      const nx = x / length;
+      const ny = y / length;
+      const nz = z / length;
+      
+      // Wave patterns using multiple noise layers
+      const waveFreq1 = 8;
+      const waveFreq2 = 16;
+      const waveFreq3 = 32;
+      
+      // Large ocean swells
+      const largeWave = noise3D(nx * waveFreq1, ny * waveFreq1, nz * waveFreq1) * 0.004;
+      // Medium waves
+      const mediumWave = noise3D2(nx * waveFreq2, ny * waveFreq2, nz * waveFreq2) * 0.002;
+      // Small ripples (only visible when close)
+      const smallWave = lodLevel <= LOD_LEVELS.HIGH 
+        ? noise3D3(nx * waveFreq3, ny * waveFreq3, nz * waveFreq3) * 0.001 
+        : 0;
+      
+      const totalWave = largeWave + mediumWave + smallWave;
+      
+      // Apply wave displacement
+      const waveDisplacement = 1 + totalWave;
+      oceanPositions.setXYZ(i, 
+        nx * size * 1.002 * waveDisplacement, 
+        ny * size * 1.002 * waveDisplacement, 
+        nz * size * 1.002 * waveDisplacement
+      );
+      
+      // Color variation based on wave height and depth patterns
+      const depthNoise = fbm(noise3D, nx * 3, ny * 3, nz * 3, 3);
+      const latitude = Math.abs(ny);
+      
+      // Create depth zones
+      let oceanVertexColor = new THREE.Color();
+      
+      if (depthNoise < -0.2) {
+        // Deep ocean trenches
+        oceanVertexColor.copy(oceanDeepColor);
+      } else if (depthNoise < 0.1) {
+        // Normal ocean depth
+        const t = (depthNoise + 0.2) / 0.3;
+        oceanVertexColor.lerpColors(oceanDeepColor, oceanBaseColor, t);
+      } else if (depthNoise < 0.3) {
+        // Shallow waters near land
+        const t = (depthNoise - 0.1) / 0.2;
+        oceanVertexColor.lerpColors(oceanBaseColor, oceanShallowColor, t);
+      } else {
+        // Very shallow / reef areas
+        oceanVertexColor.copy(oceanShallowColor);
+        // Add foam-like highlights
+        if (totalWave > 0.003) {
+          oceanVertexColor.lerp(oceanFoamColor, (totalWave - 0.003) * 50);
+        }
+      }
+      
+      // Polar ice edge effect
+      if (latitude > 0.7) {
+        const iceFactor = (latitude - 0.7) / 0.3;
+        oceanVertexColor.lerp(new THREE.Color('#B8D4E8'), iceFactor * 0.5);
+      }
+      
+      // Wave crest highlights
+      if (totalWave > 0.004) {
+        oceanVertexColor.lerp(oceanFoamColor, (totalWave - 0.004) * 30);
+      }
+      
+      oceanColors[i * 3] = oceanVertexColor.r;
+      oceanColors[i * 3 + 1] = oceanVertexColor.g;
+      oceanColors[i * 3 + 2] = oceanVertexColor.b;
+    }
+    
+    oceanGeo.setAttribute('color', new THREE.BufferAttribute(oceanColors, 3));
+    oceanGeo.computeVertexNormals();
     
     // Cloud layer with variable density
     const cloudGeo = new THREE.SphereGeometry(size * 1.03, 40, 40);
@@ -427,7 +515,9 @@ export default function PlanetSurface({
     return { geometry: geo, oceanGeometry: oceanGeo, cloudGeometry: cloudGeo };
   }, [size, color, description, terrainFeatures, terrainVisuals, lodLevel]);
 
-  // Animate clouds and special effects
+  // Animate clouds, ocean, and special effects
+  const oceanTimeRef = useRef(0);
+  
   useFrame((_, delta) => {
     if (cloudsRef.current) {
       cloudsRef.current.rotation.y += delta * 0.015;
@@ -435,9 +525,12 @@ export default function PlanetSurface({
     if (atmosphereRef.current && terrainFeatures.hasMagicAura) {
       atmosphereRef.current.rotation.y += delta * 0.03;
     }
+    // Subtle ocean rotation for wave animation effect
+    if (oceanRef.current) {
+      oceanTimeRef.current += delta;
+      oceanRef.current.rotation.y += delta * 0.008;
+    }
   });
-
-  const oceanColor = new THREE.Color(terrainVisuals.oceanColor);
 
   return (
     <group ref={groupRef}>
@@ -452,17 +545,42 @@ export default function PlanetSurface({
         />
       </mesh>
       
-      {/* Ocean layer with specular highlight */}
+      {/* Ocean layer with waves, depth, and specular highlight */}
       {terrainFeatures.oceanCoverage > 0.05 && (
-        <mesh ref={oceanRef} geometry={oceanGeometry}>
-          <meshStandardMaterial
-            color={oceanColor}
-            transparent
-            opacity={0.35}
-            roughness={0.15}
-            metalness={0.5}
-          />
-        </mesh>
+        <>
+          {/* Deep ocean base layer */}
+          <mesh>
+            <sphereGeometry args={[size * 0.999, 32, 32]} />
+            <meshStandardMaterial
+              color={new THREE.Color(terrainVisuals.oceanColor).multiplyScalar(0.25)}
+              roughness={0.9}
+              metalness={0.1}
+            />
+          </mesh>
+          
+          {/* Main ocean surface with waves */}
+          <mesh ref={oceanRef} geometry={oceanGeometry}>
+            <meshStandardMaterial
+              vertexColors
+              transparent
+              opacity={isHovered ? 0.75 : 0.65}
+              roughness={0.1}
+              metalness={0.6}
+              envMapIntensity={1.2}
+            />
+          </mesh>
+          
+          {/* Ocean specular highlight layer */}
+          <mesh>
+            <sphereGeometry args={[size * 1.003, 24, 24]} />
+            <meshBasicMaterial
+              color="#FFFFFF"
+              transparent
+              opacity={isHovered ? 0.08 : 0.04}
+              depthWrite={false}
+            />
+          </mesh>
+        </>
       )}
       
       {/* Cloud layer */}
