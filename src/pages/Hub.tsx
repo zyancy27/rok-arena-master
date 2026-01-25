@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import CharacterCard from '@/components/characters/CharacterCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Swords, Plus, Users, BookOpen } from 'lucide-react';
+import { Swords, Plus, Users, BookOpen, Globe } from 'lucide-react';
 
 interface Character {
   id: string;
@@ -57,7 +57,7 @@ export default function Hub() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Link to="/characters/new">
           <Card className="bg-card-gradient border-border hover:glow-primary transition-all cursor-pointer h-full">
             <CardHeader className="text-center">
@@ -74,6 +74,16 @@ export default function Hub() {
               <Users className="w-12 h-12 mx-auto text-accent mb-2" />
               <CardTitle>Browse Characters</CardTitle>
               <CardDescription>Explore all characters in the realm</CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+
+        <Link to="/planet-hub">
+          <Card className="bg-card-gradient border-border hover:glow-cosmic transition-all cursor-pointer h-full">
+            <CardHeader className="text-center">
+              <Globe className="w-12 h-12 mx-auto text-cosmic-pink mb-2" />
+              <CardTitle>Planet Builder</CardTitle>
+              <CardDescription>Generate 3D planets from descriptions</CardDescription>
             </CardHeader>
           </Card>
         </Link>
