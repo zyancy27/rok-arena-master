@@ -19,6 +19,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { createNoise3D } from 'simplex-noise';
 import { parseTerrainFromLore, generateTerrainVisuals, TerrainFeatures, TerrainVisuals } from '@/lib/planet-terrain';
+import CityLights from './CityLights';
 
 interface PlanetSurfaceProps {
   size: number;
@@ -366,6 +367,16 @@ export default function PlanetSurface({
             side={THREE.BackSide}
           />
         </mesh>
+      )}
+      
+      {/* City lights on the night side */}
+      {terrainFeatures.hasCities && (
+        <CityLights 
+          size={size} 
+          description={description}
+          intensity={isHovered ? 1.5 : 1.0}
+          color="#FFD080"
+        />
       )}
     </group>
   );
