@@ -1,6 +1,8 @@
 import { Link, Outlet, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBattleNotifications } from '@/hooks/use-battle-notifications';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -9,15 +11,40 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import OwnershipNotice from '@/components/legal/OwnershipNotice';
-import { Swords, Users, BookOpen, Shield, LogOut, User, Home, Dna, Heart, ChevronDown, FileText } from 'lucide-react';
+import { Swords, Users, BookOpen, Shield, LogOut, User, Home, Dna, Heart, ChevronDown, FileText, Plus } from 'lucide-react';
+
+interface UserCharacter {
+  id: string;
+  name: string;
+  level: number;
+}
 
 export default function MainLayout() {
   // Enable real-time battle challenge notifications
   useBattleNotifications();
   const { user, profile, signOut, isAdmin, isModerator } = useAuth();
   const navigate = useNavigate();
+  const [userCharacters, setUserCharacters] = useState<UserCharacter[]>([]);
+
+  useEffect(() => {
+    if (user) {
+      const fetchUserCharacters = async () => {
+        const { data } = await supabase
+          .from('characters')
+          .select('id, name, level')
+          .eq('user_id', user.id)
+          .order('updated_at', { ascending: false })
+          .limit(10);
+        
+        if (data) setUserCharacters(data);
+      };
+      fetchUserCharacters();
+    }
+  }, [user]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -55,13 +82,20 @@ export default function MainLayout() {
                   <ChevronDown className="w-3 h-3" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48 bg-popover z-50">
+              <DropdownMenuContent align="start" className="w-56 bg-popover z-50">
                 <DropdownMenuItem asChild>
                   <Link to="/characters" className="flex items-center cursor-pointer">
                     <Users className="mr-2 h-4 w-4" />
                     All Characters
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/characters/new" className="flex items-center cursor-pointer">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create Character
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link to="/races" className="flex items-center cursor-pointer">
                     <Dna className="mr-2 h-4 w-4" />
@@ -74,6 +108,22 @@ export default function MainLayout() {
                     Stories
                   </Link>
                 </DropdownMenuItem>
+                {userCharacters.length > 0 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel className="text-xs text-muted-foreground">Your Characters</DropdownMenuLabel>
+                    <ScrollArea className="max-h-48">
+                      {userCharacters.map((char) => (
+                        <DropdownMenuItem key={char.id} asChild>
+                          <Link to={`/characters/${char.id}`} className="flex items-center justify-between cursor-pointer">
+                            <span className="truncate">{char.name}</span>
+                            <span className="text-xs text-muted-foreground ml-2">Lv.{char.level}</span>
+                          </Link>
+                        </DropdownMenuItem>
+                      ))}
+                    </ScrollArea>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
             <Button variant="ghost" size="sm" asChild>
