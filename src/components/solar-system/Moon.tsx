@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Sphere, Html } from '@react-three/drei';
+import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useIsMobile } from '@/hooks/use-mobile';
+import MoonSurface from './MoonSurface';
 
 interface MoonProps {
   orbitRadius: number;
@@ -12,6 +13,7 @@ interface MoonProps {
   startAngle?: number;
   name?: string;
   characterCount?: number;
+  description?: string;
   onClick?: (position: { x: number; y: number; z: number }) => void;
   isSelected?: boolean;
 }
@@ -24,6 +26,7 @@ export default function Moon({
   startAngle = 0,
   name,
   characterCount = 0,
+  description = '',
   onClick,
   isSelected,
 }: MoonProps) {
@@ -55,8 +58,8 @@ export default function Moon({
 
   return (
     <group ref={moonRef}>
-      <Sphere 
-        args={[moonSize, 16, 16]}
+      {/* Invisible click target */}
+      <mesh
         onClick={onClick ? handleClick : undefined}
         onPointerOver={onClick ? (e) => {
           e.stopPropagation();
@@ -68,14 +71,17 @@ export default function Moon({
           document.body.style.cursor = 'auto';
         } : undefined}
       >
-        <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={hovered ? 0.3 : 0.1}
-          roughness={0.9}
-          metalness={0.1}
-        />
-      </Sphere>
+        <sphereGeometry args={[moonSize * 1.1, 8, 8]} />
+        <meshBasicMaterial transparent opacity={0} />
+      </mesh>
+      
+      {/* Procedural moon surface */}
+      <MoonSurface
+        size={moonSize}
+        color={color}
+        description={description}
+        isHovered={hovered}
+      />
       
       {/* Moon label - shows when it has a name and residents or is hovered */}
       {name && (hovered || characterCount > 0 || isSelected) && (
