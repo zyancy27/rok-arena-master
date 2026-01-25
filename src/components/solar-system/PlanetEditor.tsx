@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,9 @@ import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Save, Loader2, Globe, Orbit, Weight, Ruler, Moon, Users, Plus, Trash2, Edit2, UserPlus } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ArrowLeft, Save, Loader2, Globe, Orbit, Weight, Ruler, Moon, Users, Plus, Trash2, Edit2, UserPlus, Sparkles, Wand2, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
   getGravityClass, 
@@ -22,6 +24,7 @@ import { AutoSaveIndicator } from '@/components/ui/auto-save-indicator';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
+import { parsePlanetDescription, type PlanetParams } from '@/lib/planet-generator';
 
 export interface PlanetCustomization {
   name: string;
@@ -136,6 +139,10 @@ export default function PlanetEditor({
   const [transferringCharacter, setTransferringCharacter] = useState<CharacterData | null>(null);
   const [targetPlanet, setTargetPlanet] = useState<string>('');
   const [targetMoon, setTargetMoon] = useState<string>('');
+  
+  // Procedural generation state
+  const [showProceduralGen, setShowProceduralGen] = useState(false);
+  const [generatedParams, setGeneratedParams] = useState<PlanetParams | null>(null);
 
   const gravityClass = getGravityClass(gravity);
   const statModifiers = calculateGravityStatModifiers(gravity);
@@ -173,6 +180,49 @@ export default function PlanetEditor({
       toast.success(`Applied ${presetName} preset`);
     }
   };
+  
+  // Generate visual properties from description
+  const handleGenerateFromDescription = useCallback(() => {
+    if (!description.trim()) {
+      toast.error('Enter a planet lore/description first');
+      return;
+    }
+    
+    const params = parsePlanetDescription(description);
+    setGeneratedParams(params);
+    
+    // Apply color from generated params
+    const colorMap: Record<string, string> = {
+      '#1E40AF': '#0891B2', // oceanic -> Cyan
+      '#D97706': '#D97706', // desert -> Amber
+      '#166534': '#059669', // forest -> Emerald
+      '#E0F2FE': '#0EA5E9', // arctic -> Sky
+      '#991B1B': '#DC2626', // volcanic -> Crimson
+      '#78716C': '#475569', // barren -> Slate
+      '#65A30D': '#84CC16', // toxic -> Lime
+      '#3B82F6': '#6366F1', // temperate -> Indigo
+    };
+    
+    const mappedColor = colorMap[params.primaryColor] || params.primaryColor;
+    setColor(mappedColor);
+    
+    // Apply rings if detected
+    if (params.hasRings) {
+      setCustomizeRings(true);
+      setHasRings(true);
+    }
+    
+    // Adjust radius based on description hints
+    if (description.toLowerCase().includes('giant') || description.toLowerCase().includes('massive')) {
+      setRadius(Math.min(5, radius * 1.5));
+    } else if (description.toLowerCase().includes('small') || description.toLowerCase().includes('dwarf')) {
+      setRadius(Math.max(0.3, radius * 0.6));
+    }
+    
+    toast.success(`Generated visuals from description`, {
+      description: `Shape: ${params.shapeType}, Ocean: ${Math.round(params.oceanLevel * 100)}%, Vegetation: ${Math.round(params.vegetation * 100)}%`,
+    });
+  }, [description, radius]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -366,16 +416,79 @@ export default function PlanetEditor({
                   </p>
                 </div>
 
-                {/* Description */}
-                <div className="space-y-2">
-                  <Label htmlFor="planet-description">Planet Lore</Label>
+                {/* Description with Procedural Generation */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="planet-description">Planet Lore</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGenerateFromDescription}
+                      disabled={!description.trim()}
+                      className="gap-1.5"
+                    >
+                      <Wand2 className="w-3.5 h-3.5" />
+                      Generate Visuals
+                    </Button>
+                  </div>
                   <Textarea
                     id="planet-description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Describe this planet's history, culture, environment, or notable features..."
+                    placeholder="Describe this planet's environment to auto-generate visuals... (e.g., 'A volcanic world with lava oceans and towering obsidian peaks')"
                     rows={4}
                   />
+                  <p className="text-xs text-muted-foreground">
+                    💡 Tip: Include keywords like "ocean", "volcanic", "frozen", "forest", "desert", "rings", "cone-shaped", "giant" to affect visuals
+                  </p>
+                  
+                  {/* Generated Parameters Display */}
+                  {generatedParams && (
+                    <Collapsible open={showProceduralGen} onOpenChange={setShowProceduralGen}>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" size="sm" className="w-full justify-between text-xs">
+                          <span className="flex items-center gap-2">
+                            <Sparkles className="w-3 h-3 text-primary" />
+                            Generated Properties
+                          </span>
+                          <ChevronDown className={`w-4 h-4 transition-transform ${showProceduralGen ? 'rotate-180' : ''}`} />
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="pt-2">
+                        <div className="grid grid-cols-2 gap-2 text-xs p-3 rounded-lg bg-muted/50 border">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Shape:</span>
+                            <Badge variant="secondary" className="text-xs">{generatedParams.shapeType}</Badge>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Ocean:</span>
+                            <span>{Math.round(generatedParams.oceanLevel * 100)}%</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Vegetation:</span>
+                            <span>{Math.round(generatedParams.vegetation * 100)}%</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Mountains:</span>
+                            <span>{Math.round(generatedParams.mountainHeight * 100)}%</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Atmosphere:</span>
+                            <span>{generatedParams.hasAtmosphere ? 'Yes' : 'No'}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Rings:</span>
+                            <span>{generatedParams.hasRings ? 'Yes' : 'No'}</span>
+                          </div>
+                          <div className="col-span-2 flex justify-between">
+                            <span className="text-muted-foreground">Seed:</span>
+                            <span className="font-mono">{generatedParams.seed}</span>
+                          </div>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )}
                 </div>
 
                 {/* Planet Color */}
