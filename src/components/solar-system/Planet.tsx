@@ -1,13 +1,15 @@
 import { useRef, useState, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Html, Sphere } from '@react-three/drei';
+import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import Atmosphere from './Atmosphere';
 import PlanetRings from './PlanetRings';
 import Moon from './Moon';
+import PlanetSurface from './PlanetSurface';
 import { getGravityClass } from '@/lib/planet-physics';
 import { parseTerrainFromLore, generateTerrainVisuals } from '@/lib/planet-terrain';
 import { useIsMobile } from '@/hooks/use-mobile';
+
 export interface MoonData {
   name: string;
   displayName?: string;
@@ -83,7 +85,7 @@ export default function Planet({
   onMoonClick,
 }: PlanetProps) {
   const groupRef = useRef<THREE.Group>(null);
-  const planetRef = useRef<THREE.Mesh>(null);
+  const planetRef = useRef<THREE.Group>(null);
   const [hovered, setHovered] = useState(false);
   const angleRef = useRef(Math.random() * Math.PI * 2);
   const isMobile = useIsMobile();
@@ -156,10 +158,9 @@ export default function Planet({
 
   return (
     <group ref={groupRef}>
-      {/* Planet core */}
-      <Sphere
+      {/* Enhanced planet surface with procedural terrain */}
+      <group
         ref={planetRef}
-        args={[planetSize, 32, 32]}
         onClick={(e) => {
           e.stopPropagation();
           if (groupRef.current) {
@@ -180,113 +181,57 @@ export default function Planet({
           document.body.style.cursor = 'auto';
         }}
       >
-        <meshStandardMaterial
+        <PlanetSurface
+          size={planetSize}
           color={color}
-          emissive={
-            terrainVisuals.hasLavaGlow ? '#FF4500' : 
-            climateZone === 'scorched' ? '#FF4500' : 
-            climateZone === 'frozen' ? '#87CEEB' : 
-            terrainVisuals.hasOceanShimmer ? terrainVisuals.accentColor :
-            emissiveColor || color
-          }
-          emissiveIntensity={
-            terrainVisuals.hasLavaGlow ? 0.6 :
-            hovered ? heatEmissive + 0.4 : heatEmissive
-          }
-          roughness={terrainVisuals.roughness}
-          metalness={terrainVisuals.metalness}
+          description={description}
+          oceanCoverage={terrainFeatures.oceanCoverage}
+          hasMountains={terrainFeatures.hasMountains}
+          hasVolcanoes={terrainFeatures.hasVolcanoes}
+          hasTundra={terrainFeatures.hasTundra}
+          hasDeserts={terrainFeatures.hasDeserts}
+          hasForests={terrainFeatures.hasForests}
+          isHovered={hovered}
         />
-      </Sphere>
-
-      {/* Ocean shimmer effect layer */}
-      {terrainVisuals.hasOceanShimmer && (
-        <Sphere args={[planetSize * 1.01, 32, 32]}>
-          <meshStandardMaterial
-            color={terrainVisuals.secondaryColor}
-            transparent
-            opacity={0.4}
-            roughness={0.1}
-            metalness={0.6}
-          />
-        </Sphere>
-      )}
-
-      {/* Ice caps for tundra/arctic worlds */}
-      {terrainVisuals.hasIceCaps && (
-        <>
-          <Sphere 
-            args={[planetSize * 1.005, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.2]}
-            position={[0, 0, 0]}
-          >
-            <meshStandardMaterial
-              color="#E0F2FE"
-              transparent
-              opacity={0.7}
-              roughness={0.2}
-              metalness={0.3}
-            />
-          </Sphere>
-          <Sphere 
-            args={[planetSize * 1.005, 16, 8, 0, Math.PI * 2, Math.PI * 0.8, Math.PI * 0.2]}
-            position={[0, 0, 0]}
-          >
-            <meshStandardMaterial
-              color="#E0F2FE"
-              transparent
-              opacity={0.7}
-              roughness={0.2}
-              metalness={0.3}
-            />
-          </Sphere>
-        </>
-      )}
+      </group>
 
       {/* Lava glow for volcanic worlds */}
       {terrainVisuals.hasLavaGlow && (
-        <Sphere args={[planetSize * 1.02, 16, 16]}>
+        <mesh>
+          <sphereGeometry args={[planetSize * 1.02, 16, 16]} />
           <meshBasicMaterial
             color="#F97316"
             transparent
             opacity={hovered ? 0.3 : 0.15}
             side={THREE.BackSide}
           />
-        </Sphere>
+        </mesh>
       )}
 
       {/* Habitable zone indicator glow */}
       {isInHabitableZone && (
-        <Sphere args={[planetSize * 1.15, 16, 16]}>
+        <mesh>
+          <sphereGeometry args={[planetSize * 1.15, 16, 16]} />
           <meshBasicMaterial
             color="#22C55E"
             transparent
             opacity={hovered ? 0.25 : 0.1}
             side={THREE.BackSide}
           />
-        </Sphere>
-      )}
-
-      {/* Cloud layer for planets with atmosphere */}
-      {terrainVisuals.hasCloudLayer && (
-        <Sphere args={[planetSize * 1.03, 24, 24]}>
-          <meshStandardMaterial
-            color="#FFFFFF"
-            transparent
-            opacity={0.15}
-            roughness={1}
-          />
-        </Sphere>
+        </mesh>
       )}
 
       {/* Dust storm effect for desert worlds */}
       {terrainVisuals.hasDustStorms && (
-        <Sphere args={[planetSize * 1.08, 16, 16]}>
+        <mesh>
+          <sphereGeometry args={[planetSize * 1.08, 16, 16]} />
           <meshBasicMaterial
             color={terrainVisuals.secondaryColor}
             transparent
             opacity={0.1}
             side={THREE.BackSide}
           />
-        </Sphere>
+        </mesh>
       )}
 
       {/* Layered atmosphere */}
