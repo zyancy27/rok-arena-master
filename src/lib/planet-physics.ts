@@ -39,7 +39,7 @@ export function calculateOrbitRadius(auDistance: number): number {
  */
 export function calculateOrbitSpeed(auDistance: number): number {
   // Base speed at 1 AU, decreases with distance
-  const baseSpeed = 0.3;
+  const baseSpeed = 0.08;
   return baseSpeed / Math.pow(auDistance, 0.5);
 }
 
