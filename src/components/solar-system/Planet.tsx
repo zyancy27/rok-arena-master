@@ -15,6 +15,7 @@ export interface MoonData {
   displayName?: string;
   color?: string;
   characterCount: number;
+  description?: string;
 }
 
 interface PlanetProps {
@@ -293,7 +294,7 @@ export default function Planet({
 
       {/* Moons (for larger planets) - either from customizations or auto-generated */}
       {moonCustomizations.length > 0 ? (
-        // Render customized moons with character counts
+        // Render customized moons with character counts and descriptions
         moonCustomizations.map((moon, index) => (
           <Moon
             key={moon.name}
@@ -304,6 +305,7 @@ export default function Planet({
             startAngle={(index * Math.PI * 2) / moonCustomizations.length}
             name={moon.displayName || moon.name}
             characterCount={moon.characterCount}
+            description={moon.description || ''}
             onClick={onMoonClick ? (pos) => onMoonClick(moon.name, pos) : undefined}
           />
         ))

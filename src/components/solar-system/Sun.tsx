@@ -8,6 +8,7 @@ interface SunProps {
   color?: string;
   temperature?: number;
   onClick?: () => void;
+  habitableZoneEmphasis?: boolean; // Make habitable zone more visible when mentioned in lore
 }
 
 // Calculate habitable zone based on stellar luminosity (real astrophysics)
@@ -21,7 +22,7 @@ export function getHabitableZone(temperature: number): { inner: number; outer: n
   };
 }
 
-export default function Sun({ color = '#FDB813', temperature = 5778, onClick }: SunProps) {
+export default function Sun({ color = '#FDB813', temperature = 5778, onClick, habitableZoneEmphasis = false }: SunProps) {
   const sunRef = useRef<THREE.Mesh>(null);
   const glowRef = useRef<THREE.Mesh>(null);
   const groupRef = useRef<THREE.Group>(null);
@@ -102,7 +103,7 @@ export default function Sun({ color = '#FDB813', temperature = 5778, onClick }: 
         </Sphere>
       )}
 
-      {/* Habitable Zone indicator ring */}
+      {/* Habitable Zone indicator ring - more visible when mentioned in lore */}
       <Ring
         ref={habitableRingRef}
         args={[habitableZone.inner, habitableZone.outer, 64]}
@@ -111,7 +112,7 @@ export default function Sun({ color = '#FDB813', temperature = 5778, onClick }: 
         <meshBasicMaterial
           color="#22C55E"
           transparent
-          opacity={0.08}
+          opacity={habitableZoneEmphasis ? 0.25 : 0.08}
           side={THREE.DoubleSide}
         />
       </Ring>

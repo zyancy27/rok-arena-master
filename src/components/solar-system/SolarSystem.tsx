@@ -321,10 +321,10 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
       setCustomizationsVersion(v => v + 1);
     }
     
-    // Fetch moon customizations
+    // Fetch moon customizations with descriptions
     const { data: moonData } = await supabase
       .from('moon_customizations')
-      .select('moon_name, display_name, planet_name, color')
+      .select('moon_name, display_name, planet_name, color, description')
       .eq('solar_system_id', currentSystem.id);
     
     if (moonData) {
@@ -446,9 +446,9 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
     return planetArray;
   }, [characters, planetCustomizations]);
 
-  // Calculate moon data per planet with character counts
+  // Calculate moon data per planet with character counts and descriptions
   const moonDataByPlanet = useMemo(() => {
-    const result: Record<string, { name: string; displayName: string; color: string; characterCount: number }[]> = {};
+    const result: Record<string, { name: string; displayName: string; color: string; characterCount: number; description: string }[]> = {};
     
     // Group moon customizations by planet
     moonCustomizations.forEach(moon => {
@@ -465,6 +465,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
         displayName: moon.display_name || moon.moon_name,
         color: moon.color || '#9CA3AF',
         characterCount: moonResidents,
+        description: (moon as any).description || '',
       });
     });
     
@@ -485,6 +486,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
             displayName: char.home_moon,
             color: '#9CA3AF',
             characterCount: moonResidents,
+            description: '',
           });
         }
       }
@@ -492,6 +494,31 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
     
     return result;
   }, [characters, moonCustomizations]);
+
+  // Check if "habitable zone" is mentioned in any planet descriptions or character lore
+  const habitableZoneEmphasis = useMemo(() => {
+    const habitableKeywords = ['habitable zone', 'habitable', 'goldilocks', 'life-supporting', 'temperate zone'];
+    
+    // Check planet descriptions
+    for (const planet of planets) {
+      const desc = (planet.description || '').toLowerCase();
+      if (habitableKeywords.some(k => desc.includes(k))) return true;
+    }
+    
+    // Check character lore
+    for (const char of characters) {
+      const lore = (char.lore || '').toLowerCase();
+      const powers = (char.powers || '').toLowerCase();
+      if (habitableKeywords.some(k => lore.includes(k) || powers.includes(k))) return true;
+    }
+    
+    // Check sun description
+    const sunDesc = (sunData.description || '').toLowerCase();
+    if (habitableKeywords.some(k => sunDesc.includes(k))) return true;
+    
+    return false;
+  }, [planets, characters, sunData.description]);
+
   // Identify planet-sized characters that should be rendered as giant humanoid figures
   const giantCharacters = useMemo(() => {
     return characters.filter(char => isPlanetSizedCharacter({
@@ -1185,6 +1212,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
             color={sunData.color}
             temperature={sunData.temperature}
             onClick={handleSunClick}
+            habitableZoneEmphasis={habitableZoneEmphasis}
           />
 
           {planets.map((planet) => {
