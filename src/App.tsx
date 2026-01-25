@@ -15,6 +15,7 @@ import CreateCharacter from "@/pages/CreateCharacter";
 import EditCharacter from "@/pages/EditCharacter";
 import CharacterDetail from "@/pages/CharacterDetail";
 import CharacterDirectory from "@/pages/CharacterDirectory";
+import CharacterList from "@/pages/CharacterList";
 import Battles from "@/pages/Battles";
 import BattleView from "@/pages/BattleView";
 import MockBattle from "@/pages/MockBattle";
@@ -45,6 +46,7 @@ const App = () => (
             <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
               <Route path="/hub" element={<Hub />} />
               <Route path="/characters" element={<CharacterDirectory />} />
+              <Route path="/characters/list" element={<CharacterList />} />
               <Route path="/characters/new" element={<CreateCharacter />} />
               <Route path="/characters/:id" element={<CharacterDetail />} />
               <Route path="/characters/:id/edit" element={<EditCharacter />} />

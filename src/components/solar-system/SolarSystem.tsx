@@ -84,6 +84,7 @@ interface SunData {
   description: string;
   color: string;
   temperature: number;
+  hasSun: boolean;
 }
 
 // Default camera positions
@@ -124,6 +125,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
     description: '',
     color: '#FDB813',
     temperature: 5778,
+    hasSun: true,
   });
   
   // Solar system state
@@ -339,7 +341,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
     
     const { data } = await supabase
       .from('sun_customizations')
-      .select('name, description, color, temperature')
+      .select('name, description, color, temperature, has_sun')
       .eq('solar_system_id', currentSystem.id)
       .maybeSingle();
 
@@ -349,6 +351,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
         description: data.description || '',
         color: data.color || '#FDB813',
         temperature: data.temperature || 5778,
+        hasSun: data.has_sun !== false,
       });
     } else {
       // Reset to defaults for new/different system
@@ -357,6 +360,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
         description: '',
         color: '#FDB813',
         temperature: 5778,
+        hasSun: true,
       });
     }
   };
@@ -826,6 +830,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
         description: data.description,
         color: data.color,
         temperature: data.temperature,
+        has_sun: data.hasSun,
         solar_system_id: currentSystem.id,
       }, {
         onConflict: 'user_id,solar_system_id',
@@ -1196,7 +1201,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
       {/* 3D Canvas */}
       <Canvas className="!absolute inset-0">
         <PerspectiveCamera makeDefault position={[0, 15, 20]} fov={60} />
-        <ambientLight intensity={0.2} />
+        <ambientLight intensity={sunData.hasSun ? 0.2 : 0.5} />
         
         <CameraController
           targetPosition={cameraTarget}
@@ -1208,13 +1213,15 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
         <Suspense fallback={null}>
           <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
           
-          <Sun 
-            key={`sun-${sunData.temperature}-${sunData.color}`}
-            color={sunData.color}
-            temperature={sunData.temperature}
-            onClick={handleSunClick}
-            habitableZoneEmphasis={habitableZoneEmphasis}
-          />
+          {sunData.hasSun && (
+            <Sun 
+              key={`sun-${sunData.temperature}-${sunData.color}`}
+              color={sunData.color}
+              temperature={sunData.temperature}
+              onClick={handleSunClick}
+              habitableZoneEmphasis={habitableZoneEmphasis}
+            />
+          )}
 
           {planets.map((planet) => {
             const sunLuminosity = getSunLuminosityFromTemperature(sunData.temperature);

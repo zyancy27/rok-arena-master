@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import OwnershipNotice from '@/components/legal/OwnershipNotice';
-import { Swords, Users, BookOpen, Shield, LogOut, User, Home, Dna, Heart, ChevronDown, FileText, Plus } from 'lucide-react';
+import { Swords, Users, BookOpen, Shield, LogOut, User, Home, Dna, Heart, ChevronDown, FileText, Plus, Globe } from 'lucide-react';
 
 interface UserCharacter {
   id: string;
@@ -84,9 +84,15 @@ export default function MainLayout() {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56 bg-popover z-50">
                 <DropdownMenuItem asChild>
-                  <Link to="/characters" className="flex items-center cursor-pointer">
+                  <Link to="/characters/list" className="flex items-center cursor-pointer">
                     <Users className="mr-2 h-4 w-4" />
-                    All Characters
+                    My Characters
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/characters" className="flex items-center cursor-pointer">
+                    <Globe className="mr-2 h-4 w-4" />
+                    Solar System Map
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>

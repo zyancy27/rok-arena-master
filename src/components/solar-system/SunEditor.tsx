@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, Save, Loader2, Sun, Thermometer, Flame, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -20,6 +21,7 @@ export interface SunCustomization {
   description: string;
   color: string;
   temperature: number;
+  hasSun: boolean;
 }
 
 interface SunEditorProps {
@@ -29,7 +31,6 @@ interface SunEditorProps {
 }
 
 // Real-life stellar classification based on temperature
-// https://en.wikipedia.org/wiki/Stellar_classification
 const STELLAR_TYPES = [
   { type: 'M', name: 'Red Dwarf', minTemp: 2400, maxTemp: 3700, color: '#FF4500', description: 'Cool, dim stars. Most common in the universe. Very long lifespans (trillions of years).' },
   { type: 'K', name: 'Orange Dwarf', minTemp: 3700, maxTemp: 5200, color: '#FF8C00', description: 'Slightly cooler than our Sun. Stable for billions of years. Good candidates for habitable planets.' },
@@ -40,11 +41,8 @@ const STELLAR_TYPES = [
   { type: 'O', name: 'Blue Giant', minTemp: 30000, maxTemp: 50000, color: '#6B8EFF', description: 'Hottest and most massive stars. Extremely rare. May go supernova.' },
 ];
 
-// Calculate sun size multiplier based on temperature (mass-luminosity relation approximation)
+// Calculate sun size multiplier based on temperature
 export function getSunSizeFromTemperature(temp: number): number {
-  // Real stars: hotter = bigger (generally)
-  // Our Sun (5778K) = 1.0 scale
-  // Red dwarfs can be 0.1x, Blue giants can be 10x+
   if (temp < 3000) return 0.4;
   if (temp < 4000) return 0.6;
   if (temp < 5000) return 0.8;
@@ -56,13 +54,9 @@ export function getSunSizeFromTemperature(temp: number): number {
   return 7.0;
 }
 
-// Calculate luminosity relative to our Sun using Stefan-Boltzmann approximation
-// L ∝ R² × T⁴ (but we simplify using our size function)
-// Our Sun (5778K) = 1.0 luminosity
+// Calculate luminosity relative to our Sun
 export function getSunLuminosityFromTemperature(temp: number): number {
   const size = getSunSizeFromTemperature(temp);
-  // Stefan-Boltzmann: L = 4πR²σT⁴
-  // Relative to Sun: L/L☉ = (R/R☉)² × (T/T☉)⁴
   const tempRatio = temp / 5778;
   return size * size * Math.pow(tempRatio, 4);
 }
@@ -74,13 +68,11 @@ export function getStellarType(temp: number) {
       return star;
     }
   }
-  // Default to O type for extremely hot
   if (temp >= 50000) return STELLAR_TYPES[6];
-  // Default to M type for very cool
   return STELLAR_TYPES[0];
 }
 
-// Get color from temperature using real blackbody radiation approximation
+// Get color from temperature
 export function getColorFromTemperature(temp: number): string {
   const stellar = getStellarType(temp);
   return stellar.color;
@@ -90,6 +82,7 @@ export default function SunEditor({ sun, onSave, onBack }: SunEditorProps) {
   const [name, setName] = useState(sun.name || 'Sol');
   const [description, setDescription] = useState(sun.description || '');
   const [temperature, setTemperature] = useState(sun.temperature || 5778);
+  const [hasSun, setHasSun] = useState(sun.hasSun !== false);
   const [saving, setSaving] = useState(false);
 
   const stellarType = getStellarType(temperature);
@@ -102,7 +95,8 @@ export default function SunEditor({ sun, onSave, onBack }: SunEditorProps) {
     description,
     color,
     temperature,
-  }), [name, description, color, temperature]);
+    hasSun,
+  }), [name, description, color, temperature, hasSun]);
 
   // Auto-save hook
   const { isSaving: autoSaving, lastSaved, canUndo, undo, saveNow } = useAutoSave({
@@ -158,150 +152,169 @@ export default function SunEditor({ sun, onSave, onBack }: SunEditorProps) {
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Star Preview */}
-            <div className="flex justify-center py-6">
-              <div className="relative">
-                <div
-                  className="rounded-full transition-all duration-500"
-                  style={{
-                    width: `${80 + sunSize * 30}px`,
-                    height: `${80 + sunSize * 30}px`,
-                    backgroundColor: color,
-                    boxShadow: `0 0 ${30 * sunSize}px ${15 * sunSize}px ${color}80, 0 0 ${60 * sunSize}px ${30 * sunSize}px ${color}40`,
-                  }}
-                />
-                <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-center">
-                  <span className="text-sm font-bold" style={{ color }}>
-                    Class {stellarType.type}
-                  </span>
-                  <span className="text-xs text-muted-foreground ml-2">
-                    {stellarType.name}
-                  </span>
-                </div>
+            {/* Sun Toggle */}
+            <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 border border-border">
+              <div className="space-y-0.5">
+                <Label htmlFor="has-sun" className="text-base font-medium">Enable Star</Label>
+                <p className="text-sm text-muted-foreground">
+                  Toggle whether this solar system has a central star
+                </p>
               </div>
-            </div>
-
-            {/* Star Name */}
-            <div className="space-y-2">
-              <Label htmlFor="sun-name">Star Name</Label>
-              <Input
-                id="sun-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Sol"
+              <Switch
+                id="has-sun"
+                checked={hasSun}
+                onCheckedChange={setHasSun}
               />
             </div>
 
-            {/* Description */}
-            <div className="space-y-2">
-              <Label htmlFor="sun-description">Star Lore</Label>
-              <Textarea
-                id="sun-description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe your star's history, mythology, or unique properties..."
-                rows={3}
-              />
-            </div>
-
-            {/* Temperature Slider */}
-            <div className="space-y-4 p-4 rounded-lg bg-muted/30">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Thermometer className="w-4 h-4 text-primary" />
-                  <Label>Surface Temperature</Label>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="w-3 h-3 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs">
-                      <p>Temperature determines stellar classification, color, and size. Our Sun is ~5,778K.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-                <span className="text-sm font-mono font-bold" style={{ color }}>
-                  {temperature.toLocaleString()}K
-                </span>
-              </div>
-              <Slider
-                value={[temperature]}
-                onValueChange={(v) => setTemperature(v[0])}
-                min={2400}
-                max={50000}
-                step={100}
-                className="py-2"
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Red Dwarf (2,400K)</span>
-                <span>Blue Giant (50,000K)</span>
-              </div>
-            </div>
-
-            {/* Stellar Facts Card */}
-            <div className="p-4 rounded-lg border border-primary/30 bg-primary/5">
-              <div className="flex items-start gap-3">
-                <Flame className="w-5 h-5 text-primary mt-0.5 shrink-0" />
-                <div className="space-y-1">
-                  <h4 className="font-semibold text-sm" style={{ color }}>
-                    {stellarType.type}-Type: {stellarType.name}
-                  </h4>
-                  <p className="text-xs text-muted-foreground">
-                    {stellarType.description}
-                  </p>
-                  <div className="flex gap-4 pt-2 text-xs">
-                    <div>
-                      <span className="text-muted-foreground">Relative Size: </span>
-                      <span className="font-bold">{sunSize.toFixed(1)}x</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Temp Range: </span>
-                      <span className="font-bold">
-                        {stellarType.minTemp.toLocaleString()}-{stellarType.maxTemp.toLocaleString()}K
+            {hasSun && (
+              <>
+                {/* Star Preview */}
+                <div className="flex justify-center py-6">
+                  <div className="relative">
+                    <div
+                      className="rounded-full transition-all duration-500"
+                      style={{
+                        width: `${80 + sunSize * 30}px`,
+                        height: `${80 + sunSize * 30}px`,
+                        backgroundColor: color,
+                        boxShadow: `0 0 ${30 * sunSize}px ${15 * sunSize}px ${color}80, 0 0 ${60 * sunSize}px ${30 * sunSize}px ${color}40`,
+                      }}
+                    />
+                    <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-center">
+                      <span className="text-sm font-bold" style={{ color }}>
+                        Class {stellarType.type}
+                      </span>
+                      <span className="text-xs text-muted-foreground ml-2">
+                        {stellarType.name}
                       </span>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Quick Presets */}
-            <div className="space-y-2">
-              <Label>Quick Presets</Label>
-              <div className="grid grid-cols-4 gap-2">
-                {STELLAR_TYPES.slice(0, 4).map((star) => (
-                  <button
-                    key={star.type}
-                    type="button"
-                    onClick={() => setTemperature(Math.floor((star.minTemp + star.maxTemp) / 2))}
-                    className={`p-2 rounded-lg border text-xs font-medium transition-all hover:scale-105 ${
-                      stellarType.type === star.type
-                        ? 'border-primary bg-primary/20'
-                        : 'border-border bg-muted/30 hover:bg-muted/50'
-                    }`}
-                    style={{ color: star.color }}
-                  >
-                    {star.type} - {star.name.split(' ')[0]}
-                  </button>
-                ))}
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {STELLAR_TYPES.slice(4).map((star) => (
-                  <button
-                    key={star.type}
-                    type="button"
-                    onClick={() => setTemperature(Math.floor((star.minTemp + star.maxTemp) / 2))}
-                    className={`p-2 rounded-lg border text-xs font-medium transition-all hover:scale-105 ${
-                      stellarType.type === star.type
-                        ? 'border-primary bg-primary/20'
-                        : 'border-border bg-muted/30 hover:bg-muted/50'
-                    }`}
-                    style={{ color: star.color }}
-                  >
-                    {star.type} - {star.name.split(' ')[0]}
-                  </button>
-                ))}
-              </div>
-            </div>
+                {/* Star Name */}
+                <div className="space-y-2">
+                  <Label htmlFor="sun-name">Star Name</Label>
+                  <Input
+                    id="sun-name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Sol"
+                  />
+                </div>
+
+                {/* Description */}
+                <div className="space-y-2">
+                  <Label htmlFor="sun-description">Star Lore</Label>
+                  <Textarea
+                    id="sun-description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Describe your star's history, mythology, or unique properties..."
+                    rows={3}
+                  />
+                </div>
+
+                {/* Temperature Slider */}
+                <div className="space-y-4 p-4 rounded-lg bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Thermometer className="w-4 h-4 text-primary" />
+                      <Label>Surface Temperature</Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="w-3 h-3 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p>Temperature determines stellar classification, color, and size. Our Sun is ~5,778K.</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <span className="text-sm font-mono font-bold" style={{ color }}>
+                      {temperature.toLocaleString()}K
+                    </span>
+                  </div>
+                  <Slider
+                    value={[temperature]}
+                    onValueChange={(v) => setTemperature(v[0])}
+                    min={2400}
+                    max={50000}
+                    step={100}
+                    className="py-2"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Red Dwarf (2,400K)</span>
+                    <span>Blue Giant (50,000K)</span>
+                  </div>
+                </div>
+
+                {/* Stellar Facts Card */}
+                <div className="p-4 rounded-lg border border-primary/30 bg-primary/5">
+                  <div className="flex items-start gap-3">
+                    <Flame className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+                    <div className="space-y-1">
+                      <h4 className="font-semibold text-sm" style={{ color }}>
+                        {stellarType.type}-Type: {stellarType.name}
+                      </h4>
+                      <p className="text-xs text-muted-foreground">
+                        {stellarType.description}
+                      </p>
+                      <div className="flex gap-4 pt-2 text-xs">
+                        <div>
+                          <span className="text-muted-foreground">Relative Size: </span>
+                          <span className="font-bold">{sunSize.toFixed(1)}x</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Temp Range: </span>
+                          <span className="font-bold">
+                            {stellarType.minTemp.toLocaleString()}-{stellarType.maxTemp.toLocaleString()}K
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Presets */}
+                <div className="space-y-2">
+                  <Label>Quick Presets</Label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {STELLAR_TYPES.slice(0, 4).map((star) => (
+                      <button
+                        key={star.type}
+                        type="button"
+                        onClick={() => setTemperature(Math.floor((star.minTemp + star.maxTemp) / 2))}
+                        className={`p-2 rounded-lg border text-xs font-medium transition-all hover:scale-105 ${
+                          stellarType.type === star.type
+                            ? 'border-primary bg-primary/20'
+                            : 'border-border bg-muted/30 hover:bg-muted/50'
+                        }`}
+                        style={{ color: star.color }}
+                      >
+                        {star.type} - {star.name.split(' ')[0]}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {STELLAR_TYPES.slice(4).map((star) => (
+                      <button
+                        key={star.type}
+                        type="button"
+                        onClick={() => setTemperature(Math.floor((star.minTemp + star.maxTemp) / 2))}
+                        className={`p-2 rounded-lg border text-xs font-medium transition-all hover:scale-105 ${
+                          stellarType.type === star.type
+                            ? 'border-primary bg-primary/20'
+                            : 'border-border bg-muted/30 hover:bg-muted/50'
+                        }`}
+                        style={{ color: star.color }}
+                      >
+                        {star.type} - {star.name.split(' ')[0]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
 
             <Button onClick={handleSave} className="w-full" disabled={saving}>
               {saving ? (
@@ -309,7 +322,7 @@ export default function SunEditor({ sun, onSave, onBack }: SunEditorProps) {
               ) : (
                 <Save className="w-4 h-4 mr-2" />
               )}
-              Save Star Configuration
+              {hasSun ? 'Save Star Configuration' : 'Save (No Star)'}
             </Button>
           </CardContent>
         </Card>
