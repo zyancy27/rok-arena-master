@@ -3,6 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { Sphere, Ring } from '@react-three/drei';
 import * as THREE from 'three';
 import { getSunSizeFromTemperature, getSunLuminosityFromTemperature } from './SunEditor';
+import SunSurface from './SunSurface';
 
 interface SunProps {
   color?: string;
@@ -23,10 +24,10 @@ export function getHabitableZone(temperature: number): { inner: number; outer: n
 }
 
 export default function Sun({ color = '#FDB813', temperature = 5778, onClick, habitableZoneEmphasis = false }: SunProps) {
-  const sunRef = useRef<THREE.Mesh>(null);
   const glowRef = useRef<THREE.Mesh>(null);
   const groupRef = useRef<THREE.Group>(null);
   const habitableRingRef = useRef<THREE.Mesh>(null);
+  const coronaRef = useRef<THREE.Mesh>(null);
 
   // Calculate size based on temperature (real astrophysics)
   const sizeMultiplier = getSunSizeFromTemperature(temperature);
@@ -47,9 +48,6 @@ export default function Sun({ color = '#FDB813', temperature = 5778, onClick, ha
   const lightDistance = 30 + luminosity * 15;
 
   useFrame((state, delta) => {
-    if (sunRef.current) {
-      sunRef.current.rotation.y += delta * 0.1;
-    }
     if (glowRef.current) {
       const scale = 1 + Math.sin(state.clock.elapsedTime * 2) * 0.05;
       glowRef.current.scale.setScalar(scale);
@@ -57,6 +55,11 @@ export default function Sun({ color = '#FDB813', temperature = 5778, onClick, ha
     // Animate habitable zone ring
     if (habitableRingRef.current) {
       habitableRingRef.current.rotation.z += delta * 0.02;
+    }
+    // Animate corona for hot stars
+    if (coronaRef.current) {
+      const coronaScale = 1 + Math.sin(state.clock.elapsedTime * 0.5) * 0.03;
+      coronaRef.current.scale.setScalar(coronaScale);
     }
   });
 
@@ -67,35 +70,54 @@ export default function Sun({ color = '#FDB813', temperature = 5778, onClick, ha
 
   return (
     <group ref={groupRef} onClick={handleClick}>
-      {/* Core sun */}
-      <Sphere ref={sunRef} args={[size, 64, 64]}>
-        <meshBasicMaterial color={color} />
-      </Sphere>
+      {/* Realistic procedural sun surface */}
+      <SunSurface size={size} color={color} temperature={temperature} />
 
       {/* Inner glow */}
-      <Sphere args={[size * 1.1, 32, 32]}>
+      <Sphere args={[size * 1.05, 32, 32]}>
         <meshBasicMaterial
           color={innerGlowColor}
           transparent
-          opacity={0.4}
+          opacity={0.3}
         />
       </Sphere>
 
       {/* Outer glow - scales with luminosity */}
-      <Sphere ref={glowRef} args={[size * (1.3 + luminosity * 0.05), 32, 32]}>
+      <Sphere ref={glowRef} args={[size * (1.2 + luminosity * 0.05), 32, 32]}>
         <meshBasicMaterial
           color={outerGlowColor}
           transparent
-          opacity={Math.min(0.15 + luminosity * 0.02, 0.35)}
+          opacity={Math.min(0.12 + luminosity * 0.02, 0.3)}
           side={THREE.BackSide}
         />
       </Sphere>
 
+      {/* Chromosphere layer - visible solar atmosphere */}
+      <Sphere args={[size * 1.02, 64, 64]}>
+        <meshBasicMaterial
+          color={mainColor.clone().offsetHSL(0.02, 0.1, 0.1)}
+          transparent
+          opacity={0.15}
+        />
+      </Sphere>
+
       {/* Corona effect for hotter stars - larger for more luminous stars */}
-      {temperature > 7500 && (
-        <Sphere args={[size * (1.6 + luminosity * 0.1), 32, 32]}>
+      {temperature > 5000 && (
+        <Sphere ref={coronaRef} args={[size * (1.4 + luminosity * 0.08), 32, 32]}>
           <meshBasicMaterial
             color={outerGlowColor}
+            transparent
+            opacity={temperature > 7500 ? 0.1 : 0.05}
+            side={THREE.BackSide}
+          />
+        </Sphere>
+      )}
+
+      {/* Solar prominences hint - visible flares at edge */}
+      {temperature > 4000 && (
+        <Sphere args={[size * 1.15, 16, 16]}>
+          <meshBasicMaterial
+            color={mainColor.clone().offsetHSL(-0.05, 0.2, 0)}
             transparent
             opacity={0.08}
             side={THREE.BackSide}

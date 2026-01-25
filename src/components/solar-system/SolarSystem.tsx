@@ -610,12 +610,13 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
     setViewState('zooming');
     setControlsEnabled(false);
     
-    // Calculate camera position to zoom toward planet
+    // Calculate camera position to zoom toward planet - closer for more detail
     const planetPos = new THREE.Vector3(position.x, position.y, position.z);
     const direction = planetPos.clone().normalize();
-    const distance = planet.planetSize * 6;
+    // Reduced distance multiplier for closer zoom (was 6, now 3)
+    const distance = Math.max(planet.planetSize * 3, 1.5);
     const cameraPos = planetPos.clone().add(
-      new THREE.Vector3(direction.x * distance, distance * 0.5, direction.z * distance + distance)
+      new THREE.Vector3(direction.x * distance, distance * 0.4, direction.z * distance + distance * 0.8)
     );
     
     setCameraTarget(cameraPos);
@@ -1303,9 +1304,9 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
         <OrbitControls
           ref={orbitControlsRef}
           enabled={controlsEnabled}
-          enablePan={false}
-          minDistance={10}
-          maxDistance={50}
+        enablePan={false}
+        minDistance={2}
+        maxDistance={50}
           maxPolarAngle={Math.PI / 2.2}
           // Improved touch controls for mobile
           enableDamping={true}
