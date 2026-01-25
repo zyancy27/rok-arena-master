@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Accordion,
   AccordionContent,
@@ -25,6 +26,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import ChallengeModal from '@/components/battles/ChallengeModal';
 import CharacterStatSheet from '@/components/characters/CharacterStatSheet';
+import Character3DPanel from '@/components/characters/Character3DPanel';
 import { toast } from 'sonner';
 import { getTierName, getTierColor, getTierSummary } from '@/lib/game-constants';
 import {
@@ -50,6 +52,7 @@ import {
   Download,
   Smile,
   Lightbulb,
+  Box,
 } from 'lucide-react';
 import { downloadCharacterSheet, downloadCharacterSheetJSON } from '@/lib/character-sheet-download';
 import {
@@ -183,7 +186,7 @@ export default function CharacterDetail() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-5xl mx-auto">
       <Button variant="ghost" onClick={() => navigate(-1)} className="mb-6">
         <ArrowLeft className="w-4 h-4 mr-2" />
         Back
@@ -291,142 +294,171 @@ export default function CharacterDetail() {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Basic Info Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {character.race && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
-                <User className="w-4 h-4 text-accent" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Race</p>
-                  <p className="font-medium">{character.race}</p>
-                </div>
+          <Tabs defaultValue="profile" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="profile" className="flex items-center gap-2">
+                <User className="w-4 h-4" />
+                Profile
+              </TabsTrigger>
+              {isOwner && (
+                <TabsTrigger value="3d" className="flex items-center gap-2">
+                  <Box className="w-4 h-4" />
+                  3D Model
+                </TabsTrigger>
+              )}
+              {!isOwner && (
+                <TabsTrigger value="3d" disabled className="flex items-center gap-2 opacity-50">
+                  <Box className="w-4 h-4" />
+                  3D Model
+                </TabsTrigger>
+              )}
+            </TabsList>
+
+            <TabsContent value="profile" className="space-y-6">
+              {/* Basic Info Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {character.race && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                    <User className="w-4 h-4 text-accent" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Race</p>
+                      <p className="font-medium">{character.race}</p>
+                    </div>
+                  </div>
+                )}
+                {character.sub_race && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                    <User className="w-4 h-4 text-accent" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Sub-Race</p>
+                      <p className="font-medium">{character.sub_race}</p>
+                    </div>
+                  </div>
+                )}
+                {character.home_planet && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                    <Globe className="w-4 h-4 text-accent" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Home Planet</p>
+                      <p className="font-medium">{character.home_planet}</p>
+                    </div>
+                  </div>
+                )}
+                {character.age && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
+                    <Calendar className="w-4 h-4 text-accent" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Age</p>
+                      <p className="font-medium">{character.age}</p>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-            {character.sub_race && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
-                <User className="w-4 h-4 text-accent" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Sub-Race</p>
-                  <p className="font-medium">{character.sub_race}</p>
-                </div>
-              </div>
-            )}
-            {character.home_planet && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
-                <Globe className="w-4 h-4 text-accent" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Home Planet</p>
-                  <p className="font-medium">{character.home_planet}</p>
-                </div>
-              </div>
-            )}
-            {character.age && (
-              <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
-                <Calendar className="w-4 h-4 text-accent" />
-                <div>
-                  <p className="text-xs text-muted-foreground">Age</p>
-                  <p className="font-medium">{character.age}</p>
-                </div>
-              </div>
-            )}
-          </div>
 
-          {/* Expandable Sections */}
-          <Accordion type="multiple" className="space-y-2">
-            {character.lore && (
-              <AccordionItem value="lore" className="border-border">
-                <AccordionTrigger className="hover:no-underline">
-                  <span className="flex items-center gap-2">
-                    <BookOpen className="w-4 h-4 text-primary" />
-                    Lore & Backstory
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground whitespace-pre-wrap">
-                  {character.lore}
-                </AccordionContent>
-              </AccordionItem>
-            )}
+              {/* Expandable Sections */}
+              <Accordion type="multiple" className="space-y-2">
+                {character.lore && (
+                  <AccordionItem value="lore" className="border-border">
+                    <AccordionTrigger className="hover:no-underline">
+                      <span className="flex items-center gap-2">
+                        <BookOpen className="w-4 h-4 text-primary" />
+                        Lore & Backstory
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="text-muted-foreground whitespace-pre-wrap">
+                      {character.lore}
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
 
-            {character.powers && (
-              <AccordionItem value="powers" className="border-border">
-                <AccordionTrigger className="hover:no-underline">
-                  <span className="flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-cosmic-gold" />
-                    Base Power
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground whitespace-pre-wrap">
-                  {character.powers}
-                </AccordionContent>
-              </AccordionItem>
-            )}
+                {character.powers && (
+                  <AccordionItem value="powers" className="border-border">
+                    <AccordionTrigger className="hover:no-underline">
+                      <span className="flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-cosmic-gold" />
+                        Base Power
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="text-muted-foreground whitespace-pre-wrap">
+                      {character.powers}
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
 
-            {character.abilities && (
-              <AccordionItem value="abilities" className="border-border">
-                <AccordionTrigger className="hover:no-underline">
-                  <span className="flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-accent" />
-                    Abilities & Techniques
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground whitespace-pre-wrap">
-                  {character.abilities}
-                </AccordionContent>
-              </AccordionItem>
-            )}
+                {character.abilities && (
+                  <AccordionItem value="abilities" className="border-border">
+                    <AccordionTrigger className="hover:no-underline">
+                      <span className="flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-accent" />
+                        Abilities & Techniques
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="text-muted-foreground whitespace-pre-wrap">
+                      {character.abilities}
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
 
-            {character.personality && (
-              <AccordionItem value="personality" className="border-border">
-                <AccordionTrigger className="hover:no-underline">
-                  <span className="flex items-center gap-2">
-                    <Smile className="w-4 h-4 text-accent" />
-                    Personality
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground whitespace-pre-wrap">
-                  {character.personality}
-                </AccordionContent>
-              </AccordionItem>
-            )}
+                {character.personality && (
+                  <AccordionItem value="personality" className="border-border">
+                    <AccordionTrigger className="hover:no-underline">
+                      <span className="flex items-center gap-2">
+                        <Smile className="w-4 h-4 text-accent" />
+                        Personality
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="text-muted-foreground whitespace-pre-wrap">
+                      {character.personality}
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
 
-            {character.mentality && (
-              <AccordionItem value="mentality" className="border-border">
-                <AccordionTrigger className="hover:no-underline">
-                  <span className="flex items-center gap-2">
-                    <Lightbulb className="w-4 h-4 text-cosmic-gold" />
-                    Mentality
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground whitespace-pre-wrap">
-                  {character.mentality}
-                </AccordionContent>
-              </AccordionItem>
-            )}
+                {character.mentality && (
+                  <AccordionItem value="mentality" className="border-border">
+                    <AccordionTrigger className="hover:no-underline">
+                      <span className="flex items-center gap-2">
+                        <Lightbulb className="w-4 h-4 text-cosmic-gold" />
+                        Mentality
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="text-muted-foreground whitespace-pre-wrap">
+                      {character.mentality}
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
 
-            {/* Stats Section */}
-            <AccordionItem value="stats" className="border-border">
-              <AccordionTrigger className="hover:no-underline">
-                <span className="flex items-center gap-2">
-                  <Target className="w-4 h-4 text-primary" />
-                  Character Stats
-                </span>
-              </AccordionTrigger>
-              <AccordionContent>
-                <CharacterStatSheet
-                  stats={{
-                    stat_intelligence: character.stat_intelligence ?? 50,
-                    stat_strength: character.stat_strength ?? 50,
-                    stat_power: character.stat_power ?? 50,
-                    stat_speed: character.stat_speed ?? 50,
-                    stat_durability: character.stat_durability ?? 50,
-                    stat_stamina: character.stat_stamina ?? 50,
-                    stat_skill: character.stat_skill ?? 50,
-                    stat_luck: character.stat_luck ?? 50,
-                  }}
-                />
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
+                {/* Stats Section */}
+                <AccordionItem value="stats" className="border-border">
+                  <AccordionTrigger className="hover:no-underline">
+                    <span className="flex items-center gap-2">
+                      <Target className="w-4 h-4 text-primary" />
+                      Character Stats
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <CharacterStatSheet
+                      stats={{
+                        stat_intelligence: character.stat_intelligence ?? 50,
+                        stat_strength: character.stat_strength ?? 50,
+                        stat_power: character.stat_power ?? 50,
+                        stat_speed: character.stat_speed ?? 50,
+                        stat_durability: character.stat_durability ?? 50,
+                        stat_stamina: character.stat_stamina ?? 50,
+                        stat_skill: character.stat_skill ?? 50,
+                        stat_luck: character.stat_luck ?? 50,
+                      }}
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </TabsContent>
+
+            {isOwner && (
+              <TabsContent value="3d">
+                <Character3DPanel characterId={character.id} />
+              </TabsContent>
+            )}
+          </Tabs>
         </CardContent>
       </Card>
 

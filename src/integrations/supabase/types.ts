@@ -155,6 +155,100 @@ export type Database = {
           },
         ]
       }
+      character_3d_configs: {
+        Row: {
+          character_id: string
+          created_at: string
+          current_status: Database["public"]["Enums"]["generation_status"]
+          height_morph: number
+          id: string
+          model_glb_url: string | null
+          motion_mode: Database["public"]["Enums"]["motion_mode"]
+          preview_url: string | null
+          quality: Database["public"]["Enums"]["model_quality"]
+          shoulders_morph: number
+          template: Database["public"]["Enums"]["character_template"]
+          updated_at: string
+          visual_style: Database["public"]["Enums"]["visual_style"]
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          current_status?: Database["public"]["Enums"]["generation_status"]
+          height_morph?: number
+          id?: string
+          model_glb_url?: string | null
+          motion_mode?: Database["public"]["Enums"]["motion_mode"]
+          preview_url?: string | null
+          quality?: Database["public"]["Enums"]["model_quality"]
+          shoulders_morph?: number
+          template?: Database["public"]["Enums"]["character_template"]
+          updated_at?: string
+          visual_style?: Database["public"]["Enums"]["visual_style"]
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          current_status?: Database["public"]["Enums"]["generation_status"]
+          height_morph?: number
+          id?: string
+          model_glb_url?: string | null
+          motion_mode?: Database["public"]["Enums"]["motion_mode"]
+          preview_url?: string | null
+          quality?: Database["public"]["Enums"]["model_quality"]
+          shoulders_morph?: number
+          template?: Database["public"]["Enums"]["character_template"]
+          updated_at?: string
+          visual_style?: Database["public"]["Enums"]["visual_style"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_3d_configs_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: true
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_images: {
+        Row: {
+          character_id: string
+          created_at: string
+          display_order: number
+          id: string
+          image_url: string
+          role: Database["public"]["Enums"]["image_role"]
+          storage_path: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url: string
+          role?: Database["public"]["Enums"]["image_role"]
+          storage_path: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          image_url?: string
+          role?: Database["public"]["Enums"]["image_role"]
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_images_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       characters: {
         Row: {
           abilities: string | null
@@ -322,6 +416,81 @@ export type Database = {
           visual_effects?: Json | null
         }
         Relationships: []
+      }
+      generation_jobs: {
+        Row: {
+          character_id: string
+          config_id: string
+          created_at: string
+          error: string | null
+          height_morph: number
+          id: string
+          logs: Json | null
+          motion_mode: Database["public"]["Enums"]["motion_mode"]
+          progress: number
+          quality: Database["public"]["Enums"]["model_quality"]
+          result_glb_url: string | null
+          result_preview_url: string | null
+          shoulders_morph: number
+          status: Database["public"]["Enums"]["generation_status"]
+          template: Database["public"]["Enums"]["character_template"]
+          updated_at: string
+          visual_style: Database["public"]["Enums"]["visual_style"]
+        }
+        Insert: {
+          character_id: string
+          config_id: string
+          created_at?: string
+          error?: string | null
+          height_morph: number
+          id?: string
+          logs?: Json | null
+          motion_mode: Database["public"]["Enums"]["motion_mode"]
+          progress?: number
+          quality: Database["public"]["Enums"]["model_quality"]
+          result_glb_url?: string | null
+          result_preview_url?: string | null
+          shoulders_morph: number
+          status?: Database["public"]["Enums"]["generation_status"]
+          template: Database["public"]["Enums"]["character_template"]
+          updated_at?: string
+          visual_style: Database["public"]["Enums"]["visual_style"]
+        }
+        Update: {
+          character_id?: string
+          config_id?: string
+          created_at?: string
+          error?: string | null
+          height_morph?: number
+          id?: string
+          logs?: Json | null
+          motion_mode?: Database["public"]["Enums"]["motion_mode"]
+          progress?: number
+          quality?: Database["public"]["Enums"]["model_quality"]
+          result_glb_url?: string | null
+          result_preview_url?: string | null
+          shoulders_morph?: number
+          status?: Database["public"]["Enums"]["generation_status"]
+          template?: Database["public"]["Enums"]["character_template"]
+          updated_at?: string
+          visual_style?: Database["public"]["Enums"]["visual_style"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generation_jobs_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generation_jobs_config_id_fkey"
+            columns: ["config_id"]
+            isOneToOne: false
+            referencedRelation: "character_3d_configs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       moon_customizations: {
         Row: {
@@ -754,7 +923,27 @@ export type Database = {
     Enums: {
       app_role: "admin" | "moderator" | "user"
       battle_status: "pending" | "active" | "completed"
+      character_template:
+        | "adult_basic"
+        | "adult_slim"
+        | "adult_bulky"
+        | "adult_longlimb"
+        | "kid_basic"
+        | "kid_slim"
+        | "kid_bulky"
+        | "kid_longlimb"
+      generation_status: "none" | "queued" | "processing" | "done" | "error"
+      image_role:
+        | "front"
+        | "side"
+        | "back"
+        | "three_quarter"
+        | "detail"
+        | "other"
       message_channel: "in_universe" | "out_of_universe"
+      model_quality: "mobile_low" | "mobile_med" | "desktop"
+      motion_mode: "static" | "idle" | "idle_interactive"
+      visual_style: "toon" | "semi"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -884,7 +1073,22 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "moderator", "user"],
       battle_status: ["pending", "active", "completed"],
+      character_template: [
+        "adult_basic",
+        "adult_slim",
+        "adult_bulky",
+        "adult_longlimb",
+        "kid_basic",
+        "kid_slim",
+        "kid_bulky",
+        "kid_longlimb",
+      ],
+      generation_status: ["none", "queued", "processing", "done", "error"],
+      image_role: ["front", "side", "back", "three_quarter", "detail", "other"],
       message_channel: ["in_universe", "out_of_universe"],
+      model_quality: ["mobile_low", "mobile_med", "desktop"],
+      motion_mode: ["static", "idle", "idle_interactive"],
+      visual_style: ["toon", "semi"],
     },
   },
 } as const
