@@ -1,7 +1,8 @@
 /**
- * Enhanced Planet Surface Component
+ * Enhanced Planet Surface Component with LOD (Level of Detail)
  * 
  * Creates highly detailed procedural terrain heavily influenced by planet lore/description:
+ * - Dynamic LOD based on camera distance for smooth zoom experience
  * - Multi-biome rendering based on description keywords
  * - Ocean depth with continental shelves
  * - Mountain ranges with ridges and valleys
@@ -9,17 +10,25 @@
  * - Crystal formations with shine
  * - Ice caps and tundra
  * - Desert dunes and canyons
- * - Forest/jungle coloring
+ * - Forest/jungle coloring with tree-level detail when zoomed
  * - Special features: fungal, magical, scarred terrain
  * - Animated cloud layers
  */
 
-import { useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useMemo, useRef, useState } from 'react';
+import { useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { createNoise3D } from 'simplex-noise';
 import { parseTerrainFromLore, generateTerrainVisuals, TerrainFeatures, TerrainVisuals } from '@/lib/planet-terrain';
 import CityLights from './CityLights';
+
+// LOD thresholds based on camera distance relative to planet size
+const LOD_LEVELS = {
+  ULTRA: 0,    // Camera very close (< 2x planet size)
+  HIGH: 1,     // Close zoom (< 4x planet size)
+  MEDIUM: 2,   // Normal view (< 8x planet size)
+  LOW: 3,      // Far view (> 8x planet size)
+};
 
 interface PlanetSurfaceProps {
   size: number;
@@ -108,6 +117,10 @@ export default function PlanetSurface({
   const cloudsRef = useRef<THREE.Mesh>(null);
   const atmosphereRef = useRef<THREE.Mesh>(null);
   const glowRef = useRef<THREE.Mesh>(null);
+  const groupRef = useRef<THREE.Group>(null);
+  
+  const { camera } = useThree();
+  const [lodLevel, setLodLevel] = useState(LOD_LEVELS.MEDIUM);
 
   // Parse terrain from full description
   const terrainFeatures = useMemo(() => parseTerrainFromLore(description), [description]);
@@ -116,7 +129,34 @@ export default function PlanetSurface({
     [terrainFeatures, color]
   );
 
-  // Create procedural geometry with terrain heavily influenced by lore
+  // Calculate LOD level based on camera distance
+  useFrame(() => {
+    if (!groupRef.current) return;
+    
+    // Get world position of the planet
+    const planetWorldPos = new THREE.Vector3();
+    groupRef.current.getWorldPosition(planetWorldPos);
+    
+    const distance = camera.position.distanceTo(planetWorldPos);
+    const relativeDistance = distance / size;
+    
+    let newLod: number;
+    if (relativeDistance < 2.5) {
+      newLod = LOD_LEVELS.ULTRA;
+    } else if (relativeDistance < 5) {
+      newLod = LOD_LEVELS.HIGH;
+    } else if (relativeDistance < 10) {
+      newLod = LOD_LEVELS.MEDIUM;
+    } else {
+      newLod = LOD_LEVELS.LOW;
+    }
+    
+    if (newLod !== lodLevel) {
+      setLodLevel(newLod);
+    }
+  });
+
+  // Create procedural geometry with terrain heavily influenced by lore and LOD
   const { geometry, oceanGeometry, cloudGeometry } = useMemo(() => {
     // Seed from description for consistency
     let seed = 0;
@@ -128,18 +168,44 @@ export default function PlanetSurface({
     const noise3D = createNoise3D(() => (seed % 10000) / 10000);
     const noise3D2 = createNoise3D(() => ((seed + 12345) % 10000) / 10000);
     const noise3D3 = createNoise3D(() => ((seed + 54321) % 10000) / 10000);
+    const noise3D4 = createNoise3D(() => ((seed + 98765) % 10000) / 10000); // Extra noise for micro-detail
     
-    // Higher resolution for detailed terrain - more segments for complex worlds
+    // Dynamic segment count based on LOD level
     const hasComplexTerrain = terrainFeatures.hasMountains || terrainFeatures.hasVolcanoes || terrainFeatures.hasCanyons;
     const hasHighDetail = terrainFeatures.hasCrystals || terrainFeatures.hasForests || terrainFeatures.hasFungal;
-    const segments = hasComplexTerrain ? 128 : hasHighDetail ? 112 : 96;
+    
+    // LOD-based segment scaling
+    let baseSegments: number;
+    switch (lodLevel) {
+      case LOD_LEVELS.ULTRA:
+        baseSegments = 192; // Maximum detail when very close
+        break;
+      case LOD_LEVELS.HIGH:
+        baseSegments = 160; // High detail for close viewing
+        break;
+      case LOD_LEVELS.MEDIUM:
+        baseSegments = hasComplexTerrain ? 128 : hasHighDetail ? 112 : 96;
+        break;
+      default:
+        baseSegments = 64; // Low detail for far viewing
+    }
+    
+    const segments = baseSegments;
     const geo = new THREE.SphereGeometry(size, segments, segments);
     const positions = geo.attributes.position;
     const colors = new Float32Array(positions.count * 3);
     
+    // LOD-based noise octaves for detail
+    const continentOctaves = lodLevel === LOD_LEVELS.ULTRA ? 8 : lodLevel === LOD_LEVELS.HIGH ? 7 : 5;
+    const mountainOctaves = lodLevel === LOD_LEVELS.ULTRA ? 8 : lodLevel === LOD_LEVELS.HIGH ? 7 : 6;
+    const microDetailOctaves = lodLevel === LOD_LEVELS.ULTRA ? 6 : lodLevel === LOD_LEVELS.HIGH ? 4 : 2;
+    
     // Get terrain parameters from parsed features
     const { continentFrequency, mountainFrequency, detailLevel } = terrainVisuals;
     const mountainScale = getMountainScale(terrainFeatures.mountainScale);
+    
+    // Enhanced detail frequency based on LOD
+    const lodDetailMultiplier = lodLevel === LOD_LEVELS.ULTRA ? 4 : lodLevel === LOD_LEVELS.HIGH ? 2.5 : 1;
     
     // Color palette based on biome
     const colors_palette = getColorPalette(terrainFeatures, terrainVisuals, color);
@@ -164,7 +230,7 @@ export default function PlanetSurface({
       const longitude = Math.atan2(nz, nx) / Math.PI;
       
       // === CONTINENTAL SHAPES ===
-      let continentNoise = fbm(noise3D, nx * continentFrequency, ny * continentFrequency, nz * continentFrequency, 5);
+      let continentNoise = fbm(noise3D, nx * continentFrequency, ny * continentFrequency, nz * continentFrequency, continentOctaves);
       
       // Adjust for continent type
       if (terrainFeatures.continentType === 'single') {
@@ -183,7 +249,7 @@ export default function PlanetSurface({
       }
       
       // === MOUNTAIN RANGES ===
-      let mountainNoise = ridgeFbm(noise3D2, nx * mountainFrequency, ny * mountainFrequency, nz * mountainFrequency, 6);
+      let mountainNoise = ridgeFbm(noise3D2, nx * mountainFrequency, ny * mountainFrequency, nz * mountainFrequency, mountainOctaves);
       
       // High gravity flattens terrain
       if (terrainFeatures.highGravity) {
@@ -194,22 +260,84 @@ export default function PlanetSurface({
         mountainNoise *= 1.5;
       }
       
-      // === DETAIL NOISE ===
-      const detailNoise = fbm(noise3D, nx * 12 * detailLevel, ny * 12 * detailLevel, nz * 12 * detailLevel, 3) * 0.25;
+      // === DETAIL NOISE with LOD-based frequency ===
+      const detailFreq = 12 * detailLevel * lodDetailMultiplier;
+      const detailNoise = fbm(noise3D, nx * detailFreq, ny * detailFreq, nz * detailFreq, microDetailOctaves) * 0.25;
       
-      // === CRATER NOISE for barren/scarred worlds ===
-      let craterEffect = 1;
-      if (terrainFeatures.isBarren || terrainFeatures.hasScarredTerrain) {
-        craterEffect = craterNoise(noise3D3, nx * 2, ny * 2, nz * 2, 12);
+      // === MICRO-DETAIL for close-up viewing (forests, rocks, dunes) ===
+      let microDetail = 0;
+      const biomeNoiseForDetail = noise3D(nx * 4, ny * 4, nz * 4); // Pre-calculate for micro-detail
+      
+      if (lodLevel <= LOD_LEVELS.HIGH) {
+        // High frequency detail that appears when zoomed in
+        const microFreq = 30 * lodDetailMultiplier;
+        microDetail = fbm(noise3D4, nx * microFreq, ny * microFreq, nz * microFreq, microDetailOctaves) * 0.008;
+        
+        // Add extra bump for forest areas
+        if (terrainFeatures.hasForests || terrainFeatures.forestType !== 'none') {
+          const forestNoise = fbm(noise3D4, nx * 50, ny * 50, nz * 50, 4);
+          if (forestNoise > 0.3 && latitude < 0.6 && latitude > 0.1) {
+            microDetail += forestNoise * 0.015; // Tree canopy bumps
+          }
+        }
+        
+        // Rocky terrain detail
+        if (terrainFeatures.hasMountains && mountainNoise > 0.3) {
+          const rockNoise = fbm(noise3D4, nx * 80, ny * 80, nz * 80, 3);
+          microDetail += rockNoise * 0.01;
+        }
+        
+        // Sand dune ripples for desert
+        if (terrainFeatures.hasDeserts) {
+          const duneNoise = noise3D4(nx * 100, ny * 100, nz * 100);
+          if (biomeNoiseForDetail > 0.2 && latitude < 0.5) {
+            microDetail += Math.abs(duneNoise) * 0.006;
+          }
+        }
       }
       
-      // === VOLCANIC RIDGES ===
+      // === VOLCANIC RIDGES (declare before ultra-detail) ===
       let volcanoNoise = 0;
       if (terrainFeatures.hasVolcanoes) {
         volcanoNoise = Math.pow(ridgeNoise(noise3D2, nx * 2, ny * 2, nz * 2), 3);
         if (terrainFeatures.volcanoIntensity === 'extreme') {
           volcanoNoise *= 1.5;
         }
+      }
+      
+      // === ULTRA-DETAIL for extreme close-up ===
+      let ultraDetail = 0;
+      if (lodLevel === LOD_LEVELS.ULTRA) {
+        // Individual tree/vegetation bumps
+        const treeFreq = 150;
+        const treeNoise = noise3D4(nx * treeFreq, ny * treeFreq, nz * treeFreq);
+        
+        if (terrainFeatures.hasForests && latitude < 0.55 && latitude > 0.15) {
+          // Create tree-like bumps in forest areas
+          if (treeNoise > 0.4) {
+            ultraDetail += (treeNoise - 0.4) * 0.02;
+          }
+        }
+        
+        // Crystal formations
+        if (terrainFeatures.hasCrystals) {
+          const crystalNoise = noise3D4(nx * 200, ny * 200, nz * 200);
+          if (crystalNoise > 0.6) {
+            ultraDetail += (crystalNoise - 0.6) * 0.025;
+          }
+        }
+        
+        // Volcanic rock detail
+        if (terrainFeatures.hasVolcanoes && volcanoNoise > 0.4) {
+          const lavaRockNoise = fbm(noise3D4, nx * 120, ny * 120, nz * 120, 3);
+          ultraDetail += lavaRockNoise * 0.008;
+        }
+      }
+      
+      // === CRATER NOISE for barren/scarred worlds ===
+      let craterEffect = 1;
+      if (terrainFeatures.isBarren || terrainFeatures.hasScarredTerrain) {
+        craterEffect = craterNoise(noise3D3, nx * 2, ny * 2, nz * 2, 12);
       }
       
       // === COMBINE ELEVATION ===
@@ -220,6 +348,10 @@ export default function PlanetSurface({
         elevation += mountainNoise * mountainScale;
         elevation += detailNoise * 0.02;
         elevation += volcanoNoise * 0.05;
+        
+        // Add LOD-based micro and ultra detail
+        elevation += microDetail;
+        elevation += ultraDetail;
       }
       
       // Apply crater depression
@@ -233,11 +365,12 @@ export default function PlanetSurface({
         }
       }
       
-      // === DISPLACEMENT - more dramatic based on terrain features ===
+      // === DISPLACEMENT - more dramatic based on terrain features and LOD ===
       // Higher displacement for more pronounced terrain visibility
       const baseDisplacement = terrainFeatures.hasMountains ? 0.35 : 0.2;
-      const displacementMultiplier = terrainFeatures.highGravity ? baseDisplacement * 0.6 : 
-                                     terrainFeatures.lowGravity ? baseDisplacement * 1.4 : baseDisplacement;
+      const lodDisplacementBoost = lodLevel === LOD_LEVELS.ULTRA ? 1.15 : lodLevel === LOD_LEVELS.HIGH ? 1.08 : 1.0;
+      const displacementMultiplier = (terrainFeatures.highGravity ? baseDisplacement * 0.6 : 
+                                     terrainFeatures.lowGravity ? baseDisplacement * 1.4 : baseDisplacement) * lodDisplacementBoost;
       const displacement = 1 + elevation * displacementMultiplier;
       positions.setXYZ(i, nx * size * displacement, ny * size * displacement, nz * size * displacement);
       
@@ -292,7 +425,7 @@ export default function PlanetSurface({
     cloudGeo.setAttribute('color', new THREE.BufferAttribute(cloudColors, 3));
     
     return { geometry: geo, oceanGeometry: oceanGeo, cloudGeometry: cloudGeo };
-  }, [size, color, description, terrainFeatures, terrainVisuals]);
+  }, [size, color, description, terrainFeatures, terrainVisuals, lodLevel]);
 
   // Animate clouds and special effects
   useFrame((_, delta) => {
@@ -307,7 +440,7 @@ export default function PlanetSurface({
   const oceanColor = new THREE.Color(terrainVisuals.oceanColor);
 
   return (
-    <group>
+    <group ref={groupRef}>
       {/* Main terrain */}
       <mesh ref={meshRef} geometry={geometry}>
         <meshStandardMaterial
