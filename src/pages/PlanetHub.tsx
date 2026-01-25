@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Shuffle, Save, FolderOpen, Plus, Trash2, Moon, Info } from 'lucide-react';
+import { ArrowLeft, Sparkles, Shuffle, Save, FolderOpen, Plus, Trash2, Moon, Info, PanelBottomClose, PanelBottomOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -63,6 +63,7 @@ export default function PlanetHub() {
   const [planetName, setPlanetName] = useState('');
   const [showMoons, setShowMoons] = useState(false);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [isPanelHidden, setIsPanelHidden] = useState(false);
   
   // Load saved planets from localStorage
   useEffect(() => {
@@ -255,6 +256,9 @@ export default function PlanetHub() {
           <Button variant="ghost" size="icon" onClick={() => setIsInfoOpen(!isInfoOpen)}>
             <Info className="h-5 w-5" />
           </Button>
+          <Button variant="ghost" size="icon" onClick={() => setIsPanelHidden(!isPanelHidden)}>
+            {isPanelHidden ? <PanelBottomOpen className="h-5 w-5" /> : <PanelBottomClose className="h-5 w-5" />}
+          </Button>
         </div>
       </header>
       
@@ -281,7 +285,7 @@ export default function PlanetHub() {
         )}
         
         {/* Bottom control panel */}
-        <div className="absolute bottom-0 left-0 right-0 z-10">
+        <div className={`absolute bottom-0 left-0 right-0 z-10 transition-transform duration-300 ${isPanelHidden ? 'translate-y-full' : 'translate-y-0'}`}>
           <Card className="m-3 p-4 bg-card/95 backdrop-blur border">
             <ScrollArea className="max-h-[50vh]">
               <div className="space-y-4">
