@@ -1001,6 +1001,8 @@ export default function PlanetEditor({
         <PlanetPreview3D
           description={description}
           displayName={displayName || planet.name}
+          color={color}
+          hasRings={hasRings}
           initialParams={previewParams}
           onClose={() => setShowPreview(false)}
           onParamsUpdate={setGeneratedParams}
