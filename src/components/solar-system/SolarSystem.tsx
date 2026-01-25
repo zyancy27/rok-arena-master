@@ -1180,7 +1180,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
             // Create a unique key that includes customization values to force re-render
             const descHash = planet.description ? planet.description.slice(0, 50) : '';
             const planetMoons = moonDataByPlanet[planet.name] || [];
-            const planetKey = `${planet.name}-${planet.orbitRadius}-${planet.planetSize}-${planet.color}-${descHash}-${planetMoons.length}`;
+            const planetKey = `${planet.name}-${planet.orbitRadius}-${planet.planetSize}-${planet.color}-${planet.hasRings}-${descHash}-${planetMoons.length}`;
             return (
               <group key={planetKey}>
                 <OrbitRing radius={planet.orbitRadius} />

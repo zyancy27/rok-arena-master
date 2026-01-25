@@ -149,7 +149,8 @@ export default function Planet({
     }
 
     if (planetRef.current) {
-      planetRef.current.rotation.y += delta * 0.5;
+      // Slow rotation for a more realistic feel
+      planetRef.current.rotation.y += delta * 0.08;
     }
   });
 
