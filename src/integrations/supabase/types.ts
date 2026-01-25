@@ -832,6 +832,7 @@ export type Database = {
           color: string
           created_at: string
           description: string | null
+          has_sun: boolean
           id: string
           name: string | null
           solar_system_id: string | null
@@ -843,6 +844,7 @@ export type Database = {
           color?: string
           created_at?: string
           description?: string | null
+          has_sun?: boolean
           id?: string
           name?: string | null
           solar_system_id?: string | null
@@ -854,6 +856,7 @@ export type Database = {
           color?: string
           created_at?: string
           description?: string | null
+          has_sun?: boolean
           id?: string
           name?: string | null
           solar_system_id?: string | null
