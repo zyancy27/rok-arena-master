@@ -91,18 +91,10 @@ export default function Hub() {
 
       {/* User's Characters */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold flex items-center gap-2">
-            <Swords className="w-6 h-6 text-primary" />
-            Your Characters
-          </h2>
-          <Button variant="outline" asChild>
-            <Link to="/characters/new">
-              <Plus className="w-4 h-4 mr-2" />
-              New Character
-            </Link>
-          </Button>
-        </div>
+        <h2 className="text-2xl font-bold flex items-center gap-2">
+          <Swords className="w-6 h-6 text-primary" />
+          Your Characters
+        </h2>
 
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
