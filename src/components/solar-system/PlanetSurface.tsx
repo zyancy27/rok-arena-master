@@ -128,8 +128,9 @@ export default function PlanetSurface({
     const noise3D2 = createNoise3D(() => ((seed + 12345) % 10000) / 10000);
     const noise3D3 = createNoise3D(() => ((seed + 54321) % 10000) / 10000);
     
-    // Higher resolution for detail
-    const segments = 72;
+    // Higher resolution for detailed terrain - more segments for complex worlds
+    const hasComplexTerrain = terrainFeatures.hasMountains || terrainFeatures.hasVolcanoes || terrainFeatures.hasCanyons;
+    const segments = hasComplexTerrain ? 96 : 72;
     const geo = new THREE.SphereGeometry(size, segments, segments);
     const positions = geo.attributes.position;
     const colors = new Float32Array(positions.count * 3);
@@ -230,8 +231,12 @@ export default function PlanetSurface({
         }
       }
       
-      // === DISPLACEMENT ===
-      const displacement = 1 + elevation * 0.15;
+      // === DISPLACEMENT - more dramatic based on terrain features ===
+      // Higher displacement for more pronounced terrain visibility
+      const baseDisplacement = terrainFeatures.hasMountains ? 0.35 : 0.2;
+      const displacementMultiplier = terrainFeatures.highGravity ? baseDisplacement * 0.6 : 
+                                     terrainFeatures.lowGravity ? baseDisplacement * 1.4 : baseDisplacement;
+      const displacement = 1 + elevation * displacementMultiplier;
       positions.setXYZ(i, nx * size * displacement, ny * size * displacement, nz * size * displacement);
       
       // === COLOR BASED ON ELEVATION, BIOME, AND LORE ===
@@ -369,13 +374,14 @@ export default function PlanetSurface({
 // === HELPER FUNCTIONS ===
 
 function getMountainScale(scale: TerrainFeatures['mountainScale']): number {
+  // Increased values for more visible terrain differences
   switch (scale) {
-    case 'small': return 0.02;
-    case 'medium': return 0.04;
-    case 'large': return 0.07;
-    case 'massive': return 0.1;
-    case 'colossal': return 0.14;
-    default: return 0.04;
+    case 'small': return 0.04;
+    case 'medium': return 0.08;
+    case 'large': return 0.12;
+    case 'massive': return 0.18;
+    case 'colossal': return 0.25;
+    default: return 0.08;
   }
 }
 
