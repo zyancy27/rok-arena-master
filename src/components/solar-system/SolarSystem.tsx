@@ -1218,10 +1218,11 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
           {planets.map((planet) => {
             const sunLuminosity = getSunLuminosityFromTemperature(sunData.temperature);
             const habitableZone = getHabitableZone(sunData.temperature);
-            // Create a unique key that includes customization values to force re-render
-            const descHash = planet.description ? planet.description.slice(0, 50) : '';
+            // Create a unique key that includes a hash of the full description to force re-render on lore changes
+            const descHash = planet.description ? 
+              planet.description.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0) : 0;
             const planetMoons = moonDataByPlanet[planet.name] || [];
-            const planetKey = `${planet.name}-${planet.orbitRadius}-${planet.planetSize}-${planet.color}-${planet.hasRings}-${descHash}-${planetMoons.length}-v${customizationsVersion}`;
+            const planetKey = `${planet.name}-${planet.orbitRadius.toFixed(2)}-${planet.planetSize.toFixed(2)}-${planet.color}-${planet.hasRings}-desc${descHash}-moons${planetMoons.length}-v${customizationsVersion}`;
             return (
               <group key={planetKey}>
                 <OrbitRing radius={planet.orbitRadius} />
