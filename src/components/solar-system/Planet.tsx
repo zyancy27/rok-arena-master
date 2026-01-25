@@ -200,9 +200,9 @@ export default function Planet({
         <mesh>
           <sphereGeometry args={[planetSize * 1.02, 16, 16]} />
           <meshBasicMaterial
-            color="#F97316"
+            color={terrainVisuals.emissiveColor || "#F97316"}
             transparent
-            opacity={hovered ? 0.3 : 0.15}
+            opacity={hovered ? 0.35 : 0.2}
             side={THREE.BackSide}
           />
         </mesh>
@@ -226,10 +226,49 @@ export default function Planet({
         <mesh>
           <sphereGeometry args={[planetSize * 1.08, 16, 16]} />
           <meshBasicMaterial
-            color={terrainVisuals.secondaryColor}
+            color={terrainVisuals.dustColor}
             transparent
-            opacity={0.1}
+            opacity={0.12}
             side={THREE.BackSide}
+          />
+        </mesh>
+      )}
+
+      {/* Crystal shine effect */}
+      {terrainVisuals.hasCrystalShine && (
+        <mesh>
+          <sphereGeometry args={[planetSize * 1.03, 16, 16]} />
+          <meshBasicMaterial
+            color={terrainFeatures.crystalColor}
+            transparent
+            opacity={hovered ? 0.2 : 0.1}
+            side={THREE.BackSide}
+          />
+        </mesh>
+      )}
+
+      {/* Magical aura glow */}
+      {terrainVisuals.hasMagicGlow && (
+        <mesh>
+          <sphereGeometry args={[planetSize * 1.06, 16, 16]} />
+          <meshBasicMaterial
+            color={terrainFeatures.glowColor}
+            transparent
+            opacity={hovered ? 0.18 : 0.08}
+            side={THREE.BackSide}
+          />
+        </mesh>
+      )}
+
+      {/* Aurora effect for polar/magical worlds */}
+      {terrainVisuals.hasAurorae && (
+        <mesh rotation={[0.3, 0, 0]}>
+          <torusGeometry args={[planetSize * 1.3, planetSize * 0.15, 8, 32]} />
+          <meshBasicMaterial
+            color={terrainFeatures.hasMagicAura ? "#9370DB" : "#4ADE80"}
+            transparent
+            opacity={hovered ? 0.12 : 0.05}
+            side={THREE.DoubleSide}
           />
         </mesh>
       )}
