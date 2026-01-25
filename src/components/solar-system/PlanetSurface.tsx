@@ -21,6 +21,7 @@ import * as THREE from 'three';
 import { createNoise3D } from 'simplex-noise';
 import { parseTerrainFromLore, generateTerrainVisuals, TerrainFeatures, TerrainVisuals } from '@/lib/planet-terrain';
 import CityLights from './CityLights';
+import SurfacePOIs from './SurfacePOIs';
 
 // LOD thresholds based on camera distance relative to planet size
 const LOD_LEVELS = {
@@ -34,6 +35,7 @@ interface PlanetSurfaceProps {
   size: number;
   color: string;
   description?: string;
+  planetName?: string;
   oceanCoverage?: number;
   hasMountains?: boolean;
   hasVolcanoes?: boolean;
@@ -41,6 +43,7 @@ interface PlanetSurfaceProps {
   hasDeserts?: boolean;
   hasForests?: boolean;
   isHovered?: boolean;
+  onPOIClick?: (poi: { id: string; type: string; name: string }) => void;
 }
 
 // Multi-octave noise for realistic terrain
@@ -104,6 +107,7 @@ export default function PlanetSurface({
   size,
   color,
   description = '',
+  planetName = 'Unknown',
   oceanCoverage = 0.5,
   hasMountains = false,
   hasVolcanoes = false,
@@ -111,6 +115,7 @@ export default function PlanetSurface({
   hasDeserts = false,
   hasForests = false,
   isHovered = false,
+  onPOIClick,
 }: PlanetSurfaceProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const oceanRef = useRef<THREE.Mesh>(null);
@@ -630,6 +635,14 @@ export default function PlanetSurface({
           color="#FFD080"
         />
       )}
+      
+      {/* Surface Points of Interest - visible when zoomed in */}
+      <SurfacePOIs
+        size={size}
+        description={description}
+        planetName={planetName}
+        onPOIClick={onPOIClick}
+      />
     </group>
   );
 }

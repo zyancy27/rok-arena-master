@@ -29,28 +29,18 @@ export default function Atmosphere({
 
   return (
     <group>
-      {/* Inner atmosphere glow */}
-      <Sphere ref={innerRef} args={[planetSize * 1.08, 32, 32]}>
+      {/* Inner atmosphere glow - more transparent */}
+      <Sphere ref={innerRef} args={[planetSize * 1.06, 32, 32]}>
         <meshBasicMaterial
           color={color}
           transparent
-          opacity={0.15 * intensity}
+          opacity={0.08 * intensity}
           side={THREE.BackSide}
         />
       </Sphere>
 
-      {/* Middle atmosphere layer */}
-      <Sphere args={[planetSize * 1.15, 32, 32]}>
-        <meshBasicMaterial
-          color={color}
-          transparent
-          opacity={0.1 * intensity}
-          side={THREE.BackSide}
-        />
-      </Sphere>
-
-      {/* Outer atmosphere haze */}
-      <Sphere ref={outerRef} args={[planetSize * 1.25, 32, 32]}>
+      {/* Middle atmosphere layer - more transparent */}
+      <Sphere args={[planetSize * 1.12, 32, 32]}>
         <meshBasicMaterial
           color={color}
           transparent
@@ -59,12 +49,22 @@ export default function Atmosphere({
         />
       </Sphere>
 
-      {/* Pulsing corona effect */}
-      <Sphere ref={pulseRef} args={[planetSize * 1.35, 24, 24]}>
+      {/* Outer atmosphere haze - very subtle */}
+      <Sphere ref={outerRef} args={[planetSize * 1.2, 32, 32]}>
         <meshBasicMaterial
           color={color}
           transparent
-          opacity={0.02 * intensity}
+          opacity={0.025 * intensity}
+          side={THREE.BackSide}
+        />
+      </Sphere>
+
+      {/* Pulsing corona effect - barely visible */}
+      <Sphere ref={pulseRef} args={[planetSize * 1.3, 24, 24]}>
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={0.01 * intensity}
           side={THREE.BackSide}
         />
       </Sphere>

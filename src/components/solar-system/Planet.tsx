@@ -186,6 +186,7 @@ export default function Planet({
           size={planetSize}
           color={color}
           description={description}
+          planetName={name}
           oceanCoverage={terrainFeatures.oceanCoverage}
           hasMountains={terrainFeatures.hasMountains}
           hasVolcanoes={terrainFeatures.hasVolcanoes}
