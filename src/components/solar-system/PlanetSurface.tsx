@@ -131,7 +131,8 @@ export default function PlanetSurface({
     
     // Higher resolution for detailed terrain - more segments for complex worlds
     const hasComplexTerrain = terrainFeatures.hasMountains || terrainFeatures.hasVolcanoes || terrainFeatures.hasCanyons;
-    const segments = hasComplexTerrain ? 96 : 72;
+    const hasHighDetail = terrainFeatures.hasCrystals || terrainFeatures.hasForests || terrainFeatures.hasFungal;
+    const segments = hasComplexTerrain ? 128 : hasHighDetail ? 112 : 96;
     const geo = new THREE.SphereGeometry(size, segments, segments);
     const positions = geo.attributes.position;
     const colors = new Float32Array(positions.count * 3);
