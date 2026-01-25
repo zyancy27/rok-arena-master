@@ -125,19 +125,6 @@ export default function Sun({ color = '#FDB813', temperature = 5778, onClick, ha
         </Sphere>
       )}
 
-      {/* Habitable Zone indicator ring - more visible when mentioned in lore */}
-      <Ring
-        ref={habitableRingRef}
-        args={[habitableZone.inner, habitableZone.outer, 64]}
-        rotation={[-Math.PI / 2, 0, 0]}
-      >
-        <meshBasicMaterial
-          color="#22C55E"
-          transparent
-          opacity={habitableZoneEmphasis ? 0.25 : 0.08}
-          side={THREE.DoubleSide}
-        />
-      </Ring>
 
       {/* Point light - intensity and distance scale with luminosity */}
       <pointLight 
