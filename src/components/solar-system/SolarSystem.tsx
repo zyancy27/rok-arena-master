@@ -408,7 +408,8 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
       const orbitRadius = minOrbitRadius + orbitalDistance * 4;
       
       // Calculate orbital speed using Kepler's third law (faster for closer planets)
-      const orbitSpeed = 0.3 / Math.pow(orbitalDistance, 0.5);
+      // Slow, realistic orbital motion
+      const orbitSpeed = 0.04 / Math.pow(orbitalDistance, 0.5);
       
       // Planet size: use radius if customized, otherwise based on character count
       // Radius values: 0.5 = small (Mars-like), 1 = Earth-like, 2 = Neptune-like, 3 = Jupiter-like
