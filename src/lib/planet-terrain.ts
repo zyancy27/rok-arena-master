@@ -205,6 +205,8 @@ const TERRAIN_KEYWORDS = {
 
 // Color palette for different biomes
 const BIOME_COLORS: Record<string, { primary: string; secondary: string; accent: string }> = {
+  // Default/temperate biome (used as fallback)
+  temperate: { primary: '#059669', secondary: '#10B981', accent: '#6EE7B7' },
   oceanic: { primary: '#1E40AF', secondary: '#0D47A1', accent: '#60A5FA' },
   arctic: { primary: '#E0F2FE', secondary: '#7DD3FC', accent: '#38BDF8' },
   desert: { primary: '#D97706', secondary: '#B45309', accent: '#FCD34D' },
