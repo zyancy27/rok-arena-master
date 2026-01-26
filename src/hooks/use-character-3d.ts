@@ -415,12 +415,6 @@ export function useCharacter3D(characterId: string | undefined): UseCharacter3DR
         return false;
       }
 
-      const result = response.data;
-      if (result.demo_mode) {
-        // Run demo simulation for development
-        simulateJobProgress(jobId);
-      }
-
       return true;
     } catch (error: any) {
       console.error('Error triggering worker:', error);
@@ -428,42 +422,6 @@ export function useCharacter3D(characterId: string | undefined): UseCharacter3DR
       return false;
     }
   }, []);
-
-  // Simulated job progress for demo mode
-  const simulateJobProgress = async (jobId: string) => {
-    const steps = [
-      { progress: 10, log: 'Loading template...' },
-      { progress: 30, log: 'Applying morphs...' },
-      { progress: 50, log: 'Setting up armature...' },
-      { progress: 70, log: 'Applying materials...' },
-      { progress: 90, log: 'Exporting GLB...' },
-      { progress: 100, log: 'Complete!' },
-    ];
-
-    for (const step of steps) {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const logs = steps.filter(s => s.progress <= step.progress).map(s => s.log);
-      
-      const isComplete = step.progress === 100;
-      const status = isComplete ? 'done' : 'processing';
-      
-      // For demo, use a placeholder GLB URL when complete
-      const result_glb_url = isComplete 
-        ? 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb'
-        : null;
-      
-      await supabase
-        .from('generation_jobs')
-        .update({
-          progress: step.progress,
-          status,
-          logs: JSON.stringify(logs),
-          result_glb_url,
-        })
-        .eq('id', jobId);
-    }
-  };
 
   const startGeneration = useCallback(async (): Promise<GenerationJob | null> => {
     setIsGenerating(true);
