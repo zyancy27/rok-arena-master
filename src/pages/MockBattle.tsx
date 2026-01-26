@@ -73,6 +73,15 @@ interface PlanetData {
 }
 
 // Original AI opponent templates with skill levels
+// Tier System:
+// 1 - Common Human: No special abilities
+// 2 - Enhanced Human: Peak human (Batman, Captain America)
+// 3 - Super Human: Superhuman powers (Spider-Man, Wolverine)
+// 4 - Legend: Control over mass/energy, single dimension
+// 5 - Title of Titan: Reality warpers, dimension lords
+// 6 - Logic Bending: Can do anything with phrase/thought
+// 7 - Logic Resorts: Functions as Tier 1, ignores Tier 6 commands, can die from normal wounds
+
 const ORIGINAL_OPPONENTS = [
   {
     id: 'training-bot',
@@ -81,7 +90,7 @@ const ORIGINAL_OPPONENTS = [
     personality: 'A stoic training construct designed to help warriors hone their skills. Speaks formally and provides tactical feedback.',
     powers: 'Adaptive Combat Analysis - can analyze and counter fighting styles',
     category: 'original',
-    skill: 75, // Well-programmed training bot
+    skill: 75,
   },
   {
     id: 'chaos-imp',
@@ -90,7 +99,7 @@ const ORIGINAL_OPPONENTS = [
     personality: 'A mischievous trickster who enjoys wordplay and unconventional attacks. Playful but cunning.',
     powers: 'Reality Pranks - minor reality distortions for comedic and tactical effect',
     category: 'original',
-    skill: 55, // Chaotic but effective
+    skill: 55,
   },
   {
     id: 'ancient-guardian',
@@ -99,7 +108,7 @@ const ORIGINAL_OPPONENTS = [
     personality: 'An ancient guardian who speaks in riddles and tests worthy challengers. Wise and patient.',
     powers: 'Cosmic Wisdom - manipulation of celestial energies and precognition',
     category: 'original',
-    skill: 90, // Ancient master
+    skill: 90,
   },
 ];
 
@@ -108,56 +117,56 @@ const ICONIC_OPPONENTS = [
   {
     id: 'hulk',
     name: 'The Hulk',
-    level: 5,
+    level: 4,
     personality: 'HULK IS STRONGEST ONE THERE IS! Speaks in third person, simple sentences. Gets angrier as fight goes on. Surprisingly protective of innocent.',
     powers: 'Limitless Strength - grows stronger with rage, regeneration, thunderclap shockwaves, gamma radiation immunity',
     category: 'iconic',
-    skill: 35, // Brute force, low technique
+    skill: 35,
   },
   {
     id: 'wolverine',
     name: 'Wolverine',
-    level: 4,
+    level: 3,
     personality: 'Gruff, sarcastic Canadian mutant. Calls everyone "bub." Has a code of honor despite his feral nature. Cigar-chomping anti-hero.',
     powers: 'Adamantium Claws - indestructible skeleton, superhuman senses, regenerative healing factor that makes him nearly unkillable',
     category: 'iconic',
-    skill: 85, // Centuries of combat experience
+    skill: 85,
   },
   {
     id: 'deadpool',
     name: 'Deadpool',
-    level: 4,
+    level: 3,
     personality: 'Fourth-wall breaking merc with a mouth. Makes pop culture references, talks to the audience, chaotic and unpredictable. Maximum effort!',
     powers: 'Regenerative Healing - extreme regeneration, expert marksman and swordsman, unpredictable fighting style',
     category: 'iconic',
-    skill: 70, // Skilled but deliberately chaotic
+    skill: 70,
   },
   {
     id: 'mr-fantastic',
     name: 'Mr. Fantastic',
-    level: 4,
+    level: 3,
     personality: 'Brilliant scientist Reed Richards. Speaks technically, always calculating. Sometimes oblivious to social cues. Will explain the science.',
     powers: 'Elasticity - can stretch, reshape, and expand body infinitely. Genius-level intellect, one of the smartest beings alive',
     category: 'iconic',
-    skill: 55, // Smart but not a natural fighter
+    skill: 55,
   },
   {
     id: 'thor',
     name: 'Thor Odinson',
-    level: 5,
+    level: 4,
     personality: 'Asgardian God of Thunder. Speaks in archaic, noble manner. Honorable warrior who respects worthy opponents. "Have at thee!"',
     powers: 'Thunder God - Mjolnir control, lightning manipulation, superhuman strength, flight, near-immortality',
     category: 'iconic',
-    skill: 88, // Millennia of Asgardian combat training
+    skill: 88,
   },
   {
     id: 'magneto',
     name: 'Magneto',
-    level: 5,
+    level: 4,
     personality: 'Master of magnetism and mutant supremacist. Eloquent, philosophical, sees himself as mutant savior. Holocaust survivor with complex morality.',
     powers: 'Magnetokinesis - control over all magnetic fields and metal, force fields, electromagnetic pulse generation',
     category: 'iconic',
-    skill: 82, // Decades of power mastery
+    skill: 82,
   },
   {
     id: 'doctor-doom',
@@ -166,7 +175,7 @@ const ICONIC_OPPONENTS = [
     personality: 'Ruler of Latveria. Refers to himself in third person as "Doom." Arrogant genius who believes only he can save the world. Theatrical villain.',
     powers: 'Sorcery & Technology - genius inventor, powerful sorcerer, armored suit with vast weaponry, diplomatic immunity',
     category: 'iconic',
-    skill: 92, // Near-perfect mastery of all his disciplines
+    skill: 92,
   },
   {
     id: 'spider-man',
@@ -175,7 +184,7 @@ const ICONIC_OPPONENTS = [
     personality: 'Friendly neighborhood wall-crawler. Cracks jokes constantly during fights. Great power, great responsibility. Queens accent optional.',
     powers: 'Spider Powers - wall-crawling, superhuman agility and strength, spider-sense danger detection, web-slinging',
     category: 'iconic',
-    skill: 72, // Self-taught but effective
+    skill: 72,
   },
 ];
 
@@ -184,29 +193,29 @@ const ANIME_OPPONENTS = [
   {
     id: 'goku',
     name: 'Son Goku',
-    level: 6,
+    level: 5,
     personality: 'Pure-hearted Saiyan warrior who lives for the thrill of battle. Cheerful, naive about non-combat things. Always seeking stronger opponents. "Kamehameha!"',
     powers: 'Saiyan Might - Super Saiyan transformations, Ki manipulation, Instant Transmission, Kamehameha, Ultra Instinct',
     category: 'anime',
-    skill: 95, // Lifetime of training and Ultra Instinct
+    skill: 95,
   },
   {
     id: 'naruto',
     name: 'Naruto Uzumaki',
-    level: 5,
+    level: 4,
     personality: 'Hyperactive ninja who never gives up. Says "Believe it!" and "Dattebayo!" Wants to be acknowledged. Will talk-no-jutsu you into friendship.',
     powers: 'Nine-Tails Jinchuriki - Massive chakra reserves, Shadow Clone Jutsu, Rasengan, Sage Mode, Six Paths power',
     category: 'anime',
-    skill: 78, // Improved dramatically but still impulsive
+    skill: 78,
   },
   {
     id: 'ichigo',
     name: 'Ichigo Kurosaki',
-    level: 5,
+    level: 4,
     personality: 'Orange-haired Soul Reaper with a scowl. Protective of friends, reluctant hero. Sarcastic but has a strong moral code.',
     powers: 'Shinigami Powers - Zangetsu sword, Bankai transformation, Hollow powers, Quincy abilities, Getsuga Tensho',
     category: 'anime',
-    skill: 70, // Relies on raw power often
+    skill: 70,
   },
   {
     id: 'luffy',
@@ -215,61 +224,61 @@ const ANIME_OPPONENTS = [
     personality: 'Rubber pirate captain who will be King of the Pirates! Simple-minded, loves meat, fiercely loyal to crew. Gear transformations mid-fight.',
     powers: 'Gum-Gum Fruit - Rubber body, Gear Second/Third/Fourth/Fifth, Haki mastery, Nika awakening',
     category: 'anime',
-    skill: 75, // Creative but untrained
+    skill: 75,
   },
   {
     id: 'saitama',
     name: 'Saitama',
     level: 7,
-    personality: 'Bored hero who defeats everything in one punch. Deadpan, obsessed with supermarket sales. Existential crisis about being too strong.',
-    powers: 'Limitless Strength - One punch knockout, immeasurable speed, invulnerability, Serious Series techniques',
+    personality: 'Bored hero who defeats everything in one punch. Deadpan, obsessed with supermarket sales. Can still die from normal things like stab wounds if caught off-guard. Immune to reality-warping commands.',
+    powers: 'Limitless Strength - One punch knockout, immeasurable speed, functions as normal human but ignores logic-bending commands',
     category: 'anime',
-    skill: 50, // Actually lazy/casual about fighting technique
+    skill: 50,
   },
   {
     id: 'vegeta',
     name: 'Vegeta',
-    level: 6,
+    level: 5,
     personality: 'Prince of all Saiyans! Arrogant, prideful warrior with a rivalry complex. Has grown from villain to anti-hero. "Its over 9000!"',
     powers: 'Saiyan Pride - Super Saiyan forms, Final Flash, Big Bang Attack, Ultra Ego, intense training discipline',
     category: 'anime',
-    skill: 93, // Obsessive training and royal combat education
+    skill: 93,
   },
   {
     id: 'zoro',
     name: 'Roronoa Zoro',
-    level: 4,
+    level: 3,
     personality: 'Three-sword style master who gets lost constantly. Stoic, loves sake and naps. Dreams of being worlds greatest swordsman.',
     powers: 'Santoryu - Three Sword Style, Haki mastery, Asura technique, superhuman endurance and strength',
     category: 'anime',
-    skill: 94, // Pure dedication to swordsmanship
+    skill: 94,
   },
   {
     id: 'gojo',
     name: 'Gojo Satoru',
-    level: 6,
+    level: 5,
     personality: 'Blindfolded sorcerer whos the strongest. Playful and arrogant, loves teasing people. Actually cares deeply but hides it behind jokes.',
     powers: 'Infinity & Six Eyes - Limitless cursed technique, Infinity barrier, Domain Expansion: Unlimited Void, Hollow Purple',
     category: 'anime',
-    skill: 98, // Born genius with perfect technique
+    skill: 98,
   },
   {
     id: 'levi',
     name: 'Levi Ackerman',
-    level: 4,
+    level: 2,
     personality: 'Humanitys strongest soldier. Short, clean-freak, blunt to the point of rudeness. Moves faster than the eye can follow.',
     powers: 'Ackerman Bloodline - Superhuman combat ability, ODM Gear mastery, incredible speed and precision',
     category: 'anime',
-    skill: 99, // Perfect technique, humanity's strongest
+    skill: 99,
   },
   {
     id: 'all-might',
     name: 'All Might',
-    level: 5,
+    level: 4,
     personality: 'Symbol of Peace! Always smiling, speaks in dramatic heroic fashion. "I AM HERE!" Muscle form hero who inspires hope.',
     powers: 'One For All - Immense strength, speed, United States of Smash, Detroit Smash, Texas Smash',
     category: 'anime',
-    skill: 88, // Years as the #1 hero
+    skill: 88,
   },
 ];
 
@@ -278,34 +287,34 @@ const CELEBRITY_OPPONENTS = [
   {
     id: 'kanye-west',
     name: 'Kanye West',
-    level: 4,
+    level: 2,
     personality: 'Musical genius and fashion icon. Speaks in confident, stream-of-consciousness style. References his albums and fashion lines. Believes he is a god among mortals. "I am a god!"',
-    powers: 'Creative Genius - Reality warping through sheer belief, sonic attacks from legendary beats, fashion armor that deflects criticism, ego shield',
+    powers: 'Creative Genius - Sheer force of belief, sonic attacks from legendary beats, fashion armor that deflects criticism, ego shield',
     category: 'celebrity',
     skill: 65,
   },
   {
     id: 'keanu-reeves',
     name: 'Keanu Reeves',
-    level: 5,
+    level: 2,
     personality: 'The One. Humble, soft-spoken martial artist who sees the code in everything. Incredibly kind but deadly when needed. "I know kung fu." Breathtaking.',
-    powers: 'Matrix Mastery - Bullet-time reflexes, gun-fu expertise, motorcycle combat, immortal presence, John Wick combat training, Neo reality bending',
+    powers: 'Matrix Mastery - Bullet-time reflexes, gun-fu expertise, motorcycle combat, John Wick combat training',
     category: 'celebrity',
     skill: 92,
   },
   {
     id: 'jim-carrey',
     name: 'Jim Carrey',
-    level: 4,
+    level: 3,
     personality: 'Rubber-faced comedian who bends reality through sheer absurdity. Shifts between personas mid-fight. "SOMEBODY STOP ME!" Mask-level chaos energy.',
-    powers: 'Cartoon Physics - reality warping comedy, shapeshifting expressions, Ace Ventura animal control, The Mask persona (invincibility + toon force)',
+    powers: 'Cartoon Physics - reality warping comedy, shapeshifting expressions, Ace Ventura animal control, The Mask persona (toon force)',
     category: 'celebrity',
     skill: 70,
   },
   {
     id: 'johnny-depp',
     name: 'Johnny Depp',
-    level: 5,
+    level: 3,
     personality: 'Eccentric pirate-captain-vampire-chocolatier. Speaks in theatrical riddles, unpredictable movements. "Why is the rum always gone?" Charming chaos.',
     powers: 'Character Synthesis - channels Jack Sparrow luck, Edward Scissorhands blade mastery, Mad Hatter reality distortion, Sweeney Todd precision',
     category: 'celebrity',
@@ -318,7 +327,7 @@ const SEVEN_DEADLY_SINS_OPPONENTS = [
   {
     id: 'meliodas',
     name: 'Meliodas',
-    level: 6,
+    level: 5,
     personality: 'Captain of the Seven Deadly Sins. Appears carefree and perverted but hides immense demonic power. Fiercely protective of Elizabeth and his friends. "Full Counter!"',
     powers: 'Full Counter - reflects attacks with multiplied power, Assault Mode, Demon Mark, Hellblaze, Dragon Handle sword techniques',
     category: 'anime',
@@ -327,8 +336,8 @@ const SEVEN_DEADLY_SINS_OPPONENTS = [
   {
     id: 'escanor',
     name: 'Escanor',
-    level: 7,
-    personality: 'The Lion Sin of Pride. Meek at night, overwhelmingly arrogant during the day. At noon becomes "The One" - invincible. "Who decided that?"',
+    level: 5,
+    personality: 'The Lion Sin of Pride. Meek at night, overwhelmingly arrogant during the day. At noon becomes "The One" - temporary god-like power. "Who decided that?"',
     powers: 'Sunshine - power scales with sun, peaks at noon as The One. Cruel Sun, Divine Axe Rhitta, heat rivaling the sun itself',
     category: 'anime',
     skill: 88,
@@ -336,7 +345,7 @@ const SEVEN_DEADLY_SINS_OPPONENTS = [
   {
     id: 'ban',
     name: 'Ban',
-    level: 5,
+    level: 4,
     personality: 'The Fox Sin of Greed. Laid-back immortal thief with tragic past. Deeply loyal despite criminal nature. Calls people "Cap\'n." "Oi oi oi!"',
     powers: 'Snatch - steals physical abilities, Hunter Fest, Physical Hunt, immortal regeneration, three-section staff combat',
     category: 'anime',
@@ -345,7 +354,7 @@ const SEVEN_DEADLY_SINS_OPPONENTS = [
   {
     id: 'king-sds',
     name: 'King (Harlequin)',
-    level: 5,
+    level: 4,
     personality: 'Fairy King and Sin of Sloth. Kind-hearted but torn between duty and love for Diane. Appears lazy but deeply caring. Floats on Chastiefol.',
     powers: 'Disaster - controls life force, Spirit Spear Chastiefol with 10 forms (Sunflower, Guardian, Fossilization), Fairy King powers, flight',
     category: 'anime',
@@ -354,7 +363,7 @@ const SEVEN_DEADLY_SINS_OPPONENTS = [
   {
     id: 'diane',
     name: 'Diane',
-    level: 5,
+    level: 4,
     personality: 'Giant Sin of Envy. Sweet and emotional, loves King deeply. Gets jealous easily. Massive size but shrinks with special pills. "King~!"',
     powers: 'Creation - earth manipulation, Gideon war hammer, Heavy Metal (iron skin), Ground Gladius, Giant strength',
     category: 'anime',
@@ -367,16 +376,16 @@ const HUNTER_X_HUNTER_OPPONENTS = [
   {
     id: 'gon',
     name: 'Gon Freecss',
-    level: 4,
+    level: 3,
     personality: 'Pure-hearted boy searching for his father. Simple-minded but incredibly perceptive. His kindness hides terrifying potential when angered.',
-    powers: 'Enhancement Nen - Jajanken (Rock-Paper-Scissors), Adult Gon transformation, enhanced senses, incredible adaptability',
+    powers: 'Enhancement Nen - Jajanken (Rock-Paper-Scissors), Adult Gon transformation (temporary), enhanced senses, incredible adaptability',
     category: 'anime',
     skill: 68,
   },
   {
     id: 'killua',
     name: 'Killua Zoldyck',
-    level: 5,
+    level: 3,
     personality: 'Former Zoldyck assassin learning to be normal. Cold and calculating in battle, warm to friends. Protective of Gon. Loves chocolate robots.',
     powers: 'Transmutation Nen - Godspeed, Thunderbolt, Whirlwind, assassination techniques, electricity manipulation, Rhythm Echo',
     category: 'anime',
@@ -385,7 +394,7 @@ const HUNTER_X_HUNTER_OPPONENTS = [
   {
     id: 'hisoka',
     name: 'Hisoka Morow',
-    level: 5,
+    level: 3,
     personality: 'Psychotic magician obsessed with fighting strong opponents. Lets prey grow stronger before killing. Views fighters as fruit to ripen. "Schwing~"',
     powers: 'Transmutation/Conjuration Nen - Bungee Gum (has properties of rubber AND gum), Texture Surprise, playing card weapons',
     category: 'anime',
@@ -394,7 +403,7 @@ const HUNTER_X_HUNTER_OPPONENTS = [
   {
     id: 'chrollo',
     name: 'Chrollo Lucilfer',
-    level: 6,
+    level: 4,
     personality: 'Leader of Phantom Troupe. Calm, intelligent, utterly ruthless. Philosophical about death. Values the Spider above himself.',
     powers: 'Specialization Nen - Skill Hunter (steals abilities), Bandit\'s Secret book, multiple stolen Nen powers, genius-level intellect',
     category: 'anime',
@@ -403,7 +412,7 @@ const HUNTER_X_HUNTER_OPPONENTS = [
   {
     id: 'meruem',
     name: 'Meruem',
-    level: 8,
+    level: 5,
     personality: 'Chimera Ant King. Born as perfect predator, evolved through Komugi to question existence. Initially cruel, grew to appreciate humanity.',
     powers: 'Aura Synthesis - absorbs power from consumed Nen users, Photon, Rage Blast, unparalleled physical abilities, instant learning',
     category: 'anime',
@@ -412,7 +421,7 @@ const HUNTER_X_HUNTER_OPPONENTS = [
   {
     id: 'netero',
     name: 'Isaac Netero',
-    level: 7,
+    level: 4,
     personality: 'Chairman of Hunter Association. Eccentric old man, secretly strongest human. Playful but deadly serious. Spent decades in prayer training.',
     powers: '100-Type Guanyin Bodhisattva - giant Nen construct, Zero Hand ultimate attack, fastest hands in world, decades of experience',
     category: 'anime',
@@ -421,7 +430,7 @@ const HUNTER_X_HUNTER_OPPONENTS = [
   {
     id: 'kurapika',
     name: 'Kurapika',
-    level: 5,
+    level: 3,
     personality: 'Last of Kurta Clan. Driven by revenge against Phantom Troupe. Cold and analytical, but caring to friends. Eyes turn scarlet with emotion.',
     powers: 'Conjuration Nen - Holy Chain, Judgment Chain, Emperor Time (access to all Nen types), enhanced when eyes are scarlet',
     category: 'anime',
@@ -434,7 +443,7 @@ const DEMON_SLAYER_OPPONENTS = [
   {
     id: 'tanjiro',
     name: 'Tanjiro Kamado',
-    level: 5,
+    level: 3,
     personality: 'Kind-hearted demon slayer with unbreakable will. Empathizes even with demons. Hardhead literally used as weapon. "I can smell your emotions!"',
     powers: 'Water Breathing - 10 forms of water-based swordsmanship, Hinokami Kagura (Sun Breathing), enhanced smell, demon-resistant earrings',
     category: 'anime',
@@ -443,25 +452,25 @@ const DEMON_SLAYER_OPPONENTS = [
   {
     id: 'zenitsu',
     name: 'Zenitsu Agatsuma',
-    level: 4,
+    level: 3,
     personality: 'Cowardly crybaby who becomes lightning-fast swordsman when unconscious or sleeping. Obsessed with marriage. "I wanna go home!"',
     powers: 'Thunder Breathing - Thunderclap and Flash (up to Godspeed), enhanced hearing, unconscious combat mastery, Flaming Thunder God',
     category: 'anime',
-    skill: 90, // Perfect technique when asleep
+    skill: 90,
   },
   {
     id: 'inosuke',
     name: 'Inosuke Hashibira',
-    level: 4,
+    level: 3,
     personality: 'Wild boar-masked berserker raised by animals. Loud, aggressive, mispronounces everyones name. "COME AT ME!" Has surprisingly sensitive side.',
     powers: 'Beast Breathing - self-taught feral swordsmanship, enhanced touch sensitivity, joint flexibility, dual Nichirin blades',
     category: 'anime',
-    skill: 75, // Wild but effective
+    skill: 75,
   },
   {
     id: 'muzan',
     name: 'Muzan Kibutsuji',
-    level: 8,
+    level: 5,
     personality: 'Original demon, perfectionist with zero tolerance for failure. Narcissistic, paranoid, changes appearance frequently. Absolute monster.',
     powers: 'Demon King - near-immortality, shapeshifting, biokinesis, blood manipulation, creates demons, only weak to sunlight and special blades',
     category: 'anime',
@@ -470,11 +479,11 @@ const DEMON_SLAYER_OPPONENTS = [
   {
     id: 'akaza',
     name: 'Akaza',
-    level: 6,
+    level: 4,
     personality: 'Upper Moon Three. Honorable martial artist demon who respects strong fighters. Hates the weak. Wants to fight strong opponents forever.',
     powers: 'Destructive Death - martial arts enhanced by demon strength, Compass Needle (senses fighting spirit), regeneration, shockwave punches',
     category: 'anime',
-    skill: 98, // Master martial artist
+    skill: 98,
   },
 ];
 
@@ -483,7 +492,7 @@ const MHA_OPPONENTS = [
   {
     id: 'all-for-one',
     name: 'All For One',
-    level: 8,
+    level: 5,
     personality: 'Supreme villain who ruled Japan from shadows. Polite, calculating, sees himself as a liberator. Mentored Shigaraki. Ultimate evil.',
     powers: 'All For One - steals and combines Quirks, possesses hundreds of abilities, regeneration, air cannons, search, warping',
     category: 'anime',
@@ -492,7 +501,7 @@ const MHA_OPPONENTS = [
   {
     id: 'shigaraki',
     name: 'Tomura Shigaraki',
-    level: 7,
+    level: 5,
     personality: 'Leader of League of Villains. Scratches neck when thinking. Hates everything society built. Childish rage with growing strategic mind.',
     powers: 'Decay - disintegrates anything touched with all five fingers, spreads on contact, enhanced with All For One Quirks, regeneration',
     category: 'anime',
@@ -501,7 +510,7 @@ const MHA_OPPONENTS = [
   {
     id: 'dabi',
     name: 'Dabi',
-    level: 5,
+    level: 3,
     personality: 'Mysterious flame villain with burned skin. Sadistic, nihilistic, harbors deep family grudge. "That\'s rough, buddy." Secretly a Todoroki.',
     powers: 'Cremation - blue flames hotter than Endeavor\'s, burns even himself, long-range fire attacks, immunity to regular flames',
     category: 'anime',
@@ -510,7 +519,7 @@ const MHA_OPPONENTS = [
   {
     id: 'toga',
     name: 'Himiko Toga',
-    level: 4,
+    level: 3,
     personality: 'Yandere blood-obsessed villain. Cheerfully psychotic, "loves" by drinking blood. Wants to become people she loves. Surprisingly agile.',
     powers: 'Transform - shapeshifts into anyone whose blood she drinks, copies Quirks at awakened level, expert knife combat, blood equipment',
     category: 'anime',
@@ -519,7 +528,7 @@ const MHA_OPPONENTS = [
   {
     id: 'stain',
     name: 'Hero Killer Stain',
-    level: 5,
+    level: 2,
     personality: 'Ideological serial killer targeting fake heroes. Only respects All Might. Terrifyingly intense presence. "A society of fakes!"',
     powers: 'Bloodcurdle - paralyzes anyone whose blood he tastes, master swordsman, multiple bladed weapons, superhuman endurance',
     category: 'anime',
@@ -528,7 +537,7 @@ const MHA_OPPONENTS = [
   {
     id: 'overhaul',
     name: 'Overhaul (Kai Chisaki)',
-    level: 6,
+    level: 4,
     personality: 'Yakuza leader with germaphobia. Views Quirks as disease. Coldly logical, willing to sacrifice anyone. Wears plague doctor mask.',
     powers: 'Overhaul - disassembles and reassembles matter on touch, instant healing, fusion with others, environmental manipulation',
     category: 'anime',
@@ -541,7 +550,7 @@ const JJK_OPPONENTS = [
   {
     id: 'sukuna',
     name: 'Ryomen Sukuna',
-    level: 9,
+    level: 6,
     personality: 'King of Curses. Arrogant, sadistic, views all as beneath him. Enjoys toying with prey. "Know your place." Ultimate calamity.',
     powers: 'Malevolent Shrine Domain, Dismantle and Cleave slashing, fire manipulation, reverse cursed technique, 20 fingers of power',
     category: 'anime',
@@ -550,7 +559,7 @@ const JJK_OPPONENTS = [
   {
     id: 'itadori',
     name: 'Yuji Itadori',
-    level: 5,
+    level: 3,
     personality: 'Athletic teenager hosting Sukuna. Cheerful, values human life deeply. Hits really hard. "I wanna eat Sukuna\'s fingers!" Wait no-',
     powers: 'Superhuman physicality, Divergent Fist, Black Flash, cursed energy reinforcement, Sukuna vessel (partial access to his power)',
     category: 'anime',
@@ -559,7 +568,7 @@ const JJK_OPPONENTS = [
   {
     id: 'megumi',
     name: 'Megumi Fushiguro',
-    level: 5,
+    level: 4,
     personality: 'Stoic shikigami user with hidden potential. Saves people he deems good. Zenin clan heritage. Sukuna is very interested in him.',
     powers: 'Ten Shadows Technique - summons shikigami beasts, Divine Dog, Nue, Mahoraga (incomplete), Domain Expansion: Chimera Shadow Garden',
     category: 'anime',
@@ -568,7 +577,7 @@ const JJK_OPPONENTS = [
   {
     id: 'nobara',
     name: 'Nobara Kugisaki',
-    level: 4,
+    level: 3,
     personality: 'Fierce country girl in Tokyo. Vain about looks, incredibly tough. Hammer-wielding with no fear. "I love myself when I\'m fighting!"',
     powers: 'Straw Doll Technique - voodoo resonance attacks, Hairpin (ranged), Black Flash capable, cursed energy nails and hammer',
     category: 'anime',
@@ -577,7 +586,7 @@ const JJK_OPPONENTS = [
   {
     id: 'todo',
     name: 'Aoi Todo',
-    level: 5,
+    level: 3,
     personality: 'Eccentric muscle-bound sorcerer obsessed with "best friend" Itadori. Asks about type of woman. Surprisingly intellectual battle IQ.',
     powers: 'Boogie Woogie - swaps positions with anything via clap, immense physical strength, Simple Domain, Black Flash master',
     category: 'anime',
@@ -586,7 +595,7 @@ const JJK_OPPONENTS = [
   {
     id: 'mahito',
     name: 'Mahito',
-    level: 6,
+    level: 4,
     personality: 'Curse born from human hatred. Childishly curious about humanity while torturing them. Sees humans as toys. Rapidly evolving threat.',
     powers: 'Idle Transfiguration - reshapes souls/bodies on touch, Self-Embodiment of Perfection domain, soul manipulation, regeneration',
     category: 'anime',
@@ -595,7 +604,7 @@ const JJK_OPPONENTS = [
   {
     id: 'toji',
     name: 'Toji Fushiguro',
-    level: 7,
+    level: 2,
     personality: 'Sorcerer Killer with zero cursed energy. Abandoned Megumi, lives as assassin. Cold, calculating, nearly killed young Gojo. "Monkey."',
     powers: 'Heavenly Restriction - superhuman physical stats, invisible to cursed energy detection, Inverted Spear of Heaven, cursed spirit arsenal',
     category: 'anime',
@@ -608,7 +617,7 @@ const GAME_OPPONENTS = [
   {
     id: 'master-chief',
     name: 'Master Chief',
-    level: 7,
+    level: 2,
     personality: 'Spartan-117. Stoic super-soldier, few words, maximum efficiency. Legendary luck. "I need a weapon." Humanity\'s greatest hope.',
     powers: 'MJOLNIR Armor - enhanced strength/speed/durability, energy shields, AI companion Cortana, expert with all weapons, vehicles',
     category: 'games',
@@ -617,25 +626,25 @@ const GAME_OPPONENTS = [
   {
     id: 'asura',
     name: 'Asura',
-    level: 10,
+    level: 5,
     personality: 'Demigod of Wrath. RAGE INCARNATE. Screams a lot. Punches gods, planets, and reality itself. Protective father who destroys everything threatening his daughter.',
     powers: 'Mantra of Wrath - unlimited rage-powered strength, multiple arms mode, Destructor form, planet-destroying punches, immortal fury',
     category: 'games',
-    skill: 70, // Pure rage over technique
+    skill: 70,
   },
   {
     id: 'kratos',
     name: 'Kratos',
-    level: 9,
+    level: 5,
     personality: 'Ghost of Sparta, God of War. Killed the entire Greek pantheon. Now a protective father. "BOY!" Stoic but hiding deep pain.',
     powers: 'God Killer - Spartan Rage, Blades of Chaos, Leviathan Axe, killed Zeus/Poseidon/Hades, godly strength and immortality',
     category: 'games',
-    skill: 98, // Lifetime of war and god-slaying
+    skill: 98,
   },
   {
     id: 'dante-dmc',
     name: 'Dante (Devil May Cry)',
-    level: 8,
+    level: 4,
     personality: 'Half-demon demon hunter. Stylish, cocky, pizza-obsessed. Never takes anything seriously. "Jackpot!" SSS-rank style in everything.',
     powers: 'Devil Trigger - demonic transformation, Rebellion sword, Ebony & Ivory guns, Royalguard, Trickster, style weapons',
     category: 'games',
@@ -644,7 +653,7 @@ const GAME_OPPONENTS = [
   {
     id: 'sephiroth',
     name: 'Sephiroth',
-    level: 8,
+    level: 5,
     personality: 'One-Winged Angel. Fallen SOLDIER hero turned world-ending threat. Elegant, cruel, obsessed with Cloud. Mother complex.',
     powers: 'Masamune mastery - 7-foot katana, Supernova (summons meteor), flight, superhuman everything, JENOVA cells, Black Materia',
     category: 'games',
@@ -653,7 +662,7 @@ const GAME_OPPONENTS = [
   {
     id: 'doomguy',
     name: 'Doom Slayer',
-    level: 9,
+    level: 4,
     personality: 'Silent rage machine. Rips and tears until it is done. Demons fear HIM. No words, only violence. Pet rabbit motivates genocide.',
     powers: 'Praetor Suit - near-invincibility, BFG 9000, chainsaw, glory kills for health, Crucible blade, eons of demon-slaying',
     category: 'games',
@@ -662,7 +671,7 @@ const GAME_OPPONENTS = [
   {
     id: 'solid-snake',
     name: 'Solid Snake',
-    level: 5,
+    level: 2,
     personality: 'Legendary soldier and spy. Gruff, philosophical about war, loves cardboard boxes. "Kept you waiting, huh?" CQC master.',
     powers: 'Tactical Espionage - CQC combat, stealth mastery, all weapons proficiency, Codec support, refuses to stay dead',
     category: 'games',
@@ -671,7 +680,7 @@ const GAME_OPPONENTS = [
   {
     id: 'bayonetta',
     name: 'Bayonetta',
-    level: 8,
+    level: 5,
     personality: 'Umbra Witch with fabulous style. Flirtatious, confident, sassy. Hair is also her clothes and her summons. Loves lollipops.',
     powers: 'Witch Time - time manipulation, Wicked Weaves (giant demon limbs), Infernal Demons summons, gun-heels, bullet arts',
     category: 'games',
@@ -684,7 +693,7 @@ const HORROR_OPPONENTS = [
   {
     id: 'hannibal-lecter',
     name: 'Hannibal Lecter',
-    level: 5,
+    level: 1,
     personality: 'Cultured cannibal psychiatrist. Impeccably polite, sophisticated. Eats the rude. Genius-level intellect, refined taste in everything.',
     powers: 'Psychological Manipulation - genius IQ, perfect memory palace, surgical precision, heightened senses, no fear',
     category: 'horror',
@@ -693,16 +702,16 @@ const HORROR_OPPONENTS = [
   {
     id: 'michael-myers',
     name: 'Michael Myers',
-    level: 6,
+    level: 3,
     personality: 'The Shape. Pure evil in human form. Silent, relentless, emotionless. Kills without reason. Cannot be stopped permanently.',
     powers: 'Supernatural Endurance - near-immortality, superhuman strength, stealth despite size, immune to pain, always returns',
     category: 'horror',
-    skill: 60, // Methodical but not skilled
+    skill: 60,
   },
   {
     id: 'jason-voorhees',
     name: 'Jason Voorhees',
-    level: 7,
+    level: 3,
     personality: 'Crystal Lake\'s undead avenger. Mama\'s boy. Punishes "sinners." Silent killer behind hockey mask. Ki ki ki, ma ma ma.',
     powers: 'Undead Slasher - immortal regeneration, superhuman strength, teleportation (somehow), machete mastery, never tires',
     category: 'horror',
@@ -711,7 +720,7 @@ const HORROR_OPPONENTS = [
   {
     id: 'freddy-krueger',
     name: 'Freddy Krueger',
-    level: 7,
+    level: 4,
     personality: 'Dream demon with burned face. Sadistic, loves puns and tormenting victims. "Welcome to prime time!" Killed in dreams = dead for real.',
     powers: 'Dream Manipulation - reality warping in dreams, shapeshifting, immortal in dream world, razor glove, feeds on fear',
     category: 'horror',
@@ -720,7 +729,7 @@ const HORROR_OPPONENTS = [
   {
     id: 'pennywise',
     name: 'Pennywise the Dancing Clown',
-    level: 8,
+    level: 5,
     personality: 'Eldritch horror in clown form. Feeds on fear and children. "We all float down here!" Shapeshifts into worst fears. Ancient evil.',
     powers: 'Deadlights - cosmic horror form, shapeshifting, fear manipulation, illusions, immortal entity, psychic powers',
     category: 'horror',
@@ -729,7 +738,7 @@ const HORROR_OPPONENTS = [
   {
     id: 'leatherface',
     name: 'Leatherface',
-    level: 5,
+    level: 2,
     personality: 'Texas chainsaw-wielding cannibal. Wears masks made of victims\' faces. More scared than scary. Follows family orders.',
     powers: 'Chainsaw Wielder - superhuman strength, chainsaw expertise, butcher skills, surprising speed, meat hook combat',
     category: 'horror',
@@ -738,7 +747,7 @@ const HORROR_OPPONENTS = [
   {
     id: 'ghostface',
     name: 'Ghostface',
-    level: 3,
+    level: 1,
     personality: 'Meta-horror slasher who loves horror movies. Calls victims, asks trivia. "What\'s your favorite scary movie?" Could be anyone.',
     powers: 'Stealth Killer - knife combat, phone stalking, horror movie knowledge, unpredictable identity, voice changer',
     category: 'horror',
@@ -747,7 +756,7 @@ const HORROR_OPPONENTS = [
   {
     id: 'pinhead',
     name: 'Pinhead',
-    level: 8,
+    level: 4,
     personality: 'Hell Priest of the Cenobites. Eloquent, philosophical about pain and pleasure. "We have such sights to show you." Offers eternal torment.',
     powers: 'Cenobite Powers - hooked chains from nowhere, dimensional manipulation, immortal demon, pain/pleasure mastery, Lament Configuration',
     category: 'horror',
@@ -756,7 +765,7 @@ const HORROR_OPPONENTS = [
   {
     id: 'john-kramer',
     name: 'Jigsaw (John Kramer)',
-    level: 4,
+    level: 1,
     personality: 'Terminally ill engineer who tests people\'s will to live through deadly games. "I want to play a game." Never directly kills.',
     powers: 'Trap Master - genius engineer, elaborate death traps, psychological manipulation, posthumous planning, apprentice network',
     category: 'horror',
@@ -780,13 +789,14 @@ const OPPONENT_CATEGORIES = [
   { id: 'horror', name: '🔪 Horror Villains' },
 ];
 
-// Power tier definitions for filtering
+// Power tier definitions for filtering (max tier is 7)
 const POWER_TIERS = [
-  { id: 'all', name: 'All Tiers', minLevel: 1, maxLevel: 10 },
-  { id: 'beginner', name: 'Beginner (1-3)', minLevel: 1, maxLevel: 3 },
-  { id: 'intermediate', name: 'Intermediate (4-5)', minLevel: 4, maxLevel: 5 },
-  { id: 'advanced', name: 'Advanced (6-7)', minLevel: 6, maxLevel: 7 },
-  { id: 'legendary', name: 'Legendary (8-10)', minLevel: 8, maxLevel: 10 },
+  { id: 'all', name: 'All Tiers', minLevel: 1, maxLevel: 7 },
+  { id: 'human', name: 'Human (1-2)', minLevel: 1, maxLevel: 2 },
+  { id: 'superhuman', name: 'Super Human (3)', minLevel: 3, maxLevel: 3 },
+  { id: 'legend', name: 'Legend (4)', minLevel: 4, maxLevel: 4 },
+  { id: 'titan', name: 'Titan (5)', minLevel: 5, maxLevel: 5 },
+  { id: 'godlike', name: 'Logic Bending (6-7)', minLevel: 6, maxLevel: 7 },
 ];
 
 // Map categories to their opponent arrays
