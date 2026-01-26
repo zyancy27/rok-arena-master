@@ -603,6 +603,183 @@ const JJK_OPPONENTS = [
   },
 ];
 
+// Video Game Characters
+const GAME_OPPONENTS = [
+  {
+    id: 'master-chief',
+    name: 'Master Chief',
+    level: 7,
+    personality: 'Spartan-117. Stoic super-soldier, few words, maximum efficiency. Legendary luck. "I need a weapon." Humanity\'s greatest hope.',
+    powers: 'MJOLNIR Armor - enhanced strength/speed/durability, energy shields, AI companion Cortana, expert with all weapons, vehicles',
+    category: 'games',
+    skill: 95,
+  },
+  {
+    id: 'asura',
+    name: 'Asura',
+    level: 10,
+    personality: 'Demigod of Wrath. RAGE INCARNATE. Screams a lot. Punches gods, planets, and reality itself. Protective father who destroys everything threatening his daughter.',
+    powers: 'Mantra of Wrath - unlimited rage-powered strength, multiple arms mode, Destructor form, planet-destroying punches, immortal fury',
+    category: 'games',
+    skill: 70, // Pure rage over technique
+  },
+  {
+    id: 'kratos',
+    name: 'Kratos',
+    level: 9,
+    personality: 'Ghost of Sparta, God of War. Killed the entire Greek pantheon. Now a protective father. "BOY!" Stoic but hiding deep pain.',
+    powers: 'God Killer - Spartan Rage, Blades of Chaos, Leviathan Axe, killed Zeus/Poseidon/Hades, godly strength and immortality',
+    category: 'games',
+    skill: 98, // Lifetime of war and god-slaying
+  },
+  {
+    id: 'dante-dmc',
+    name: 'Dante (Devil May Cry)',
+    level: 8,
+    personality: 'Half-demon demon hunter. Stylish, cocky, pizza-obsessed. Never takes anything seriously. "Jackpot!" SSS-rank style in everything.',
+    powers: 'Devil Trigger - demonic transformation, Rebellion sword, Ebony & Ivory guns, Royalguard, Trickster, style weapons',
+    category: 'games',
+    skill: 96,
+  },
+  {
+    id: 'sephiroth',
+    name: 'Sephiroth',
+    level: 8,
+    personality: 'One-Winged Angel. Fallen SOLDIER hero turned world-ending threat. Elegant, cruel, obsessed with Cloud. Mother complex.',
+    powers: 'Masamune mastery - 7-foot katana, Supernova (summons meteor), flight, superhuman everything, JENOVA cells, Black Materia',
+    category: 'games',
+    skill: 97,
+  },
+  {
+    id: 'doomguy',
+    name: 'Doom Slayer',
+    level: 9,
+    personality: 'Silent rage machine. Rips and tears until it is done. Demons fear HIM. No words, only violence. Pet rabbit motivates genocide.',
+    powers: 'Praetor Suit - near-invincibility, BFG 9000, chainsaw, glory kills for health, Crucible blade, eons of demon-slaying',
+    category: 'games',
+    skill: 90,
+  },
+  {
+    id: 'solid-snake',
+    name: 'Solid Snake',
+    level: 5,
+    personality: 'Legendary soldier and spy. Gruff, philosophical about war, loves cardboard boxes. "Kept you waiting, huh?" CQC master.',
+    powers: 'Tactical Espionage - CQC combat, stealth mastery, all weapons proficiency, Codec support, refuses to stay dead',
+    category: 'games',
+    skill: 94,
+  },
+  {
+    id: 'bayonetta',
+    name: 'Bayonetta',
+    level: 8,
+    personality: 'Umbra Witch with fabulous style. Flirtatious, confident, sassy. Hair is also her clothes and her summons. Loves lollipops.',
+    powers: 'Witch Time - time manipulation, Wicked Weaves (giant demon limbs), Infernal Demons summons, gun-heels, bullet arts',
+    category: 'games',
+    skill: 95,
+  },
+];
+
+// Horror/Thriller Movie Villains and Serial Killers
+const HORROR_OPPONENTS = [
+  {
+    id: 'hannibal-lecter',
+    name: 'Hannibal Lecter',
+    level: 5,
+    personality: 'Cultured cannibal psychiatrist. Impeccably polite, sophisticated. Eats the rude. Genius-level intellect, refined taste in everything.',
+    powers: 'Psychological Manipulation - genius IQ, perfect memory palace, surgical precision, heightened senses, no fear',
+    category: 'horror',
+    skill: 88,
+  },
+  {
+    id: 'michael-myers',
+    name: 'Michael Myers',
+    level: 6,
+    personality: 'The Shape. Pure evil in human form. Silent, relentless, emotionless. Kills without reason. Cannot be stopped permanently.',
+    powers: 'Supernatural Endurance - near-immortality, superhuman strength, stealth despite size, immune to pain, always returns',
+    category: 'horror',
+    skill: 60, // Methodical but not skilled
+  },
+  {
+    id: 'jason-voorhees',
+    name: 'Jason Voorhees',
+    level: 7,
+    personality: 'Crystal Lake\'s undead avenger. Mama\'s boy. Punishes "sinners." Silent killer behind hockey mask. Ki ki ki, ma ma ma.',
+    powers: 'Undead Slasher - immortal regeneration, superhuman strength, teleportation (somehow), machete mastery, never tires',
+    category: 'horror',
+    skill: 55,
+  },
+  {
+    id: 'freddy-krueger',
+    name: 'Freddy Krueger',
+    level: 7,
+    personality: 'Dream demon with burned face. Sadistic, loves puns and tormenting victims. "Welcome to prime time!" Killed in dreams = dead for real.',
+    powers: 'Dream Manipulation - reality warping in dreams, shapeshifting, immortal in dream world, razor glove, feeds on fear',
+    category: 'horror',
+    skill: 85,
+  },
+  {
+    id: 'pennywise',
+    name: 'Pennywise the Dancing Clown',
+    level: 8,
+    personality: 'Eldritch horror in clown form. Feeds on fear and children. "We all float down here!" Shapeshifts into worst fears. Ancient evil.',
+    powers: 'Deadlights - cosmic horror form, shapeshifting, fear manipulation, illusions, immortal entity, psychic powers',
+    category: 'horror',
+    skill: 75,
+  },
+  {
+    id: 'leatherface',
+    name: 'Leatherface',
+    level: 5,
+    personality: 'Texas chainsaw-wielding cannibal. Wears masks made of victims\' faces. More scared than scary. Follows family orders.',
+    powers: 'Chainsaw Wielder - superhuman strength, chainsaw expertise, butcher skills, surprising speed, meat hook combat',
+    category: 'horror',
+    skill: 50,
+  },
+  {
+    id: 'ghostface',
+    name: 'Ghostface',
+    level: 3,
+    personality: 'Meta-horror slasher who loves horror movies. Calls victims, asks trivia. "What\'s your favorite scary movie?" Could be anyone.',
+    powers: 'Stealth Killer - knife combat, phone stalking, horror movie knowledge, unpredictable identity, voice changer',
+    category: 'horror',
+    skill: 65,
+  },
+  {
+    id: 'pinhead',
+    name: 'Pinhead',
+    level: 8,
+    personality: 'Hell Priest of the Cenobites. Eloquent, philosophical about pain and pleasure. "We have such sights to show you." Offers eternal torment.',
+    powers: 'Cenobite Powers - hooked chains from nowhere, dimensional manipulation, immortal demon, pain/pleasure mastery, Lament Configuration',
+    category: 'horror',
+    skill: 90,
+  },
+  {
+    id: 'john-kramer',
+    name: 'Jigsaw (John Kramer)',
+    level: 4,
+    personality: 'Terminally ill engineer who tests people\'s will to live through deadly games. "I want to play a game." Never directly kills.',
+    powers: 'Trap Master - genius engineer, elaborate death traps, psychological manipulation, posthumous planning, apprentice network',
+    category: 'horror',
+    skill: 95,
+  },
+];
+
+// Category definitions for filtering
+const OPPONENT_CATEGORIES = [
+  { id: 'all', name: 'All Categories' },
+  { id: 'training', name: '🎯 Training' },
+  { id: 'iconic', name: '⚡ Heroes & Villains' },
+  { id: 'celebrity', name: '🌟 Celebrities' },
+  { id: 'anime', name: '🌸 Classic Anime' },
+  { id: 'sds', name: '⚔️ Seven Deadly Sins' },
+  { id: 'hxh', name: '🎴 Hunter x Hunter' },
+  { id: 'ds', name: '🗡️ Demon Slayer' },
+  { id: 'mha', name: '💥 My Hero Academia' },
+  { id: 'jjk', name: '👁️ Jujutsu Kaisen' },
+  { id: 'games', name: '🎮 Video Games' },
+  { id: 'horror', name: '🔪 Horror Villains' },
+];
+
 // Power tier definitions for filtering
 const POWER_TIERS = [
   { id: 'all', name: 'All Tiers', minLevel: 1, maxLevel: 10 },
@@ -611,6 +788,21 @@ const POWER_TIERS = [
   { id: 'advanced', name: 'Advanced (6-7)', minLevel: 6, maxLevel: 7 },
   { id: 'legendary', name: 'Legendary (8-10)', minLevel: 8, maxLevel: 10 },
 ];
+
+// Map categories to their opponent arrays
+const CATEGORY_MAP: Record<string, AIOpponent[]> = {
+  training: ORIGINAL_OPPONENTS,
+  iconic: ICONIC_OPPONENTS,
+  celebrity: CELEBRITY_OPPONENTS,
+  anime: ANIME_OPPONENTS,
+  sds: SEVEN_DEADLY_SINS_OPPONENTS,
+  hxh: HUNTER_X_HUNTER_OPPONENTS,
+  ds: DEMON_SLAYER_OPPONENTS,
+  mha: MHA_OPPONENTS,
+  jjk: JJK_OPPONENTS,
+  games: GAME_OPPONENTS,
+  horror: HORROR_OPPONENTS,
+};
 
 const AI_OPPONENTS: AIOpponent[] = [
   ...ORIGINAL_OPPONENTS, 
@@ -622,6 +814,8 @@ const AI_OPPONENTS: AIOpponent[] = [
   ...DEMON_SLAYER_OPPONENTS,
   ...MHA_OPPONENTS,
   ...JJK_OPPONENTS,
+  ...GAME_OPPONENTS,
+  ...HORROR_OPPONENTS,
 ];
 
 export default function MockBattle() {
@@ -656,14 +850,24 @@ export default function MockBattle() {
   // Character story lore for AI battles
   const [characterStoryLore, setCharacterStoryLore] = useState<string>('');
   
-  // Power tier filter
+  // Power tier and category filters
   const [selectedTierFilter, setSelectedTierFilter] = useState<string>('all');
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
   
-  // Filter opponents by tier
+  // Filter opponents by tier and category
   const filteredOpponents = AI_OPPONENTS.filter(opponent => {
+    // Tier filter
     const tier = POWER_TIERS.find(t => t.id === selectedTierFilter);
-    if (!tier || tier.id === 'all') return true;
-    return opponent.level >= tier.minLevel && opponent.level <= tier.maxLevel;
+    const tierPass = !tier || tier.id === 'all' || (opponent.level >= tier.minLevel && opponent.level <= tier.maxLevel);
+    
+    // Category filter
+    let categoryPass = true;
+    if (selectedCategoryFilter !== 'all') {
+      const categoryOpponents = CATEGORY_MAP[selectedCategoryFilter];
+      categoryPass = categoryOpponents ? categoryOpponents.some(o => o.id === opponent.id) : true;
+    }
+    
+    return tierPass && categoryPass;
   });
 
   useEffect(() => {
@@ -1214,21 +1418,41 @@ export default function MockBattle() {
 
                   {opponentType === 'ai' ? (
                     <>
-                      {/* Tier Filter */}
-                      <div className="flex items-center gap-2 mb-2">
-                        <Label className="text-xs text-muted-foreground">Filter by Power:</Label>
-                        <Select value={selectedTierFilter} onValueChange={setSelectedTierFilter}>
-                          <SelectTrigger className="h-8 w-[160px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-popover border border-border z-50">
-                            {POWER_TIERS.map((tier) => (
-                              <SelectItem key={tier.id} value={tier.id}>
-                                {tier.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      {/* Filters Row */}
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <div className="flex items-center gap-1">
+                          <Label className="text-xs text-muted-foreground">Power:</Label>
+                          <Select value={selectedTierFilter} onValueChange={setSelectedTierFilter}>
+                            <SelectTrigger className="h-8 w-[140px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-popover border border-border z-50">
+                              {POWER_TIERS.map((tier) => (
+                                <SelectItem key={tier.id} value={tier.id}>
+                                  {tier.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Label className="text-xs text-muted-foreground">Category:</Label>
+                          <Select value={selectedCategoryFilter} onValueChange={setSelectedCategoryFilter}>
+                            <SelectTrigger className="h-8 w-[180px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-popover border border-border z-50">
+                              {OPPONENT_CATEGORIES.map((cat) => (
+                                <SelectItem key={cat.id} value={cat.id}>
+                                  {cat.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <Badge variant="secondary" className="text-xs">
+                          {filteredOpponents.length} opponents
+                        </Badge>
                       </div>
                       
                       <Select 
@@ -1290,7 +1514,41 @@ export default function MockBattle() {
                             </>
                           )}
                           
-                          {/* Dragon Ball, Naruto, etc (original anime) */}
+                          {/* Video Games */}
+                          {filteredOpponents.some(o => GAME_OPPONENTS.find(orig => orig.id === o.id)) && (
+                            <>
+                              <div className="px-2 py-1 text-xs font-semibold text-muted-foreground mt-2 border-t pt-2 bg-muted/50 sticky top-0">
+                                🎮 Video Games
+                              </div>
+                              {GAME_OPPONENTS.filter(o => filteredOpponents.find(f => f.id === o.id)).map((opponent) => (
+                                <SelectItem key={opponent.id} value={opponent.id}>
+                                  <span className="flex items-center gap-2">
+                                    <Zap className="w-3 h-3 text-cyan-500" />
+                                    {opponent.name} (Tier {opponent.level})
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </>
+                          )}
+                          
+                          {/* Horror Villains */}
+                          {filteredOpponents.some(o => HORROR_OPPONENTS.find(orig => orig.id === o.id)) && (
+                            <>
+                              <div className="px-2 py-1 text-xs font-semibold text-muted-foreground mt-2 border-t pt-2 bg-muted/50 sticky top-0">
+                                🔪 Horror Villains
+                              </div>
+                              {HORROR_OPPONENTS.filter(o => filteredOpponents.find(f => f.id === o.id)).map((opponent) => (
+                                <SelectItem key={opponent.id} value={opponent.id}>
+                                  <span className="flex items-center gap-2">
+                                    <AlertTriangle className="w-3 h-3 text-red-600" />
+                                    {opponent.name} (Tier {opponent.level})
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </>
+                          )}
+                          
+                          {/* Classic Anime */}
                           {filteredOpponents.some(o => ANIME_OPPONENTS.find(orig => orig.id === o.id)) && (
                             <>
                               <div className="px-2 py-1 text-xs font-semibold text-muted-foreground mt-2 border-t pt-2 bg-muted/50 sticky top-0">
@@ -1394,7 +1652,7 @@ export default function MockBattle() {
                           
                           {filteredOpponents.length === 0 && (
                             <div className="px-4 py-3 text-center text-sm text-muted-foreground">
-                              No opponents match this tier filter
+                              No opponents match your filters
                             </div>
                           )}
                         </SelectContent>
