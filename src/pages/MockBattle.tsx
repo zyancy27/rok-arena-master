@@ -295,7 +295,123 @@ const CELEBRITY_OPPONENTS = [
   },
 ];
 
-const AI_OPPONENTS: AIOpponent[] = [...ORIGINAL_OPPONENTS, ...ICONIC_OPPONENTS, ...ANIME_OPPONENTS, ...CELEBRITY_OPPONENTS];
+// Seven Deadly Sins anime characters
+const SEVEN_DEADLY_SINS_OPPONENTS = [
+  {
+    id: 'meliodas',
+    name: 'Meliodas',
+    level: 6,
+    personality: 'Captain of the Seven Deadly Sins. Appears carefree and perverted but hides immense demonic power. Fiercely protective of Elizabeth and his friends. "Full Counter!"',
+    powers: 'Full Counter - reflects attacks with multiplied power, Assault Mode, Demon Mark, Hellblaze, Dragon Handle sword techniques',
+    category: 'anime',
+    skill: 95, // 3000+ years of combat experience
+  },
+  {
+    id: 'escanor',
+    name: 'Escanor',
+    level: 7,
+    personality: 'The Lion Sin of Pride. Meek at night, overwhelmingly arrogant during the day. At noon becomes "The One" - invincible. "Who decided that?"',
+    powers: 'Sunshine - power scales with sun, peaks at noon as The One. Cruel Sun, Divine Axe Rhitta, heat rivaling the sun itself',
+    category: 'anime',
+    skill: 88, // Raw power compensates for technique
+  },
+  {
+    id: 'ban',
+    name: 'Ban',
+    level: 5,
+    personality: 'The Fox Sin of Greed. Laid-back immortal thief with tragic past. Deeply loyal despite criminal nature. Calls people "Cap\'n." "Oi oi oi!"',
+    powers: 'Snatch - steals physical abilities, Hunter Fest, Physical Hunt, immortal regeneration, three-section staff combat',
+    category: 'anime',
+    skill: 82, // Centuries of experience as immortal
+  },
+  {
+    id: 'king-sds',
+    name: 'King (Harlequin)',
+    level: 5,
+    personality: 'Fairy King and Sin of Sloth. Kind-hearted but torn between duty and love for Diane. Appears lazy but deeply caring. Floats on Chastiefol.',
+    powers: 'Disaster - controls life force, Spirit Spear Chastiefol with 10 forms (Sunflower, Guardian, Fossilization), Fairy King powers, flight',
+    category: 'anime',
+    skill: 90, // 700+ years as Fairy King
+  },
+  {
+    id: 'diane',
+    name: 'Diane',
+    level: 5,
+    personality: 'Giant Sin of Envy. Sweet and emotional, loves King deeply. Gets jealous easily. Massive size but shrinks with special pills. "King~!"',
+    powers: 'Creation - earth manipulation, Gideon war hammer, Heavy Metal (iron skin), Ground Gladius, Giant strength',
+    category: 'anime',
+    skill: 78, // Skilled but emotional fighter
+  },
+];
+
+// Hunter x Hunter anime characters
+const HUNTER_X_HUNTER_OPPONENTS = [
+  {
+    id: 'gon',
+    name: 'Gon Freecss',
+    level: 4,
+    personality: 'Pure-hearted boy searching for his father. Simple-minded but incredibly perceptive. His kindness hides terrifying potential when angered.',
+    powers: 'Enhancement Nen - Jajanken (Rock-Paper-Scissors), Adult Gon transformation, enhanced senses, incredible adaptability',
+    category: 'anime',
+    skill: 68, // Talented but still learning
+  },
+  {
+    id: 'killua',
+    name: 'Killua Zoldyck',
+    level: 5,
+    personality: 'Former Zoldyck assassin learning to be normal. Cold and calculating in battle, warm to friends. Protective of Gon. Loves chocolate robots.',
+    powers: 'Transmutation Nen - Godspeed, Thunderbolt, Whirlwind, assassination techniques, electricity manipulation, Rhythm Echo',
+    category: 'anime',
+    skill: 94, // Trained from birth as assassin
+  },
+  {
+    id: 'hisoka',
+    name: 'Hisoka Morow',
+    level: 5,
+    personality: 'Psychotic magician obsessed with fighting strong opponents. Lets prey grow stronger before killing. Views fighters as fruit to ripen. "Schwing~"',
+    powers: 'Transmutation/Conjuration Nen - Bungee Gum (has properties of rubber AND gum), Texture Surprise, playing card weapons',
+    category: 'anime',
+    skill: 97, // Master tactician and fighter
+  },
+  {
+    id: 'chrollo',
+    name: 'Chrollo Lucilfer',
+    level: 6,
+    personality: 'Leader of Phantom Troupe. Calm, intelligent, utterly ruthless. Philosophical about death. Values the Spider above himself.',
+    powers: 'Specialization Nen - Skill Hunter (steals abilities), Bandit\'s Secret book, multiple stolen Nen powers, genius-level intellect',
+    category: 'anime',
+    skill: 96, // Criminal mastermind with stolen abilities
+  },
+  {
+    id: 'meruem',
+    name: 'Meruem',
+    level: 8,
+    personality: 'Chimera Ant King. Born as perfect predator, evolved through Komugi to question existence. Initially cruel, grew to appreciate humanity.',
+    powers: 'Aura Synthesis - absorbs power from consumed Nen users, Photon, Rage Blast, unparalleled physical abilities, instant learning',
+    category: 'anime',
+    skill: 85, // Raw power over technique
+  },
+  {
+    id: 'netero',
+    name: 'Isaac Netero',
+    level: 7,
+    personality: 'Chairman of Hunter Association. Eccentric old man, secretly strongest human. Playful but deadly serious. Spent decades in prayer training.',
+    powers: '100-Type Guanyin Bodhisattva - giant Nen construct, Zero Hand ultimate attack, fastest hands in world, decades of experience',
+    category: 'anime',
+    skill: 99, // Lifetime of martial arts mastery
+  },
+  {
+    id: 'kurapika',
+    name: 'Kurapika',
+    level: 5,
+    personality: 'Last of Kurta Clan. Driven by revenge against Phantom Troupe. Cold and analytical, but caring to friends. Eyes turn scarlet with emotion.',
+    powers: 'Conjuration Nen - Holy Chain, Judgment Chain, Emperor Time (access to all Nen types), enhanced when eyes are scarlet',
+    category: 'anime',
+    skill: 88, // Dedicated training for revenge
+  },
+];
+
+const AI_OPPONENTS: AIOpponent[] = [...ORIGINAL_OPPONENTS, ...ICONIC_OPPONENTS, ...ANIME_OPPONENTS, ...CELEBRITY_OPPONENTS, ...SEVEN_DEADLY_SINS_OPPONENTS, ...HUNTER_X_HUNTER_OPPONENTS];
 
 export default function MockBattle() {
   const { user } = useAuth();
