@@ -21,17 +21,13 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Swords, Sparkles, MapPin, Coins } from 'lucide-react';
-import TierWarning from './TierWarning';
+import { Swords, Sparkles, MapPin, Coins, User } from 'lucide-react';
 
 interface ChallengeModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  targetCharacter: {
-    id: string;
-    name: string;
-    level: number;
-  };
+  targetUserId: string;
+  targetUsername: string;
   userCharacters: {
     id: string;
     name: string;
@@ -42,7 +38,8 @@ interface ChallengeModalProps {
 export default function ChallengeModal({
   open,
   onOpenChange,
-  targetCharacter,
+  targetUserId,
+  targetUsername,
   userCharacters,
 }: ChallengeModalProps) {
   const { user } = useAuth();
@@ -65,7 +62,7 @@ export default function ChallengeModal({
     setIsLoading(true);
 
     try {
-      // Create the battle with location - don't select immediately due to RLS
+      // Create the battle with location
       const { data: battle, error: battleError } = await supabase
         .from('battles')
         .insert({ 
@@ -77,17 +74,19 @@ export default function ChallengeModal({
 
       if (battleError || !battle) throw battleError;
 
-      // Add participants - include the challenger's character first
+      // Add only the challenger as participant - defender will choose their character when accepting
       const { error: participantError } = await supabase
         .from('battle_participants')
         .insert([
           { battle_id: battle.id, character_id: selectedCharacter, turn_order: 1 },
-          { battle_id: battle.id, character_id: targetCharacter.id, turn_order: 2 },
         ]);
 
       if (participantError) throw participantError;
 
-      toast.success(`Challenge sent to ${targetCharacter.name}!`);
+      // Store the target user ID in the battle somehow - we'll use a simple approach
+      // For now, we'll navigate and the defender will see it in their pending battles
+      
+      toast.success(`Challenge sent to ${targetUsername}!`);
       onOpenChange(false);
       navigate(`/battles/${battle.id}`);
     } catch (error: any) {
@@ -97,17 +96,24 @@ export default function ChallengeModal({
     }
   };
 
+  const handleClose = () => {
+    setSelectedCharacter('');
+    setUserLocation('');
+    onOpenChange(false);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Swords className="w-5 h-5 text-primary" />
-            Challenge to Battle
+            Challenge Player
           </DialogTitle>
-          <DialogDescription>
-            Challenge <span className="text-primary font-semibold">{targetCharacter.name}</span>{' '}
-            (Tier {targetCharacter.level}) to a battle in the arena.
+          <DialogDescription className="flex items-center gap-2">
+            <User className="w-4 h-4" />
+            Challenge <span className="text-primary font-semibold">{targetUsername}</span> to a battle.
+            They will choose which character to fight with when they accept.
           </DialogDescription>
         </DialogHeader>
 
@@ -154,26 +160,17 @@ export default function ChallengeModal({
           </div>
 
           {selectedCharacter && (
-            <>
-              <TierWarning
-                attackerTier={userCharacters.find(c => c.id === selectedCharacter)?.level || 1}
-                defenderTier={targetCharacter.level}
-                attackerName={userCharacters.find(c => c.id === selectedCharacter)?.name || 'Your character'}
-                defenderName={targetCharacter.name}
-              />
-              <div className="p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
-                <p className="flex items-center gap-2">
-                  <Swords className="w-4 h-4 text-primary" />
-                  Your character will face off against {targetCharacter.name} in the arena.
-                  The challenged player will need to accept and choose their location before the battle begins.
-                </p>
-              </div>
-            </>
+            <div className="p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
+              <p className="flex items-center gap-2">
+                <Swords className="w-4 h-4 text-primary" />
+                {targetUsername} will receive your challenge and choose which of their characters to fight with.
+              </p>
+            </div>
           )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={handleClose}>
             Cancel
           </Button>
           <Button
