@@ -74,13 +74,17 @@ interface PlanetData {
 
 // Original AI opponent templates with skill levels
 // Tier System:
-// 1 - Common Human: No special abilities
-// 2 - Enhanced Human: Peak human (Batman, Captain America)
-// 3 - Super Human: Superhuman powers (Spider-Man, Wolverine)
-// 4 - Legend: Control over mass/energy, single dimension
-// 5 - Title of Titan: Reality warpers, dimension lords
+// 1 - Common Human: No special abilities whatsoever
+// 2 - Enhanced Human: Peak human abilities (Batman, Captain America)
+// 3 - Super Human: Superhuman powers, can include object-dependent powers (weapons, armor, rings)
+// 4 - Legend: Control over mass/energy, powers are INTRINSIC (no objects needed)
+// 5 - Title of Titan: Reality warpers, dimension lords - powers are part of their being
 // 6 - Logic Bending: Can do anything with phrase/thought
 // 7 - Logic Resorts: Functions as Tier 1, ignores Tier 6 commands, can die from normal wounds
+// 
+// IMPORTANT: If a character needs an object (armor, weapon, ring) for their powers,
+// and removing that object makes them vulnerable to normal threats, they are Tier 3 MAX.
+// Tier 4+ means you've transcended the need for objects - your power IS you.
 
 const ORIGINAL_OPPONENTS = [
   {
@@ -354,9 +358,9 @@ const SEVEN_DEADLY_SINS_OPPONENTS = [
   {
     id: 'king-sds',
     name: 'King (Harlequin)',
-    level: 4,
+    level: 3,
     personality: 'Fairy King and Sin of Sloth. Kind-hearted but torn between duty and love for Diane. Appears lazy but deeply caring. Floats on Chastiefol.',
-    powers: 'Disaster - controls life force, Spirit Spear Chastiefol with 10 forms (Sunflower, Guardian, Fossilization), Fairy King powers, flight',
+    powers: 'Disaster - controls life force via Spirit Spear Chastiefol with 10 forms (Sunflower, Guardian, Fossilization). Without Chastiefol, limited to flight and basic fairy magic.',
     category: 'anime',
     skill: 90,
   },
@@ -662,9 +666,9 @@ const GAME_OPPONENTS = [
   {
     id: 'doomguy',
     name: 'Doom Slayer',
-    level: 4,
+    level: 3,
     personality: 'Silent rage machine. Rips and tears until it is done. Demons fear HIM. No words, only violence. Pet rabbit motivates genocide.',
-    powers: 'Praetor Suit - near-invincibility, BFG 9000, chainsaw, glory kills for health, Crucible blade, eons of demon-slaying',
+    powers: 'Praetor Suit - armor-enhanced durability, BFG 9000, chainsaw, glory kills for health, Crucible blade, eons of demon-slaying. Without suit, still superhuman but vulnerable.',
     category: 'games',
     skill: 90,
   },
