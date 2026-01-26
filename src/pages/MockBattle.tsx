@@ -282,7 +282,7 @@ const CELEBRITY_OPPONENTS = [
     personality: 'Musical genius and fashion icon. Speaks in confident, stream-of-consciousness style. References his albums and fashion lines. Believes he is a god among mortals. "I am a god!"',
     powers: 'Creative Genius - Reality warping through sheer belief, sonic attacks from legendary beats, fashion armor that deflects criticism, ego shield',
     category: 'celebrity',
-    skill: 65, // Creative but unconventional fighter
+    skill: 65,
   },
   {
     id: 'keanu-reeves',
@@ -291,7 +291,25 @@ const CELEBRITY_OPPONENTS = [
     personality: 'The One. Humble, soft-spoken martial artist who sees the code in everything. Incredibly kind but deadly when needed. "I know kung fu." Breathtaking.',
     powers: 'Matrix Mastery - Bullet-time reflexes, gun-fu expertise, motorcycle combat, immortal presence, John Wick combat training, Neo reality bending',
     category: 'celebrity',
-    skill: 92, // Trained extensively for roles
+    skill: 92,
+  },
+  {
+    id: 'jim-carrey',
+    name: 'Jim Carrey',
+    level: 4,
+    personality: 'Rubber-faced comedian who bends reality through sheer absurdity. Shifts between personas mid-fight. "SOMEBODY STOP ME!" Mask-level chaos energy.',
+    powers: 'Cartoon Physics - reality warping comedy, shapeshifting expressions, Ace Ventura animal control, The Mask persona (invincibility + toon force)',
+    category: 'celebrity',
+    skill: 70,
+  },
+  {
+    id: 'johnny-depp',
+    name: 'Johnny Depp',
+    level: 5,
+    personality: 'Eccentric pirate-captain-vampire-chocolatier. Speaks in theatrical riddles, unpredictable movements. "Why is the rum always gone?" Charming chaos.',
+    powers: 'Character Synthesis - channels Jack Sparrow luck, Edward Scissorhands blade mastery, Mad Hatter reality distortion, Sweeney Todd precision',
+    category: 'celebrity',
+    skill: 85,
   },
 ];
 
@@ -304,7 +322,7 @@ const SEVEN_DEADLY_SINS_OPPONENTS = [
     personality: 'Captain of the Seven Deadly Sins. Appears carefree and perverted but hides immense demonic power. Fiercely protective of Elizabeth and his friends. "Full Counter!"',
     powers: 'Full Counter - reflects attacks with multiplied power, Assault Mode, Demon Mark, Hellblaze, Dragon Handle sword techniques',
     category: 'anime',
-    skill: 95, // 3000+ years of combat experience
+    skill: 95,
   },
   {
     id: 'escanor',
@@ -313,7 +331,7 @@ const SEVEN_DEADLY_SINS_OPPONENTS = [
     personality: 'The Lion Sin of Pride. Meek at night, overwhelmingly arrogant during the day. At noon becomes "The One" - invincible. "Who decided that?"',
     powers: 'Sunshine - power scales with sun, peaks at noon as The One. Cruel Sun, Divine Axe Rhitta, heat rivaling the sun itself',
     category: 'anime',
-    skill: 88, // Raw power compensates for technique
+    skill: 88,
   },
   {
     id: 'ban',
@@ -322,7 +340,7 @@ const SEVEN_DEADLY_SINS_OPPONENTS = [
     personality: 'The Fox Sin of Greed. Laid-back immortal thief with tragic past. Deeply loyal despite criminal nature. Calls people "Cap\'n." "Oi oi oi!"',
     powers: 'Snatch - steals physical abilities, Hunter Fest, Physical Hunt, immortal regeneration, three-section staff combat',
     category: 'anime',
-    skill: 82, // Centuries of experience as immortal
+    skill: 82,
   },
   {
     id: 'king-sds',
@@ -331,7 +349,7 @@ const SEVEN_DEADLY_SINS_OPPONENTS = [
     personality: 'Fairy King and Sin of Sloth. Kind-hearted but torn between duty and love for Diane. Appears lazy but deeply caring. Floats on Chastiefol.',
     powers: 'Disaster - controls life force, Spirit Spear Chastiefol with 10 forms (Sunflower, Guardian, Fossilization), Fairy King powers, flight',
     category: 'anime',
-    skill: 90, // 700+ years as Fairy King
+    skill: 90,
   },
   {
     id: 'diane',
@@ -340,7 +358,7 @@ const SEVEN_DEADLY_SINS_OPPONENTS = [
     personality: 'Giant Sin of Envy. Sweet and emotional, loves King deeply. Gets jealous easily. Massive size but shrinks with special pills. "King~!"',
     powers: 'Creation - earth manipulation, Gideon war hammer, Heavy Metal (iron skin), Ground Gladius, Giant strength',
     category: 'anime',
-    skill: 78, // Skilled but emotional fighter
+    skill: 78,
   },
 ];
 
@@ -353,7 +371,7 @@ const HUNTER_X_HUNTER_OPPONENTS = [
     personality: 'Pure-hearted boy searching for his father. Simple-minded but incredibly perceptive. His kindness hides terrifying potential when angered.',
     powers: 'Enhancement Nen - Jajanken (Rock-Paper-Scissors), Adult Gon transformation, enhanced senses, incredible adaptability',
     category: 'anime',
-    skill: 68, // Talented but still learning
+    skill: 68,
   },
   {
     id: 'killua',
@@ -362,7 +380,7 @@ const HUNTER_X_HUNTER_OPPONENTS = [
     personality: 'Former Zoldyck assassin learning to be normal. Cold and calculating in battle, warm to friends. Protective of Gon. Loves chocolate robots.',
     powers: 'Transmutation Nen - Godspeed, Thunderbolt, Whirlwind, assassination techniques, electricity manipulation, Rhythm Echo',
     category: 'anime',
-    skill: 94, // Trained from birth as assassin
+    skill: 94,
   },
   {
     id: 'hisoka',
@@ -371,7 +389,7 @@ const HUNTER_X_HUNTER_OPPONENTS = [
     personality: 'Psychotic magician obsessed with fighting strong opponents. Lets prey grow stronger before killing. Views fighters as fruit to ripen. "Schwing~"',
     powers: 'Transmutation/Conjuration Nen - Bungee Gum (has properties of rubber AND gum), Texture Surprise, playing card weapons',
     category: 'anime',
-    skill: 97, // Master tactician and fighter
+    skill: 97,
   },
   {
     id: 'chrollo',
@@ -380,7 +398,7 @@ const HUNTER_X_HUNTER_OPPONENTS = [
     personality: 'Leader of Phantom Troupe. Calm, intelligent, utterly ruthless. Philosophical about death. Values the Spider above himself.',
     powers: 'Specialization Nen - Skill Hunter (steals abilities), Bandit\'s Secret book, multiple stolen Nen powers, genius-level intellect',
     category: 'anime',
-    skill: 96, // Criminal mastermind with stolen abilities
+    skill: 96,
   },
   {
     id: 'meruem',
@@ -389,7 +407,7 @@ const HUNTER_X_HUNTER_OPPONENTS = [
     personality: 'Chimera Ant King. Born as perfect predator, evolved through Komugi to question existence. Initially cruel, grew to appreciate humanity.',
     powers: 'Aura Synthesis - absorbs power from consumed Nen users, Photon, Rage Blast, unparalleled physical abilities, instant learning',
     category: 'anime',
-    skill: 85, // Raw power over technique
+    skill: 85,
   },
   {
     id: 'netero',
@@ -398,7 +416,7 @@ const HUNTER_X_HUNTER_OPPONENTS = [
     personality: 'Chairman of Hunter Association. Eccentric old man, secretly strongest human. Playful but deadly serious. Spent decades in prayer training.',
     powers: '100-Type Guanyin Bodhisattva - giant Nen construct, Zero Hand ultimate attack, fastest hands in world, decades of experience',
     category: 'anime',
-    skill: 99, // Lifetime of martial arts mastery
+    skill: 99,
   },
   {
     id: 'kurapika',
@@ -407,11 +425,204 @@ const HUNTER_X_HUNTER_OPPONENTS = [
     personality: 'Last of Kurta Clan. Driven by revenge against Phantom Troupe. Cold and analytical, but caring to friends. Eyes turn scarlet with emotion.',
     powers: 'Conjuration Nen - Holy Chain, Judgment Chain, Emperor Time (access to all Nen types), enhanced when eyes are scarlet',
     category: 'anime',
-    skill: 88, // Dedicated training for revenge
+    skill: 88,
   },
 ];
 
-const AI_OPPONENTS: AIOpponent[] = [...ORIGINAL_OPPONENTS, ...ICONIC_OPPONENTS, ...ANIME_OPPONENTS, ...CELEBRITY_OPPONENTS, ...SEVEN_DEADLY_SINS_OPPONENTS, ...HUNTER_X_HUNTER_OPPONENTS];
+// Demon Slayer anime characters
+const DEMON_SLAYER_OPPONENTS = [
+  {
+    id: 'tanjiro',
+    name: 'Tanjiro Kamado',
+    level: 5,
+    personality: 'Kind-hearted demon slayer with unbreakable will. Empathizes even with demons. Hardhead literally used as weapon. "I can smell your emotions!"',
+    powers: 'Water Breathing - 10 forms of water-based swordsmanship, Hinokami Kagura (Sun Breathing), enhanced smell, demon-resistant earrings',
+    category: 'anime',
+    skill: 85,
+  },
+  {
+    id: 'zenitsu',
+    name: 'Zenitsu Agatsuma',
+    level: 4,
+    personality: 'Cowardly crybaby who becomes lightning-fast swordsman when unconscious or sleeping. Obsessed with marriage. "I wanna go home!"',
+    powers: 'Thunder Breathing - Thunderclap and Flash (up to Godspeed), enhanced hearing, unconscious combat mastery, Flaming Thunder God',
+    category: 'anime',
+    skill: 90, // Perfect technique when asleep
+  },
+  {
+    id: 'inosuke',
+    name: 'Inosuke Hashibira',
+    level: 4,
+    personality: 'Wild boar-masked berserker raised by animals. Loud, aggressive, mispronounces everyones name. "COME AT ME!" Has surprisingly sensitive side.',
+    powers: 'Beast Breathing - self-taught feral swordsmanship, enhanced touch sensitivity, joint flexibility, dual Nichirin blades',
+    category: 'anime',
+    skill: 75, // Wild but effective
+  },
+  {
+    id: 'muzan',
+    name: 'Muzan Kibutsuji',
+    level: 8,
+    personality: 'Original demon, perfectionist with zero tolerance for failure. Narcissistic, paranoid, changes appearance frequently. Absolute monster.',
+    powers: 'Demon King - near-immortality, shapeshifting, biokinesis, blood manipulation, creates demons, only weak to sunlight and special blades',
+    category: 'anime',
+    skill: 95,
+  },
+  {
+    id: 'akaza',
+    name: 'Akaza',
+    level: 6,
+    personality: 'Upper Moon Three. Honorable martial artist demon who respects strong fighters. Hates the weak. Wants to fight strong opponents forever.',
+    powers: 'Destructive Death - martial arts enhanced by demon strength, Compass Needle (senses fighting spirit), regeneration, shockwave punches',
+    category: 'anime',
+    skill: 98, // Master martial artist
+  },
+];
+
+// My Hero Academia characters (villains focus)
+const MHA_OPPONENTS = [
+  {
+    id: 'all-for-one',
+    name: 'All For One',
+    level: 8,
+    personality: 'Supreme villain who ruled Japan from shadows. Polite, calculating, sees himself as a liberator. Mentored Shigaraki. Ultimate evil.',
+    powers: 'All For One - steals and combines Quirks, possesses hundreds of abilities, regeneration, air cannons, search, warping',
+    category: 'anime',
+    skill: 92,
+  },
+  {
+    id: 'shigaraki',
+    name: 'Tomura Shigaraki',
+    level: 7,
+    personality: 'Leader of League of Villains. Scratches neck when thinking. Hates everything society built. Childish rage with growing strategic mind.',
+    powers: 'Decay - disintegrates anything touched with all five fingers, spreads on contact, enhanced with All For One Quirks, regeneration',
+    category: 'anime',
+    skill: 78,
+  },
+  {
+    id: 'dabi',
+    name: 'Dabi',
+    level: 5,
+    personality: 'Mysterious flame villain with burned skin. Sadistic, nihilistic, harbors deep family grudge. "That\'s rough, buddy." Secretly a Todoroki.',
+    powers: 'Cremation - blue flames hotter than Endeavor\'s, burns even himself, long-range fire attacks, immunity to regular flames',
+    category: 'anime',
+    skill: 75,
+  },
+  {
+    id: 'toga',
+    name: 'Himiko Toga',
+    level: 4,
+    personality: 'Yandere blood-obsessed villain. Cheerfully psychotic, "loves" by drinking blood. Wants to become people she loves. Surprisingly agile.',
+    powers: 'Transform - shapeshifts into anyone whose blood she drinks, copies Quirks at awakened level, expert knife combat, blood equipment',
+    category: 'anime',
+    skill: 80,
+  },
+  {
+    id: 'stain',
+    name: 'Hero Killer Stain',
+    level: 5,
+    personality: 'Ideological serial killer targeting fake heroes. Only respects All Might. Terrifyingly intense presence. "A society of fakes!"',
+    powers: 'Bloodcurdle - paralyzes anyone whose blood he tastes, master swordsman, multiple bladed weapons, superhuman endurance',
+    category: 'anime',
+    skill: 95,
+  },
+  {
+    id: 'overhaul',
+    name: 'Overhaul (Kai Chisaki)',
+    level: 6,
+    personality: 'Yakuza leader with germaphobia. Views Quirks as disease. Coldly logical, willing to sacrifice anyone. Wears plague doctor mask.',
+    powers: 'Overhaul - disassembles and reassembles matter on touch, instant healing, fusion with others, environmental manipulation',
+    category: 'anime',
+    skill: 88,
+  },
+];
+
+// Jujutsu Kaisen characters
+const JJK_OPPONENTS = [
+  {
+    id: 'sukuna',
+    name: 'Ryomen Sukuna',
+    level: 9,
+    personality: 'King of Curses. Arrogant, sadistic, views all as beneath him. Enjoys toying with prey. "Know your place." Ultimate calamity.',
+    powers: 'Malevolent Shrine Domain, Dismantle and Cleave slashing, fire manipulation, reverse cursed technique, 20 fingers of power',
+    category: 'anime',
+    skill: 99,
+  },
+  {
+    id: 'itadori',
+    name: 'Yuji Itadori',
+    level: 5,
+    personality: 'Athletic teenager hosting Sukuna. Cheerful, values human life deeply. Hits really hard. "I wanna eat Sukuna\'s fingers!" Wait no-',
+    powers: 'Superhuman physicality, Divergent Fist, Black Flash, cursed energy reinforcement, Sukuna vessel (partial access to his power)',
+    category: 'anime',
+    skill: 75,
+  },
+  {
+    id: 'megumi',
+    name: 'Megumi Fushiguro',
+    level: 5,
+    personality: 'Stoic shikigami user with hidden potential. Saves people he deems good. Zenin clan heritage. Sukuna is very interested in him.',
+    powers: 'Ten Shadows Technique - summons shikigami beasts, Divine Dog, Nue, Mahoraga (incomplete), Domain Expansion: Chimera Shadow Garden',
+    category: 'anime',
+    skill: 85,
+  },
+  {
+    id: 'nobara',
+    name: 'Nobara Kugisaki',
+    level: 4,
+    personality: 'Fierce country girl in Tokyo. Vain about looks, incredibly tough. Hammer-wielding with no fear. "I love myself when I\'m fighting!"',
+    powers: 'Straw Doll Technique - voodoo resonance attacks, Hairpin (ranged), Black Flash capable, cursed energy nails and hammer',
+    category: 'anime',
+    skill: 78,
+  },
+  {
+    id: 'todo',
+    name: 'Aoi Todo',
+    level: 5,
+    personality: 'Eccentric muscle-bound sorcerer obsessed with "best friend" Itadori. Asks about type of woman. Surprisingly intellectual battle IQ.',
+    powers: 'Boogie Woogie - swaps positions with anything via clap, immense physical strength, Simple Domain, Black Flash master',
+    category: 'anime',
+    skill: 92,
+  },
+  {
+    id: 'mahito',
+    name: 'Mahito',
+    level: 6,
+    personality: 'Curse born from human hatred. Childishly curious about humanity while torturing them. Sees humans as toys. Rapidly evolving threat.',
+    powers: 'Idle Transfiguration - reshapes souls/bodies on touch, Self-Embodiment of Perfection domain, soul manipulation, regeneration',
+    category: 'anime',
+    skill: 80,
+  },
+  {
+    id: 'toji',
+    name: 'Toji Fushiguro',
+    level: 7,
+    personality: 'Sorcerer Killer with zero cursed energy. Abandoned Megumi, lives as assassin. Cold, calculating, nearly killed young Gojo. "Monkey."',
+    powers: 'Heavenly Restriction - superhuman physical stats, invisible to cursed energy detection, Inverted Spear of Heaven, cursed spirit arsenal',
+    category: 'anime',
+    skill: 99,
+  },
+];
+
+// Power tier definitions for filtering
+const POWER_TIERS = [
+  { id: 'all', name: 'All Tiers', minLevel: 1, maxLevel: 10 },
+  { id: 'beginner', name: 'Beginner (1-3)', minLevel: 1, maxLevel: 3 },
+  { id: 'intermediate', name: 'Intermediate (4-5)', minLevel: 4, maxLevel: 5 },
+  { id: 'advanced', name: 'Advanced (6-7)', minLevel: 6, maxLevel: 7 },
+  { id: 'legendary', name: 'Legendary (8-10)', minLevel: 8, maxLevel: 10 },
+];
+
+const AI_OPPONENTS: AIOpponent[] = [
+  ...ORIGINAL_OPPONENTS, 
+  ...ICONIC_OPPONENTS, 
+  ...ANIME_OPPONENTS, 
+  ...CELEBRITY_OPPONENTS, 
+  ...SEVEN_DEADLY_SINS_OPPONENTS, 
+  ...HUNTER_X_HUNTER_OPPONENTS,
+  ...DEMON_SLAYER_OPPONENTS,
+  ...MHA_OPPONENTS,
+  ...JJK_OPPONENTS,
+];
 
 export default function MockBattle() {
   const { user } = useAuth();
@@ -444,6 +655,16 @@ export default function MockBattle() {
   
   // Character story lore for AI battles
   const [characterStoryLore, setCharacterStoryLore] = useState<string>('');
+  
+  // Power tier filter
+  const [selectedTierFilter, setSelectedTierFilter] = useState<string>('all');
+  
+  // Filter opponents by tier
+  const filteredOpponents = AI_OPPONENTS.filter(opponent => {
+    const tier = POWER_TIERS.find(t => t.id === selectedTierFilter);
+    if (!tier || tier.id === 'all') return true;
+    return opponent.level >= tier.minLevel && opponent.level <= tier.maxLevel;
+  });
 
   useEffect(() => {
     if (user) {
@@ -993,6 +1214,23 @@ export default function MockBattle() {
 
                   {opponentType === 'ai' ? (
                     <>
+                      {/* Tier Filter */}
+                      <div className="flex items-center gap-2 mb-2">
+                        <Label className="text-xs text-muted-foreground">Filter by Power:</Label>
+                        <Select value={selectedTierFilter} onValueChange={setSelectedTierFilter}>
+                          <SelectTrigger className="h-8 w-[160px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover border border-border z-50">
+                            {POWER_TIERS.map((tier) => (
+                              <SelectItem key={tier.id} value={tier.id}>
+                                {tier.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
                       <Select 
                         value={selectedOpponent?.id || ''} 
                         onValueChange={(id) => setSelectedOpponent(AI_OPPONENTS.find(o => o.id === id) || AI_OPPONENTS[0])}
@@ -1000,38 +1238,165 @@ export default function MockBattle() {
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
-                          <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">Training Opponents</div>
-                          {ORIGINAL_OPPONENTS.map((opponent) => (
-                            <SelectItem key={opponent.id} value={opponent.id}>
-                              <span className="flex items-center gap-2">
-                                <Bot className="w-3 h-3" />
-                                {opponent.name} (Tier {opponent.level})
-                              </span>
-                            </SelectItem>
-                          ))}
-                          <div className="px-2 py-1 text-xs font-semibold text-muted-foreground mt-2 border-t pt-2">
-                            ⚡ Iconic Heroes & Villains
-                          </div>
-                          {ICONIC_OPPONENTS.map((opponent) => (
-                            <SelectItem key={opponent.id} value={opponent.id}>
-                              <span className="flex items-center gap-2">
-                                <Swords className="w-3 h-3 text-primary" />
-                                {opponent.name} (Tier {opponent.level})
-                              </span>
-                            </SelectItem>
-                          ))}
-                          <div className="px-2 py-1 text-xs font-semibold text-muted-foreground mt-2 border-t pt-2">
-                            🌸 Anime & Manga
-                          </div>
-                          {ANIME_OPPONENTS.map((opponent) => (
-                            <SelectItem key={opponent.id} value={opponent.id}>
-                              <span className="flex items-center gap-2">
-                                <Sparkles className="w-3 h-3 text-pink-500" />
-                                {opponent.name} (Tier {opponent.level})
-                              </span>
-                            </SelectItem>
-                          ))}
+                        <SelectContent className="bg-popover border border-border z-50 max-h-[400px]">
+                          {/* Training Opponents */}
+                          {filteredOpponents.some(o => ORIGINAL_OPPONENTS.find(orig => orig.id === o.id)) && (
+                            <>
+                              <div className="px-2 py-1 text-xs font-semibold text-muted-foreground bg-muted/50 sticky top-0">
+                                🎯 Training Opponents
+                              </div>
+                              {ORIGINAL_OPPONENTS.filter(o => filteredOpponents.find(f => f.id === o.id)).map((opponent) => (
+                                <SelectItem key={opponent.id} value={opponent.id}>
+                                  <span className="flex items-center gap-2">
+                                    <Bot className="w-3 h-3" />
+                                    {opponent.name} (Tier {opponent.level})
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </>
+                          )}
+                          
+                          {/* Iconic Heroes & Villains */}
+                          {filteredOpponents.some(o => ICONIC_OPPONENTS.find(orig => orig.id === o.id)) && (
+                            <>
+                              <div className="px-2 py-1 text-xs font-semibold text-muted-foreground mt-2 border-t pt-2 bg-muted/50 sticky top-0">
+                                ⚡ Iconic Heroes & Villains
+                              </div>
+                              {ICONIC_OPPONENTS.filter(o => filteredOpponents.find(f => f.id === o.id)).map((opponent) => (
+                                <SelectItem key={opponent.id} value={opponent.id}>
+                                  <span className="flex items-center gap-2">
+                                    <Swords className="w-3 h-3 text-primary" />
+                                    {opponent.name} (Tier {opponent.level})
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </>
+                          )}
+                          
+                          {/* Celebrities */}
+                          {filteredOpponents.some(o => CELEBRITY_OPPONENTS.find(orig => orig.id === o.id)) && (
+                            <>
+                              <div className="px-2 py-1 text-xs font-semibold text-muted-foreground mt-2 border-t pt-2 bg-muted/50 sticky top-0">
+                                🌟 Celebrities
+                              </div>
+                              {CELEBRITY_OPPONENTS.filter(o => filteredOpponents.find(f => f.id === o.id)).map((opponent) => (
+                                <SelectItem key={opponent.id} value={opponent.id}>
+                                  <span className="flex items-center gap-2">
+                                    <Mic className="w-3 h-3 text-yellow-500" />
+                                    {opponent.name} (Tier {opponent.level})
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </>
+                          )}
+                          
+                          {/* Dragon Ball, Naruto, etc (original anime) */}
+                          {filteredOpponents.some(o => ANIME_OPPONENTS.find(orig => orig.id === o.id)) && (
+                            <>
+                              <div className="px-2 py-1 text-xs font-semibold text-muted-foreground mt-2 border-t pt-2 bg-muted/50 sticky top-0">
+                                🌸 Classic Anime
+                              </div>
+                              {ANIME_OPPONENTS.filter(o => filteredOpponents.find(f => f.id === o.id)).map((opponent) => (
+                                <SelectItem key={opponent.id} value={opponent.id}>
+                                  <span className="flex items-center gap-2">
+                                    <Sparkles className="w-3 h-3 text-pink-500" />
+                                    {opponent.name} (Tier {opponent.level})
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </>
+                          )}
+                          
+                          {/* Seven Deadly Sins */}
+                          {filteredOpponents.some(o => SEVEN_DEADLY_SINS_OPPONENTS.find(orig => orig.id === o.id)) && (
+                            <>
+                              <div className="px-2 py-1 text-xs font-semibold text-muted-foreground mt-2 border-t pt-2 bg-muted/50 sticky top-0">
+                                ⚔️ Seven Deadly Sins
+                              </div>
+                              {SEVEN_DEADLY_SINS_OPPONENTS.filter(o => filteredOpponents.find(f => f.id === o.id)).map((opponent) => (
+                                <SelectItem key={opponent.id} value={opponent.id}>
+                                  <span className="flex items-center gap-2">
+                                    <Zap className="w-3 h-3 text-orange-500" />
+                                    {opponent.name} (Tier {opponent.level})
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </>
+                          )}
+                          
+                          {/* Hunter x Hunter */}
+                          {filteredOpponents.some(o => HUNTER_X_HUNTER_OPPONENTS.find(orig => orig.id === o.id)) && (
+                            <>
+                              <div className="px-2 py-1 text-xs font-semibold text-muted-foreground mt-2 border-t pt-2 bg-muted/50 sticky top-0">
+                                🎴 Hunter x Hunter
+                              </div>
+                              {HUNTER_X_HUNTER_OPPONENTS.filter(o => filteredOpponents.find(f => f.id === o.id)).map((opponent) => (
+                                <SelectItem key={opponent.id} value={opponent.id}>
+                                  <span className="flex items-center gap-2">
+                                    <Atom className="w-3 h-3 text-green-500" />
+                                    {opponent.name} (Tier {opponent.level})
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </>
+                          )}
+                          
+                          {/* Demon Slayer */}
+                          {filteredOpponents.some(o => DEMON_SLAYER_OPPONENTS.find(orig => orig.id === o.id)) && (
+                            <>
+                              <div className="px-2 py-1 text-xs font-semibold text-muted-foreground mt-2 border-t pt-2 bg-muted/50 sticky top-0">
+                                🗡️ Demon Slayer
+                              </div>
+                              {DEMON_SLAYER_OPPONENTS.filter(o => filteredOpponents.find(f => f.id === o.id)).map((opponent) => (
+                                <SelectItem key={opponent.id} value={opponent.id}>
+                                  <span className="flex items-center gap-2">
+                                    <Swords className="w-3 h-3 text-red-500" />
+                                    {opponent.name} (Tier {opponent.level})
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </>
+                          )}
+                          
+                          {/* My Hero Academia */}
+                          {filteredOpponents.some(o => MHA_OPPONENTS.find(orig => orig.id === o.id)) && (
+                            <>
+                              <div className="px-2 py-1 text-xs font-semibold text-muted-foreground mt-2 border-t pt-2 bg-muted/50 sticky top-0">
+                                💥 My Hero Academia
+                              </div>
+                              {MHA_OPPONENTS.filter(o => filteredOpponents.find(f => f.id === o.id)).map((opponent) => (
+                                <SelectItem key={opponent.id} value={opponent.id}>
+                                  <span className="flex items-center gap-2">
+                                    <Zap className="w-3 h-3 text-blue-500" />
+                                    {opponent.name} (Tier {opponent.level})
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </>
+                          )}
+                          
+                          {/* Jujutsu Kaisen */}
+                          {filteredOpponents.some(o => JJK_OPPONENTS.find(orig => orig.id === o.id)) && (
+                            <>
+                              <div className="px-2 py-1 text-xs font-semibold text-muted-foreground mt-2 border-t pt-2 bg-muted/50 sticky top-0">
+                                👁️ Jujutsu Kaisen
+                              </div>
+                              {JJK_OPPONENTS.filter(o => filteredOpponents.find(f => f.id === o.id)).map((opponent) => (
+                                <SelectItem key={opponent.id} value={opponent.id}>
+                                  <span className="flex items-center gap-2">
+                                    <Sparkles className="w-3 h-3 text-purple-500" />
+                                    {opponent.name} (Tier {opponent.level})
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </>
+                          )}
+                          
+                          {filteredOpponents.length === 0 && (
+                            <div className="px-4 py-3 text-center text-sm text-muted-foreground">
+                              No opponents match this tier filter
+                            </div>
+                          )}
                         </SelectContent>
                       </Select>
                       {selectedOpponent && (
