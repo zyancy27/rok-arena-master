@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { getTierName } from '@/lib/game-constants';
 import { generateBattleEnvironment, getEnvironmentStatImpact, BattleEnvironment, shouldTriggerHazard, generateHazardEventPrompt } from '@/lib/battle-environment';
@@ -32,7 +33,8 @@ import {
   Globe,
   Zap,
   Atom,
-  AlertTriangle
+  AlertTriangle,
+  Info
 } from 'lucide-react';
 
 interface UserCharacter {
@@ -63,6 +65,7 @@ interface AIOpponent {
   powers: string;
   category: string;
   skill?: number;
+  tierReason: string; // Explains why this character is at this tier
 }
 
 interface PlanetData {
@@ -86,7 +89,7 @@ interface PlanetData {
 // and removing that object makes them vulnerable to normal threats, they are Tier 3 MAX.
 // Tier 4+ means you've transcended the need for objects - your power IS you.
 
-const ORIGINAL_OPPONENTS = [
+const ORIGINAL_OPPONENTS: AIOpponent[] = [
   {
     id: 'training-bot',
     name: 'Training Sentinel',
@@ -95,6 +98,7 @@ const ORIGINAL_OPPONENTS = [
     powers: 'Adaptive Combat Analysis - can analyze and counter fighting styles',
     category: 'original',
     skill: 75,
+    tierReason: 'Enhanced construct with peak combat analysis but no supernatural abilities.',
   },
   {
     id: 'chaos-imp',
@@ -104,6 +108,7 @@ const ORIGINAL_OPPONENTS = [
     powers: 'Reality Pranks - minor reality distortions for comedic and tactical effect',
     category: 'original',
     skill: 55,
+    tierReason: 'Intrinsic magical abilities allow minor reality distortion.',
   },
   {
     id: 'ancient-guardian',
@@ -113,11 +118,12 @@ const ORIGINAL_OPPONENTS = [
     powers: 'Cosmic Wisdom - manipulation of celestial energies and precognition',
     category: 'original',
     skill: 90,
+    tierReason: 'Legendary being with intrinsic control over celestial energy.',
   },
 ];
 
 // Iconic comic book character AI opponents with skill levels
-const ICONIC_OPPONENTS = [
+const ICONIC_OPPONENTS: AIOpponent[] = [
   {
     id: 'hulk',
     name: 'The Hulk',
@@ -126,6 +132,7 @@ const ICONIC_OPPONENTS = [
     powers: 'Limitless Strength - grows stronger with rage, regeneration, thunderclap shockwaves, gamma radiation immunity',
     category: 'iconic',
     skill: 35,
+    tierReason: 'Gamma mutation is intrinsic to his being. Power scales infinitely with rage.',
   },
   {
     id: 'wolverine',
@@ -135,6 +142,7 @@ const ICONIC_OPPONENTS = [
     powers: 'Adamantium Claws - indestructible skeleton, superhuman senses, regenerative healing factor that makes him nearly unkillable',
     category: 'iconic',
     skill: 85,
+    tierReason: 'Mutant healing factor is intrinsic, but adamantium skeleton is an enhancement. Without claws, still superhuman.',
   },
   {
     id: 'deadpool',
@@ -144,6 +152,7 @@ const ICONIC_OPPONENTS = [
     powers: 'Regenerative Healing - extreme regeneration, expert marksman and swordsman, unpredictable fighting style',
     category: 'iconic',
     skill: 70,
+    tierReason: 'Healing factor is intrinsic mutation. Fourth-wall awareness is supernatural but doesn\'t grant combat advantage.',
   },
   {
     id: 'mr-fantastic',
@@ -153,6 +162,7 @@ const ICONIC_OPPONENTS = [
     powers: 'Elasticity - can stretch, reshape, and expand body infinitely. Genius-level intellect, one of the smartest beings alive',
     category: 'iconic',
     skill: 55,
+    tierReason: 'Cosmic ray mutation is intrinsic. Elasticity is part of his cellular structure.',
   },
   {
     id: 'thor',
@@ -162,6 +172,7 @@ const ICONIC_OPPONENTS = [
     powers: 'Thunder God - Mjolnir control, lightning manipulation, superhuman strength, flight, near-immortality',
     category: 'iconic',
     skill: 88,
+    tierReason: 'Asgardian physiology is intrinsic. Can summon lightning without Mjolnir. Godhood is his nature.',
   },
   {
     id: 'magneto',
@@ -171,6 +182,7 @@ const ICONIC_OPPONENTS = [
     powers: 'Magnetokinesis - control over all magnetic fields and metal, force fields, electromagnetic pulse generation',
     category: 'iconic',
     skill: 82,
+    tierReason: 'Mutant power is intrinsic. Magnetic control is part of his biology, not derived from objects.',
   },
   {
     id: 'doctor-doom',
@@ -180,6 +192,7 @@ const ICONIC_OPPONENTS = [
     powers: 'Sorcery & Technology - genius inventor, powerful sorcerer, armored suit with vast weaponry, diplomatic immunity',
     category: 'iconic',
     skill: 92,
+    tierReason: 'Mastered sorcery to reality-warping levels. Magic is intrinsic knowledge. Armor enhances but isn\'t required.',
   },
   {
     id: 'spider-man',
@@ -189,11 +202,12 @@ const ICONIC_OPPONENTS = [
     powers: 'Spider Powers - wall-crawling, superhuman agility and strength, spider-sense danger detection, web-slinging',
     category: 'iconic',
     skill: 72,
+    tierReason: 'Spider mutation is intrinsic. Web-shooters are gadgets but his core powers are biological.',
   },
 ];
 
 // Anime & Manga character AI opponents with skill levels
-const ANIME_OPPONENTS = [
+const ANIME_OPPONENTS: AIOpponent[] = [
   {
     id: 'goku',
     name: 'Son Goku',
@@ -202,6 +216,7 @@ const ANIME_OPPONENTS = [
     powers: 'Saiyan Might - Super Saiyan transformations, Ki manipulation, Instant Transmission, Kamehameha, Ultra Instinct',
     category: 'anime',
     skill: 95,
+    tierReason: 'Ki manipulation and transformations are intrinsic Saiyan biology. Can warp reality at highest forms.',
   },
   {
     id: 'naruto',
@@ -211,6 +226,7 @@ const ANIME_OPPONENTS = [
     powers: 'Nine-Tails Jinchuriki - Massive chakra reserves, Shadow Clone Jutsu, Rasengan, Sage Mode, Six Paths power',
     category: 'anime',
     skill: 78,
+    tierReason: 'Kurama is sealed within him (intrinsic). Sage Mode and Six Paths are mastered abilities, not objects.',
   },
   {
     id: 'ichigo',
@@ -220,6 +236,7 @@ const ANIME_OPPONENTS = [
     powers: 'Shinigami Powers - Zangetsu sword, Bankai transformation, Hollow powers, Quincy abilities, Getsuga Tensho',
     category: 'anime',
     skill: 70,
+    tierReason: 'Zangetsu is a manifestation of his soul, not a separate weapon. Powers are intrinsic heritage.',
   },
   {
     id: 'luffy',
@@ -229,15 +246,17 @@ const ANIME_OPPONENTS = [
     powers: 'Gum-Gum Fruit - Rubber body, Gear Second/Third/Fourth/Fifth, Haki mastery, Nika awakening',
     category: 'anime',
     skill: 75,
+    tierReason: 'Devil Fruit permanently altered his body. Nika awakening grants reality-warping cartoon physics.',
   },
   {
     id: 'saitama',
     name: 'Saitama',
-    level: 7,
-    personality: 'Bored hero who defeats everything in one punch. Deadpan, obsessed with supermarket sales. Can still die from normal things like stab wounds if caught off-guard. Immune to reality-warping commands.',
-    powers: 'Limitless Strength - One punch knockout, immeasurable speed, functions as normal human but ignores logic-bending commands',
+    level: 6,
+    personality: 'Bored hero who defeats everything in one punch. Deadpan, obsessed with supermarket sales. Broke his limiter through training alone.',
+    powers: 'Limitless Strength - One punch knockout, immeasurable speed, invulnerability, Serious Series techniques',
     category: 'anime',
     skill: 50,
+    tierReason: 'Human who broke his natural limiter. Power is intrinsic - no objects, mutations, or magic. Pure self-achieved godhood.',
   },
   {
     id: 'vegeta',
@@ -247,6 +266,7 @@ const ANIME_OPPONENTS = [
     powers: 'Saiyan Pride - Super Saiyan forms, Final Flash, Big Bang Attack, Ultra Ego, intense training discipline',
     category: 'anime',
     skill: 93,
+    tierReason: 'Ki manipulation and transformations are intrinsic Saiyan biology. Ultra Ego approaches reality-warping.',
   },
   {
     id: 'zoro',
@@ -256,6 +276,7 @@ const ANIME_OPPONENTS = [
     powers: 'Santoryu - Three Sword Style, Haki mastery, Asura technique, superhuman endurance and strength',
     category: 'anime',
     skill: 94,
+    tierReason: 'Relies on swords (object-dependent), but Haki and Asura manifestation are intrinsic abilities.',
   },
   {
     id: 'gojo',
@@ -265,6 +286,7 @@ const ANIME_OPPONENTS = [
     powers: 'Infinity & Six Eyes - Limitless cursed technique, Infinity barrier, Domain Expansion: Unlimited Void, Hollow Purple',
     category: 'anime',
     skill: 98,
+    tierReason: 'Six Eyes and Limitless are inherited intrinsic abilities. Reality manipulation through Infinity.',
   },
   {
     id: 'levi',
@@ -274,6 +296,7 @@ const ANIME_OPPONENTS = [
     powers: 'Ackerman Bloodline - Superhuman combat ability, ODM Gear mastery, incredible speed and precision',
     category: 'anime',
     skill: 99,
+    tierReason: 'Ackerman power is intrinsic bloodline, but requires ODM Gear for aerial combat. Peak enhanced human.',
   },
   {
     id: 'all-might',
@@ -283,11 +306,12 @@ const ANIME_OPPONENTS = [
     powers: 'One For All - Immense strength, speed, United States of Smash, Detroit Smash, Texas Smash',
     category: 'anime',
     skill: 88,
+    tierReason: 'One For All stockpiles power within his body. Once inherited, it becomes intrinsic to the user.',
   },
 ];
 
 // Celebrity & Real-World Inspired AI opponents
-const CELEBRITY_OPPONENTS = [
+const CELEBRITY_OPPONENTS: AIOpponent[] = [
   {
     id: 'kanye-west',
     name: 'Kanye West',
@@ -296,6 +320,7 @@ const CELEBRITY_OPPONENTS = [
     powers: 'Creative Genius - Sheer force of belief, sonic attacks from legendary beats, fashion armor that deflects criticism, ego shield',
     category: 'celebrity',
     skill: 65,
+    tierReason: 'Peak human creativity and influence. No supernatural abilities, just unshakeable confidence.',
   },
   {
     id: 'keanu-reeves',
@@ -305,6 +330,7 @@ const CELEBRITY_OPPONENTS = [
     powers: 'Matrix Mastery - Bullet-time reflexes, gun-fu expertise, motorcycle combat, John Wick combat training',
     category: 'celebrity',
     skill: 92,
+    tierReason: 'Peak human combat skills. Movie powers are fictional; in reality, enhanced human martial artist.',
   },
   {
     id: 'jim-carrey',
@@ -314,6 +340,7 @@ const CELEBRITY_OPPONENTS = [
     powers: 'Cartoon Physics - reality warping comedy, shapeshifting expressions, Ace Ventura animal control, The Mask persona (toon force)',
     category: 'celebrity',
     skill: 70,
+    tierReason: 'The Mask grants toon force powers, but it\'s an object. Without it, he\'s an enhanced human comedian.',
   },
   {
     id: 'johnny-depp',
@@ -323,11 +350,12 @@ const CELEBRITY_OPPONENTS = [
     powers: 'Character Synthesis - channels Jack Sparrow luck, Edward Scissorhands blade mastery, Mad Hatter reality distortion, Sweeney Todd precision',
     category: 'celebrity',
     skill: 85,
+    tierReason: 'Supernatural luck and role-channeling abilities. Powers are intrinsic acting talent made manifest.',
   },
 ];
 
 // Seven Deadly Sins anime characters
-const SEVEN_DEADLY_SINS_OPPONENTS = [
+const SEVEN_DEADLY_SINS_OPPONENTS: AIOpponent[] = [
   {
     id: 'meliodas',
     name: 'Meliodas',
@@ -336,6 +364,7 @@ const SEVEN_DEADLY_SINS_OPPONENTS = [
     powers: 'Full Counter - reflects attacks with multiplied power, Assault Mode, Demon Mark, Hellblaze, Dragon Handle sword techniques',
     category: 'anime',
     skill: 95,
+    tierReason: 'Demon heritage is intrinsic. Demonic power and immortality are part of his being.',
   },
   {
     id: 'escanor',
@@ -345,6 +374,7 @@ const SEVEN_DEADLY_SINS_OPPONENTS = [
     powers: 'Sunshine - power scales with sun, peaks at noon as The One. Cruel Sun, Divine Axe Rhitta, heat rivaling the sun itself',
     category: 'anime',
     skill: 88,
+    tierReason: 'Sunshine is an intrinsic grace from a Supreme Deity. Divine Axe is a tool, but power is inherent.',
   },
   {
     id: 'ban',
@@ -354,6 +384,7 @@ const SEVEN_DEADLY_SINS_OPPONENTS = [
     powers: 'Snatch - steals physical abilities, Hunter Fest, Physical Hunt, immortal regeneration, three-section staff combat',
     category: 'anime',
     skill: 82,
+    tierReason: 'Immortality from Fountain of Youth became intrinsic. Snatch is a natural ability.',
   },
   {
     id: 'king-sds',
@@ -363,6 +394,7 @@ const SEVEN_DEADLY_SINS_OPPONENTS = [
     powers: 'Disaster - controls life force via Spirit Spear Chastiefol with 10 forms (Sunflower, Guardian, Fossilization). Without Chastiefol, limited to flight and basic fairy magic.',
     category: 'anime',
     skill: 90,
+    tierReason: 'Chastiefol is object-dependent. Without it, only has basic Fairy King abilities.',
   },
   {
     id: 'diane',
@@ -372,11 +404,12 @@ const SEVEN_DEADLY_SINS_OPPONENTS = [
     powers: 'Creation - earth manipulation, Gideon war hammer, Heavy Metal (iron skin), Ground Gladius, Giant strength',
     category: 'anime',
     skill: 78,
+    tierReason: 'Giant race abilities are intrinsic. Creation magic is inherent to her species.',
   },
 ];
 
 // Hunter x Hunter anime characters
-const HUNTER_X_HUNTER_OPPONENTS = [
+const HUNTER_X_HUNTER_OPPONENTS: AIOpponent[] = [
   {
     id: 'gon',
     name: 'Gon Freecss',
@@ -385,6 +418,7 @@ const HUNTER_X_HUNTER_OPPONENTS = [
     powers: 'Enhancement Nen - Jajanken (Rock-Paper-Scissors), Adult Gon transformation (temporary), enhanced senses, incredible adaptability',
     category: 'anime',
     skill: 68,
+    tierReason: 'Nen is learned but becomes intrinsic. Adult form sacrifices life force for temporary power.',
   },
   {
     id: 'killua',
@@ -394,6 +428,7 @@ const HUNTER_X_HUNTER_OPPONENTS = [
     powers: 'Transmutation Nen - Godspeed, Thunderbolt, Whirlwind, assassination techniques, electricity manipulation, Rhythm Echo',
     category: 'anime',
     skill: 94,
+    tierReason: 'Nen and assassination training are internalized abilities. Electricity is intrinsic Transmutation.',
   },
   {
     id: 'hisoka',
@@ -403,6 +438,7 @@ const HUNTER_X_HUNTER_OPPONENTS = [
     powers: 'Transmutation/Conjuration Nen - Bungee Gum (has properties of rubber AND gum), Texture Surprise, playing card weapons',
     category: 'anime',
     skill: 97,
+    tierReason: 'Bungee Gum and Texture Surprise are intrinsic Nen abilities. Cards are just props.',
   },
   {
     id: 'chrollo',
@@ -412,6 +448,7 @@ const HUNTER_X_HUNTER_OPPONENTS = [
     powers: 'Specialization Nen - Skill Hunter (steals abilities), Bandit\'s Secret book, multiple stolen Nen powers, genius-level intellect',
     category: 'anime',
     skill: 96,
+    tierReason: 'Skill Hunter is intrinsic Specialization. Stolen abilities become part of his arsenal.',
   },
   {
     id: 'meruem',
@@ -421,6 +458,7 @@ const HUNTER_X_HUNTER_OPPONENTS = [
     powers: 'Aura Synthesis - absorbs power from consumed Nen users, Photon, Rage Blast, unparalleled physical abilities, instant learning',
     category: 'anime',
     skill: 85,
+    tierReason: 'Born as perfect being. Power absorption is intrinsic biology. Approaches reality-warping levels.',
   },
   {
     id: 'netero',
@@ -430,6 +468,7 @@ const HUNTER_X_HUNTER_OPPONENTS = [
     powers: '100-Type Guanyin Bodhisattva - giant Nen construct, Zero Hand ultimate attack, fastest hands in world, decades of experience',
     category: 'anime',
     skill: 99,
+    tierReason: 'Guanyin Bodhisattva is an intrinsic Nen manifestation. Speed achieved through pure training.',
   },
   {
     id: 'kurapika',
@@ -439,11 +478,12 @@ const HUNTER_X_HUNTER_OPPONENTS = [
     powers: 'Conjuration Nen - Holy Chain, Judgment Chain, Emperor Time (access to all Nen types), enhanced when eyes are scarlet',
     category: 'anime',
     skill: 88,
+    tierReason: 'Scarlet Eyes are intrinsic bloodline trait. Emperor Time is self-imposed limitation.',
   },
 ];
 
 // Demon Slayer anime characters
-const DEMON_SLAYER_OPPONENTS = [
+const DEMON_SLAYER_OPPONENTS: AIOpponent[] = [
   {
     id: 'tanjiro',
     name: 'Tanjiro Kamado',
@@ -452,6 +492,7 @@ const DEMON_SLAYER_OPPONENTS = [
     powers: 'Water Breathing - 10 forms of water-based swordsmanship, Hinokami Kagura (Sun Breathing), enhanced smell, demon-resistant earrings',
     category: 'anime',
     skill: 85,
+    tierReason: 'Breathing techniques require a sword (object). Enhanced smell is intrinsic.',
   },
   {
     id: 'zenitsu',
@@ -461,6 +502,7 @@ const DEMON_SLAYER_OPPONENTS = [
     powers: 'Thunder Breathing - Thunderclap and Flash (up to Godspeed), enhanced hearing, unconscious combat mastery, Flaming Thunder God',
     category: 'anime',
     skill: 90,
+    tierReason: 'Thunder Breathing requires a Nichirin blade. Enhanced hearing is intrinsic.',
   },
   {
     id: 'inosuke',
@@ -470,6 +512,7 @@ const DEMON_SLAYER_OPPONENTS = [
     powers: 'Beast Breathing - self-taught feral swordsmanship, enhanced touch sensitivity, joint flexibility, dual Nichirin blades',
     category: 'anime',
     skill: 75,
+    tierReason: 'Beast Breathing requires swords. Enhanced touch and flexibility are intrinsic.',
   },
   {
     id: 'muzan',
@@ -479,6 +522,7 @@ const DEMON_SLAYER_OPPONENTS = [
     powers: 'Demon King - near-immortality, shapeshifting, biokinesis, blood manipulation, creates demons, only weak to sunlight and special blades',
     category: 'anime',
     skill: 95,
+    tierReason: 'All powers are intrinsic to his demonic biology. Is the source of all demons.',
   },
   {
     id: 'akaza',
@@ -488,11 +532,12 @@ const DEMON_SLAYER_OPPONENTS = [
     powers: 'Destructive Death - martial arts enhanced by demon strength, Compass Needle (senses fighting spirit), regeneration, shockwave punches',
     category: 'anime',
     skill: 98,
+    tierReason: 'Pure martial arts enhanced by intrinsic demon powers. No weapons needed.',
   },
 ];
 
 // My Hero Academia characters (villains focus)
-const MHA_OPPONENTS = [
+const MHA_OPPONENTS: AIOpponent[] = [
   {
     id: 'all-for-one',
     name: 'All For One',
@@ -501,6 +546,7 @@ const MHA_OPPONENTS = [
     powers: 'All For One - steals and combines Quirks, possesses hundreds of abilities, regeneration, air cannons, search, warping',
     category: 'anime',
     skill: 92,
+    tierReason: 'All For One quirk is intrinsic. Stolen quirks become part of him permanently.',
   },
   {
     id: 'shigaraki',
@@ -510,6 +556,7 @@ const MHA_OPPONENTS = [
     powers: 'Decay - disintegrates anything touched with all five fingers, spreads on contact, enhanced with All For One Quirks, regeneration',
     category: 'anime',
     skill: 78,
+    tierReason: 'Decay is intrinsic quirk. After All For One merge, approaches reality-warping levels.',
   },
   {
     id: 'dabi',
@@ -519,6 +566,7 @@ const MHA_OPPONENTS = [
     powers: 'Cremation - blue flames hotter than Endeavor\'s, burns even himself, long-range fire attacks, immunity to regular flames',
     category: 'anime',
     skill: 75,
+    tierReason: 'Cremation is intrinsic quirk from birth. No objects required.',
   },
   {
     id: 'toga',
@@ -528,6 +576,7 @@ const MHA_OPPONENTS = [
     powers: 'Transform - shapeshifts into anyone whose blood she drinks, copies Quirks at awakened level, expert knife combat, blood equipment',
     category: 'anime',
     skill: 80,
+    tierReason: 'Transform is intrinsic quirk. Equipment is supplementary.',
   },
   {
     id: 'stain',
@@ -537,6 +586,7 @@ const MHA_OPPONENTS = [
     powers: 'Bloodcurdle - paralyzes anyone whose blood he tastes, master swordsman, multiple bladed weapons, superhuman endurance',
     category: 'anime',
     skill: 95,
+    tierReason: 'Bloodcurdle is intrinsic but limited. Combat relies heavily on weapons.',
   },
   {
     id: 'overhaul',
@@ -546,11 +596,12 @@ const MHA_OPPONENTS = [
     powers: 'Overhaul - disassembles and reassembles matter on touch, instant healing, fusion with others, environmental manipulation',
     category: 'anime',
     skill: 88,
+    tierReason: 'Overhaul quirk is intrinsic touch-based reality manipulation.',
   },
 ];
 
 // Jujutsu Kaisen characters
-const JJK_OPPONENTS = [
+const JJK_OPPONENTS: AIOpponent[] = [
   {
     id: 'sukuna',
     name: 'Ryomen Sukuna',
@@ -559,6 +610,7 @@ const JJK_OPPONENTS = [
     powers: 'Malevolent Shrine Domain, Dismantle and Cleave slashing, fire manipulation, reverse cursed technique, 20 fingers of power',
     category: 'anime',
     skill: 99,
+    tierReason: 'Ancient curse with intrinsic reality-warping abilities. Domain Expansion bends space itself.',
   },
   {
     id: 'itadori',
@@ -568,6 +620,7 @@ const JJK_OPPONENTS = [
     powers: 'Superhuman physicality, Divergent Fist, Black Flash, cursed energy reinforcement, Sukuna vessel (partial access to his power)',
     category: 'anime',
     skill: 75,
+    tierReason: 'Natural superhuman physicality is intrinsic. Sukuna\'s power is borrowed.',
   },
   {
     id: 'megumi',
@@ -577,6 +630,7 @@ const JJK_OPPONENTS = [
     powers: 'Ten Shadows Technique - summons shikigami beasts, Divine Dog, Nue, Mahoraga (incomplete), Domain Expansion: Chimera Shadow Garden',
     category: 'anime',
     skill: 85,
+    tierReason: 'Ten Shadows is inherited intrinsic technique. Domain Expansion creates pocket dimensions.',
   },
   {
     id: 'nobara',
@@ -586,6 +640,7 @@ const JJK_OPPONENTS = [
     powers: 'Straw Doll Technique - voodoo resonance attacks, Hairpin (ranged), Black Flash capable, cursed energy nails and hammer',
     category: 'anime',
     skill: 78,
+    tierReason: 'Straw Doll Technique requires tools (hammer, nails, dolls) to function.',
   },
   {
     id: 'todo',
@@ -595,6 +650,7 @@ const JJK_OPPONENTS = [
     powers: 'Boogie Woogie - swaps positions with anything via clap, immense physical strength, Simple Domain, Black Flash master',
     category: 'anime',
     skill: 92,
+    tierReason: 'Boogie Woogie is intrinsic innate technique. Physical strength is natural.',
   },
   {
     id: 'mahito',
@@ -604,6 +660,7 @@ const JJK_OPPONENTS = [
     powers: 'Idle Transfiguration - reshapes souls/bodies on touch, Self-Embodiment of Perfection domain, soul manipulation, regeneration',
     category: 'anime',
     skill: 80,
+    tierReason: 'As a curse, all abilities are intrinsic. Soul manipulation is legendary-level power.',
   },
   {
     id: 'toji',
@@ -613,11 +670,12 @@ const JJK_OPPONENTS = [
     powers: 'Heavenly Restriction - superhuman physical stats, invisible to cursed energy detection, Inverted Spear of Heaven, cursed spirit arsenal',
     category: 'anime',
     skill: 99,
+    tierReason: 'Heavenly Restriction is intrinsic, but relies on cursed tools for combat effectiveness.',
   },
 ];
 
 // Video Game Characters
-const GAME_OPPONENTS = [
+const GAME_OPPONENTS: AIOpponent[] = [
   {
     id: 'master-chief',
     name: 'Master Chief',
@@ -626,6 +684,7 @@ const GAME_OPPONENTS = [
     powers: 'MJOLNIR Armor - enhanced strength/speed/durability, energy shields, AI companion Cortana, expert with all weapons, vehicles',
     category: 'games',
     skill: 95,
+    tierReason: 'Spartan augmentations are intrinsic, but MJOLNIR armor provides most combat capability.',
   },
   {
     id: 'asura',
@@ -635,6 +694,7 @@ const GAME_OPPONENTS = [
     powers: 'Mantra of Wrath - unlimited rage-powered strength, multiple arms mode, Destructor form, planet-destroying punches, immortal fury',
     category: 'games',
     skill: 70,
+    tierReason: 'Mantra is intrinsic to demigods. Rage-fueled power is part of his being.',
   },
   {
     id: 'kratos',
@@ -644,6 +704,7 @@ const GAME_OPPONENTS = [
     powers: 'God Killer - Spartan Rage, Blades of Chaos, Leviathan Axe, killed Zeus/Poseidon/Hades, godly strength and immortality',
     category: 'games',
     skill: 98,
+    tierReason: 'Became a god himself. Divine power is now intrinsic. Weapons are tools, not power sources.',
   },
   {
     id: 'dante-dmc',
@@ -653,6 +714,7 @@ const GAME_OPPONENTS = [
     powers: 'Devil Trigger - demonic transformation, Rebellion sword, Ebony & Ivory guns, Royalguard, Trickster, style weapons',
     category: 'games',
     skill: 96,
+    tierReason: 'Half-demon heritage is intrinsic. Devil Trigger comes from within. Weapons are accessories.',
   },
   {
     id: 'sephiroth',
@@ -662,6 +724,7 @@ const GAME_OPPONENTS = [
     powers: 'Masamune mastery - 7-foot katana, Supernova (summons meteor), flight, superhuman everything, JENOVA cells, Black Materia',
     category: 'games',
     skill: 97,
+    tierReason: 'JENOVA cells are fused with his being. Reality-warping abilities are intrinsic.',
   },
   {
     id: 'doomguy',
@@ -671,6 +734,7 @@ const GAME_OPPONENTS = [
     powers: 'Praetor Suit - armor-enhanced durability, BFG 9000, chainsaw, glory kills for health, Crucible blade, eons of demon-slaying. Without suit, still superhuman but vulnerable.',
     category: 'games',
     skill: 90,
+    tierReason: 'Divinity Machine blessing is intrinsic, but Praetor Suit is required for full combat capability.',
   },
   {
     id: 'solid-snake',
@@ -680,6 +744,7 @@ const GAME_OPPONENTS = [
     powers: 'Tactical Espionage - CQC combat, stealth mastery, all weapons proficiency, Codec support, refuses to stay dead',
     category: 'games',
     skill: 94,
+    tierReason: 'Peak human soldier. No supernatural abilities. Relies entirely on training and equipment.',
   },
   {
     id: 'bayonetta',
@@ -689,11 +754,12 @@ const GAME_OPPONENTS = [
     powers: 'Witch Time - time manipulation, Wicked Weaves (giant demon limbs), Infernal Demons summons, gun-heels, bullet arts',
     category: 'games',
     skill: 95,
+    tierReason: 'Umbra Witch powers are intrinsic magical heritage. Can summon demons with her own hair.',
   },
 ];
 
 // Horror/Thriller Movie Villains and Serial Killers
-const HORROR_OPPONENTS = [
+const HORROR_OPPONENTS: AIOpponent[] = [
   {
     id: 'hannibal-lecter',
     name: 'Hannibal Lecter',
@@ -702,6 +768,7 @@ const HORROR_OPPONENTS = [
     powers: 'Psychological Manipulation - genius IQ, perfect memory palace, surgical precision, heightened senses, no fear',
     category: 'horror',
     skill: 88,
+    tierReason: 'No supernatural abilities. Pure human genius and skill.',
   },
   {
     id: 'michael-myers',
@@ -711,6 +778,7 @@ const HORROR_OPPONENTS = [
     powers: 'Supernatural Endurance - near-immortality, superhuman strength, stealth despite size, immune to pain, always returns',
     category: 'horror',
     skill: 60,
+    tierReason: 'Supernatural resilience is intrinsic "pure evil." Not object-dependent.',
   },
   {
     id: 'jason-voorhees',
@@ -720,6 +788,7 @@ const HORROR_OPPONENTS = [
     powers: 'Undead Slasher - immortal regeneration, superhuman strength, teleportation (somehow), machete mastery, never tires',
     category: 'horror',
     skill: 55,
+    tierReason: 'Undead nature is intrinsic. Machete is a tool, powers come from being a revenant.',
   },
   {
     id: 'freddy-krueger',
@@ -729,6 +798,7 @@ const HORROR_OPPONENTS = [
     powers: 'Dream Manipulation - reality warping in dreams, shapeshifting, immortal in dream world, razor glove, feeds on fear',
     category: 'horror',
     skill: 85,
+    tierReason: 'Dream realm powers are intrinsic to his demonic nature. Glove is iconic but not required.',
   },
   {
     id: 'pennywise',
@@ -738,6 +808,7 @@ const HORROR_OPPONENTS = [
     powers: 'Deadlights - cosmic horror form, shapeshifting, fear manipulation, illusions, immortal entity, psychic powers',
     category: 'horror',
     skill: 75,
+    tierReason: 'Eldritch abomination. All powers are intrinsic cosmic horror abilities.',
   },
   {
     id: 'leatherface',
@@ -747,6 +818,7 @@ const HORROR_OPPONENTS = [
     powers: 'Chainsaw Wielder - superhuman strength, chainsaw expertise, butcher skills, surprising speed, meat hook combat',
     category: 'horror',
     skill: 50,
+    tierReason: 'Enhanced human strength, but relies on chainsaw. Object-dependent for lethality.',
   },
   {
     id: 'ghostface',
@@ -756,6 +828,7 @@ const HORROR_OPPONENTS = [
     powers: 'Stealth Killer - knife combat, phone stalking, horror movie knowledge, unpredictable identity, voice changer',
     category: 'horror',
     skill: 65,
+    tierReason: 'Normal human(s) with a knife and costume. No supernatural abilities.',
   },
   {
     id: 'pinhead',
@@ -765,6 +838,7 @@ const HORROR_OPPONENTS = [
     powers: 'Cenobite Powers - hooked chains from nowhere, dimensional manipulation, immortal demon, pain/pleasure mastery, Lament Configuration',
     category: 'horror',
     skill: 90,
+    tierReason: 'Cenobite powers are intrinsic after transformation. Lament Configuration summons but doesn\'t empower him.',
   },
   {
     id: 'john-kramer',
@@ -774,6 +848,41 @@ const HORROR_OPPONENTS = [
     powers: 'Trap Master - genius engineer, elaborate death traps, psychological manipulation, posthumous planning, apprentice network',
     category: 'horror',
     skill: 95,
+    tierReason: 'Normal dying human. No combat ability. Relies entirely on preparation and traps.',
+  },
+];
+
+// Toon Force Characters - Characters with intrinsic cartoon physics
+const TOON_OPPONENTS: AIOpponent[] = [
+  {
+    id: 'bugs-bunny',
+    name: 'Bugs Bunny',
+    level: 6,
+    personality: 'Wascally wabbit from Looney Tunes. Calm, witty, always one step ahead. Breaks the fourth wall. "Eh, what\'s up, doc?"',
+    powers: 'Toon Force - reality warping through comedy, hammerspace access, impossible physics, plot armor, genre awareness',
+    category: 'toon',
+    skill: 90,
+    tierReason: 'Toon Force is intrinsic to his existence. Can warp reality as long as it\'s funny.',
+  },
+  {
+    id: 'the-mask',
+    name: 'The Mask (Stanley Ipkiss)',
+    level: 3,
+    personality: 'Mild-mannered guy transformed by ancient mask. Wild, unpredictable, reality-bending chaos. "SOMEBODY STOP ME!"',
+    powers: 'Mask of Loki - cartoon physics, invulnerability, shapeshifting, hammerspace, reality warping comedy',
+    category: 'toon',
+    skill: 65,
+    tierReason: 'All powers come from THE MASK (object). Without it, Stanley is a normal human.',
+  },
+  {
+    id: 'franklin-richards',
+    name: 'Franklin Richards',
+    level: 6,
+    personality: 'Son of Mr. Fantastic and Invisible Woman. Child-like wonder with godlike power. Creates pocket universes for fun. Innocent but terrifying.',
+    powers: 'Reality Manipulation - creates and destroys universes, psionic powers, precognition, molecular manipulation, omega-level mutant',
+    category: 'iconic',
+    skill: 40,
+    tierReason: 'Omega-level mutant powers are intrinsic from birth. Can rewrite reality with a thought.',
   },
 ];
 
@@ -783,6 +892,7 @@ const OPPONENT_CATEGORIES = [
   { id: 'training', name: '🎯 Training' },
   { id: 'iconic', name: '⚡ Heroes & Villains' },
   { id: 'celebrity', name: '🌟 Celebrities' },
+  { id: 'toon', name: '🎨 Toon Force' },
   { id: 'anime', name: '🌸 Classic Anime' },
   { id: 'sds', name: '⚔️ Seven Deadly Sins' },
   { id: 'hxh', name: '🎴 Hunter x Hunter' },
@@ -806,8 +916,9 @@ const POWER_TIERS = [
 // Map categories to their opponent arrays
 const CATEGORY_MAP: Record<string, AIOpponent[]> = {
   training: ORIGINAL_OPPONENTS,
-  iconic: ICONIC_OPPONENTS,
+  iconic: [...ICONIC_OPPONENTS, ...TOON_OPPONENTS.filter(o => o.category === 'iconic')],
   celebrity: CELEBRITY_OPPONENTS,
+  toon: TOON_OPPONENTS.filter(o => o.category === 'toon'),
   anime: ANIME_OPPONENTS,
   sds: SEVEN_DEADLY_SINS_OPPONENTS,
   hxh: HUNTER_X_HUNTER_OPPONENTS,
@@ -823,6 +934,7 @@ const AI_OPPONENTS: AIOpponent[] = [
   ...ICONIC_OPPONENTS, 
   ...ANIME_OPPONENTS, 
   ...CELEBRITY_OPPONENTS, 
+  ...TOON_OPPONENTS,
   ...SEVEN_DEADLY_SINS_OPPONENTS, 
   ...HUNTER_X_HUNTER_OPPONENTS,
   ...DEMON_SLAYER_OPPONENTS,
@@ -1679,9 +1791,22 @@ export default function MockBattle() {
                                 <Bot className="w-5 h-5" />
                               </AvatarFallback>
                             </Avatar>
-                            <div>
+                            <div className="flex-1">
                               <p className="font-medium">{selectedOpponent.name}</p>
-                              <p className="text-xs text-muted-foreground">{getTierName(selectedOpponent.level)}</p>
+                              <div className="flex items-center gap-1">
+                                <p className="text-xs text-muted-foreground">{getTierName(selectedOpponent.level)}</p>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Info className="w-3 h-3 text-muted-foreground cursor-help hover:text-primary transition-colors" />
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top" className="max-w-[250px] text-xs">
+                                      <p className="font-medium mb-1">Why Tier {selectedOpponent.level}?</p>
+                                      <p>{selectedOpponent.tierReason}</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              </div>
                             </div>
                           </div>
                           <p className="text-xs text-muted-foreground">{selectedOpponent.personality}</p>
