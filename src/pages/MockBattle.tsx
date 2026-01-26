@@ -273,7 +273,29 @@ const ANIME_OPPONENTS = [
   },
 ];
 
-const AI_OPPONENTS: AIOpponent[] = [...ORIGINAL_OPPONENTS, ...ICONIC_OPPONENTS, ...ANIME_OPPONENTS];
+// Celebrity & Real-World Inspired AI opponents
+const CELEBRITY_OPPONENTS = [
+  {
+    id: 'kanye-west',
+    name: 'Kanye West',
+    level: 4,
+    personality: 'Musical genius and fashion icon. Speaks in confident, stream-of-consciousness style. References his albums and fashion lines. Believes he is a god among mortals. "I am a god!"',
+    powers: 'Creative Genius - Reality warping through sheer belief, sonic attacks from legendary beats, fashion armor that deflects criticism, ego shield',
+    category: 'celebrity',
+    skill: 65, // Creative but unconventional fighter
+  },
+  {
+    id: 'keanu-reeves',
+    name: 'Keanu Reeves',
+    level: 5,
+    personality: 'The One. Humble, soft-spoken martial artist who sees the code in everything. Incredibly kind but deadly when needed. "I know kung fu." Breathtaking.',
+    powers: 'Matrix Mastery - Bullet-time reflexes, gun-fu expertise, motorcycle combat, immortal presence, John Wick combat training, Neo reality bending',
+    category: 'celebrity',
+    skill: 92, // Trained extensively for roles
+  },
+];
+
+const AI_OPPONENTS: AIOpponent[] = [...ORIGINAL_OPPONENTS, ...ICONIC_OPPONENTS, ...ANIME_OPPONENTS, ...CELEBRITY_OPPONENTS];
 
 export default function MockBattle() {
   const { user } = useAuth();

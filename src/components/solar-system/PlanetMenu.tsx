@@ -12,16 +12,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Users, Settings, ArrowLeft, Trash2, Loader2, Merge, Moon, Eye, EyeOff } from 'lucide-react';
+import { Users, Settings, ArrowLeft, Trash2, Loader2, Merge, Moon, Eye, EyeOff, Maximize2 } from 'lucide-react';
 
 interface PlanetMenuProps {
   planetName: string;
+  displayName?: string;
   characterCount: number;
   onViewCharacters: () => void;
   onEditPlanet: () => void;
   onDeletePlanet?: () => Promise<void>;
   onMergePlanet?: () => void;
   onConvertToMoon?: () => void;
+  onFullscreenInspect?: () => void;
   onBack: () => void;
   canDelete?: boolean;
   canMerge?: boolean;
@@ -30,12 +32,14 @@ interface PlanetMenuProps {
 
 export default function PlanetMenu({
   planetName,
+  displayName,
   characterCount,
   onViewCharacters,
   onEditPlanet,
   onDeletePlanet,
   onMergePlanet,
   onConvertToMoon,
+  onFullscreenInspect,
   onBack,
   canDelete = false,
   canMerge = false,
@@ -117,6 +121,18 @@ export default function PlanetMenu({
             <Settings className="w-4 h-4" />
             Edit Planet Info
           </Button>
+
+          {/* Fullscreen Inspection Mode Button */}
+          {onFullscreenInspect && (
+            <Button
+              variant="secondary"
+              className="w-full h-10 gap-2"
+              onClick={onFullscreenInspect}
+            >
+              <Maximize2 className="w-4 h-4" />
+              Full-Screen View
+            </Button>
+          )}
 
           {/* Merge Planet Button */}
           {canMerge && onMergePlanet && (
