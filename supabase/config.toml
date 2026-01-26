@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.parse-lore-document]
 verify_jwt = false
+
+[functions.trigger-3d-generation]
+verify_jwt = false

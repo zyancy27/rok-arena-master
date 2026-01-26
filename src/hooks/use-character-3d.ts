@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -11,7 +11,7 @@ import type {
   MotionMode,
   ModelQuality,
   ImageRole,
-  DEFAULT_3D_CONFIG,
+  FixFlag,
 } from '@/lib/character-3d-types';
 
 interface UseCharacter3DReturn {
@@ -34,11 +34,18 @@ interface UseCharacter3DReturn {
   
   // Generation operations
   startGeneration: () => Promise<GenerationJob | null>;
+  startGenerationWithFixPass: (fixFlags: FixFlag[], fixNotes: string) => Promise<GenerationJob | null>;
+  triggerWorker: (jobId: string) => Promise<boolean>;
   pollJobStatus: (jobId: string) => Promise<GenerationJob | null>;
+  
+  // Model URL (with signed URL support for private bucket)
+  getModelUrl: () => Promise<string | null>;
   
   // Refresh
   refresh: () => Promise<void>;
 }
+
+const POLL_INTERVAL = 2500; // 2.5 seconds
 
 export function useCharacter3D(characterId: string | undefined): UseCharacter3DReturn {
   const { user } = useAuth();
@@ -49,6 +56,17 @@ export function useCharacter3D(characterId: string | undefined): UseCharacter3DR
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, []);
 
   const fetchData = useCallback(async () => {
     if (!characterId || !user) {
@@ -87,7 +105,14 @@ export function useCharacter3D(characterId: string | undefined): UseCharacter3DR
         .maybeSingle();
 
       if (jobError) throw jobError;
-      setLatestJob(jobData as GenerationJob | null);
+      
+      const job = jobData as GenerationJob | null;
+      setLatestJob(job);
+      
+      // Start polling if job is in progress
+      if (job && (job.status === 'queued' || job.status === 'processing')) {
+        startPolling(job.id);
+      }
 
     } catch (error: any) {
       console.error('Error fetching 3D data:', error);
@@ -100,6 +125,64 @@ export function useCharacter3D(characterId: string | undefined): UseCharacter3DR
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const startPolling = useCallback((jobId: string) => {
+    // Clear any existing interval
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+    }
+
+    pollIntervalRef.current = setInterval(async () => {
+      try {
+        const { data: jobData, error } = await supabase
+          .from('generation_jobs')
+          .select('*')
+          .eq('id', jobId)
+          .single();
+
+        if (error) throw error;
+
+        const job = jobData as GenerationJob;
+        setLatestJob(job);
+
+        // Update config status
+        if (config) {
+          setConfig(prev => prev ? { 
+            ...prev, 
+            current_status: job.status,
+            model_glb_url: job.result_glb_url || prev.model_glb_url,
+          } : null);
+        }
+
+        // Stop polling if job is complete or errored
+        if (job.status === 'done' || job.status === 'error') {
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+          }
+          
+          if (job.status === 'done') {
+            toast.success('3D model generated successfully!');
+            // Update config with result
+            if (config && job.result_glb_url) {
+              await supabase
+                .from('character_3d_configs')
+                .update({ 
+                  current_status: 'done',
+                  model_glb_url: job.result_glb_url,
+                  preview_url: job.result_preview_url,
+                })
+                .eq('id', config.id);
+            }
+          } else if (job.status === 'error') {
+            toast.error(`Generation failed: ${job.error || 'Unknown error'}`);
+          }
+        }
+      } catch (error) {
+        console.error('Polling error:', error);
+      }
+    }, POLL_INTERVAL);
+  }, [config]);
 
   const createConfig = useCallback(async (): Promise<Character3DConfig | null> => {
     if (!characterId || !user) return null;
@@ -253,7 +336,7 @@ export function useCharacter3D(characterId: string | undefined): UseCharacter3DR
     }
   }, []);
 
-  const startGeneration = useCallback(async (): Promise<GenerationJob | null> => {
+  const createJob = useCallback(async (fixFlags?: FixFlag[], fixNotes?: string): Promise<GenerationJob | null> => {
     if (!config || !characterId) {
       toast.error('Please configure 3D settings first');
       return null;
@@ -264,10 +347,9 @@ export function useCharacter3D(characterId: string | undefined): UseCharacter3DR
       return null;
     }
 
-    setIsGenerating(true);
     try {
       // Create job record
-      const jobData = {
+      const jobData: any = {
         character_id: characterId,
         config_id: config.id,
         status: 'queued' as const,
@@ -280,6 +362,14 @@ export function useCharacter3D(characterId: string | undefined): UseCharacter3DR
         motion_mode: config.motion_mode,
         quality: config.quality,
       };
+
+      // Add fix pass fields if provided
+      if (fixFlags && fixFlags.length > 0) {
+        jobData.fix_flags = fixFlags;
+      }
+      if (fixNotes) {
+        jobData.fix_notes = fixNotes;
+      }
 
       const { data, error } = await supabase
         .from('generation_jobs')
@@ -298,24 +388,48 @@ export function useCharacter3D(characterId: string | undefined): UseCharacter3DR
       const job = data as GenerationJob;
       setLatestJob(job);
       setConfig(prev => prev ? { ...prev, current_status: 'queued' } : null);
-      
-      toast.success('Generation job queued');
-      
-      // Note: In production, this would trigger an edge function or external service
-      // For now, we simulate the job completing after a delay
-      simulateJobProgress(job.id);
-      
+
       return job;
     } catch (error: any) {
-      console.error('Error starting generation:', error);
-      toast.error('Failed to start generation');
-      return null;
-    } finally {
-      setIsGenerating(false);
+      console.error('Error creating job:', error);
+      throw error;
     }
   }, [config, characterId, images.length]);
 
-  // Simulated job progress for demo (replace with real polling)
+  const triggerWorker = useCallback(async (jobId: string): Promise<boolean> => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Please log in to generate models');
+        return false;
+      }
+
+      const response = await supabase.functions.invoke('trigger-3d-generation', {
+        body: { job_id: jobId },
+      });
+
+      if (response.error) {
+        console.error('Worker trigger error:', response.error);
+        // Don't fail completely - the job is queued, just couldn't trigger worker
+        toast.info('Job queued - worker will process it automatically');
+        return false;
+      }
+
+      const result = response.data;
+      if (result.demo_mode) {
+        // Run demo simulation for development
+        simulateJobProgress(jobId);
+      }
+
+      return true;
+    } catch (error: any) {
+      console.error('Error triggering worker:', error);
+      toast.error('Failed to trigger worker');
+      return false;
+    }
+  }, []);
+
+  // Simulated job progress for demo mode
   const simulateJobProgress = async (jobId: string) => {
     const steps = [
       { progress: 10, log: 'Loading template...' },
@@ -348,21 +462,59 @@ export function useCharacter3D(characterId: string | undefined): UseCharacter3DR
           result_glb_url,
         })
         .eq('id', jobId);
-
-      if (config) {
-        await supabase
-          .from('character_3d_configs')
-          .update({ 
-            current_status: status,
-            model_glb_url: result_glb_url,
-          })
-          .eq('id', config.id);
-      }
-
-      // Refresh state
-      await fetchData();
     }
   };
+
+  const startGeneration = useCallback(async (): Promise<GenerationJob | null> => {
+    setIsGenerating(true);
+    try {
+      const job = await createJob();
+      if (!job) return null;
+      
+      toast.success('Generation job queued');
+      
+      // Try to trigger the worker
+      await triggerWorker(job.id);
+      
+      // Start polling
+      startPolling(job.id);
+      
+      return job;
+    } catch (error: any) {
+      console.error('Error starting generation:', error);
+      toast.error('Failed to start generation');
+      return null;
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [createJob, triggerWorker, startPolling]);
+
+  const startGenerationWithFixPass = useCallback(async (
+    fixFlags: FixFlag[], 
+    fixNotes: string
+  ): Promise<GenerationJob | null> => {
+    setIsGenerating(true);
+    try {
+      const job = await createJob(fixFlags, fixNotes);
+      if (!job) return null;
+      
+      toast.success('Fix pass job queued');
+      
+      // Try to trigger the worker
+      await triggerWorker(job.id);
+      
+      // Start polling
+      startPolling(job.id);
+      
+      return job;
+    } catch (error: any) {
+      console.error('Error starting fix pass:', error);
+      toast.error('Failed to start fix pass');
+      return null;
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [createJob, triggerWorker, startPolling]);
 
   const pollJobStatus = useCallback(async (jobId: string): Promise<GenerationJob | null> => {
     try {
@@ -383,6 +535,30 @@ export function useCharacter3D(characterId: string | undefined): UseCharacter3DR
     }
   }, []);
 
+  // Get model URL - handles both public URLs and private bucket signed URLs
+  const getModelUrl = useCallback(async (): Promise<string | null> => {
+    const modelPath = config?.model_glb_url || latestJob?.result_glb_url;
+    if (!modelPath) return null;
+
+    // If it's already a full URL (e.g., public or demo), return as-is
+    if (modelPath.startsWith('http://') || modelPath.startsWith('https://')) {
+      return modelPath;
+    }
+
+    // Otherwise, it's a storage path - create a signed URL
+    try {
+      const { data, error } = await supabase.storage
+        .from('character-models')
+        .createSignedUrl(modelPath, 3600); // 1 hour expiry
+
+      if (error) throw error;
+      return data.signedUrl;
+    } catch (error) {
+      console.error('Error creating signed URL:', error);
+      return null;
+    }
+  }, [config?.model_glb_url, latestJob?.result_glb_url]);
+
   return {
     config,
     images,
@@ -397,7 +573,10 @@ export function useCharacter3D(characterId: string | undefined): UseCharacter3DR
     deleteImage,
     updateImageRole,
     startGeneration,
+    startGenerationWithFixPass,
+    triggerWorker,
     pollJobStatus,
+    getModelUrl,
     refresh: fetchData,
   };
 }

@@ -36,6 +36,26 @@ export interface CharacterImage {
   created_at: string;
 }
 
+// Fix Pass flags for regeneration
+export type FixFlag =
+  | 'face_wrong'
+  | 'hands_wrong'
+  | 'proportions_wrong'
+  | 'clothes_wrong'
+  | 'silhouette_wrong'
+  | 'missing_details'
+  | 'other';
+
+export const FIX_FLAG_OPTIONS: { value: FixFlag; label: string; description: string }[] = [
+  { value: 'face_wrong', label: 'Face Issues', description: 'Face shape, features, or expression incorrect' },
+  { value: 'hands_wrong', label: 'Hand Issues', description: 'Hands malformed or positioned incorrectly' },
+  { value: 'proportions_wrong', label: 'Proportions', description: 'Body proportions don\'t match reference' },
+  { value: 'clothes_wrong', label: 'Clothing', description: 'Clothing or accessories incorrect' },
+  { value: 'silhouette_wrong', label: 'Silhouette', description: 'Overall shape doesn\'t match character' },
+  { value: 'missing_details', label: 'Missing Details', description: 'Important details not captured' },
+  { value: 'other', label: 'Other', description: 'Other issues not listed above' },
+];
+
 export interface GenerationJob {
   id: string;
   character_id: string;
@@ -52,6 +72,19 @@ export interface GenerationJob {
   result_glb_url: string | null;
   result_preview_url: string | null;
   error: string | null;
+  fix_flags: FixFlag[] | null;
+  fix_notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CharacterSection {
+  id: string;
+  character_id: string;
+  user_id: string;
+  title: string;
+  body: string;
+  sort_order: number;
   created_at: string;
   updated_at: string;
 }

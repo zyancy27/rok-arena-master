@@ -249,6 +249,47 @@ export type Database = {
           },
         ]
       }
+      character_sections: {
+        Row: {
+          body: string
+          character_id: string
+          created_at: string | null
+          id: string
+          sort_order: number | null
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          body: string
+          character_id: string
+          created_at?: string | null
+          id?: string
+          sort_order?: number | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          body?: string
+          character_id?: string
+          created_at?: string | null
+          id?: string
+          sort_order?: number | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_sections_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       characters: {
         Row: {
           abilities: string | null
@@ -423,6 +464,8 @@ export type Database = {
           config_id: string
           created_at: string
           error: string | null
+          fix_flags: Json | null
+          fix_notes: string | null
           height_morph: number
           id: string
           logs: Json | null
@@ -442,6 +485,8 @@ export type Database = {
           config_id: string
           created_at?: string
           error?: string | null
+          fix_flags?: Json | null
+          fix_notes?: string | null
           height_morph: number
           id?: string
           logs?: Json | null
@@ -461,6 +506,8 @@ export type Database = {
           config_id?: string
           created_at?: string
           error?: string | null
+          fix_flags?: Json | null
+          fix_notes?: string | null
           height_morph?: number
           id?: string
           logs?: Json | null

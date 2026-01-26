@@ -14,6 +14,7 @@ interface Character3DGenerationStatusProps {
   isGenerating: boolean;
   onGenerate: () => Promise<void>;
   onRefresh?: () => Promise<void>;
+  onTriggerWorker?: () => Promise<void>;
 }
 
 export default function Character3DGenerationStatus({
@@ -23,6 +24,7 @@ export default function Character3DGenerationStatus({
   isGenerating,
   onGenerate,
   onRefresh,
+  onTriggerWorker,
 }: Character3DGenerationStatusProps) {
   const [logs, setLogs] = useState<string[]>([]);
   
@@ -178,8 +180,15 @@ export default function Character3DGenerationStatus({
           </Button>
 
           {onRefresh && (status === 'processing' || status === 'queued') && (
-            <Button variant="outline" size="icon" onClick={onRefresh}>
+            <Button variant="outline" size="icon" onClick={onRefresh} title="Refresh status">
               <RefreshCw className="w-4 h-4" />
+            </Button>
+          )}
+
+          {onTriggerWorker && (status === 'queued') && (
+            <Button variant="outline" onClick={onTriggerWorker} title="Manually trigger worker">
+              <Wand2 className="w-4 h-4 mr-2" />
+              Trigger
             </Button>
           )}
         </div>
