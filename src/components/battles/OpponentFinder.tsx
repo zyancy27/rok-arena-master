@@ -7,10 +7,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Swords, Search, User, Sparkles, Shuffle, Bot } from 'lucide-react';
-import { POWER_TIERS } from '@/lib/game-constants';
+import { Swords, Search, User, Sparkles, Bot, Users, Dna } from 'lucide-react';
 import ChallengeModal from './ChallengeModal';
-import { toast } from 'sonner';
 
 interface Profile {
   id: string;
@@ -19,13 +17,11 @@ interface Profile {
   avatar_url: string | null;
 }
 
-interface Character {
-  id: string;
-  name: string;
-  level: number;
-  image_url: string | null;
-  user_id: string;
-  profile?: Profile;
+interface UserSummary {
+  userId: string;
+  profile: Profile;
+  characterCount: number;
+  speciesCount: number;
 }
 
 interface UserCharacter {
@@ -36,12 +32,12 @@ interface UserCharacter {
 
 export default function OpponentFinder() {
   const { user } = useAuth();
-  const [characters, setCharacters] = useState<Character[]>([]);
+  const [userSummaries, setUserSummaries] = useState<UserSummary[]>([]);
   const [userCharacters, setUserCharacters] = useState<UserCharacter[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [challengeModalOpen, setChallengeModalOpen] = useState(false);
-  const [selectedTarget, setSelectedTarget] = useState<Character | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -50,30 +46,57 @@ export default function OpponentFinder() {
   const fetchData = async () => {
     setLoading(true);
 
-    // Fetch other users' characters
+    // Fetch other users' characters (only need user_id and race for counting)
     const { data: charsData } = await supabase
       .from('characters')
-      .select('id, name, level, image_url, user_id')
-      .neq('user_id', user?.id || '')
-      .order('name');
+      .select('user_id, race')
+      .neq('user_id', user?.id || '');
 
     if (charsData && charsData.length > 0) {
-      // Fetch profiles for these characters
-      const userIds = [...new Set(charsData.map(c => c.user_id))];
+      // Group by user and count characters + unique species
+      const userDataMap = new Map<string, { characterCount: number; species: Set<string> }>();
+      
+      charsData.forEach(c => {
+        if (!userDataMap.has(c.user_id)) {
+          userDataMap.set(c.user_id, { characterCount: 0, species: new Set() });
+        }
+        const userData = userDataMap.get(c.user_id)!;
+        userData.characterCount++;
+        if (c.race) {
+          userData.species.add(c.race);
+        }
+      });
+
+      // Fetch profiles for these users
+      const userIds = [...userDataMap.keys()];
       const { data: profilesData } = await supabase
         .from('profiles')
         .select('id, username, display_name, avatar_url')
         .in('id', userIds);
 
-      const profilesMap = new Map<string, Profile>();
-      profilesData?.forEach(p => profilesMap.set(p.id, p));
+      const summaries: UserSummary[] = [];
+      profilesData?.forEach(profile => {
+        const userData = userDataMap.get(profile.id);
+        if (userData) {
+          summaries.push({
+            userId: profile.id,
+            profile,
+            characterCount: userData.characterCount,
+            speciesCount: userData.species.size,
+          });
+        }
+      });
 
-      const enrichedChars = charsData.map(c => ({
-        ...c,
-        profile: profilesMap.get(c.user_id),
-      }));
+      // Sort by username
+      summaries.sort((a, b) => 
+        (a.profile.display_name || a.profile.username).localeCompare(
+          b.profile.display_name || b.profile.username
+        )
+      );
 
-      setCharacters(enrichedChars);
+      setUserSummaries(summaries);
+    } else {
+      setUserSummaries([]);
     }
 
     // Fetch current user's characters for the challenge modal
@@ -89,57 +112,29 @@ export default function OpponentFinder() {
     setLoading(false);
   };
 
-  const handleChallenge = (character: Character) => {
-    setSelectedTarget(character);
+  const handleChallengeUser = (userId: string) => {
+    setSelectedUserId(userId);
     setChallengeModalOpen(true);
   };
 
-  const handleRandomOpponent = () => {
-    if (filteredCharacters.length === 0) {
-      toast.error('No opponents available');
-      return;
-    }
-    const randomIndex = Math.floor(Math.random() * filteredCharacters.length);
-    const randomChar = filteredCharacters[randomIndex];
-    setSelectedTarget(randomChar);
-    setChallengeModalOpen(true);
-    toast.success(`Random opponent: ${randomChar.name}!`);
-  };
-
-  const getTierName = (level: number) => {
-    const tier = POWER_TIERS.find(t => t.level === level);
-    return tier?.name || `Tier ${level}`;
-  };
-
-  const filteredCharacters = characters.filter(char => {
+  const filteredSummaries = userSummaries.filter(summary => {
     const searchLower = searchQuery.toLowerCase();
     return (
-      char.name.toLowerCase().includes(searchLower) ||
-      char.profile?.username.toLowerCase().includes(searchLower) ||
-      char.profile?.display_name?.toLowerCase().includes(searchLower) ||
-      getTierName(char.level).toLowerCase().includes(searchLower)
+      summary.profile.username.toLowerCase().includes(searchLower) ||
+      summary.profile.display_name?.toLowerCase().includes(searchLower)
     );
   });
 
-  // Group characters by user
-  const charactersByUser = filteredCharacters.reduce((acc, char) => {
-    const userId = char.user_id;
-    if (!acc[userId]) {
-      acc[userId] = {
-        profile: char.profile,
-        characters: [],
-      };
-    }
-    acc[userId].characters.push(char);
-    return acc;
-  }, {} as Record<string, { profile?: Profile; characters: Character[] }>);
+  const selectedUserProfile = selectedUserId 
+    ? userSummaries.find(s => s.userId === selectedUserId)?.profile 
+    : null;
 
   if (loading) {
     return (
       <div className="space-y-4">
         {[...Array(3)].map((_, i) => (
           <Card key={i} className="bg-card-gradient border-border animate-pulse">
-            <CardContent className="h-32" />
+            <CardContent className="h-20" />
           </Card>
         ))}
       </div>
@@ -156,19 +151,13 @@ export default function OpponentFinder() {
             Practice vs AI
           </Link>
         </Button>
-        {filteredCharacters.length > 0 && userCharacters.length > 0 && (
-          <Button variant="outline" onClick={handleRandomOpponent}>
-            <Shuffle className="w-4 h-4 mr-2" />
-            Random Opponent
-          </Button>
-        )}
       </div>
 
       {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
-          placeholder="Search by player name, character name, or tier..."
+          placeholder="Search by player name..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-10"
@@ -185,7 +174,7 @@ export default function OpponentFinder() {
             </p>
           </CardContent>
         </Card>
-      ) : Object.keys(charactersByUser).length === 0 ? (
+      ) : filteredSummaries.length === 0 ? (
         <Card className="bg-card-gradient border-border">
           <CardContent className="py-8 text-center">
             <User className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
@@ -196,57 +185,43 @@ export default function OpponentFinder() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {Object.entries(charactersByUser).map(([userId, { profile, characters: userChars }]) => (
-            <Card key={userId} className="bg-card-gradient border-border">
-              <CardContent className="p-4 space-y-4">
-                {/* User Header */}
-                <div className="flex items-center gap-3 border-b border-border pb-3">
-                  <Avatar className="w-10 h-10">
-                    <AvatarImage src={profile?.avatar_url || undefined} />
-                    <AvatarFallback className="bg-primary/20 text-primary">
-                      {(profile?.display_name || profile?.username || 'U')[0].toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-semibold">
-                      {profile?.display_name || profile?.username || 'Unknown Player'}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {userChars.length} character{userChars.length !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Characters Grid */}
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {userChars.map((char) => (
-                    <div
-                      key={char.id}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-background/50 border border-border/50"
-                    >
-                      <Avatar className="w-12 h-12 rounded-lg">
-                        <AvatarImage src={char.image_url || undefined} />
-                        <AvatarFallback className="bg-accent text-accent-foreground rounded-lg">
-                          {char.name[0].toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{char.name}</p>
-                        <Badge variant="outline" className="text-xs">
-                          {getTierName(char.level)}
+        <div className="space-y-3">
+          {filteredSummaries.map((summary) => (
+            <Card key={summary.userId} className="bg-card-gradient border-border hover:border-primary/50 transition-colors">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Avatar className="w-12 h-12 shrink-0">
+                      <AvatarImage src={summary.profile.avatar_url || undefined} />
+                      <AvatarFallback className="bg-primary/20 text-primary">
+                        {(summary.profile.display_name || summary.profile.username || 'U')[0].toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <p className="font-semibold truncate">
+                        {summary.profile.display_name || summary.profile.username || 'Unknown Player'}
+                      </p>
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        <Badge variant="outline" className="text-xs gap-1">
+                          <Users className="w-3 h-3" />
+                          {summary.characterCount} character{summary.characterCount !== 1 ? 's' : ''}
                         </Badge>
+                        {summary.speciesCount > 0 && (
+                          <Badge variant="outline" className="text-xs gap-1">
+                            <Dna className="w-3 h-3" />
+                            {summary.speciesCount} species
+                          </Badge>
+                        )}
                       </div>
-                      <Button
-                        size="sm"
-                        onClick={() => handleChallenge(char)}
-                        className="shrink-0"
-                      >
-                        <Swords className="w-4 h-4 mr-1" />
-                        Fight
-                      </Button>
                     </div>
-                  ))}
+                  </div>
+                  <Button
+                    onClick={() => handleChallengeUser(summary.userId)}
+                    className="shrink-0"
+                  >
+                    <Swords className="w-4 h-4 mr-2" />
+                    Challenge
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -255,15 +230,12 @@ export default function OpponentFinder() {
       )}
 
       {/* Challenge Modal */}
-      {selectedTarget && (
+      {selectedUserId && selectedUserProfile && (
         <ChallengeModal
           open={challengeModalOpen}
           onOpenChange={setChallengeModalOpen}
-          targetCharacter={{
-            id: selectedTarget.id,
-            name: selectedTarget.name,
-            level: selectedTarget.level,
-          }}
+          targetUserId={selectedUserId}
+          targetUsername={selectedUserProfile.display_name || selectedUserProfile.username}
           userCharacters={userCharacters}
         />
       )}

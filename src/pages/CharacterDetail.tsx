@@ -474,11 +474,8 @@ export default function CharacterDetail() {
         <ChallengeModal
           open={showChallengeModal}
           onOpenChange={setShowChallengeModal}
-          targetCharacter={{
-            id: character.id,
-            name: character.name,
-            level: character.level,
-          }}
+          targetUserId={character.user_id}
+          targetUsername={character.profile?.display_name || character.profile?.username || character.name}
           userCharacters={userCharacters}
         />
       )}
