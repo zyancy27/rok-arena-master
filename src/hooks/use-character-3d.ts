@@ -37,6 +37,7 @@ interface UseCharacter3DReturn {
   startGenerationWithFixPass: (fixFlags: FixFlag[], fixNotes: string) => Promise<GenerationJob | null>;
   triggerWorker: (jobId: string) => Promise<boolean>;
   pollJobStatus: (jobId: string) => Promise<GenerationJob | null>;
+  cancelGeneration: () => void;
   
   // Model URL (with signed URL support for private bucket)
   getModelUrl: () => Promise<string | null>;
@@ -58,6 +59,7 @@ export function useCharacter3D(characterId: string | undefined): UseCharacter3DR
   const [isGenerating, setIsGenerating] = useState(false);
   
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const cancelledRef = useRef(false);
 
   // Cleanup polling on unmount
   useEffect(() => {
@@ -186,8 +188,16 @@ export function useCharacter3D(characterId: string | undefined): UseCharacter3DR
 
   const waitForJobCompletion = useCallback(
     async (jobId: string, timeoutMs = 5 * 60 * 1000): Promise<GenerationJob | null> => {
+      cancelledRef.current = false;
       const start = Date.now();
       while (Date.now() - start < timeoutMs) {
+        // Check if cancelled
+        if (cancelledRef.current) {
+          toast.info('Generation cancelled');
+          setIsGenerating(false);
+          return null;
+        }
+
         const { data, error } = await supabase
           .from('generation_jobs')
           .select('*')
@@ -210,6 +220,15 @@ export function useCharacter3D(characterId: string | undefined): UseCharacter3DR
     },
     [fetchData]
   );
+
+  const cancelGeneration = useCallback(() => {
+    cancelledRef.current = true;
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+    setIsGenerating(false);
+  }, []);
 
   const createConfig = useCallback(async (): Promise<Character3DConfig | null> => {
     if (!characterId || !user) return null;
@@ -561,6 +580,7 @@ export function useCharacter3D(characterId: string | undefined): UseCharacter3DR
     startGenerationWithFixPass,
     triggerWorker,
     pollJobStatus,
+    cancelGeneration,
     getModelUrl,
     refresh: fetchData,
   };

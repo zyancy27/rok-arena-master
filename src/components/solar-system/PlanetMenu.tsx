@@ -12,7 +12,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Users, Settings, ArrowLeft, Trash2, Loader2, Merge, Moon } from 'lucide-react';
+import { Users, Settings, ArrowLeft, Trash2, Loader2, Merge, Moon, Eye, EyeOff } from 'lucide-react';
 
 interface PlanetMenuProps {
   planetName: string;
@@ -42,6 +42,7 @@ export default function PlanetMenu({
   canConvertToMoon = false,
 }: PlanetMenuProps) {
   const [deleting, setDeleting] = useState(false);
+  const [menuHidden, setMenuHidden] = useState(false);
 
   const handleDelete = async () => {
     if (!onDeletePlanet) return;
@@ -53,20 +54,47 @@ export default function PlanetMenu({
     }
   };
 
+  // When menu is hidden, show a small button to bring it back
+  if (menuHidden) {
+    return (
+      <div className="absolute bottom-4 right-4 z-20 pointer-events-auto">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={() => setMenuHidden(false)}
+          className="gap-2 shadow-lg"
+        >
+          <Eye className="w-4 h-4" />
+          Show Menu
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
       <Card className="bg-card/95 backdrop-blur-md border-primary/30 w-80 pointer-events-auto animate-scale-in">
         <CardHeader className="pb-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="absolute left-2 top-2"
-            onClick={onBack}
-          >
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            Back
-          </Button>
-          <CardTitle className="text-center pt-6 text-2xl bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onBack}
+            >
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Back
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setMenuHidden(true)}
+              title="Hide menu to interact with planet"
+            >
+              <EyeOff className="w-4 h-4 mr-1" />
+              Hide
+            </Button>
+          </div>
+          <CardTitle className="text-center pt-2 text-2xl bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             {planetName}
           </CardTitle>
           <p className="text-center text-muted-foreground text-sm">
