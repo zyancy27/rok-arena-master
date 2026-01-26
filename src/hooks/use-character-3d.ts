@@ -184,6 +184,33 @@ export function useCharacter3D(characterId: string | undefined): UseCharacter3DR
     }, POLL_INTERVAL);
   }, [config]);
 
+  const waitForJobCompletion = useCallback(
+    async (jobId: string, timeoutMs = 5 * 60 * 1000): Promise<GenerationJob | null> => {
+      const start = Date.now();
+      while (Date.now() - start < timeoutMs) {
+        const { data, error } = await supabase
+          .from('generation_jobs')
+          .select('*')
+          .eq('id', jobId)
+          .single();
+
+        if (!error && data) {
+          const job = data as GenerationJob;
+          setLatestJob(job);
+          if (job.status === 'done' || job.status === 'error') {
+            // Refresh config/images/latest job
+            await fetchData();
+            return job;
+          }
+        }
+        await new Promise(resolve => setTimeout(resolve, 2500));
+      }
+      toast.error('Generation timed out. Try again.');
+      return null;
+    },
+    [fetchData]
+  );
+
   const createConfig = useCallback(async (): Promise<Character3DConfig | null> => {
     if (!characterId || !user) return null;
 
