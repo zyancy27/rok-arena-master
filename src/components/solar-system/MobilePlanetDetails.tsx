@@ -1,7 +1,7 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Users, Eye, Pencil, Trash2, Thermometer, Scale, Globe, Sparkles, Merge, Moon } from 'lucide-react';
+import { Users, Eye, Pencil, Trash2, Thermometer, Scale, Globe, Sparkles, Merge, Moon, Maximize2 } from 'lucide-react';
 import { getGravityClass } from '@/lib/planet-physics';
 
 interface PlanetData {
@@ -28,6 +28,7 @@ interface MobilePlanetDetailsProps {
   onDeletePlanet: () => void;
   onMergePlanet?: () => void;
   onConvertToMoon?: () => void;
+  onFullscreenInspect?: () => void;
   sunTemperature: number;
   sunLuminosity: number;
   canEdit: boolean;
@@ -59,6 +60,7 @@ export default function MobilePlanetDetails({
   onDeletePlanet,
   onMergePlanet,
   onConvertToMoon,
+  onFullscreenInspect,
   sunTemperature,
   sunLuminosity,
   canEdit,
@@ -162,6 +164,21 @@ export default function MobilePlanetDetails({
 
         {/* Action Buttons */}
         <div className="flex flex-col gap-2 pt-2 border-t">
+          {/* Fullscreen View Button */}
+          {onFullscreenInspect && (
+            <Button 
+              onClick={() => {
+                onFullscreenInspect();
+                onClose();
+              }}
+              className="w-full"
+              variant="secondary"
+            >
+              <Maximize2 className="w-4 h-4 mr-2" />
+              Full-Screen View
+            </Button>
+          )}
+          
           <Button 
             onClick={() => {
               onViewCharacters();

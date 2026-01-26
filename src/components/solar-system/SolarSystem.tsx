@@ -22,6 +22,7 @@ import MobileSpaceshipDetails from './MobileSpaceshipDetails';
 import MobileGiantCharacterDetails from './MobileGiantCharacterDetails';
 import MergePlanetDialog from './MergePlanetDialog';
 import ConvertToMoonDialog from './ConvertToMoonDialog';
+import PlanetInspectionMode from './PlanetInspectionMode';
 
 import { getHabitableZone } from './Sun';
 import { supabase } from '@/integrations/supabase/client';
@@ -155,6 +156,9 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
   
   // Convert to moon dialog state
   const [convertToMoonDialogOpen, setConvertToMoonDialogOpen] = useState(false);
+  
+  // Fullscreen planet inspection mode
+  const [inspectionModeActive, setInspectionModeActive] = useState(false);
   
   // Galaxy refresh trigger - increment to force GalaxyView refresh
   const [galaxyRefreshTrigger, setGalaxyRefreshTrigger] = useState(0);
@@ -1335,16 +1339,32 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
       {viewState === 'menu' && selectedPlanet && !isMobile && (
         <PlanetMenu
           planetName={selectedPlanet.displayName}
+          displayName={selectedPlanet.displayName}
           characterCount={selectedPlanet.characterCount}
           onViewCharacters={handleViewCharacters}
           onEditPlanet={handleEditPlanet}
           onDeletePlanet={handleDeletePlanet}
           onMergePlanet={handleOpenMergePlanet}
           onConvertToMoon={handleOpenConvertToMoon}
+          onFullscreenInspect={() => setInspectionModeActive(true)}
           onBack={handleBack}
           canDelete={selectedPlanet.isUserCreated === true}
           canMerge={!isViewingFriend && planets.length > 1}
           canConvertToMoon={!isViewingFriend && planets.length > 1}
+        />
+      )}
+
+      {/* Fullscreen Planet Inspection Mode */}
+      {inspectionModeActive && selectedPlanet && (
+        <PlanetInspectionMode
+          planetName={selectedPlanet.name}
+          displayName={selectedPlanet.displayName}
+          color={selectedPlanet.color}
+          size={selectedPlanet.planetSize}
+          hasRings={selectedPlanet.hasRings || false}
+          description={selectedPlanet.description}
+          gravity={selectedPlanet.gravity ?? undefined}
+          onClose={() => setInspectionModeActive(false)}
         />
       )}
 
@@ -1358,6 +1378,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
         onDeletePlanet={handleDeletePlanet}
         onMergePlanet={handleOpenMergePlanet}
         onConvertToMoon={handleOpenConvertToMoon}
+        onFullscreenInspect={() => setInspectionModeActive(true)}
         sunTemperature={sunData.temperature}
         sunLuminosity={getSunLuminosityFromTemperature(sunData.temperature)}
         canEdit={!isViewingFriend}
