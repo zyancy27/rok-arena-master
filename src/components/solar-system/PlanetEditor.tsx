@@ -212,10 +212,11 @@ export default function PlanetEditor({
     const mappedColor = colorMap[params.primaryColor] || params.primaryColor;
     setColor(mappedColor);
     
-    // Apply rings if detected
-    if (params.hasRings) {
-      setCustomizeRings(true);
-      setHasRings(true);
+    // Only suggest rings if not already customized (don't override user choice)
+    // User can manually toggle rings on/off via the switch
+    if (params.hasRings && !customizeRings) {
+      // Just show a hint, don't auto-apply
+      toast.info('Rings detected in description - toggle "Customize Rings" to add them');
     }
     
     // Adjust radius based on description hints
@@ -234,7 +235,7 @@ export default function PlanetEditor({
     toast.success(`Generated visuals from description`, {
       description: `Shape: ${params.shapeType}, Ocean: ${Math.round(params.oceanLevel * 100)}%, Vegetation: ${Math.round(params.vegetation * 100)}%`,
     });
-  }, [description, radius]);
+  }, [description, radius, customizeRings]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -651,14 +652,21 @@ export default function PlanetEditor({
                   <div className="flex items-center justify-between">
                     <div>
                       <Label>Customize Rings</Label>
-                      <p className="text-xs text-muted-foreground">Override default ring appearance</p>
+                      <p className="text-xs text-muted-foreground">
+                        {customizeRings 
+                          ? (hasRings ? 'Rings will be shown' : 'Rings will be hidden')
+                          : 'Using procedural generation (may show rings based on planet name)'}
+                      </p>
                     </div>
                     <Switch checked={customizeRings} onCheckedChange={setCustomizeRings} />
                   </div>
                   {customizeRings && (
-                    <div className="flex items-center justify-between pt-2">
-                      <Label>Has Planetary Rings</Label>
-                      <Switch checked={hasRings} onCheckedChange={setHasRings} />
+                    <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                      <Label>Show Planetary Rings</Label>
+                      <Switch 
+                        checked={hasRings} 
+                        onCheckedChange={setHasRings}
+                      />
                     </div>
                   )}
                 </div>
