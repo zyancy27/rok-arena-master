@@ -1,5 +1,4 @@
-import { useEffect } from 'react';
-import { Button } from '@/components/ui/button';
+import { useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Box, Loader2 } from 'lucide-react';
 import { useCharacter3D } from '@/hooks/use-character-3d';
@@ -7,7 +6,8 @@ import Character3DImageUploader from './Character3DImageUploader';
 import Character3DOptions from './Character3DOptions';
 import Character3DViewer from './Character3DViewer';
 import Character3DGenerationStatus from './Character3DGenerationStatus';
-import type { VisualStyle } from '@/lib/character-3d-types';
+import FixPassPanel from './FixPassPanel';
+import type { VisualStyle, FixFlag } from '@/lib/character-3d-types';
 
 interface Character3DPanelProps {
   characterId: string;
@@ -28,8 +28,13 @@ export default function Character3DPanel({ characterId }: Character3DPanelProps)
     deleteImage,
     updateImageRole,
     startGeneration,
+    startGenerationWithFixPass,
+    triggerWorker,
     refresh,
+    getModelUrl,
   } = useCharacter3D(characterId);
+
+  const [modelUrl, setModelUrl] = useState<string | null>(null);
 
   // Auto-create config if none exists
   useEffect(() => {
@@ -37,6 +42,15 @@ export default function Character3DPanel({ characterId }: Character3DPanelProps)
       createConfig();
     }
   }, [isLoading, config, characterId, createConfig]);
+
+  // Resolve model URL when config/job changes
+  useEffect(() => {
+    const resolveModelUrl = async () => {
+      const url = await getModelUrl();
+      setModelUrl(url);
+    };
+    resolveModelUrl();
+  }, [getModelUrl, config?.model_glb_url, latestJob?.result_glb_url]);
 
   const handleStyleToggle = async () => {
     if (!config) return;
@@ -46,6 +60,16 @@ export default function Character3DPanel({ characterId }: Character3DPanelProps)
 
   const handleGenerate = async () => {
     await startGeneration();
+  };
+
+  const handleFixPass = async (flags: FixFlag[], notes: string) => {
+    await startGenerationWithFixPass(flags, notes);
+  };
+
+  const handleTriggerWorker = async () => {
+    if (latestJob) {
+      await triggerWorker(latestJob.id);
+    }
   };
 
   if (isLoading) {
@@ -60,6 +84,9 @@ export default function Character3DPanel({ characterId }: Character3DPanelProps)
       </div>
     );
   }
+
+  const showFixPass = config?.current_status === 'done' || latestJob?.status === 'done';
+  const isJobInProgress = config?.current_status === 'processing' || config?.current_status === 'queued';
 
   return (
     <div className="space-y-6">
@@ -102,14 +129,24 @@ export default function Character3DPanel({ characterId }: Character3DPanelProps)
             isGenerating={isGenerating}
             onGenerate={handleGenerate}
             onRefresh={refresh}
+            onTriggerWorker={isJobInProgress ? handleTriggerWorker : undefined}
           />
 
-          {config?.model_glb_url && (
+          {modelUrl && (
             <Character3DViewer
-              glbUrl={config.model_glb_url}
-              visualStyle={config.visual_style}
-              motionMode={config.motion_mode}
+              glbUrl={modelUrl}
+              visualStyle={config?.visual_style || 'toon'}
+              motionMode={config?.motion_mode || 'static'}
               onStyleToggle={handleStyleToggle}
+            />
+          )}
+
+          {/* Fix Pass Panel - shown after successful generation */}
+          {showFixPass && (
+            <FixPassPanel
+              onSubmit={handleFixPass}
+              isSubmitting={isGenerating}
+              disabled={isJobInProgress}
             />
           )}
         </div>

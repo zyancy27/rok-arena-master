@@ -27,6 +27,7 @@ import {
 import ChallengeModal from '@/components/battles/ChallengeModal';
 import CharacterStatSheet from '@/components/characters/CharacterStatSheet';
 import Character3DPanel from '@/components/characters/Character3DPanel';
+import SectionsEditor from '@/components/characters/SectionsEditor';
 import { toast } from 'sonner';
 import { getTierName, getTierColor, getTierSummary } from '@/lib/game-constants';
 import {
@@ -53,6 +54,7 @@ import {
   Smile,
   Lightbulb,
   Box,
+  FileText,
 } from 'lucide-react';
 import { downloadCharacterSheet, downloadCharacterSheetJSON } from '@/lib/character-sheet-download';
 import {
@@ -295,19 +297,17 @@ export default function CharacterDetail() {
 
         <CardContent className="space-y-6">
           <Tabs defaultValue="profile" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsList className={`grid w-full mb-4 ${isOwner ? 'grid-cols-3' : 'grid-cols-2'}`}>
               <TabsTrigger value="profile" className="flex items-center gap-2">
                 <User className="w-4 h-4" />
                 Profile
               </TabsTrigger>
+              <TabsTrigger value="sections" className="flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Sections
+              </TabsTrigger>
               {isOwner && (
                 <TabsTrigger value="3d" className="flex items-center gap-2">
-                  <Box className="w-4 h-4" />
-                  3D Model
-                </TabsTrigger>
-              )}
-              {!isOwner && (
-                <TabsTrigger value="3d" disabled className="flex items-center gap-2 opacity-50">
                   <Box className="w-4 h-4" />
                   3D Model
                 </TabsTrigger>
@@ -451,6 +451,13 @@ export default function CharacterDetail() {
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
+            </TabsContent>
+
+            <TabsContent value="sections" className="space-y-6">
+              <SectionsEditor 
+                characterId={character.id} 
+                readOnly={!isOwner} 
+              />
             </TabsContent>
 
             {isOwner && (
