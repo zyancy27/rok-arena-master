@@ -28,6 +28,7 @@ import ChallengeModal from '@/components/battles/ChallengeModal';
 import CharacterStatSheet from '@/components/characters/CharacterStatSheet';
 import Character3DPanel from '@/components/characters/Character3DPanel';
 import SectionsEditor from '@/components/characters/SectionsEditor';
+import CharacterGroupsPanel from '@/components/characters/CharacterGroupsPanel';
 import { toast } from 'sonner';
 import { getTierName, getTierColor, getTierSummary } from '@/lib/game-constants';
 import {
@@ -54,6 +55,7 @@ import {
   Smile,
   Lightbulb,
   Box,
+  Users,
   FileText,
 } from 'lucide-react';
 import { downloadCharacterSheet, downloadCharacterSheetJSON } from '@/lib/character-sheet-download';
@@ -297,7 +299,7 @@ export default function CharacterDetail() {
 
         <CardContent className="space-y-6">
           <Tabs defaultValue="profile" className="w-full">
-            <TabsList className={`grid w-full mb-4 ${isOwner ? 'grid-cols-3' : 'grid-cols-2'}`}>
+            <TabsList className={`grid w-full mb-4 ${isOwner ? 'grid-cols-4' : 'grid-cols-3'}`}>
               <TabsTrigger value="profile" className="flex items-center gap-2">
                 <User className="w-4 h-4" />
                 Profile
@@ -305,6 +307,10 @@ export default function CharacterDetail() {
               <TabsTrigger value="sections" className="flex items-center gap-2">
                 <FileText className="w-4 h-4" />
                 Sections
+              </TabsTrigger>
+              <TabsTrigger value="groups" className="flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Groups
               </TabsTrigger>
               {isOwner && (
                 <TabsTrigger value="3d" className="flex items-center gap-2">
@@ -458,6 +464,13 @@ export default function CharacterDetail() {
               <SectionsEditor 
                 characterId={character.id} 
                 readOnly={!isOwner} 
+              />
+            </TabsContent>
+
+            <TabsContent value="groups" className="space-y-6">
+              <CharacterGroupsPanel
+                characterId={character.id}
+                readOnly={!isOwner}
               />
             </TabsContent>
 
