@@ -22,14 +22,27 @@ import {
   determineMentalHit,
   initializeBattleState,
   useConcentration,
+  createConstruct,
+  attackConstruct,
+  repairConstructWithConcentration,
+  updateConstructDurability,
+  addConstructToBattle,
+  getCharacterConstructs,
+  detectConstructCreation,
+  detectConstructAttack,
   type HitDetermination,
   type ConcentrationResult,
   type BattleState,
+  type Construct,
+  type ConstructDefenseResult,
+  type ConstructRepairResult,
 } from '@/lib/battle-dice';
 import SkillProficiencyBar from '@/components/battles/SkillProficiencyBar';
 import TurnOrderIndicator from '@/components/battles/TurnOrderIndicator';
 import ConcentrationButton from '@/components/battles/ConcentrationButton';
 import DiceRollChatMessage from '@/components/battles/DiceRollChatMessage';
+import ConstructPanel from '@/components/battles/ConstructPanel';
+import ConstructDiceMessage from '@/components/battles/ConstructDiceMessage';
 import { 
   ArrowLeft, 
   Swords, 
@@ -75,6 +88,18 @@ interface DiceRollMessage {
   concentrationResult?: ConcentrationResult;
   attackerName: string;
   defenderName: string;
+  timestamp: Date;
+  channel: 'in_universe';
+}
+
+interface ConstructEventMessage {
+  id: string;
+  type: 'attack' | 'repair' | 'create';
+  construct: Construct;
+  attackResult?: ConstructDefenseResult;
+  repairResult?: ConstructRepairResult;
+  attackerName?: string;
+  defenderName?: string;
   timestamp: Date;
   channel: 'in_universe';
 }
@@ -1012,6 +1037,11 @@ export default function MockBattle() {
   const [statPenalties, setStatPenalties] = useState<Record<string, number>>({});
   const [diceEnabled, setDiceEnabled] = useState(true);
   
+  // Construct mechanics
+  const [constructs, setConstructs] = useState<Record<string, Construct>>({});
+  const [constructEventMessages, setConstructEventMessages] = useState<ConstructEventMessage[]>([]);
+  const [pendingConstructRepair, setPendingConstructRepair] = useState<Construct | null>(null);
+  
   // Character story lore for AI battles
   const [characterStoryLore, setCharacterStoryLore] = useState<string>('');
   
@@ -1431,6 +1461,141 @@ export default function MockBattle() {
     await sendMessageWithDiceResult(pendingUserAction, undefined);
   };
 
+  // Handle construct repair with concentration
+  const handleConstructRepair = (construct: Construct) => {
+    if (!selectedCharacter) return;
+    
+    const charId = selectedCharacter.id;
+    const usesLeft = concentrationUses[charId] ?? 3;
+    
+    if (usesLeft <= 0) {
+      toast.error('No concentration uses remaining!');
+      return;
+    }
+    
+    // Get character stats
+    const creatorStats = getCharacterStats(selectedCharacter);
+    
+    // Perform repair
+    const repairResult = repairConstructWithConcentration(creatorStats, construct);
+    
+    // Update concentration uses
+    const newUses = { ...concentrationUses };
+    newUses[charId] = usesLeft - 1;
+    setConcentrationUses(newUses);
+    
+    // Update construct durability
+    const updatedConstructs = { ...constructs };
+    if (updatedConstructs[construct.id]) {
+      updatedConstructs[construct.id] = {
+        ...updatedConstructs[construct.id],
+        currentDurability: repairResult.newDurability,
+      };
+      setConstructs(updatedConstructs);
+    }
+    
+    // Apply stat penalty
+    const newPenalties = { ...statPenalties };
+    newPenalties[charId] = (newPenalties[charId] || 0) + repairResult.statPenalty;
+    setStatPenalties(newPenalties);
+    
+    // Add construct event message
+    const eventMsg: ConstructEventMessage = {
+      id: crypto.randomUUID(),
+      type: 'repair',
+      construct,
+      repairResult,
+      defenderName: selectedCharacter.name,
+      timestamp: new Date(),
+      channel: 'in_universe',
+    };
+    setConstructEventMessages(prev => [...prev, eventMsg]);
+    
+    toast.success(`Repaired ${construct.name}! +${repairResult.repairAmount} durability, -${repairResult.statPenalty}% stats next action`);
+  };
+
+  // Handle creating a construct from user action
+  const handleConstructCreation = (constructName: string, constructType: Construct['type']) => {
+    if (!selectedCharacter) return;
+    
+    const creatorStats = getCharacterStats(selectedCharacter);
+    const newConstruct = createConstruct(creatorStats, selectedCharacter.id, constructName, constructType);
+    
+    // Add to constructs
+    const updatedConstructs = { ...constructs };
+    updatedConstructs[newConstruct.id] = newConstruct;
+    setConstructs(updatedConstructs);
+    
+    // Add create event message
+    const eventMsg: ConstructEventMessage = {
+      id: crypto.randomUUID(),
+      type: 'create',
+      construct: newConstruct,
+      defenderName: selectedCharacter.name,
+      timestamp: new Date(),
+      channel: 'in_universe',
+    };
+    setConstructEventMessages(prev => [...prev, eventMsg]);
+    
+    toast.success(`Created ${constructName} (${newConstruct.maxDurability} durability)`);
+    
+    return newConstruct;
+  };
+
+  // Handle construct being attacked by opponent
+  const handleConstructAttacked = (constructId: string) => {
+    const construct = constructs[constructId];
+    if (!construct || !selectedCharacter || !currentOpponent) return null;
+    
+    const attackerStats = getOpponentStats(currentOpponent);
+    const creatorStats = getCharacterStats(selectedCharacter);
+    
+    const attackResult = attackConstruct(
+      attackerStats,
+      currentOpponent.level,
+      construct,
+      creatorStats,
+      selectedCharacter.level,
+      true
+    );
+    
+    // Update construct durability
+    const updatedConstructs = { ...constructs };
+    if (attackResult.destroyed) {
+      delete updatedConstructs[constructId];
+      toast.error(`${construct.name} was destroyed!`);
+    } else if (attackResult.damage > 0) {
+      updatedConstructs[constructId] = {
+        ...updatedConstructs[constructId],
+        currentDurability: attackResult.remainingDurability,
+      };
+      toast.warning(`${construct.name} took ${attackResult.damage} damage!`);
+    } else {
+      toast.success(`${construct.name} blocked the attack!`);
+    }
+    setConstructs(updatedConstructs);
+    
+    // Add construct event message
+    const eventMsg: ConstructEventMessage = {
+      id: crypto.randomUUID(),
+      type: 'attack',
+      construct,
+      attackResult,
+      attackerName: currentOpponent.name,
+      defenderName: selectedCharacter.name,
+      timestamp: new Date(),
+      channel: 'in_universe',
+    };
+    setConstructEventMessages(prev => [...prev, eventMsg]);
+    
+    return attackResult;
+  };
+
+  // Get user's active constructs
+  const userConstructs = selectedCharacter 
+    ? Object.values(constructs).filter(c => c.creatorId === selectedCharacter.id)
+    : [];
+
   // Send message with dice result context
   const sendMessageWithDiceResult = async (userInput: string, concentrationResult?: ConcentrationResult) => {
     if (!selectedCharacter || !currentOpponent) return;
@@ -1521,36 +1686,84 @@ export default function MockBattle() {
     const currentInput = input;
     setInput('');
 
+    // Check if user is creating a construct
+    if (diceEnabled && activeChannel === 'in_universe') {
+      const constructCreation = detectConstructCreation(currentInput);
+      if (constructCreation.isCreating) {
+        handleConstructCreation(constructCreation.suggestedName, constructCreation.constructType);
+      }
+    }
+
     // For in-universe attacks with dice enabled, roll dice for the opponent's counter-attack
     if (diceEnabled && activeChannel === 'in_universe' && currentOpponent && turnNumber > 1) {
       const attackerStats = getOpponentStats(currentOpponent);
       const defenderStats = getCharacterStats(selectedCharacter);
       const defenderPenalty = statPenalties[selectedCharacter.id] || 0;
       
-      // Detect if this might be a mental attack based on keywords
-      const isMental = /mind|psychic|telepathy|illusion|mental|brain|thought/i.test(currentOpponent.powers || '');
+      // Check if opponent might target a construct instead of the character
+      const userActiveConstructs = Object.values(constructs).filter(c => c.creatorId === selectedCharacter.id);
+      const mightTargetConstruct = userActiveConstructs.length > 0 && 
+        (detectConstructAttack(currentOpponent.powers || '') || Math.random() < 0.3); // 30% chance to target construct
       
-      const hit = isMental
-        ? determineMentalHit(attackerStats, currentOpponent.level, defenderStats, selectedCharacter.level, true, defenderPenalty)
-        : determineHit(attackerStats, currentOpponent.level, defenderStats, selectedCharacter.level, true, defenderPenalty);
-      
-      // If the attack would hit, show concentration option
-      if (hit.wouldHit && (concentrationUses[selectedCharacter.id] ?? 3) > 0) {
-        setPendingHit(hit);
-        setPendingUserAction(currentInput);
-        setIsLoading(false);
-        return; // Wait for concentration decision
+      if (mightTargetConstruct && userActiveConstructs.length > 0) {
+        // Target a random construct
+        const targetConstruct = userActiveConstructs[Math.floor(Math.random() * userActiveConstructs.length)];
+        const constructResult = handleConstructAttacked(targetConstruct.id);
+        
+        // If construct blocked or was destroyed, we skip the normal hit roll
+        if (constructResult && !constructResult.destroyed && constructResult.damage === 0) {
+          // Construct blocked - continue without concentration prompt
+        } else if (constructResult && constructResult.destroyed) {
+          // Construct destroyed - attack still hits character normally
+          const isMental = /mind|psychic|telepathy|illusion|mental|brain|thought/i.test(currentOpponent.powers || '');
+          const hit = isMental
+            ? determineMentalHit(attackerStats, currentOpponent.level, defenderStats, selectedCharacter.level, true, defenderPenalty)
+            : determineHit(attackerStats, currentOpponent.level, defenderStats, selectedCharacter.level, true, defenderPenalty);
+          
+          if (hit.wouldHit && (concentrationUses[selectedCharacter.id] ?? 3) > 0) {
+            setPendingHit(hit);
+            setPendingUserAction(currentInput);
+            setIsLoading(false);
+            return;
+          } else {
+            const diceMsg: DiceRollMessage = {
+              id: crypto.randomUUID(),
+              hitDetermination: hit,
+              attackerName: currentOpponent.name,
+              defenderName: selectedCharacter.name,
+              timestamp: new Date(),
+              channel: 'in_universe',
+            };
+            setDiceRollMessages(prev => [...prev, diceMsg]);
+          }
+        }
+        // If construct took damage but wasn't destroyed, attack was absorbed
       } else {
-        // Add dice roll message (miss or no concentration left)
-        const diceMsg: DiceRollMessage = {
-          id: crypto.randomUUID(),
-          hitDetermination: hit,
-          attackerName: currentOpponent.name,
-          defenderName: selectedCharacter.name,
-          timestamp: new Date(),
-          channel: 'in_universe',
-        };
-        setDiceRollMessages(prev => [...prev, diceMsg]);
+        // Normal attack against character
+        const isMental = /mind|psychic|telepathy|illusion|mental|brain|thought/i.test(currentOpponent.powers || '');
+        
+        const hit = isMental
+          ? determineMentalHit(attackerStats, currentOpponent.level, defenderStats, selectedCharacter.level, true, defenderPenalty)
+          : determineHit(attackerStats, currentOpponent.level, defenderStats, selectedCharacter.level, true, defenderPenalty);
+        
+        // If the attack would hit, show concentration option
+        if (hit.wouldHit && (concentrationUses[selectedCharacter.id] ?? 3) > 0) {
+          setPendingHit(hit);
+          setPendingUserAction(currentInput);
+          setIsLoading(false);
+          return; // Wait for concentration decision
+        } else {
+          // Add dice roll message (miss or no concentration left)
+          const diceMsg: DiceRollMessage = {
+            id: crypto.randomUUID(),
+            hitDetermination: hit,
+            attackerName: currentOpponent.name,
+            defenderName: selectedCharacter.name,
+            timestamp: new Date(),
+            channel: 'in_universe',
+          };
+          setDiceRollMessages(prev => [...prev, diceMsg]);
+        }
       }
     }
     
@@ -1704,6 +1917,10 @@ export default function MockBattle() {
     setDiceRollMessages([]);
     setConcentrationUses({});
     setStatPenalties({});
+    // Reset construct mechanics
+    setConstructs({});
+    setConstructEventMessages([]);
+    setPendingConstructRepair(null);
   };
 
   if (userCharacters.length === 0) {
@@ -2418,6 +2635,19 @@ export default function MockBattle() {
                 </TooltipProvider>
               )}
 
+              {/* Construct Panel - show when user has active constructs */}
+              {diceEnabled && battleStarted && selectedCharacter && userConstructs.length > 0 && (
+                <TooltipProvider>
+                  <ConstructPanel
+                    constructs={userConstructs}
+                    characterId={selectedCharacter.id}
+                    concentrationUsesRemaining={concentrationUses[selectedCharacter.id] ?? 3}
+                    onRepairConstruct={handleConstructRepair}
+                    disabled={isLoading || !!pendingHit}
+                  />
+                </TooltipProvider>
+              )}
+
               {/* Channel Tabs */}
               <Tabs value={activeChannel} onValueChange={(v) => setActiveChannel(v as 'in_universe' | 'out_of_universe')}>
                 <TabsList className="grid w-full grid-cols-2">
@@ -2435,6 +2665,7 @@ export default function MockBattle() {
                   <MessageArea 
                     messages={messages.filter(m => m.channel === 'in_universe')}
                     diceRollMessages={diceRollMessages}
+                    constructEventMessages={constructEventMessages}
                     scrollRef={scrollRef}
                     isInUniverse={true}
                     isLoading={isLoading && activeChannel === 'in_universe'}
@@ -2445,6 +2676,7 @@ export default function MockBattle() {
                   <MessageArea 
                     messages={messages.filter(m => m.channel === 'out_of_universe')}
                     diceRollMessages={[]}
+                    constructEventMessages={[]}
                     scrollRef={scrollRef}
                     isInUniverse={false}
                     isLoading={isLoading && activeChannel === 'out_of_universe'}
@@ -2459,6 +2691,11 @@ export default function MockBattle() {
                   <div className="flex items-center gap-2">
                     <Dices className="w-4 h-4 text-amber-500" />
                     <span>Dice Combat Active</span>
+                    {userConstructs.length > 0 && (
+                      <Badge variant="outline" className="text-xs bg-purple-500/10 border-purple-500/30 text-purple-400">
+                        {userConstructs.length} Construct{userConstructs.length > 1 ? 's' : ''}
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex items-center gap-3">
                     <Badge variant="outline" className="text-xs">
@@ -2519,6 +2756,7 @@ function TypingIndicator({ opponentName }: { opponentName?: string }) {
 function MessageArea({ 
   messages, 
   diceRollMessages = [],
+  constructEventMessages = [],
   scrollRef, 
   isInUniverse,
   isLoading,
@@ -2526,16 +2764,12 @@ function MessageArea({
 }: { 
   messages: Message[]; 
   diceRollMessages?: DiceRollMessage[];
+  constructEventMessages?: ConstructEventMessage[];
   scrollRef: React.RefObject<HTMLDivElement>;
   isInUniverse: boolean;
   isLoading?: boolean;
   opponentName?: string;
 }) {
-  // Merge messages and dice rolls by timestamp for chronological display
-  const allItems = [
-    ...messages.map(m => ({ type: 'message' as const, data: m, time: new Date().getTime() })),
-  ];
-  
   return (
     <ScrollArea className="h-[400px] rounded-lg border border-border p-4" ref={scrollRef}>
       {messages.length === 0 && diceRollMessages.length === 0 && !isLoading ? (
@@ -2544,44 +2778,67 @@ function MessageArea({
         </div>
       ) : (
         <div className="space-y-4">
-          {messages.map((message, idx) => (
-            <div key={message.id}>
-              <div
-                className={`p-3 rounded-lg ${
-                  message.role === 'user'
-                    ? 'bg-primary/20 border-l-4 border-primary ml-8'
-                    : message.role === 'narrator'
-                    ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-l-4 border-purple-500 mx-4 italic'
-                    : message.role === 'system'
-                    ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border-l-4 border-cyan-500 mx-4 text-center'
-                    : 'bg-muted/50 border-l-4 border-accent mr-8'
-                }`}
-              >
-                <p className={`text-xs mb-1 ${
-                  message.role === 'narrator' 
-                    ? 'text-purple-400 font-semibold' 
-                    : message.role === 'system'
-                    ? 'text-cyan-400 font-semibold'
-                    : 'text-muted-foreground'
-                }`}>
-                  {message.characterName}
-                </p>
-                <p className="whitespace-pre-wrap">{message.content}</p>
-              </div>
-              {/* Show dice roll after user messages if one exists */}
-              {message.role === 'user' && isInUniverse && diceRollMessages[Math.floor(idx / 2)] && (
-                <div className="mt-2">
-                  <DiceRollChatMessage
-                    hitDetermination={diceRollMessages[Math.floor(idx / 2)].hitDetermination}
-                    concentrationResult={diceRollMessages[Math.floor(idx / 2)].concentrationResult}
-                    attackerName={diceRollMessages[Math.floor(idx / 2)].attackerName}
-                    defenderName={diceRollMessages[Math.floor(idx / 2)].defenderName}
-                    timestamp={diceRollMessages[Math.floor(idx / 2)].timestamp}
-                  />
+          {messages.map((message, idx) => {
+            // Find construct events that happened around this message
+            const relevantConstructEvents = constructEventMessages.filter((evt, evtIdx) => 
+              evtIdx === Math.floor(idx / 2)
+            );
+            
+            return (
+              <div key={message.id}>
+                <div
+                  className={`p-3 rounded-lg ${
+                    message.role === 'user'
+                      ? 'bg-primary/20 border-l-4 border-primary ml-8'
+                      : message.role === 'narrator'
+                      ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-l-4 border-purple-500 mx-4 italic'
+                      : message.role === 'system'
+                      ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border-l-4 border-cyan-500 mx-4 text-center'
+                      : 'bg-muted/50 border-l-4 border-accent mr-8'
+                  }`}
+                >
+                  <p className={`text-xs mb-1 ${
+                    message.role === 'narrator' 
+                      ? 'text-purple-400 font-semibold' 
+                      : message.role === 'system'
+                      ? 'text-cyan-400 font-semibold'
+                      : 'text-muted-foreground'
+                  }`}>
+                    {message.characterName}
+                  </p>
+                  <p className="whitespace-pre-wrap">{message.content}</p>
                 </div>
-              )}
-            </div>
-          ))}
+                {/* Show construct events after user messages */}
+                {message.role === 'user' && isInUniverse && relevantConstructEvents.length > 0 && (
+                  <div className="mt-2 space-y-2">
+                    {relevantConstructEvents.map(evt => (
+                      <ConstructDiceMessage
+                        key={evt.id}
+                        type={evt.type === 'create' ? 'repair' : evt.type}
+                        construct={evt.construct}
+                        attackResult={evt.attackResult}
+                        repairResult={evt.repairResult}
+                        attackerName={evt.attackerName}
+                        defenderName={evt.defenderName}
+                      />
+                    ))}
+                  </div>
+                )}
+                {/* Show dice roll after user messages if one exists */}
+                {message.role === 'user' && isInUniverse && diceRollMessages[Math.floor(idx / 2)] && (
+                  <div className="mt-2">
+                    <DiceRollChatMessage
+                      hitDetermination={diceRollMessages[Math.floor(idx / 2)].hitDetermination}
+                      concentrationResult={diceRollMessages[Math.floor(idx / 2)].concentrationResult}
+                      attackerName={diceRollMessages[Math.floor(idx / 2)].attackerName}
+                      defenderName={diceRollMessages[Math.floor(idx / 2)].defenderName}
+                      timestamp={diceRollMessages[Math.floor(idx / 2)].timestamp}
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          })}
           {isLoading && <TypingIndicator opponentName={opponentName} />}
         </div>
       )}
