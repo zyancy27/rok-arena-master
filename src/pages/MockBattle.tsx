@@ -2788,26 +2788,47 @@ export default function MockBattle() {
               </Tabs>
 
               {/* Dice Combat Status */}
-              {diceEnabled && battleStarted && selectedCharacter && (
-                <div className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border text-xs">
-                  <div className="flex items-center gap-2">
-                    <Dices className="w-4 h-4 text-amber-500" />
-                    <span>Dice Combat Active</span>
-                    {userConstructs.length > 0 && (
-                      <Badge variant="outline" className="text-xs bg-purple-500/10 border-purple-500/30 text-purple-400">
-                        {userConstructs.length} Construct{userConstructs.length > 1 ? 's' : ''}
+              {diceEnabled && battleStarted && selectedCharacter && currentOpponent && (
+                <div className="grid grid-cols-2 gap-2 p-2 rounded-lg bg-muted/30 border text-xs">
+                  {/* Player Status */}
+                  <div className="flex flex-col gap-1 p-2 rounded bg-primary/10 border border-primary/30">
+                    <div className="flex items-center gap-2">
+                      <User className="w-3 h-3 text-primary" />
+                      <span className="font-medium text-primary truncate">{selectedCharacter.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline" className="text-xs bg-amber-500/10 border-amber-500/30 text-amber-600">
+                        D5: {concentrationUses[selectedCharacter.id] ?? 3}/3
                       </Badge>
-                    )}
+                      {(statPenalties[selectedCharacter.id] || 0) > 0 && (
+                        <Badge variant="destructive" className="text-xs">
+                          -{statPenalties[selectedCharacter.id]}%
+                        </Badge>
+                      )}
+                      {userConstructs.length > 0 && (
+                        <Badge variant="outline" className="text-xs bg-purple-500/10 border-purple-500/30 text-purple-400">
+                          {userConstructs.length} 🛡️
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="text-xs">
-                      Concentration: {concentrationUses[selectedCharacter.id] ?? 3}/3
-                    </Badge>
-                    {(statPenalties[selectedCharacter.id] || 0) > 0 && (
-                      <Badge variant="destructive" className="text-xs">
-                        -{statPenalties[selectedCharacter.id]}% stats
+
+                  {/* AI Opponent Status */}
+                  <div className="flex flex-col gap-1 p-2 rounded bg-red-500/10 border border-red-500/30">
+                    <div className="flex items-center gap-2">
+                      <Bot className="w-3 h-3 text-red-400" />
+                      <span className="font-medium text-red-400 truncate">{currentOpponent.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline" className="text-xs bg-amber-500/10 border-amber-500/30 text-amber-600">
+                        D5: {aiConcentrationUses}/3
                       </Badge>
-                    )}
+                      {aiStatPenalty > 0 && (
+                        <Badge variant="destructive" className="text-xs">
+                          -{aiStatPenalty}%
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
