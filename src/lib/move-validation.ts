@@ -210,3 +210,118 @@ export function parseExplanation(text: string): { hasExplanation: boolean; expla
   
   return { hasExplanation: false, explanation: '' };
 }
+
+// Detect moves that would cause severe environmental/area damage
+export interface AreaDamageWarning {
+  isSevere: boolean;
+  warningText: string | null;
+  damageType: 'explosive' | 'elemental' | 'seismic' | 'cosmic' | 'widespread' | null;
+  flavorText: string | null;
+}
+
+export function detectAreaDamage(moveText: string): AreaDamageWarning {
+  const text = moveText.toLowerCase();
+  
+  // Explosive/blast attacks
+  const explosivePatterns = /\b(explo|blast|bomb|detona|nuke|missile|grenade|eruption|burst|nova|big bang|final flash|kamehameha|spirit bomb|galick gun|rasengan)\b/i;
+  
+  // Elemental destruction
+  const elementalPatterns = /\b(inferno|wildfire|tsunami|earthquake|avalanche|volcano|meteor|asteroid|hurricane|cyclone|tornado|lightning storm|blizzard|flood|hellfire|apocalyp)\b/i;
+  
+  // Seismic/ground attacks
+  const seismicPatterns = /\b(shatter|crack|split|break|destroy|demolish|obliterate|level|raze|quake|tremor|rupture|crush|smash|pulverize)\b.*\b(ground|earth|terrain|area|city|building|mountain|landscape)\b/i;
+  
+  // Cosmic/reality-warping
+  const cosmicPatterns = /\b(dimension|reality|void|black hole|singularity|warp|rift|tear|collapse|annihilat|erase|delete|eradicate|unmake|disintegrat)\b/i;
+  
+  // Wide-area indicators
+  const widespreadIndicators = /\b(everything|everywhere|all around|entire|whole|massive|gigantic|enormous|colossal|titan|city.?wide|country.?wide|planet.?level|continental)\b/i;
+  
+  // Scale modifiers that increase severity
+  const scaleModifiers = /\b(full power|maximum|ultimate|final|strongest|100%|all.?out|with everything|unleash|release)\b/i;
+  
+  let damageType: AreaDamageWarning['damageType'] = null;
+  let severity = 0;
+  
+  if (explosivePatterns.test(text)) {
+    damageType = 'explosive';
+    severity += 2;
+  }
+  if (elementalPatterns.test(text)) {
+    damageType = damageType || 'elemental';
+    severity += 2;
+  }
+  if (seismicPatterns.test(text)) {
+    damageType = damageType || 'seismic';
+    severity += 2;
+  }
+  if (cosmicPatterns.test(text)) {
+    damageType = 'cosmic';
+    severity += 3;
+  }
+  if (widespreadIndicators.test(text)) {
+    damageType = damageType || 'widespread';
+    severity += 2;
+  }
+  if (scaleModifiers.test(text)) {
+    severity += 1;
+  }
+  
+  // Need at least severity 2 to trigger warning
+  if (severity < 2) {
+    return { isSevere: false, warningText: null, damageType: null, flavorText: null };
+  }
+  
+  // Generate flavor text based on damage type
+  const flavorTexts: Record<string, string[]> = {
+    explosive: [
+      "🔥 The air itself seems to hold its breath...",
+      "💥 This attack will reshape the battlefield.",
+      "⚠️ Shockwaves will ripple for miles.",
+      "🌋 The ground trembles in anticipation.",
+    ],
+    elemental: [
+      "🌊 Nature itself recoils from this power.",
+      "⚡ The elements surge beyond control.",
+      "🔥 Environmental devastation imminent.",
+      "❄️ The very atmosphere will transform.",
+    ],
+    seismic: [
+      "🌍 The earth groans under this force.",
+      "⛰️ Terrain will never be the same.",
+      "💔 Fissures will scar the landscape.",
+      "🏔️ Mountains would crumble before this.",
+    ],
+    cosmic: [
+      "🌌 Reality itself bends at the seams.",
+      "✨ Space-time warps around this attack.",
+      "🕳️ The fabric of existence strains.",
+      "💫 Dimensions shudder at this power.",
+    ],
+    widespread: [
+      "📍 Collateral damage: Extreme.",
+      "🗺️ The entire area will be affected.",
+      "⚠️ No corner will be left untouched.",
+      "🎯 Wide-area devastation incoming.",
+    ],
+  };
+  
+  const warnings: Record<string, string> = {
+    explosive: "⚠️ **AREA IMPACT WARNING** — This attack will cause explosive devastation to the surrounding battlefield.",
+    elemental: "⚠️ **ENVIRONMENTAL ALERT** — Elemental forces of this magnitude will permanently alter the terrain.",
+    seismic: "⚠️ **SEISMIC WARNING** — Ground-level destruction will reshape the combat area.",
+    cosmic: "⚠️ **REALITY STRAIN** — An attack of this nature may tear at the fabric of the battlefield itself.",
+    widespread: "⚠️ **WIDE-AREA IMPACT** — This move will affect the entire combat zone.",
+  };
+  
+  const typeKey = damageType || 'widespread';
+  const flavorOptions = flavorTexts[typeKey] || flavorTexts.widespread;
+  const randomFlavor = flavorOptions[Math.floor(Math.random() * flavorOptions.length)];
+  
+  return {
+    isSevere: true,
+    warningText: warnings[typeKey],
+    damageType,
+    flavorText: randomFlavor,
+  };
+}

@@ -25,7 +25,7 @@ import {
 import { toast } from 'sonner';
 import { ROK_RULES } from '@/lib/game-constants';
 import { generateBattleEnvironment, BattleEnvironment } from '@/lib/battle-environment';
-import { validateMove, isMentalAttack, type MoveValidationResult, type CharacterAbilities } from '@/lib/move-validation';
+import { validateMove, isMentalAttack, detectAreaDamage, type MoveValidationResult, type CharacterAbilities, type AreaDamageWarning } from '@/lib/move-validation';
 import { 
   determineHit, 
   determineMentalHit, 
@@ -158,6 +158,9 @@ export default function BattleView() {
   // Entrance state
   const [entrancesGenerated, setEntrancesGenerated] = useState(false);
   const [isGeneratingEntrances, setIsGeneratingEntrances] = useState(false);
+  
+  // Area damage warning state
+  const [areaDamageWarning, setAreaDamageWarning] = useState<AreaDamageWarning | null>(null);
 
   // Generate environment and entrances when battle becomes active with a location
   useEffect(() => {
@@ -461,6 +464,14 @@ export default function BattleView() {
       if (!distanceCheck.valid && distanceCheck.warning) {
         toast.warning(distanceCheck.warning, { duration: 5000 });
         // Still allow sending - it's a warning, not a block
+      }
+      
+      // Check for area damage (for flavor/coolness)
+      const areaCheck = detectAreaDamage(messageInput);
+      if (areaCheck.isSevere) {
+        setAreaDamageWarning(areaCheck);
+        // Clear warning after 4 seconds (just flavor, doesn't block)
+        setTimeout(() => setAreaDamageWarning(null), 4000);
       }
     }
 
@@ -1214,7 +1225,21 @@ export default function BattleView() {
               )}
             </ScrollArea>
             {battle.status === 'active' && userCharacter && activeChannel === 'in_universe' && (
-              <div className="p-4 border-t border-border">
+              <div className="p-4 border-t border-border space-y-3">
+                {/* Area Damage Warning - Flavor Only */}
+                {areaDamageWarning && areaDamageWarning.isSevere && (
+                  <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 bg-gradient-to-r from-destructive/20 via-orange-500/20 to-destructive/20 border border-destructive/50 rounded-lg p-3 space-y-1">
+                    <div className="flex items-center gap-2 text-destructive font-semibold text-sm">
+                      <AlertTriangle className="w-4 h-4 animate-pulse" />
+                      {areaDamageWarning.warningText}
+                    </div>
+                    {areaDamageWarning.flavorText && (
+                      <p className="text-xs text-muted-foreground italic pl-6">
+                        {areaDamageWarning.flavorText}
+                      </p>
+                    )}
+                  </div>
+                )}
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
