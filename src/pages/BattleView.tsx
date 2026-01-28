@@ -154,14 +154,102 @@ export default function BattleView() {
     estimatedMeters: 10,
     lastMovement: 'none',
   });
+  
+  // Entrance state
+  const [entrancesGenerated, setEntrancesGenerated] = useState(false);
+  const [isGeneratingEntrances, setIsGeneratingEntrances] = useState(false);
 
-  // Generate environment when battle becomes active with a location
+  // Generate environment and entrances when battle becomes active with a location
   useEffect(() => {
     if (battle?.chosen_location && battle?.dynamic_environment) {
       const env = generateBattleEnvironment(battle.chosen_location, null, null);
       setBattleEnvironment(env);
     }
   }, [battle?.chosen_location, battle?.dynamic_environment]);
+  
+  // Generate character entrances when battle becomes active
+  useEffect(() => {
+    const generateEntrances = async () => {
+      if (
+        battle?.status === 'active' && 
+        battle?.chosen_location && 
+        participants.length === 2 && 
+        !entrancesGenerated && 
+        !isGeneratingEntrances &&
+        userCharacter
+      ) {
+        // Check if entrances were already sent (look for entrance markers in messages)
+        const hasEntrances = messages.some(m => m.content.includes('⚔️ **') && m.content.includes('enters the arena'));
+        if (hasEntrances) {
+          setEntrancesGenerated(true);
+          return;
+        }
+        
+        setIsGeneratingEntrances(true);
+        
+        try {
+          const char1 = participants[0]?.character;
+          const char2 = participants[1]?.character;
+          
+          if (!char1 || !char2) return;
+          
+          const response = await supabase.functions.invoke('battle-narrator', {
+            body: {
+              type: 'entrance',
+              character1: {
+                name: char1.name,
+                level: char1.level,
+                powers: char1.powers,
+                abilities: char1.abilities,
+              },
+              character2: {
+                name: char2.name,
+                level: char2.level,
+                powers: char2.powers,
+                abilities: char2.abilities,
+              },
+              battleLocation: battle.chosen_location,
+            },
+          });
+          
+          if (response.data) {
+            const { entrance1, entrance2 } = response.data;
+            
+            // Only insert if no entrance messages exist yet
+            const existingEntrances = messages.filter(m => 
+              m.content.includes('enters the arena') || 
+              m.content.includes('⚔️ **')
+            );
+            
+            if (existingEntrances.length === 0) {
+              // Send entrance messages to in-universe chat
+              await supabase.from('battle_messages').insert([
+                {
+                  battle_id: id,
+                  character_id: participants[0].character_id,
+                  content: `⚔️ **${char1.name} enters the arena:**\n${entrance1}`,
+                  channel: 'in_universe',
+                },
+                {
+                  battle_id: id,
+                  character_id: participants[1].character_id,
+                  content: `⚔️ **${char2.name} enters the arena:**\n${entrance2}`,
+                  channel: 'in_universe',
+                },
+              ]);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to generate entrances:', error);
+        } finally {
+          setEntrancesGenerated(true);
+          setIsGeneratingEntrances(false);
+        }
+      }
+    };
+    
+    generateEntrances();
+  }, [battle?.status, battle?.chosen_location, participants, entrancesGenerated, isGeneratingEntrances, messages, userCharacter, id]);
 
   useEffect(() => {
     if (id && user) {

@@ -6,7 +6,23 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface CharacterEntranceData {
+  name: string;
+  level: number;
+  powers?: string | null;
+  abilities?: string | null;
+  personality?: string | null;
+}
+
+interface EntranceRequest {
+  type: 'entrance';
+  character1: CharacterEntranceData;
+  character2: CharacterEntranceData;
+  battleLocation: string;
+}
+
 interface NarratorRequest {
+  type?: 'narration';
   userCharacter: {
     name: string;
     level: number;
@@ -66,6 +82,19 @@ serve(async (req) => {
       );
     }
 
+    const requestBody = await req.json();
+    
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
+    // Handle entrance generation
+    if (requestBody.type === 'entrance') {
+      const { character1, character2, battleLocation }: EntranceRequest = requestBody;
+      return await generateEntrances(character1, character2, battleLocation, LOVABLE_API_KEY, corsHeaders);
+    }
+    
     const { 
       userCharacter, 
       opponent, 
@@ -76,12 +105,7 @@ serve(async (req) => {
       frequency = 'key_moments',
       detectEnvironmentalEffects = true,
       currentDistance,
-    }: NarratorRequest = await req.json();
-    
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
+    }: NarratorRequest = requestBody;
 
     // Detect environmental effects from the attacker's action
     const environmentalEffects = detectEnvironmentalEffects 
@@ -213,6 +237,114 @@ Provide your narrator observation${environmentalEffects.length > 0 ? ', making s
     );
   }
 });
+
+/**
+ * Generate unique character entrances based on their powers and abilities
+ */
+async function generateEntrances(
+  character1: CharacterEntranceData,
+  character2: CharacterEntranceData,
+  battleLocation: string,
+  apiKey: string,
+  corsHeaders: Record<string, string>
+): Promise<Response> {
+  const systemPrompt = `You are a dramatic battle announcer creating unique character entrances for an arena battle.
+
+TASK: Generate a unique, dramatic entrance for each character based on their powers, abilities, and personality. Each entrance should feel like it belongs in an epic anime or action movie.
+
+STYLE:
+- 2-4 sentences per character
+- Describe HOW they arrive (teleport, walk through flames, descend from sky, etc.)
+- Reference their actual powers/abilities if provided
+- Match their personality if known
+- Make it feel unique to THAT character
+- No generic "walks into the arena" - make it memorable
+
+IF NO POWERS/ABILITIES PROVIDED:
+- Create a default dramatic entrance that feels mysterious
+- Focus on presence, aura, or physical demeanor
+- Still make it feel unique based on their name and tier
+
+EXAMPLES OF GOOD ENTRANCES:
+- "The air crackles with static as lightning arcs across the arena. Voltara materializes from a bolt of pure electricity, her eyes already locked on her opponent."
+- "The ground trembles. Each footstep sends ripples through the stone as Gorak emerges from the shadows, his massive frame blocking out the light behind him."
+- "Cherry blossoms scatter on an impossible wind as Sakura appears at the center of the arena, her blade already drawn, moving so fast she seems to have always been there."
+
+OUTPUT FORMAT: Return a JSON object with "entrance1" and "entrance2" keys containing the entrance text for each character.`;
+
+  const userPrompt = `Battle Location: ${battleLocation}
+
+CHARACTER 1:
+Name: ${character1.name}
+Tier: ${character1.level}
+Powers: ${character1.powers || 'Not specified'}
+Abilities: ${character1.abilities || 'Not specified'}
+Personality: ${character1.personality || 'Not specified'}
+
+CHARACTER 2:
+Name: ${character2.name}
+Tier: ${character2.level}
+Powers: ${character2.powers || 'Not specified'}
+Abilities: ${character2.abilities || 'Not specified'}
+Personality: ${character2.personality || 'Not specified'}
+
+Generate unique, dramatic entrances for both characters that reflect their powers and personalities.`;
+
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        max_tokens: 600,
+        response_format: { type: "json_object" },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`AI gateway error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || "{}";
+    
+    let entrances;
+    try {
+      entrances = JSON.parse(content);
+    } catch {
+      // Fallback if JSON parsing fails
+      entrances = {
+        entrance1: `${character1.name} steps into the arena, an undeniable presence commanding attention.`,
+        entrance2: `${character2.name} emerges from the opposite side, ready for battle.`,
+      };
+    }
+
+    return new Response(
+      JSON.stringify({
+        entrance1: entrances.entrance1 || `${character1.name} arrives at the battlefield.`,
+        entrance2: entrances.entrance2 || `${character2.name} takes their position.`,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error("Entrance generation error:", error);
+    // Return default entrances on error
+    return new Response(
+      JSON.stringify({
+        entrance1: `${character1.name} steps into the arena, ready for battle.`,
+        entrance2: `${character2.name} takes their fighting stance across the field.`,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+}
 
 /**
  * Detect environmental effects from action text
