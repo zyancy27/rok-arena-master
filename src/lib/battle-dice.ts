@@ -28,12 +28,38 @@ export interface HitDetermination {
   isMentalAttack: boolean;
 }
 
+// Distance zones for battle positioning
+export type DistanceZone = 'melee' | 'close' | 'mid' | 'long' | 'extreme';
+
+export interface DistanceState {
+  currentZone: DistanceZone;
+  estimatedMeters: number; // Approximate distance in meters
+  lastMovement: 'closer' | 'away' | 'none';
+}
+
+export interface TravelTimeResult {
+  seconds: number;
+  description: string;
+  isInstant: boolean;
+  speedTier: 'slow' | 'normal' | 'fast' | 'superhuman' | 'instant';
+}
+
 export interface BattleState {
   concentrationUsesLeft: Record<string, number>; // character_id -> uses remaining
   statPenalties: Record<string, number>; // character_id -> penalty % for next action
+  distance: DistanceState; // Current distance between fighters
 }
 
 const MAX_CONCENTRATION_USES = 3;
+
+// Distance zone definitions (in meters)
+const DISTANCE_ZONES: Record<DistanceZone, { min: number; max: number; description: string }> = {
+  melee: { min: 0, max: 2, description: 'Within arm\'s reach - punches, grabs, and close combat effective' },
+  close: { min: 2, max: 5, description: 'A few steps apart - quick lunges and short-range attacks work' },
+  mid: { min: 5, max: 15, description: 'Moderate distance - projectiles and charges needed to close' },
+  long: { min: 15, max: 50, description: 'Far apart - ranged attacks or significant movement required' },
+  extreme: { min: 50, max: 200, description: 'Very distant - only long-range powers or travel can bridge the gap' },
+};
 
 /**
  * Roll a d20 with stat-based modifiers for physical attacks
@@ -277,9 +303,9 @@ export function calculateCounterSkillBonus(
 }
 
 /**
- * Initialize battle state for concentration tracking
+ * Initialize battle state for concentration tracking and distance
  */
-export function initializeBattleState(characterIds: string[]): BattleState {
+export function initializeBattleState(characterIds: string[], startingDistance: DistanceZone = 'mid'): BattleState {
   const concentrationUsesLeft: Record<string, number> = {};
   const statPenalties: Record<string, number> = {};
   
@@ -288,7 +314,204 @@ export function initializeBattleState(characterIds: string[]): BattleState {
     statPenalties[id] = 0;
   });
   
-  return { concentrationUsesLeft, statPenalties };
+  const zoneInfo = DISTANCE_ZONES[startingDistance];
+  const estimatedMeters = (zoneInfo.min + zoneInfo.max) / 2;
+  
+  return { 
+    concentrationUsesLeft, 
+    statPenalties,
+    distance: {
+      currentZone: startingDistance,
+      estimatedMeters,
+      lastMovement: 'none',
+    }
+  };
+}
+
+/**
+ * Calculate travel time based on character speed stat and distance
+ * Speed stat 0-100 maps to movement capability
+ */
+export function calculateTravelTime(
+  speedStat: number,
+  tier: number,
+  fromZone: DistanceZone,
+  toZone: DistanceZone
+): TravelTimeResult {
+  const fromInfo = DISTANCE_ZONES[fromZone];
+  const toInfo = DISTANCE_ZONES[toZone];
+  
+  // Calculate distance to cover (using midpoints)
+  const fromMid = (fromInfo.min + fromInfo.max) / 2;
+  const toMid = (toInfo.min + toInfo.max) / 2;
+  const distanceMeters = Math.abs(toMid - fromMid);
+  
+  if (distanceMeters === 0) {
+    return { seconds: 0, description: 'Already there', isInstant: true, speedTier: 'instant' };
+  }
+  
+  // Base speed in m/s based on speed stat + tier
+  // Speed 0 = 2 m/s (slow walk), Speed 50 = 10 m/s (fast run), Speed 100 = 30 m/s (superhuman)
+  // Tier adds multiplier: T1=1x, T4=2x, T7=4x
+  const baseSpeedMs = 2 + (speedStat / 100) * 28; // 2-30 m/s range
+  const tierMultiplier = 1 + (tier - 1) * 0.5; // 1x to 4x
+  const effectiveSpeedMs = baseSpeedMs * tierMultiplier;
+  
+  const seconds = distanceMeters / effectiveSpeedMs;
+  
+  // Determine speed tier description
+  let speedTier: TravelTimeResult['speedTier'];
+  let description: string;
+  
+  if (seconds < 0.1) {
+    speedTier = 'instant';
+    description = 'Instantaneous - too fast to perceive';
+  } else if (seconds < 0.5) {
+    speedTier = 'superhuman';
+    description = `A blur of motion (~${(seconds * 1000).toFixed(0)}ms)`;
+  } else if (seconds < 2) {
+    speedTier = 'fast';
+    description = `Quick movement (~${seconds.toFixed(1)}s)`;
+  } else if (seconds < 5) {
+    speedTier = 'normal';
+    description = `Several seconds (~${Math.round(seconds)}s)`;
+  } else {
+    speedTier = 'slow';
+    description = `Takes time (~${Math.round(seconds)}s to cover ${distanceMeters.toFixed(0)}m)`;
+  }
+  
+  return { seconds, description, isInstant: seconds < 0.1, speedTier };
+}
+
+/**
+ * Analyze action text to detect movement/positioning changes
+ */
+export function detectMovementInAction(actionText: string): {
+  movement: 'closer' | 'away' | 'none';
+  suggestedZoneChange: number; // -2 to +2 zone steps
+  keywords: string[];
+} {
+  const text = actionText.toLowerCase();
+  
+  const closerKeywords = [
+    'rush', 'charge', 'close the distance', 'lunge', 'dash toward', 'sprint at',
+    'move closer', 'approach', 'close in', 'advance', 'tackle', 'grab', 'grapple',
+    'get in close', 'engage', 'intercept', 'meet', 'step forward', 'leap at'
+  ];
+  
+  const awayKeywords = [
+    'retreat', 'back away', 'create distance', 'jump back', 'dash away', 'flee',
+    'run away', 'escape', 'disengage', 'fall back', 'step back', 'leap away',
+    'put distance', 'evade', 'dodge away', 'roll away', 'fly away', 'teleport away'
+  ];
+  
+  const majorMovementKeywords = [
+    'across the battlefield', 'the entire', 'far away', 'great distance',
+    'teleport', 'instant transmission', 'warp', 'flash step', 'blink'
+  ];
+  
+  const matchedCloser = closerKeywords.filter(kw => text.includes(kw));
+  const matchedAway = awayKeywords.filter(kw => text.includes(kw));
+  const hasMajorMovement = majorMovementKeywords.some(kw => text.includes(kw));
+  
+  let movement: 'closer' | 'away' | 'none' = 'none';
+  let suggestedZoneChange = 0;
+  const keywords: string[] = [];
+  
+  if (matchedCloser.length > matchedAway.length) {
+    movement = 'closer';
+    suggestedZoneChange = hasMajorMovement ? -2 : -1;
+    keywords.push(...matchedCloser);
+  } else if (matchedAway.length > matchedCloser.length) {
+    movement = 'away';
+    suggestedZoneChange = hasMajorMovement ? 2 : 1;
+    keywords.push(...matchedAway);
+  }
+  
+  return { movement, suggestedZoneChange, keywords };
+}
+
+/**
+ * Update distance zone based on movement
+ */
+export function updateDistance(
+  currentState: DistanceState,
+  zoneChange: number
+): DistanceState {
+  const zones: DistanceZone[] = ['melee', 'close', 'mid', 'long', 'extreme'];
+  const currentIndex = zones.indexOf(currentState.currentZone);
+  const newIndex = Math.max(0, Math.min(zones.length - 1, currentIndex + zoneChange));
+  const newZone = zones[newIndex];
+  const zoneInfo = DISTANCE_ZONES[newZone];
+  
+  return {
+    currentZone: newZone,
+    estimatedMeters: (zoneInfo.min + zoneInfo.max) / 2,
+    lastMovement: zoneChange < 0 ? 'closer' : zoneChange > 0 ? 'away' : 'none',
+  };
+}
+
+/**
+ * Get distance context for AI narrator
+ */
+export function getDistanceContext(distance: DistanceState): string {
+  const zoneInfo = DISTANCE_ZONES[distance.currentZone];
+  return `📍 CURRENT DISTANCE: ${distance.currentZone.toUpperCase()} RANGE (~${distance.estimatedMeters.toFixed(0)}m apart)\n${zoneInfo.description}`;
+}
+
+/**
+ * Check if an attack type is valid for current distance
+ */
+export function isAttackValidForDistance(
+  actionText: string,
+  currentZone: DistanceZone
+): { valid: boolean; warning: string | null } {
+  const text = actionText.toLowerCase();
+  
+  const meleeOnlyKeywords = ['punch', 'kick', 'grab', 'grapple', 'headbutt', 'elbow', 'knee', 'bite', 'claw', 'slash', 'stab'];
+  const closeRangeKeywords = ['throw', 'tackle', 'sweep', 'trip'];
+  
+  const isMeleeAttack = meleeOnlyKeywords.some(kw => text.includes(kw));
+  const isCloseAttack = closeRangeKeywords.some(kw => text.includes(kw));
+  
+  // Check if melee attack at long range
+  if (isMeleeAttack && (currentZone === 'long' || currentZone === 'extreme')) {
+    return {
+      valid: false,
+      warning: `⚠️ Distance Warning: You're attempting a melee attack from ${currentZone} range (~${DISTANCE_ZONES[currentZone].min}-${DISTANCE_ZONES[currentZone].max}m). You'll need to close the distance first or use a ranged attack.`
+    };
+  }
+  
+  if (isCloseAttack && currentZone === 'extreme') {
+    return {
+      valid: false,
+      warning: `⚠️ Distance Warning: You're too far away for this attack. Consider moving closer or using a long-range ability.`
+    };
+  }
+  
+  return { valid: true, warning: null };
+}
+
+/**
+ * Format distance info for display
+ */
+export function formatDistanceInfo(distance: DistanceState, attackerSpeed: number, defenderSpeed: number, attackerTier: number, defenderTier: number): string {
+  const zoneInfo = DISTANCE_ZONES[distance.currentZone];
+  
+  // Calculate travel times for both fighters to close to melee
+  const attackerTravel = calculateTravelTime(attackerSpeed, attackerTier, distance.currentZone, 'melee');
+  const defenderTravel = calculateTravelTime(defenderSpeed, defenderTier, distance.currentZone, 'melee');
+  
+  let output = `📍 **Distance**: ${distance.currentZone.charAt(0).toUpperCase() + distance.currentZone.slice(1)} Range (~${distance.estimatedMeters.toFixed(0)}m)\n`;
+  output += `*${zoneInfo.description}*\n\n`;
+  
+  if (distance.currentZone !== 'melee') {
+    output += `⚡ **Travel to Melee**:\n`;
+    output += `• Attacker: ${attackerTravel.description}\n`;
+    output += `• Defender: ${defenderTravel.description}`;
+  }
+  
+  return output;
 }
 
 /**

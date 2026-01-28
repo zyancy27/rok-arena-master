@@ -10,18 +10,25 @@ interface NarratorRequest {
   userCharacter: {
     name: string;
     level: number;
+    speed?: number;
   };
   opponent: {
     name: string;
     level: number;
+    speed?: number;
   };
   userAction: string;
   opponentResponse: string;
   battleLocation: string;
   turnNumber: number;
   frequency?: 'always' | 'key_moments';
-  // New: Environmental effect detection
+  // Environmental effect detection
   detectEnvironmentalEffects?: boolean;
+  // Distance tracking
+  currentDistance?: {
+    zone: string;
+    meters: number;
+  };
 }
 
 interface EnvironmentalEffect {
@@ -67,7 +74,8 @@ serve(async (req) => {
       battleLocation, 
       turnNumber, 
       frequency = 'key_moments',
-      detectEnvironmentalEffects = true
+      detectEnvironmentalEffects = true,
+      currentDistance,
     }: NarratorRequest = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -129,15 +137,20 @@ EXAMPLES (environmental effects):
 "The air itself seems to thicken. Something's wrong with the atmosphere."
 "Lava bubbles up through the cracks. The safe ground is shrinking."`;
 
+    // Distance context for narrator
+    const distanceContext = currentDistance 
+      ? `\nCurrent Distance: ${currentDistance.zone.toUpperCase()} range (~${currentDistance.meters}m apart)`
+      : '';
+
     const userPrompt = `Battle Location: ${battleLocation}
-Turn: ${turnNumber}
+Turn: ${turnNumber}${distanceContext}
 
 ${userCharacter.name} (Tier ${userCharacter.level}) acted:
 "${userAction}"
 
 ${opponent.name} (Tier ${opponent.level}) is about to respond.
 
-Provide your narrator observation${environmentalEffects.length > 0 ? ', making sure to clearly describe the environmental hazards the defender must now contend with' : ''}.`;
+Provide your narrator observation${environmentalEffects.length > 0 ? ', making sure to clearly describe the environmental hazards the defender must now contend with' : ''}${currentDistance ? `. If the fighters\' distance changed significantly, note it briefly.` : ''}.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
