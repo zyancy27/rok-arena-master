@@ -1007,31 +1007,175 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
               />
             </div>
 
+            {/* Alignment & Archetype Section */}
+            <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Sparkles className="w-4 h-4 text-primary" />
+                Character Alignment & Archetype
+              </div>
+              
+              {/* Alignment Selection */}
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Moral Alignment</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { value: 'good', label: 'Good', emoji: '😇', desc: 'Heroic, protects the innocent' },
+                    { value: 'neutral', label: 'Neutral', emoji: '😐', desc: 'Self-interested, situational morality' },
+                    { value: 'evil', label: 'Evil', emoji: '😈', desc: 'Villainous, pursues dark goals' },
+                  ].map((alignment) => (
+                    <button
+                      key={alignment.value}
+                      type="button"
+                      onClick={() => {
+                        const current = formData.mentality || '';
+                        const alignmentRegex = /\[ALIGNMENT:(good|neutral|evil)\]/i;
+                        const newMentality = alignmentRegex.test(current)
+                          ? current.replace(alignmentRegex, `[ALIGNMENT:${alignment.value}]`)
+                          : `[ALIGNMENT:${alignment.value}] ${current}`.trim();
+                        handleChange('mentality', newMentality);
+                      }}
+                      className={`p-3 rounded-lg border text-center transition-all ${
+                        formData.mentality?.toLowerCase().includes(`[alignment:${alignment.value}]`)
+                          ? alignment.value === 'good' 
+                            ? 'border-green-500 bg-green-500/20 ring-2 ring-green-500/50'
+                            : alignment.value === 'evil'
+                            ? 'border-red-500 bg-red-500/20 ring-2 ring-red-500/50'
+                            : 'border-yellow-500 bg-yellow-500/20 ring-2 ring-yellow-500/50'
+                          : 'border-border hover:border-primary/50 bg-background/50'
+                      }`}
+                    >
+                      <div className="text-2xl mb-1">{alignment.emoji}</div>
+                      <div className="text-sm font-medium">{alignment.label}</div>
+                      <div className="text-xs text-muted-foreground">{alignment.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Approach Selection */}
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Combat & Moral Approach</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: 'traditional', label: 'Traditional', emoji: '⚔️', desc: 'Fights with honor, follows codes' },
+                    { value: 'unconventional', label: 'Unconventional', emoji: '🎭', desc: 'Uses any means necessary' },
+                  ].map((approach) => (
+                    <button
+                      key={approach.value}
+                      type="button"
+                      onClick={() => {
+                        const current = formData.mentality || '';
+                        const approachRegex = /\[APPROACH:(traditional|unconventional)\]/i;
+                        const newMentality = approachRegex.test(current)
+                          ? current.replace(approachRegex, `[APPROACH:${approach.value}]`)
+                          : `${current} [APPROACH:${approach.value}]`.trim();
+                        handleChange('mentality', newMentality);
+                      }}
+                      className={`p-3 rounded-lg border text-center transition-all ${
+                        formData.mentality?.toLowerCase().includes(`[approach:${approach.value}]`)
+                          ? 'border-primary bg-primary/20 ring-2 ring-primary/50'
+                          : 'border-border hover:border-primary/50 bg-background/50'
+                      }`}
+                    >
+                      <div className="text-xl mb-1">{approach.emoji}</div>
+                      <div className="text-sm font-medium">{approach.label}</div>
+                      <div className="text-xs text-muted-foreground">{approach.desc}</div>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground italic">
+                  An unconventional hero is still good, but their methods might make people question how good...
+                </p>
+              </div>
+
+              {/* Personality Archetypes */}
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Personality Archetype (Optional)</Label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {[
+                    { value: 'boy_scout', label: 'Boy Scout', emoji: '🦸', desc: 'Textbook hero, upholds ideals' },
+                    { value: 'anti_hero', label: 'Anti-Hero', emoji: '🖤', desc: 'Does good through questionable means' },
+                    { value: 'noble_villain', label: 'Noble Villain', emoji: '👑', desc: 'Evil with honor and purpose' },
+                    { value: 'extreme_villain', label: 'Extreme Villain', emoji: '💀', desc: 'Chaos incarnate, evil for its own sake' },
+                  ].map((archetype) => (
+                    <button
+                      key={archetype.value}
+                      type="button"
+                      onClick={() => {
+                        const current = formData.personality || '';
+                        const archetypeRegex = /\[ARCHETYPE:[^\]]+\]/i;
+                        const hasArchetype = archetypeRegex.test(current);
+                        const currentArchetype = current.match(archetypeRegex)?.[0];
+                        const isSame = currentArchetype === `[ARCHETYPE:${archetype.value}]`;
+                        
+                        let newPersonality: string;
+                        if (isSame) {
+                          // Deselect
+                          newPersonality = current.replace(archetypeRegex, '').trim();
+                        } else if (hasArchetype) {
+                          // Replace
+                          newPersonality = current.replace(archetypeRegex, `[ARCHETYPE:${archetype.value}]`);
+                        } else {
+                          // Add
+                          newPersonality = `[ARCHETYPE:${archetype.value}] ${current}`.trim();
+                        }
+                        handleChange('personality', newPersonality);
+                      }}
+                      className={`p-2 rounded-lg border text-center transition-all ${
+                        formData.personality?.toLowerCase().includes(`[archetype:${archetype.value}]`)
+                          ? archetype.value === 'boy_scout' 
+                            ? 'border-blue-500 bg-blue-500/20 ring-2 ring-blue-500/50'
+                            : archetype.value === 'anti_hero'
+                            ? 'border-purple-500 bg-purple-500/20 ring-2 ring-purple-500/50'
+                            : archetype.value === 'noble_villain'
+                            ? 'border-amber-500 bg-amber-500/20 ring-2 ring-amber-500/50'
+                            : 'border-red-600 bg-red-600/20 ring-2 ring-red-600/50'
+                          : 'border-border hover:border-primary/50 bg-background/50'
+                      }`}
+                    >
+                      <div className="text-lg">{archetype.emoji}</div>
+                      <div className="text-xs font-medium">{archetype.label}</div>
+                      <div className="text-[10px] text-muted-foreground leading-tight">{archetype.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             {/* Personality & Mentality */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="personality" className="flex items-center gap-2">
                   <Smile className="w-4 h-4 text-accent" />
-                  Personality
+                  Personality Details
                 </Label>
                 <Textarea
                   id="personality"
                   placeholder="Describe your character's personality traits, demeanor, and how they interact with others..."
-                  value={formData.personality}
-                  onChange={(e) => handleChange('personality', e.target.value)}
+                  value={formData.personality?.replace(/\[ARCHETYPE:[^\]]+\]\s*/gi, '') || ''}
+                  onChange={(e) => {
+                    const archetypeMatch = formData.personality?.match(/\[ARCHETYPE:[^\]]+\]/i);
+                    const archetype = archetypeMatch ? archetypeMatch[0] + ' ' : '';
+                    handleChange('personality', archetype + e.target.value);
+                  }}
                   rows={4}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="mentality" className="flex items-center gap-2">
                   <Lightbulb className="w-4 h-4 text-cosmic-gold" />
-                  Mentality
+                  Mentality Details
                 </Label>
                 <Textarea
                   id="mentality"
                   placeholder="Describe your character's mindset, beliefs, motivations, and psychological traits..."
-                  value={formData.mentality}
-                  onChange={(e) => handleChange('mentality', e.target.value)}
+                  value={formData.mentality?.replace(/\[(ALIGNMENT|APPROACH):[^\]]+\]\s*/gi, '') || ''}
+                  onChange={(e) => {
+                    const alignmentMatch = formData.mentality?.match(/\[ALIGNMENT:[^\]]+\]/i);
+                    const approachMatch = formData.mentality?.match(/\[APPROACH:[^\]]+\]/i);
+                    const prefix = [alignmentMatch?.[0], approachMatch?.[0]].filter(Boolean).join(' ');
+                    handleChange('mentality', prefix ? prefix + ' ' + e.target.value : e.target.value);
+                  }}
                   rows={4}
                 />
               </div>
