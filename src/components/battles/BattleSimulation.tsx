@@ -149,14 +149,14 @@ export default function BattleSimulation({ characters }: BattleSimulationProps) 
       <DialogTrigger asChild>
         <Button variant="outline" className="gap-2">
           <Sparkles className="h-4 w-4" />
-          Battle Simulation
+          Automated Character Battle
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Swords className="h-5 w-5 text-primary" />
-            Battle Simulation
+            Automated Character Battle
           </DialogTitle>
         </DialogHeader>
 
