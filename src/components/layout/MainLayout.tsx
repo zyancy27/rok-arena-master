@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import OwnershipNotice from '@/components/legal/OwnershipNotice';
-import { Swords, Users, BookOpen, Shield, LogOut, User, Home, Dna, Heart, ChevronDown, FileText, Plus, Globe } from 'lucide-react';
+import { Swords, Users, BookOpen, Shield, LogOut, User, Home, Dna, Heart, ChevronDown, FileText, Plus, Globe, FolderOpen } from 'lucide-react';
 
 interface UserCharacter {
   id: string;
@@ -106,6 +106,12 @@ export default function MainLayout() {
                   <Link to="/races" className="flex items-center cursor-pointer">
                     <Dna className="mr-2 h-4 w-4" />
                     Races
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/groups" className="flex items-center cursor-pointer">
+                    <FolderOpen className="mr-2 h-4 w-4" />
+                    Groups
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
