@@ -8,6 +8,21 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Swords, Plus, Clock, CheckCircle, Users } from 'lucide-react';
 import OpponentFinder from '@/components/battles/OpponentFinder';
+import BattleSimulation from '@/components/battles/BattleSimulation';
+
+interface Character {
+  id: string;
+  name: string;
+  level: number;
+  image_url: string | null;
+  powers: string | null;
+  abilities: string | null;
+  personality?: string | null;
+  mentality?: string | null;
+  stat_speed?: number | null;
+  stat_strength?: number | null;
+  stat_skill?: number | null;
+}
 
 interface Battle {
   id: string;
@@ -20,11 +35,13 @@ interface Battle {
 export default function Battles() {
   const { user } = useAuth();
   const [battles, setBattles] = useState<Battle[]>([]);
+  const [characters, setCharacters] = useState<Character[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
       fetchBattles();
+      fetchCharacters();
       setupRealtime();
     }
 
@@ -61,6 +78,17 @@ export default function Battles() {
         }
       )
       .subscribe();
+  };
+
+  const fetchCharacters = async () => {
+    const { data } = await supabase
+      .from('characters')
+      .select('id, name, level, image_url, powers, abilities, personality, mentality, stat_speed, stat_strength, stat_skill')
+      .eq('user_id', user?.id);
+
+    if (data) {
+      setCharacters(data as Character[]);
+    }
   };
 
   const fetchBattles = async () => {
@@ -147,12 +175,15 @@ export default function Battles() {
             Challenge opponents and manage your battles
           </p>
         </div>
-        <Button asChild>
-          <Link to="/characters/new">
-            <Plus className="w-4 h-4 mr-2" />
-            Create Character
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <BattleSimulation characters={characters} />
+          <Button asChild>
+            <Link to="/characters/new">
+              <Plus className="w-4 h-4 mr-2" />
+              Create Character
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* Tabs for Find Opponents vs My Battles */}
