@@ -98,9 +98,11 @@ export default function BattleSimulation({ characters }: BattleSimulationProps) 
 
       if (error) throw error;
 
-      if (data?.turns) {
+      if (data?.turns && data.turns.length > 0) {
         setResult(data);
-        toast.success('Battle simulation complete!');
+        // Show first turn immediately
+        setCurrentTurn(0);
+        toast.success(`Battle simulation ready! ${data.turns.length} turns generated.`);
       } else {
         throw new Error('Invalid simulation response');
       }
@@ -116,16 +118,19 @@ export default function BattleSimulation({ characters }: BattleSimulationProps) 
     if (!result) return;
     
     setIsPlaying(true);
+    // Start from first turn (index 0)
     setCurrentTurn(0);
 
-    // Auto-play through turns
+    // Auto-play through all turns - start from turn 1 since turn 0 is already shown
     let turn = 0;
     const interval = setInterval(() => {
       turn++;
       if (turn >= result.turns.length) {
         clearInterval(interval);
         setIsPlaying(false);
-        setCurrentTurn(result.turns.length);
+        // Set to last index to ensure all turns are visible
+        setCurrentTurn(result.turns.length - 1);
+        toast.success('Battle simulation complete!');
       } else {
         setCurrentTurn(turn);
       }
@@ -249,10 +254,10 @@ export default function BattleSimulation({ characters }: BattleSimulationProps) 
               )}
             </Button>
 
-            {result && !isPlaying && currentTurn < result.turns.length && (
+            {result && !isPlaying && currentTurn < result.turns.length - 1 && (
               <Button onClick={playSimulation} variant="secondary">
                 <Play className="h-4 w-4 mr-2" />
-                Play
+                Play ({result.turns.length} turns)
               </Button>
             )}
           </div>
