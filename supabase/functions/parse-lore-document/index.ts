@@ -3,8 +3,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// Input validation constants
+const MAX_DOCUMENT_LENGTH = 100000; // 100KB max for document content
+const VALID_EXTRACT_TYPES = ['all', 'characters', 'planets', 'races'];
 
 interface ExtractedData {
   characters: Array<{
@@ -66,11 +70,45 @@ serve(async (req) => {
       );
     }
 
-    const { documentContent, extractType } = await req.json();
+    // Parse and validate request body
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { documentContent, extractType = 'all' } = body;
     
-    if (!documentContent) {
+    // Input validation
+    if (!documentContent || typeof documentContent !== 'string') {
       return new Response(
         JSON.stringify({ error: "Document content is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (documentContent.length > MAX_DOCUMENT_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: `Document exceeds maximum length of ${MAX_DOCUMENT_LENGTH} characters` }),
+        { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (documentContent.trim().length === 0) {
+      return new Response(
+        JSON.stringify({ error: "Document content cannot be empty" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate extractType
+    if (typeof extractType !== 'string' || !VALID_EXTRACT_TYPES.includes(extractType)) {
+      return new Response(
+        JSON.stringify({ error: `Invalid extractType. Must be one of: ${VALID_EXTRACT_TYPES.join(', ')}` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -220,7 +258,7 @@ Return your findings as a JSON object with this structure:
   } catch (error) {
     console.error("Parse lore document error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: "An error occurred while processing your request" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

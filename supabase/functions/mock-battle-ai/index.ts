@@ -3,8 +3,15 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// Input validation constants
+const MAX_MESSAGE_LENGTH = 5000;
+const MAX_HISTORY_LENGTH = 50;
+const MAX_LOCATION_LENGTH = 500;
+const MAX_NAME_LENGTH = 100;
+const MAX_POWERS_LENGTH = 2000;
 
 interface BattleRequest {
   userCharacter: {
@@ -70,6 +77,17 @@ serve(async (req) => {
       );
     }
 
+    // Parse and validate request body
+    let requestData: BattleRequest;
+    try {
+      requestData = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { 
       userCharacter, 
       opponent, 
@@ -83,18 +101,73 @@ serve(async (req) => {
       userGoesFirst,
       isFirstMove,
       characterStoryLore,
-    }: BattleRequest = await req.json();
+    } = requestData;
+
+    // Input validation
+    if (!userCharacter?.name || typeof userCharacter.name !== 'string' || userCharacter.name.length > MAX_NAME_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: `userCharacter.name is required and must be under ${MAX_NAME_LENGTH} characters` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!opponent?.name || typeof opponent.name !== 'string' || opponent.name.length > MAX_NAME_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: `opponent.name is required and must be under ${MAX_NAME_LENGTH} characters` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!userMessage || typeof userMessage !== 'string' || userMessage.length > MAX_MESSAGE_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: `userMessage is required and must be under ${MAX_MESSAGE_LENGTH} characters` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!channel || !['in_universe', 'out_of_universe'].includes(channel)) {
+      return new Response(
+        JSON.stringify({ error: 'channel must be "in_universe" or "out_of_universe"' }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!Array.isArray(messageHistory)) {
+      return new Response(
+        JSON.stringify({ error: 'messageHistory must be an array' }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (messageHistory.length > MAX_HISTORY_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: `messageHistory exceeds maximum of ${MAX_HISTORY_LENGTH} messages` }),
+        { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (battleLocation && (typeof battleLocation !== 'string' || battleLocation.length > MAX_LOCATION_LENGTH)) {
+      return new Response(
+        JSON.stringify({ error: `battleLocation must be under ${MAX_LOCATION_LENGTH} characters` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Sanitize inputs for prompt - truncate if needed
+    const sanitizedPowers = (userCharacter.powers || '').slice(0, MAX_POWERS_LENGTH);
+    const sanitizedAbilities = (userCharacter.abilities || '').slice(0, MAX_POWERS_LENGTH);
+    const sanitizedOpponentPowers = (opponent.powers || '').slice(0, MAX_POWERS_LENGTH);
+
     // Build location context with optional dynamic environment effects
     let locationContext = battleLocation ? `\n\nBATTLE LOCATION: ${battleLocation}` : '';
     
     if (dynamicEnvironment && environmentEffects) {
-      locationContext += environmentEffects;
+      locationContext += (environmentEffects || '').slice(0, 1000);
     } else if (battleLocation) {
       locationContext += `\nIncorporate this environment naturally into your actions.`;
     }
@@ -102,7 +175,7 @@ serve(async (req) => {
     // Add hazard event if triggered
     let hazardContext = '';
     if (hazardEvent) {
-      hazardContext = hazardEvent;
+      hazardContext = (hazardEvent || '').slice(0, 500);
     }
 
     // Build character personality context for portraying the user's character
@@ -110,10 +183,10 @@ serve(async (req) => {
     if (userCharacter.personality || userCharacter.mentality) {
       characterPersonalityContext = `\n\nUSER CHARACTER PERSONALITY & MENTALITY (Use this heavily to understand how ${userCharacter.name} acts, thinks, and fights):`;
       if (userCharacter.personality) {
-        characterPersonalityContext += `\nPersonality: ${userCharacter.personality}`;
+        characterPersonalityContext += `\nPersonality: ${(userCharacter.personality || '').slice(0, 1000)}`;
       }
       if (userCharacter.mentality) {
-        characterPersonalityContext += `\nMentality: ${userCharacter.mentality}`;
+        characterPersonalityContext += `\nMentality: ${(userCharacter.mentality || '').slice(0, 1000)}`;
       }
       characterPersonalityContext += `\n\nWhen ${userCharacter.name} takes an action, interpret it through their personality. A cold, calculating character attacks differently than a hot-headed berserker.`;
     }
@@ -122,7 +195,7 @@ serve(async (req) => {
     let storyLoreContext = '';
     if (characterStoryLore) {
       storyLoreContext = `\n\nCHARACTER STORY LORE (Use this to understand ${userCharacter.name}'s history, motivations, and past experiences):
-${characterStoryLore}
+${(characterStoryLore || '').slice(0, 2000)}
 
 INSTRUCTIONS: Reference this lore when appropriate - mention past events, use established relationships, acknowledge character growth and experiences from their stories. This makes the battle feel connected to the character's larger narrative.`;
     }
@@ -134,17 +207,17 @@ INSTRUCTIONS: Reference this lore when appropriate - mention past events, use es
     }
 
     const systemPrompt = channel === 'in_universe'
-      ? `You are roleplaying as ${opponent.name}, a ${opponent.personality}
+      ? `You are roleplaying as ${opponent.name}, a ${(opponent.personality || '').slice(0, 500)}
 
 Your character details:
 - Name: ${opponent.name}
 - Power Tier: ${opponent.level}
-- Powers: ${opponent.powers}
+- Powers: ${sanitizedOpponentPowers}
 ${opponent.skill ? `- Skill Proficiency: ${opponent.skill}/100` : ''}
 
 You are in a practice battle against ${userCharacter.name} (Tier ${userCharacter.level}).
-Their powers: ${userCharacter.powers || 'Unknown'}
-Their abilities: ${userCharacter.abilities || 'Unknown'}
+Their powers: ${sanitizedPowers || 'Unknown'}
+Their abilities: ${sanitizedAbilities || 'Unknown'}
 Their skill: ${userCharacter.skill || 50}/100${characterPersonalityContext}${locationContext}${storyLoreContext}${firstMoveContext}
 
 WRITING STYLE - CRITICAL:
@@ -184,14 +257,16 @@ Provide helpful feedback about:
 
 Keep responses friendly and constructive. Use [OOC: ...] format.`;
 
-    // Add hazard event as a system-level instruction if present
+    // Build messages array with validated history (limit to last 8 messages)
+    const validatedHistory = messageHistory.slice(-8).map(m => ({
+      role: m.role === 'user' ? 'user' : 'assistant',
+      content: (m.content || '').slice(0, MAX_MESSAGE_LENGTH),
+    }));
+
     const messages = [
       { role: "system", content: systemPrompt },
       ...(hazardEvent ? [{ role: "system", content: hazardContext }] : []),
-      ...messageHistory.slice(-8).map(m => ({
-        role: m.role === 'user' ? 'user' : 'assistant',
-        content: m.content,
-      })),
+      ...validatedHistory,
       { role: "user", content: userMessage },
     ];
 
@@ -234,7 +309,7 @@ Keep responses friendly and constructive. Use [OOC: ...] format.`;
   } catch (error) {
     console.error("Mock battle AI error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: "An error occurred while processing your request" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

@@ -1,25 +1,25 @@
 project_id = "qqcvpgmdcsjxmodtbsry"
 
 [functions.mock-battle-ai]
-verify_jwt = false
+verify_jwt = true
 
 [functions.battle-narrator]
-verify_jwt = false
+verify_jwt = true
 
 [functions.battle-simulation]
-verify_jwt = false
+verify_jwt = true
 
 [functions.parse-species-info]
-verify_jwt = false
+verify_jwt = true
 
 [functions.parse-character-notes]
-verify_jwt = false
+verify_jwt = true
 
 [functions.parse-lore-document]
-verify_jwt = false
+verify_jwt = true
 
 [functions.trigger-3d-generation]
-verify_jwt = false
+verify_jwt = true
 
 [functions.detect-new-technique]
-verify_jwt = false
+verify_jwt = true

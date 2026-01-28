@@ -3,8 +3,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// Input validation constants
+const MAX_NOTES_LENGTH = 50000; // 50KB max for notes input
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -36,11 +39,37 @@ serve(async (req) => {
       );
     }
 
-    const { notes } = await req.json();
+    // Parse and validate request body
+    let body;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { notes } = body;
     
-    if (!notes || typeof notes !== 'string' || notes.trim().length === 0) {
+    // Input validation
+    if (!notes || typeof notes !== 'string') {
       return new Response(
         JSON.stringify({ error: "Character notes are required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (notes.length > MAX_NOTES_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: `Notes exceed maximum length of ${MAX_NOTES_LENGTH} characters` }),
+        { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (notes.trim().length === 0) {
+      return new Response(
+        JSON.stringify({ error: "Character notes cannot be empty" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -146,7 +175,7 @@ IMPORTANT:
   } catch (error) {
     console.error("Parse character notes error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: "An error occurred while processing your request" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
