@@ -90,27 +90,37 @@ const DISTANCE_ZONES: Record<DistanceZone, { min: number; max: number; descripti
 };
 
 /**
- * Roll a d20 with stat-based modifiers for physical attacks
+ * Scale a 0-100 stat to 1-10 modifier, then divide by 2
+ */
+function scaleStatModifier(statValue: number): number {
+  // Scale 0-100 to 1-10, then divide by 2 for balanced modifier
+  const scaled = Math.max(1, Math.min(10, Math.ceil(statValue / 10)));
+  return Math.floor(scaled / 2);
+}
+
+/**
+ * Roll a D20 with stat-based modifiers for physical attacks
+ * Modifiers are scaled 1-10 from 0-100 stats, then divided by 2
  */
 export function rollAttackDice(
   attackerStats: CharacterStats,
   attackerTier: number,
   usesSkill: boolean = false
 ): DiceRollResult {
-  const baseRoll = Math.floor(Math.random() * 20) + 1; // d20
+  const baseRoll = Math.floor(Math.random() * 20) + 1; // D20
   
-  // Tier bonus: +1 per tier level
-  const tierBonus = attackerTier;
+  // Tier bonus: scaled 1-10 (tiers 1-7 map to ~1-4), then /2
+  const tierBonus = Math.floor(Math.min(10, Math.ceil(attackerTier * 1.4)) / 2);
   
-  // Stat bonus from relevant combat stats (strength, power, speed)
-  const relevantStats = (attackerStats.stat_strength + attackerStats.stat_power + attackerStats.stat_speed) / 3;
-  const statBonus = Math.floor(relevantStats / 10); // +1 per 10 points average
+  // Stat bonus from relevant combat stats (strength, power, speed averaged)
+  const avgCombatStat = (attackerStats.stat_strength + attackerStats.stat_power + attackerStats.stat_speed) / 3;
+  const statBonus = scaleStatModifier(avgCombatStat);
   
   // Battle IQ bonus for attack accuracy
-  const battleIqBonus = Math.floor(attackerStats.stat_battle_iq / 20); // +1 per 20 points
+  const battleIqBonus = scaleStatModifier(attackerStats.stat_battle_iq);
   
   // Skill bonus if using character's trained abilities
-  const skillBonus = usesSkill ? Math.floor(attackerStats.stat_skill / 15) : 0; // +1 per 15 skill points
+  const skillBonus = usesSkill ? scaleStatModifier(attackerStats.stat_skill) : 0;
   
   return {
     baseRoll,
@@ -126,27 +136,28 @@ export function rollAttackDice(
 }
 
 /**
- * Roll a d20 with stat-based modifiers for mental/psychic attacks
+ * Roll a D20 with stat-based modifiers for mental/psychic attacks
+ * Modifiers are scaled 1-10 from 0-100 stats, then divided by 2
  */
 export function rollMentalAttackDice(
   attackerStats: CharacterStats,
   attackerTier: number,
   usesSkill: boolean = false
 ): DiceRollResult {
-  const baseRoll = Math.floor(Math.random() * 20) + 1; // d20
+  const baseRoll = Math.floor(Math.random() * 20) + 1; // D20
   
-  // Tier bonus
-  const tierBonus = attackerTier;
+  // Tier bonus: scaled 1-10, then /2
+  const tierBonus = Math.floor(Math.min(10, Math.ceil(attackerTier * 1.4)) / 2);
   
-  // Mental attacks use intelligence + power + battle_iq
-  const relevantStats = (attackerStats.stat_intelligence + attackerStats.stat_power + attackerStats.stat_battle_iq) / 3;
-  const statBonus = Math.floor(relevantStats / 10);
+  // Mental attacks use intelligence + power + battle_iq averaged
+  const avgMentalStat = (attackerStats.stat_intelligence + attackerStats.stat_power + attackerStats.stat_battle_iq) / 3;
+  const statBonus = scaleStatModifier(avgMentalStat);
   
-  // Battle IQ is crucial for mental attacks
-  const battleIqBonus = Math.floor(attackerStats.stat_battle_iq / 15); // +1 per 15 points (stronger for mental)
+  // Battle IQ is crucial for mental attacks (gets full scaled modifier)
+  const battleIqBonus = scaleStatModifier(attackerStats.stat_battle_iq);
   
   // Skill bonus
-  const skillBonus = usesSkill ? Math.floor(attackerStats.stat_skill / 15) : 0;
+  const skillBonus = usesSkill ? scaleStatModifier(attackerStats.stat_skill) : 0;
   
   return {
     baseRoll,
@@ -163,23 +174,24 @@ export function rollMentalAttackDice(
 
 /**
  * Roll mental defense dice
+ * Modifiers are scaled 1-10 from 0-100 stats, then divided by 2
  */
 export function rollMentalDefenseDice(
   defenderStats: CharacterStats,
   defenderTier: number,
   currentPenalty: number = 0
 ): DiceRollResult {
-  const baseRoll = Math.floor(Math.random() * 20) + 1; // d20
+  const baseRoll = Math.floor(Math.random() * 20) + 1; // D20
   
-  // Tier bonus
-  const tierBonus = defenderTier;
+  // Tier bonus: scaled 1-10, then /2
+  const tierBonus = Math.floor(Math.min(10, Math.ceil(defenderTier * 1.4)) / 2);
   
-  // Mental defense uses intelligence + willpower (stamina) + battle IQ
-  const relevantStats = (defenderStats.stat_intelligence + defenderStats.stat_stamina + defenderStats.stat_battle_iq) / 3;
-  const statBonus = Math.floor(relevantStats / 10);
+  // Mental defense uses intelligence + willpower (stamina) + battle IQ averaged
+  const avgMentalDefStat = (defenderStats.stat_intelligence + defenderStats.stat_stamina + defenderStats.stat_battle_iq) / 3;
+  const statBonus = scaleStatModifier(avgMentalDefStat);
   
   // Battle IQ helps resist mental attacks
-  const battleIqBonus = Math.floor(defenderStats.stat_battle_iq / 20);
+  const battleIqBonus = scaleStatModifier(defenderStats.stat_battle_iq);
   
   // Apply penalty from previous concentration use
   const penaltyReduction = Math.floor((tierBonus + statBonus + battleIqBonus) * (currentPenalty / 100));
@@ -199,23 +211,24 @@ export function rollMentalDefenseDice(
 
 /**
  * Roll defense dice for physical attacks
+ * Modifiers are scaled 1-10 from 0-100 stats, then divided by 2
  */
 export function rollDefenseDice(
   defenderStats: CharacterStats,
   defenderTier: number,
   currentPenalty: number = 0 // % penalty from previous concentration use
 ): DiceRollResult {
-  const baseRoll = Math.floor(Math.random() * 20) + 1; // d20
+  const baseRoll = Math.floor(Math.random() * 20) + 1; // D20
   
-  // Tier bonus
-  const tierBonus = defenderTier;
+  // Tier bonus: scaled 1-10, then /2
+  const tierBonus = Math.floor(Math.min(10, Math.ceil(defenderTier * 1.4)) / 2);
   
-  // Stat bonus from defensive stats (durability, speed)
-  const relevantStats = (defenderStats.stat_durability + defenderStats.stat_speed) / 2;
-  const statBonus = Math.floor(relevantStats / 10);
+  // Stat bonus from defensive stats (durability, speed averaged)
+  const avgDefStat = (defenderStats.stat_durability + defenderStats.stat_speed) / 2;
+  const statBonus = scaleStatModifier(avgDefStat);
   
   // Battle IQ helps anticipate attacks
-  const battleIqBonus = Math.floor(defenderStats.stat_battle_iq / 25); // +1 per 25 points
+  const battleIqBonus = scaleStatModifier(defenderStats.stat_battle_iq);
   
   // Apply penalty from previous concentration use
   const penaltyReduction = Math.floor((tierBonus + statBonus + battleIqBonus) * (currentPenalty / 100));
@@ -383,26 +396,27 @@ export function createConstruct(
 /**
  * Roll defense dice for a construct being attacked
  * Constructs defend based on their remaining durability ratio and creator's skill
+ * Modifiers are scaled 1-10 from 0-100 stats, then divided by 2
  */
 export function rollConstructDefenseDice(
   construct: Construct,
   creatorStats: CharacterStats,
   creatorTier: number
 ): DiceRollResult {
-  const baseRoll = Math.floor(Math.random() * 20) + 1; // d20
+  const baseRoll = Math.floor(Math.random() * 20) + 1; // D20
   
-  // Tier bonus from creator
-  const tierBonus = Math.floor(creatorTier / 2); // Half tier bonus for constructs
+  // Tier bonus from creator (half of normal, then scaled)
+  const tierBonus = Math.floor(Math.min(10, Math.ceil(creatorTier * 0.7)) / 2);
   
   // Durability ratio affects defense (damaged constructs are weaker)
   const durabilityRatio = construct.currentDurability / construct.maxDurability;
-  const durabilityBonus = Math.floor(durabilityRatio * 5); // 0-5 based on health
+  const durabilityBonus = Math.floor(durabilityRatio * 3); // 0-3 based on health
   
-  // Skill bonus from creator
-  const skillBonus = Math.floor(creatorStats.stat_skill / 20); // +1 per 20 skill
+  // Skill bonus from creator (scaled)
+  const skillBonus = scaleStatModifier(creatorStats.stat_skill);
   
-  // Power contributes to construct resilience
-  const statBonus = Math.floor(creatorStats.stat_power / 15); // +1 per 15 power
+  // Power contributes to construct resilience (scaled)
+  const statBonus = scaleStatModifier(creatorStats.stat_power);
   
   return {
     baseRoll,
