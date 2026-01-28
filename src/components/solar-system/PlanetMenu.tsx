@@ -19,7 +19,7 @@ interface PlanetMenuProps {
   displayName?: string;
   characterCount: number;
   onViewCharacters: () => void;
-  onEditPlanet: () => void;
+  onEditPlanet?: () => void;
   onDeletePlanet?: () => Promise<void>;
   onMergePlanet?: () => void;
   onConvertToMoon?: () => void;
@@ -28,6 +28,7 @@ interface PlanetMenuProps {
   canDelete?: boolean;
   canMerge?: boolean;
   canConvertToMoon?: boolean;
+  isReadOnly?: boolean;
 }
 
 export default function PlanetMenu({
@@ -44,6 +45,7 @@ export default function PlanetMenu({
   canDelete = false,
   canMerge = false,
   canConvertToMoon = false,
+  isReadOnly = false,
 }: PlanetMenuProps) {
   const [deleting, setDeleting] = useState(false);
   const [menuHidden, setMenuHidden] = useState(false);
@@ -113,14 +115,18 @@ export default function PlanetMenu({
             <Users className="w-5 h-5" />
             View Characters
           </Button>
-          <Button
-            variant="outline"
-            className="w-full h-12 gap-3"
-            onClick={onEditPlanet}
-          >
-            <Settings className="w-4 h-4" />
-            Edit Planet Info
-          </Button>
+          
+          {/* Edit button - only show if not read-only */}
+          {!isReadOnly && onEditPlanet && (
+            <Button
+              variant="outline"
+              className="w-full h-12 gap-3"
+              onClick={onEditPlanet}
+            >
+              <Settings className="w-4 h-4" />
+              Edit Planet Info
+            </Button>
+          )}
 
           {/* Fullscreen Inspection Mode Button */}
           {onFullscreenInspect && (
@@ -134,8 +140,8 @@ export default function PlanetMenu({
             </Button>
           )}
 
-          {/* Merge Planet Button */}
-          {canMerge && onMergePlanet && (
+          {/* Merge Planet Button - only show if not read-only */}
+          {!isReadOnly && canMerge && onMergePlanet && (
             <Button
               variant="secondary"
               className="w-full h-10 gap-2"
@@ -146,8 +152,8 @@ export default function PlanetMenu({
             </Button>
           )}
 
-          {/* Convert to Moon Button */}
-          {canConvertToMoon && onConvertToMoon && (
+          {/* Convert to Moon Button - only show if not read-only */}
+          {!isReadOnly && canConvertToMoon && onConvertToMoon && (
             <Button
               variant="secondary"
               className="w-full h-10 gap-2"
@@ -158,7 +164,8 @@ export default function PlanetMenu({
             </Button>
           )}
           
-          {canDelete && onDeletePlanet && (
+          {/* Delete button - only show if not read-only */}
+          {!isReadOnly && canDelete && onDeletePlanet && (
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
@@ -195,7 +202,7 @@ export default function PlanetMenu({
             </AlertDialog>
           )}
           
-          {canDelete && characterCount > 0 && (
+          {!isReadOnly && canDelete && characterCount > 0 && (
             <p className="text-xs text-muted-foreground text-center">
               Move or delete all characters before deleting this planet
             </p>
