@@ -14,7 +14,7 @@ export interface DiceRollResult {
 }
 
 export interface ConcentrationResult {
-  bonusRoll: number; // 1-3
+  bonusRoll: number; // D5 (1-5)
   statPenalty: number; // % reduction for next move
   dodgeSuccess: boolean;
   newDefenseTotal: number;
@@ -306,12 +306,8 @@ export function useConcentration(
   defenderStats: CharacterStats,
   hitDetermination: HitDetermination
 ): ConcentrationResult {
-  // Concentration bonus roll: 1-3 based on intelligence and speed
-  const concentrationBonus = Math.max(1, Math.min(3, 
-    1 + Math.floor((defenderStats.stat_intelligence + defenderStats.stat_speed) / 100)
-  ));
-  
-  const bonusRoll = Math.floor(Math.random() * concentrationBonus) + 1;
+  // Concentration bonus roll: D5 (1-5)
+  const bonusRoll = Math.floor(Math.random() * 5) + 1;
   
   const newDefenseTotal = hitDetermination.defenseRoll.total + bonusRoll;
   const dodgeSuccess = newDefenseTotal >= hitDetermination.attackRoll.total;

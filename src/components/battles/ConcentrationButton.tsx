@@ -38,9 +38,8 @@ export default function ConcentrationButton({
     }, 800);
   };
 
-  const concentrationPotential = Math.max(1, Math.min(3, 
-    1 + Math.floor((defenderStats.stat_intelligence + defenderStats.stat_speed) / 100)
-  ));
+  // D5 concentration roll (1-5)
+  const concentrationPotential = 5;
 
   return (
     <div className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 border border-amber-500/50 rounded-lg p-4 space-y-3 animate-pulse-glow">
