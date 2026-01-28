@@ -60,22 +60,37 @@ export type Database = {
         Row: {
           battle_id: string
           character_id: string
+          character_snapshot: Json | null
           created_at: string
           id: string
+          is_typing: boolean
+          last_read_at: string | null
+          last_read_message_id: string | null
+          last_typed_at: string | null
           turn_order: number
         }
         Insert: {
           battle_id: string
           character_id: string
+          character_snapshot?: Json | null
           created_at?: string
           id?: string
+          is_typing?: boolean
+          last_read_at?: string | null
+          last_read_message_id?: string | null
+          last_typed_at?: string | null
           turn_order?: number
         }
         Update: {
           battle_id?: string
           character_id?: string
+          character_snapshot?: Json | null
           created_at?: string
           id?: string
+          is_typing?: boolean
+          last_read_at?: string | null
+          last_read_message_id?: string | null
+          last_typed_at?: string | null
           turn_order?: number
         }
         Relationships: [
