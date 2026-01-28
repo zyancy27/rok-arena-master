@@ -26,7 +26,19 @@ import { toast } from 'sonner';
 import { ROK_RULES } from '@/lib/game-constants';
 import { generateBattleEnvironment, BattleEnvironment } from '@/lib/battle-environment';
 import { validateMove, isMentalAttack, type MoveValidationResult, type CharacterAbilities } from '@/lib/move-validation';
-import { determineHit, determineMentalHit, type HitDetermination, type ConcentrationResult } from '@/lib/battle-dice';
+import { 
+  determineHit, 
+  determineMentalHit, 
+  detectMovementInAction,
+  updateDistance,
+  isAttackValidForDistance,
+  formatDistanceInfo,
+  calculateTravelTime,
+  type HitDetermination, 
+  type ConcentrationResult,
+  type DistanceState,
+  type DistanceZone,
+} from '@/lib/battle-dice';
 import type { CharacterStats } from '@/lib/character-stats';
 import MoveValidationWarning from '@/components/battles/MoveValidationWarning';
 import MatchupWarning from '@/components/battles/MatchupWarning';
@@ -135,6 +147,13 @@ export default function BattleView() {
     defenderName: string;
     timestamp: Date;
   }>>([]);
+  
+  // Distance tracking state
+  const [battleDistance, setBattleDistance] = useState<DistanceState>({
+    currentZone: 'mid',
+    estimatedMeters: 10,
+    lastMovement: 'none',
+  });
 
   // Generate environment when battle becomes active with a location
   useEffect(() => {
@@ -348,6 +367,13 @@ export default function BattleView() {
         setMessageInput('');
         return;
       }
+      
+      // Check distance validity for melee attacks
+      const distanceCheck = isAttackValidForDistance(messageInput, battleDistance.currentZone);
+      if (!distanceCheck.valid && distanceCheck.warning) {
+        toast.warning(distanceCheck.warning, { duration: 5000 });
+        // Still allow sending - it's a warning, not a block
+      }
     }
 
     // Send the message
@@ -385,6 +411,29 @@ export default function BattleView() {
     
     const opponent = participants.find(p => p.character_id !== userCharacter.character_id);
     if (!opponent?.character) return;
+
+    // Detect and apply movement from the action
+    const movementDetection = detectMovementInAction(moveText);
+    if (movementDetection.movement !== 'none') {
+      const newDistance = updateDistance(battleDistance, movementDetection.suggestedZoneChange);
+      setBattleDistance(newDistance);
+      
+      // Notify about distance change in OOC
+      const directionText = movementDetection.movement === 'closer' ? 'closed distance' : 'created distance';
+      const travelTime = calculateTravelTime(
+        userCharacter.character.stat_speed ?? 50,
+        userCharacter.character.level,
+        battleDistance.currentZone,
+        newDistance.currentZone
+      );
+      
+      supabase.from('battle_messages').insert({
+        battle_id: id,
+        character_id: userCharacter.character_id,
+        content: `📍 **Distance Update**: ${userCharacter.character.name} ${directionText}. Now at **${newDistance.currentZone}** range (~${newDistance.estimatedMeters.toFixed(0)}m apart). ${!travelTime.isInstant ? `Travel time: ${travelTime.description}` : ''}`,
+        channel: 'out_of_universe',
+      });
+    }
 
     // Check if this looks like an attack (simple heuristic)
     const attackKeywords = ['attack', 'strike', 'hit', 'punch', 'kick', 'slash', 'blast', 'fire', 'throw', 'launch', 'charge', 'swing', 'aim', 'shoot'];
@@ -439,13 +488,12 @@ export default function BattleView() {
 
     // If the attack would hit and the defender is the current user's opponent, 
     // we show the concentration button to the opponent (handled through realtime)
-    // For now, we'll store the pending hit for demonstration
     if (hit.wouldHit) {
       // Send system message about the hit
       supabase.from('battle_messages').insert({
         battle_id: id,
         character_id: userCharacter.character_id,
-        content: `🎲 **Dice Roll**: Attack ${hit.attackRoll.total} vs Defense ${hit.defenseRoll.total} — ${hit.wouldHit ? '💥 HIT!' : '❌ MISS'}`,
+        content: `🎲 **Dice Roll**: Attack ${hit.attackRoll.total} vs Defense ${hit.defenseRoll.total} — 💥 HIT! (from ${battleDistance.currentZone} range)`,
         channel: 'out_of_universe',
       });
     } else {
@@ -864,6 +912,46 @@ export default function BattleView() {
                 {battleEnvironment.shortSummary && (
                   <p className="text-xs text-muted-foreground italic mt-1">
                     {battleEnvironment.shortSummary}
+                  </p>
+                )}
+              </div>
+            )}
+            
+            {/* Distance Indicator */}
+            {battle.status === 'active' && (
+              <div className="mt-4 p-3 bg-background/50 rounded-lg space-y-2 border border-primary/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <MapPin className="w-4 h-4 text-primary" />
+                    Combat Distance
+                  </div>
+                  <Badge variant="outline" className="text-xs">
+                    {battleDistance.currentZone.charAt(0).toUpperCase() + battleDistance.currentZone.slice(1)} Range
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 transition-all duration-300"
+                      style={{ 
+                        width: `${['melee', 'close', 'mid', 'long', 'extreme'].indexOf(battleDistance.currentZone) / 4 * 100}%` 
+                      }}
+                    />
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    ~{battleDistance.estimatedMeters.toFixed(0)}m
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {battleDistance.currentZone === 'melee' && "Within arm's reach - punches, grabs, and close combat effective"}
+                  {battleDistance.currentZone === 'close' && "A few steps apart - quick lunges and short-range attacks work"}
+                  {battleDistance.currentZone === 'mid' && "Moderate distance - projectiles and charges needed to close"}
+                  {battleDistance.currentZone === 'long' && "Far apart - ranged attacks or significant movement required"}
+                  {battleDistance.currentZone === 'extreme' && "Very distant - only long-range powers or travel can bridge the gap"}
+                </p>
+                {battleDistance.lastMovement !== 'none' && (
+                  <p className="text-xs text-primary/80">
+                    ↔ Last movement: {battleDistance.lastMovement === 'closer' ? 'Closed distance' : 'Created distance'}
                   </p>
                 )}
               </div>
