@@ -26,8 +26,12 @@ import { toast } from 'sonner';
 import { ROK_RULES } from '@/lib/game-constants';
 import { generateBattleEnvironment, BattleEnvironment } from '@/lib/battle-environment';
 import { validateMove, isMentalAttack, type MoveValidationResult, type CharacterAbilities } from '@/lib/move-validation';
+import { determineHit, determineMentalHit, type HitDetermination, type ConcentrationResult } from '@/lib/battle-dice';
+import type { CharacterStats } from '@/lib/character-stats';
 import MoveValidationWarning from '@/components/battles/MoveValidationWarning';
 import MatchupWarning from '@/components/battles/MatchupWarning';
+import ConcentrationButton from '@/components/battles/ConcentrationButton';
+import DiceRollChatMessage from '@/components/battles/DiceRollChatMessage';
 import {
   ArrowLeft,
   Send,
@@ -68,6 +72,15 @@ interface CharacterData {
   user_id: string;
   powers?: string | null;
   abilities?: string | null;
+  stat_intelligence?: number | null;
+  stat_battle_iq?: number | null;
+  stat_strength?: number | null;
+  stat_power?: number | null;
+  stat_speed?: number | null;
+  stat_durability?: number | null;
+  stat_stamina?: number | null;
+  stat_skill?: number | null;
+  stat_luck?: number | null;
 }
 
 interface Participant {
@@ -109,6 +122,19 @@ export default function BattleView() {
   const [pendingMove, setPendingMove] = useState<string | null>(null);
   const [moveValidation, setMoveValidation] = useState<MoveValidationResult | null>(null);
   const [showMatchupWarning, setShowMatchupWarning] = useState(true);
+  
+  // Dice roll and concentration state
+  const [pendingHit, setPendingHit] = useState<HitDetermination | null>(null);
+  const [concentrationUses, setConcentrationUses] = useState<Record<string, number>>({});
+  const [statPenalties, setStatPenalties] = useState<Record<string, number>>({});
+  const [diceRollMessages, setDiceRollMessages] = useState<Array<{
+    id: string;
+    hitDetermination: HitDetermination;
+    concentrationResult?: ConcentrationResult;
+    attackerName: string;
+    defenderName: string;
+    timestamp: Date;
+  }>>([]);
 
   // Generate environment when battle becomes active with a location
   useEffect(() => {
@@ -161,11 +187,11 @@ export default function BattleView() {
       .order('turn_order');
 
     if (participantsData) {
-      // Fetch character details with powers and abilities for validation
+      // Fetch character details with powers, abilities, and stats for validation and dice rolls
       const charIds = participantsData.map(p => p.character_id);
       const { data: charsData } = await supabase
         .from('characters')
-        .select('id, name, level, user_id, powers, abilities')
+        .select('id, name, level, user_id, powers, abilities, stat_intelligence, stat_battle_iq, stat_strength, stat_power, stat_speed, stat_durability, stat_stamina, stat_skill, stat_luck')
         .in('id', charIds);
 
       const participantsWithChars = participantsData.map(p => ({
@@ -180,6 +206,17 @@ export default function BattleView() {
         p => p.character?.user_id === user?.id
       );
       setUserCharacter(userChar || null);
+      
+      // Initialize concentration uses from battle data or default to 3
+      const battleConcentration = (battleData as any).concentration_uses as Record<string, number> | null;
+      if (battleConcentration) {
+        setConcentrationUses(battleConcentration);
+      } else {
+        // Initialize with 3 uses per character
+        const initialUses: Record<string, number> = {};
+        charIds.forEach(id => { initialUses[id] = 3; });
+        setConcentrationUses(initialUses);
+      }
     }
 
     // Fetch messages
@@ -317,7 +354,7 @@ export default function BattleView() {
     await sendMessage(messageInput);
   };
 
-  const sendMessage = async (content: string) => {
+  const sendMessage = async (content: string, skipDiceRoll: boolean = false) => {
     if (!content.trim() || !userCharacter) return;
 
     const { error } = await supabase.from('battle_messages').insert({
@@ -332,9 +369,139 @@ export default function BattleView() {
       return;
     }
 
+    // Generate dice roll for in-universe attack moves
+    if (activeChannel === 'in_universe' && !skipDiceRoll) {
+      generateDiceRoll(content);
+    }
+
     setMessageInput('');
     setPendingMove(null);
     setMoveValidation(null);
+  };
+
+  // Generate dice roll for an attack
+  const generateDiceRoll = (moveText: string) => {
+    if (!userCharacter?.character) return;
+    
+    const opponent = participants.find(p => p.character_id !== userCharacter.character_id);
+    if (!opponent?.character) return;
+
+    // Check if this looks like an attack (simple heuristic)
+    const attackKeywords = ['attack', 'strike', 'hit', 'punch', 'kick', 'slash', 'blast', 'fire', 'throw', 'launch', 'charge', 'swing', 'aim', 'shoot'];
+    const isAttack = attackKeywords.some(kw => moveText.toLowerCase().includes(kw));
+    if (!isAttack) return;
+
+    const attackerChar = userCharacter.character;
+    const defenderChar = opponent.character;
+
+    // Build stats objects with defaults
+    const attackerStats: CharacterStats = {
+      stat_intelligence: attackerChar.stat_intelligence ?? 50,
+      stat_battle_iq: attackerChar.stat_battle_iq ?? 50,
+      stat_strength: attackerChar.stat_strength ?? 50,
+      stat_power: attackerChar.stat_power ?? 50,
+      stat_speed: attackerChar.stat_speed ?? 50,
+      stat_durability: attackerChar.stat_durability ?? 50,
+      stat_stamina: attackerChar.stat_stamina ?? 50,
+      stat_skill: attackerChar.stat_skill ?? 50,
+      stat_luck: attackerChar.stat_luck ?? 50,
+    };
+
+    const defenderStats: CharacterStats = {
+      stat_intelligence: defenderChar.stat_intelligence ?? 50,
+      stat_battle_iq: defenderChar.stat_battle_iq ?? 50,
+      stat_strength: defenderChar.stat_strength ?? 50,
+      stat_power: defenderChar.stat_power ?? 50,
+      stat_speed: defenderChar.stat_speed ?? 50,
+      stat_durability: defenderChar.stat_durability ?? 50,
+      stat_stamina: defenderChar.stat_stamina ?? 50,
+      stat_skill: defenderChar.stat_skill ?? 50,
+      stat_luck: defenderChar.stat_luck ?? 50,
+    };
+
+    const defenderPenalty = statPenalties[defenderChar.id] ?? 0;
+    const mental = isMentalAttack(moveText);
+    
+    const hit = mental
+      ? determineMentalHit(attackerStats, attackerChar.level, defenderStats, defenderChar.level, true, defenderPenalty)
+      : determineHit(attackerStats, attackerChar.level, defenderStats, defenderChar.level, true, defenderPenalty);
+
+    // Add dice roll message to local display
+    const rollMessage = {
+      id: `roll-${Date.now()}`,
+      hitDetermination: hit,
+      attackerName: attackerChar.name,
+      defenderName: defenderChar.name,
+      timestamp: new Date(),
+    };
+    
+    setDiceRollMessages(prev => [...prev, rollMessage]);
+
+    // If the attack would hit and the defender is the current user's opponent, 
+    // we show the concentration button to the opponent (handled through realtime)
+    // For now, we'll store the pending hit for demonstration
+    if (hit.wouldHit) {
+      // Send system message about the hit
+      supabase.from('battle_messages').insert({
+        battle_id: id,
+        character_id: userCharacter.character_id,
+        content: `🎲 **Dice Roll**: Attack ${hit.attackRoll.total} vs Defense ${hit.defenseRoll.total} — ${hit.wouldHit ? '💥 HIT!' : '❌ MISS'}`,
+        channel: 'out_of_universe',
+      });
+    } else {
+      // Attack misses
+      supabase.from('battle_messages').insert({
+        battle_id: id,
+        character_id: userCharacter.character_id,
+        content: `🎲 **Dice Roll**: Attack ${hit.attackRoll.total} vs Defense ${hit.defenseRoll.total} — ❌ MISS (Gap: ${hit.gap})`,
+        channel: 'out_of_universe',
+      });
+    }
+  };
+
+  // Handle concentration use
+  const handleUseConcentration = async (result: ConcentrationResult) => {
+    if (!userCharacter?.character || !pendingHit) return;
+    
+    const charId = userCharacter.character_id;
+    
+    // Update concentration uses
+    const newUses = Math.max(0, (concentrationUses[charId] ?? 3) - 1);
+    setConcentrationUses(prev => ({ ...prev, [charId]: newUses }));
+    
+    // Update in database
+    await supabase.from('battles').update({
+      concentration_uses: { ...concentrationUses, [charId]: newUses }
+    }).eq('id', id);
+    
+    // Apply stat penalty if dodge succeeded
+    if (result.dodgeSuccess && result.statPenalty > 0) {
+      setStatPenalties(prev => ({ ...prev, [charId]: result.statPenalty }));
+    }
+    
+    // Update the dice roll display with concentration result
+    setDiceRollMessages(prev => {
+      const updated = [...prev];
+      const lastRoll = updated[updated.length - 1];
+      if (lastRoll) {
+        lastRoll.concentrationResult = result;
+      }
+      return updated;
+    });
+    
+    // Send OOC message about concentration result
+    await supabase.from('battle_messages').insert({
+      battle_id: id,
+      character_id: userCharacter.character_id,
+      content: `🎯 **Concentration Used**: +${result.bonusRoll} bonus — ${result.dodgeSuccess ? '✅ Dodge Successful!' : '❌ Dodge Failed!'}${result.dodgeSuccess && result.statPenalty > 0 ? ` (-${result.statPenalty}% stats next action)` : ''}`,
+      channel: 'out_of_universe',
+    });
+    
+    setPendingHit(null);
+  };
+
+  const handleSkipConcentration = () => {
+    setPendingHit(null);
   };
 
   // Handle move explanation
@@ -794,6 +961,43 @@ export default function BattleView() {
           onRedo={handleMoveRedo}
           onAccept={handleAcceptMove}
         />
+      )}
+
+      {/* Concentration Button - appears when an attack would hit */}
+      {pendingHit && pendingHit.wouldHit && userCharacter?.character && (
+        <ConcentrationButton
+          hitDetermination={pendingHit}
+          defenderStats={{
+            stat_intelligence: userCharacter.character.stat_intelligence ?? 50,
+            stat_battle_iq: userCharacter.character.stat_battle_iq ?? 50,
+            stat_strength: userCharacter.character.stat_strength ?? 50,
+            stat_power: userCharacter.character.stat_power ?? 50,
+            stat_speed: userCharacter.character.stat_speed ?? 50,
+            stat_durability: userCharacter.character.stat_durability ?? 50,
+            stat_stamina: userCharacter.character.stat_stamina ?? 50,
+            stat_skill: userCharacter.character.stat_skill ?? 50,
+            stat_luck: userCharacter.character.stat_luck ?? 50,
+          }}
+          usesRemaining={concentrationUses[userCharacter.character_id] ?? 3}
+          onUseConcentration={handleUseConcentration}
+          onSkip={handleSkipConcentration}
+        />
+      )}
+
+      {/* Dice Roll Display */}
+      {diceRollMessages.length > 0 && (
+        <div className="space-y-2">
+          {diceRollMessages.slice(-3).map((roll) => (
+            <DiceRollChatMessage
+              key={roll.id}
+              hitDetermination={roll.hitDetermination}
+              concentrationResult={roll.concentrationResult}
+              attackerName={roll.attackerName}
+              defenderName={roll.defenderName}
+              timestamp={roll.timestamp}
+            />
+          ))}
+        </div>
       )}
 
       {/* Chat Area */}
