@@ -214,6 +214,72 @@ export type Database = {
           },
         ]
       }
+      character_group_members: {
+        Row: {
+          character_id: string
+          created_at: string
+          group_id: string
+          id: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          group_id: string
+          id?: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          group_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_group_members_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "character_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_groups: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       character_images: {
         Row: {
           character_id: string
