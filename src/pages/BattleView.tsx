@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { ROK_RULES } from '@/lib/game-constants';
 import { generateBattleEnvironment, BattleEnvironment } from '@/lib/battle-environment';
@@ -61,6 +62,11 @@ import {
   Flame,
   Snowflake,
   AlertTriangle,
+  Eye,
+  Pencil,
+  Check,
+  CheckCheck,
+  Lock,
 } from 'lucide-react';
 
 interface Battle {
@@ -95,11 +101,34 @@ interface CharacterData {
   stat_luck?: number | null;
 }
 
+interface CharacterSnapshot {
+  id: string;
+  name: string;
+  level: number;
+  user_id: string;
+  powers?: string | null;
+  abilities?: string | null;
+  stat_intelligence?: number | null;
+  stat_battle_iq?: number | null;
+  stat_strength?: number | null;
+  stat_power?: number | null;
+  stat_speed?: number | null;
+  stat_durability?: number | null;
+  stat_stamina?: number | null;
+  stat_skill?: number | null;
+  stat_luck?: number | null;
+}
+
 interface Participant {
   id: string;
   character_id: string;
   turn_order: number;
   character?: CharacterData;
+  is_typing?: boolean;
+  last_typed_at?: string;
+  last_read_message_id?: string | null;
+  last_read_at?: string | null;
+  character_snapshot?: CharacterSnapshot | null;
 }
 
 interface Message {
@@ -161,6 +190,18 @@ export default function BattleView() {
   
   // Area damage warning state
   const [areaDamageWarning, setAreaDamageWarning] = useState<AreaDamageWarning | null>(null);
+  
+  // Typing indicator state
+  const [opponentTyping, setOpponentTyping] = useState(false);
+  const [lastTypingUpdate, setLastTypingUpdate] = useState<number>(0);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Read receipts state - track who has read what
+  const [opponentLastReadMessageId, setOpponentLastReadMessageId] = useState<string | null>(null);
+  
+  // Track if we're using snapshot data (battle is active)
+  const [usingSnapshot, setUsingSnapshot] = useState(false);
 
   // Generate environment and entrances when battle becomes active with a location
   useEffect(() => {
@@ -262,8 +303,38 @@ export default function BattleView() {
 
     return () => {
       supabase.channel(`battle-${id}`).unsubscribe();
+      supabase.channel(`battle-typing-${id}`).unsubscribe();
+      // Clear typing on unmount
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
     };
   }, [id, user]);
+  
+  // Update read receipts when viewing messages
+  useEffect(() => {
+    const updateReadReceipt = async () => {
+      if (!userCharacter || !messages.length || battle?.status !== 'active') return;
+      
+      // Get the last message
+      const lastMessage = messages[messages.length - 1];
+      if (!lastMessage) return;
+      
+      // Only update if it's from the opponent
+      const opponent = participants.find(p => p.character_id !== userCharacter.character_id);
+      if (!opponent || lastMessage.character_id !== opponent.character_id) return;
+      
+      // Update our read receipt
+      await supabase
+        .from('battle_participants')
+        .update({
+          last_read_message_id: lastMessage.id,
+          last_read_at: new Date().toISOString(),
+        })
+        .eq('id', userCharacter.id);
+    };
+    
+    updateReadReceipt();
+  }, [messages, userCharacter, battle?.status, participants]);
 
   useEffect(() => {
     scrollToBottom();
@@ -289,10 +360,10 @@ export default function BattleView() {
 
     setBattle(battleData as Battle);
 
-    // Fetch participants with character info including powers/abilities
+    // Fetch participants with character info including typing, read receipts, and snapshots
     const { data: participantsData } = await supabase
       .from('battle_participants')
-      .select('id, character_id, turn_order')
+      .select('id, character_id, turn_order, is_typing, last_typed_at, last_read_message_id, last_read_at, character_snapshot')
       .eq('battle_id', id)
       .order('turn_order');
 
@@ -304,18 +375,38 @@ export default function BattleView() {
         .select('id, name, level, user_id, powers, abilities, stat_intelligence, stat_battle_iq, stat_strength, stat_power, stat_speed, stat_durability, stat_stamina, stat_skill, stat_luck')
         .in('id', charIds);
 
-      const participantsWithChars = participantsData.map(p => ({
-        ...p,
-        character: charsData?.find(c => c.id === p.character_id),
-      }));
+      const participantsWithChars = participantsData.map(p => {
+        const liveCharacter = charsData?.find(c => c.id === p.character_id);
+        // Use snapshot data if battle is active and snapshot exists, otherwise use live data
+        const snapshot = p.character_snapshot as unknown as CharacterSnapshot | null;
+        const shouldUseSnapshot = battleData.status === 'active' && snapshot;
+        
+        return {
+          ...p,
+          character: shouldUseSnapshot ? snapshot : liveCharacter,
+          is_typing: p.is_typing || false,
+          last_typed_at: p.last_typed_at,
+          last_read_message_id: p.last_read_message_id,
+          last_read_at: p.last_read_at,
+          character_snapshot: snapshot,
+        };
+      });
 
       setParticipants(participantsWithChars);
+      setUsingSnapshot(battleData.status === 'active' && participantsWithChars.some(p => p.character_snapshot));
 
       // Find user's character in this battle
       const userChar = participantsWithChars.find(
         p => p.character?.user_id === user?.id
       );
       setUserCharacter(userChar || null);
+      
+      // Track opponent's last read message
+      const opponent = participantsWithChars.find(p => p.character?.user_id !== user?.id);
+      if (opponent) {
+        setOpponentLastReadMessageId(opponent.last_read_message_id || null);
+        setOpponentTyping(opponent.is_typing || false);
+      }
       
       // Initialize concentration uses from battle data or default to 3
       const battleConcentration = (battleData as any).concentration_uses as Record<string, number> | null;
@@ -362,6 +453,7 @@ export default function BattleView() {
   };
 
   const setupRealtime = () => {
+    // Main battle channel for messages and battle updates
     const channel = supabase
       .channel(`battle-${id}`)
       .on(
@@ -375,7 +467,7 @@ export default function BattleView() {
         async (payload) => {
           const newMessage = payload.new as Message;
           
-          // Fetch character name for new message
+          // Fetch character name for new message (use snapshot if available)
           const { data: charData } = await supabase
             .from('characters')
             .select('name, user_id')
@@ -406,6 +498,9 @@ export default function BattleView() {
               audio.volume = 0.3;
               audio.play().catch(() => {});
             } catch {}
+            
+            // Clear opponent typing indicator when they send a message
+            setOpponentTyping(false);
           }
         }
       )
@@ -435,6 +530,75 @@ export default function BattleView() {
         }
       )
       .subscribe();
+      
+    // Separate channel for typing indicators and read receipts
+    const typingChannel = supabase
+      .channel(`battle-typing-${id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'battle_participants',
+          filter: `battle_id=eq.${id}`,
+        },
+        (payload) => {
+          const updated = payload.new as any;
+          
+          // Check if this is from the opponent (not our user)
+          const isOpponent = participants.some(p => 
+            p.id === updated.id && 
+            p.character?.user_id !== user?.id
+          );
+          
+          if (isOpponent) {
+            // Update typing status
+            setOpponentTyping(updated.is_typing || false);
+            
+            // Update read receipt
+            if (updated.last_read_message_id) {
+              setOpponentLastReadMessageId(updated.last_read_message_id);
+            }
+          }
+        }
+      )
+      .subscribe();
+  };
+  
+  // Update typing status in database
+  const updateTypingStatus = async (isTyping: boolean) => {
+    if (!userCharacter || battle?.status !== 'active') return;
+    
+    await supabase
+      .from('battle_participants')
+      .update({
+        is_typing: isTyping,
+        last_typed_at: isTyping ? new Date().toISOString() : null,
+      })
+      .eq('id', userCharacter.id);
+  };
+  
+  // Handle input change with typing indicator
+  const handleInputChange = (value: string, channel: 'in_universe' | 'out_of_universe') => {
+    setActiveChannel(channel);
+    setMessageInput(value);
+    
+    // Debounce typing status updates
+    const now = Date.now();
+    if (now - lastTypingUpdate > 1000) {
+      setLastTypingUpdate(now);
+      updateTypingStatus(true);
+    }
+    
+    // Clear previous timeout
+    if (typingDebounceRef.current) {
+      clearTimeout(typingDebounceRef.current);
+    }
+    
+    // Set typing to false after 3 seconds of no typing
+    typingDebounceRef.current = setTimeout(() => {
+      updateTypingStatus(false);
+    }, 3000);
   };
 
   // Validate and send message
@@ -481,6 +645,12 @@ export default function BattleView() {
 
   const sendMessage = async (content: string, skipDiceRoll: boolean = false) => {
     if (!content.trim() || !userCharacter) return;
+    
+    // Clear typing status before sending
+    updateTypingStatus(false);
+    if (typingDebounceRef.current) {
+      clearTimeout(typingDebounceRef.current);
+    }
 
     const { error } = await supabase.from('battle_messages').insert({
       battle_id: id,
@@ -827,6 +997,35 @@ export default function BattleView() {
       const env = generateBattleEnvironment(chosenLocation, null, null);
       environmentEffects = env.effectsPrompt;
     }
+    
+    // Create character snapshots for both participants BEFORE starting the battle
+    // This locks in the character stats/abilities at battle start
+    for (const participant of participants) {
+      if (participant.character) {
+        const snapshot: CharacterSnapshot = {
+          id: participant.character.id,
+          name: participant.character.name,
+          level: participant.character.level,
+          user_id: participant.character.user_id,
+          powers: participant.character.powers,
+          abilities: participant.character.abilities,
+          stat_intelligence: participant.character.stat_intelligence,
+          stat_battle_iq: participant.character.stat_battle_iq,
+          stat_strength: participant.character.stat_strength,
+          stat_power: participant.character.stat_power,
+          stat_speed: participant.character.stat_speed,
+          stat_durability: participant.character.stat_durability,
+          stat_stamina: participant.character.stat_stamina,
+          stat_skill: participant.character.stat_skill,
+          stat_luck: participant.character.stat_luck,
+        };
+        
+        await supabase
+          .from('battle_participants')
+          .update({ character_snapshot: JSON.parse(JSON.stringify(snapshot)) })
+          .eq('id', participant.id);
+      }
+    }
 
     const { error } = await supabase
       .from('battles')
@@ -854,11 +1053,18 @@ export default function BattleView() {
       environment_effects: environmentEffects
     });
     
+    // Mark that we're now using snapshots
+    setUsingSnapshot(true);
+    
     const winnerName = participants[winnerIndex]?.character?.name || 'Unknown';
     toast.success(`🪙 ${winnerName}'s location was chosen: ${chosenLocation}!`);
     if (dynamicEnvironmentEnabled) {
       toast.info('⚛️ Dynamic battlefield effects are active!');
     }
+    toast.info('🔒 Character stats locked for this battle', {
+      description: 'Any changes to character stats or abilities won\'t affect this match.',
+      duration: 5000,
+    });
     setIsFlippingCoin(false);
   };
 
@@ -897,6 +1103,22 @@ export default function BattleView() {
           >
             {battle.status.toUpperCase()}
           </Badge>
+          {usingSnapshot && battle.status === 'active' && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="outline" className="flex items-center gap-1 text-amber-500 border-amber-500/30">
+                    <Lock className="w-3 h-3" />
+                    Stats Locked
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Character stats are locked for this battle.</p>
+                  <p className="text-xs text-muted-foreground">Changes made during the match won't affect this battle.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
           <Button
             variant="outline"
             size="sm"
@@ -1276,19 +1498,58 @@ export default function BattleView() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {inUniverseMessages.map((msg) => (
-                    <div key={msg.id} className="chat-in-universe pl-3 py-2">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-primary text-sm">
-                          {msg.character_name}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(msg.created_at).toLocaleTimeString()}
+                  {inUniverseMessages.map((msg, idx) => {
+                    const isFromUser = msg.character_id === userCharacter?.character_id;
+                    const isLastUserMessage = isFromUser && 
+                      inUniverseMessages.filter(m => m.character_id === userCharacter?.character_id).pop()?.id === msg.id;
+                    const wasRead = isLastUserMessage && opponentLastReadMessageId === msg.id;
+                    
+                    return (
+                      <div key={msg.id} className="chat-in-universe pl-3 py-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-semibold text-primary text-sm">
+                            {msg.character_name}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(msg.created_at).toLocaleTimeString()}
+                          </span>
+                          {/* Read receipt for user's messages */}
+                          {isFromUser && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="ml-auto">
+                                    {wasRead ? (
+                                      <CheckCheck className="w-3 h-3 text-primary" />
+                                    ) : (
+                                      <Check className="w-3 h-3 text-muted-foreground" />
+                                    )}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {wasRead ? 'Read by opponent' : 'Sent'}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </div>
+                        <p className="text-sm text-foreground">{msg.content}</p>
+                      </div>
+                    );
+                  })}
+                  
+                  {/* Typing Indicator */}
+                  {opponentTyping && (
+                    <div className="chat-in-universe pl-3 py-2 animate-in fade-in slide-in-from-bottom-2">
+                      <div className="flex items-center gap-2">
+                        <Pencil className="w-3 h-3 text-muted-foreground animate-pulse" />
+                        <span className="text-xs text-muted-foreground italic">
+                          {participants.find(p => p.character?.user_id !== user?.id)?.character?.name} is typing...
                         </span>
                       </div>
-                      <p className="text-sm text-foreground">{msg.content}</p>
                     </div>
-                  ))}
+                  )}
+                  
                   <div ref={messagesEndRef} />
                 </div>
               )}
@@ -1319,10 +1580,7 @@ export default function BattleView() {
                   <Input
                     placeholder="Describe your action..."
                     value={activeChannel === 'in_universe' ? messageInput : ''}
-                    onChange={(e) => {
-                      setActiveChannel('in_universe');
-                      setMessageInput(e.target.value);
-                    }}
+                    onChange={(e) => handleInputChange(e.target.value, 'in_universe')}
                     onFocus={() => setActiveChannel('in_universe')}
                   />
                   <Button type="submit" size="icon">
@@ -1380,10 +1638,7 @@ export default function BattleView() {
                   <Input
                     placeholder="Say something OOC..."
                     value={activeChannel === 'out_of_universe' ? messageInput : ''}
-                    onChange={(e) => {
-                      setActiveChannel('out_of_universe');
-                      setMessageInput(e.target.value);
-                    }}
+                    onChange={(e) => handleInputChange(e.target.value, 'out_of_universe')}
                     onFocus={() => setActiveChannel('out_of_universe')}
                   />
                   <Button type="submit" size="icon" variant="secondary">
@@ -1415,7 +1670,7 @@ export default function BattleView() {
                 <Input
                   placeholder={activeChannel === 'in_universe' ? 'Describe your action...' : 'Say something OOC...'}
                   value={messageInput}
-                  onChange={(e) => setMessageInput(e.target.value)}
+                  onChange={(e) => handleInputChange(e.target.value, activeChannel)}
                 />
                 <Button type="submit" size="icon">
                   <Send className="w-4 h-4" />
