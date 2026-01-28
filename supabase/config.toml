@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.trigger-3d-generation]
 verify_jwt = false
+
+[functions.detect-new-technique]
+verify_jwt = false
