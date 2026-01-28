@@ -44,10 +44,38 @@ export interface TravelTimeResult {
   speedTier: 'slow' | 'normal' | 'fast' | 'superhuman' | 'instant';
 }
 
+// Construct (skill-created objects like barriers, summoned entities, etc.)
+export interface Construct {
+  id: string;
+  name: string;
+  creatorId: string;
+  maxDurability: number; // Based on creator's Power + Skill
+  currentDurability: number;
+  type: 'barrier' | 'summon' | 'weapon' | 'trap' | 'other';
+}
+
+export interface ConstructDefenseResult {
+  constructId: string;
+  attackRoll: DiceRollResult;
+  defenseRoll: DiceRollResult;
+  damage: number; // How much durability lost
+  destroyed: boolean;
+  remainingDurability: number;
+}
+
+export interface ConstructRepairResult {
+  constructId: string;
+  repairAmount: number;
+  newDurability: number;
+  statPenalty: number; // Penalty applied to character for next action
+  success: boolean;
+}
+
 export interface BattleState {
   concentrationUsesLeft: Record<string, number>; // character_id -> uses remaining
   statPenalties: Record<string, number>; // character_id -> penalty % for next action
   distance: DistanceState; // Current distance between fighters
+  constructs: Record<string, Construct>; // construct_id -> Construct
 }
 
 const MAX_CONCENTRATION_USES = 3;
@@ -324,8 +352,231 @@ export function initializeBattleState(characterIds: string[], startingDistance: 
       currentZone: startingDistance,
       estimatedMeters,
       lastMovement: 'none',
-    }
+    },
+    constructs: {},
   };
+}
+
+/**
+ * Create a construct (barrier, summon, etc.) based on character stats
+ */
+export function createConstruct(
+  creatorStats: CharacterStats,
+  creatorId: string,
+  constructName: string,
+  constructType: Construct['type'] = 'other'
+): Construct {
+  // Durability based on Power + Skill, scaled to reasonable range
+  const baseDurability = Math.floor((creatorStats.stat_power + creatorStats.stat_skill) / 2);
+  const maxDurability = Math.max(10, baseDurability); // Minimum 10 durability
+  
+  return {
+    id: crypto.randomUUID(),
+    name: constructName,
+    creatorId,
+    maxDurability,
+    currentDurability: maxDurability,
+    type: constructType,
+  };
+}
+
+/**
+ * Roll defense dice for a construct being attacked
+ * Constructs defend based on their remaining durability ratio and creator's skill
+ */
+export function rollConstructDefenseDice(
+  construct: Construct,
+  creatorStats: CharacterStats,
+  creatorTier: number
+): DiceRollResult {
+  const baseRoll = Math.floor(Math.random() * 20) + 1; // d20
+  
+  // Tier bonus from creator
+  const tierBonus = Math.floor(creatorTier / 2); // Half tier bonus for constructs
+  
+  // Durability ratio affects defense (damaged constructs are weaker)
+  const durabilityRatio = construct.currentDurability / construct.maxDurability;
+  const durabilityBonus = Math.floor(durabilityRatio * 5); // 0-5 based on health
+  
+  // Skill bonus from creator
+  const skillBonus = Math.floor(creatorStats.stat_skill / 20); // +1 per 20 skill
+  
+  // Power contributes to construct resilience
+  const statBonus = Math.floor(creatorStats.stat_power / 15); // +1 per 15 power
+  
+  return {
+    baseRoll,
+    modifiers: {
+      tierBonus,
+      statBonus,
+      skillBonus,
+      battleIqBonus: durabilityBonus, // Repurpose for durability display
+    },
+    total: baseRoll + tierBonus + statBonus + skillBonus + durabilityBonus,
+    rollType: 'defense',
+  };
+}
+
+/**
+ * Determine if an attack damages a construct and by how much
+ */
+export function attackConstruct(
+  attackerStats: CharacterStats,
+  attackerTier: number,
+  construct: Construct,
+  creatorStats: CharacterStats,
+  creatorTier: number,
+  usesSkill: boolean = false
+): ConstructDefenseResult {
+  const attackRoll = rollAttackDice(attackerStats, attackerTier, usesSkill);
+  const defenseRoll = rollConstructDefenseDice(construct, creatorStats, creatorTier);
+  
+  const gap = attackRoll.total - defenseRoll.total;
+  
+  // Damage scales with how much the attack exceeded defense
+  const damage = gap > 0 ? Math.max(1, Math.floor(gap * 1.5)) : 0;
+  const newDurability = Math.max(0, construct.currentDurability - damage);
+  const destroyed = newDurability <= 0;
+  
+  return {
+    constructId: construct.id,
+    attackRoll,
+    defenseRoll,
+    damage,
+    destroyed,
+    remainingDurability: newDurability,
+  };
+}
+
+/**
+ * Use concentration to repair a damaged construct
+ * Costs 1 concentration use and applies stat penalty for next action
+ */
+export function repairConstructWithConcentration(
+  creatorStats: CharacterStats,
+  construct: Construct
+): ConstructRepairResult {
+  // Repair amount based on intelligence + skill (focusing to rebuild)
+  const baseRepair = Math.max(1, Math.floor((creatorStats.stat_intelligence + creatorStats.stat_skill) / 40));
+  const repairRoll = Math.floor(Math.random() * baseRepair) + baseRepair; // baseRepair to 2*baseRepair
+  
+  const newDurability = Math.min(construct.maxDurability, construct.currentDurability + repairRoll);
+  
+  // Stat penalty for diverting focus to repair (15-30% based on damage repaired)
+  const repairRatio = repairRoll / construct.maxDurability;
+  const statPenalty = Math.min(30, Math.max(15, Math.floor(repairRatio * 50)));
+  
+  return {
+    constructId: construct.id,
+    repairAmount: repairRoll,
+    newDurability,
+    statPenalty,
+    success: true,
+  };
+}
+
+/**
+ * Update a construct's durability in battle state
+ */
+export function updateConstructDurability(
+  battleState: BattleState,
+  constructId: string,
+  newDurability: number
+): BattleState {
+  if (!battleState.constructs[constructId]) return battleState;
+  
+  const updatedConstructs = { ...battleState.constructs };
+  
+  if (newDurability <= 0) {
+    // Construct is destroyed, remove it
+    delete updatedConstructs[constructId];
+  } else {
+    updatedConstructs[constructId] = {
+      ...updatedConstructs[constructId],
+      currentDurability: newDurability,
+    };
+  }
+  
+  return {
+    ...battleState,
+    constructs: updatedConstructs,
+  };
+}
+
+/**
+ * Add a construct to battle state
+ */
+export function addConstructToBattle(
+  battleState: BattleState,
+  construct: Construct
+): BattleState {
+  return {
+    ...battleState,
+    constructs: {
+      ...battleState.constructs,
+      [construct.id]: construct,
+    },
+  };
+}
+
+/**
+ * Get all constructs belonging to a character
+ */
+export function getCharacterConstructs(
+  battleState: BattleState,
+  characterId: string
+): Construct[] {
+  return Object.values(battleState.constructs).filter(c => c.creatorId === characterId);
+}
+
+/**
+ * Detect if action text mentions creating or summoning a construct
+ */
+export function detectConstructCreation(actionText: string): {
+  isCreating: boolean;
+  constructType: Construct['type'];
+  suggestedName: string;
+} {
+  const text = actionText.toLowerCase();
+  
+  const barrierKeywords = ['barrier', 'shield', 'wall', 'forcefield', 'dome', 'bubble', 'block'];
+  const summonKeywords = ['summon', 'conjure', 'create creature', 'manifest', 'call forth', 'bring forth'];
+  const weaponKeywords = ['construct weapon', 'create sword', 'create blade', 'form weapon', 'manifest blade'];
+  const trapKeywords = ['trap', 'snare', 'mine', 'tripwire', 'ambush construct'];
+  
+  if (barrierKeywords.some(kw => text.includes(kw))) {
+    return { isCreating: true, constructType: 'barrier', suggestedName: 'Energy Barrier' };
+  }
+  if (summonKeywords.some(kw => text.includes(kw))) {
+    return { isCreating: true, constructType: 'summon', suggestedName: 'Summoned Entity' };
+  }
+  if (weaponKeywords.some(kw => text.includes(kw))) {
+    return { isCreating: true, constructType: 'weapon', suggestedName: 'Construct Weapon' };
+  }
+  if (trapKeywords.some(kw => text.includes(kw))) {
+    return { isCreating: true, constructType: 'trap', suggestedName: 'Tactical Trap' };
+  }
+  
+  // Generic construct keywords
+  const genericKeywords = ['construct', 'create', 'form', 'materialize', 'generate'];
+  if (genericKeywords.some(kw => text.includes(kw)) && 
+      (text.includes('energy') || text.includes('power') || text.includes('ki') || text.includes('chakra'))) {
+    return { isCreating: true, constructType: 'other', suggestedName: 'Energy Construct' };
+  }
+  
+  return { isCreating: false, constructType: 'other', suggestedName: '' };
+}
+
+/**
+ * Detect if action text mentions attacking a construct
+ */
+export function detectConstructAttack(actionText: string): boolean {
+  const text = actionText.toLowerCase();
+  
+  const attackKeywords = ['attack', 'strike', 'hit', 'destroy', 'break', 'shatter', 'smash', 'blast'];
+  const constructTargets = ['barrier', 'shield', 'wall', 'construct', 'summon', 'creature', 'creation'];
+  
+  return attackKeywords.some(ak => text.includes(ak)) && constructTargets.some(ct => text.includes(ct));
 }
 
 /**
