@@ -1065,6 +1065,25 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                   <p className="text-xs text-muted-foreground/70 italic mb-4">
                     Not sure what stats to use? Click the button above to apply balanced stats for your power tier.
                   </p>
+                  
+                  {/* Character Philosophy Note */}
+                  <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 mb-6">
+                    <div className="flex items-start gap-3">
+                      <Heart className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-primary">Create with Heart, Not Strategy</p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          You're not making characters to simply beat other characters. Set your stats to match how you truly see your character — it's okay if they aren't the strongest or most intelligent. 
+                        </p>
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          This game is about bringing the characters in your heart and mind to life. Don't inflate stats just to win battles. If winning means that much to you, create a separate character for that purpose.
+                        </p>
+                        <p className="text-xs text-primary/80 italic">
+                          Authenticity creates the best stories.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                   {CHARACTER_STATS.map((stat) => (
                     <StatSlider
                       key={stat.key}
