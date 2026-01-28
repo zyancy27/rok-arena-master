@@ -3,6 +3,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   Brain, 
+  Crosshair,
   Dumbbell, 
   Flame, 
   Zap, 
@@ -14,6 +15,7 @@ import {
 
 const iconMap = {
   Brain,
+  Crosshair,
   Dumbbell,
   Flame,
   Zap,

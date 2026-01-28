@@ -99,6 +99,7 @@ export type Database = {
         Row: {
           chosen_location: string | null
           coin_flip_winner_id: string | null
+          concentration_uses: Json | null
           created_at: string
           dynamic_environment: boolean
           environment_effects: string | null
@@ -113,6 +114,7 @@ export type Database = {
         Insert: {
           chosen_location?: string | null
           coin_flip_winner_id?: string | null
+          concentration_uses?: Json | null
           created_at?: string
           dynamic_environment?: boolean
           environment_effects?: string | null
@@ -127,6 +129,7 @@ export type Database = {
         Update: {
           chosen_location?: string | null
           coin_flip_winner_id?: string | null
+          concentration_uses?: Json | null
           created_at?: string
           dynamic_environment?: boolean
           environment_effects?: string | null
@@ -308,6 +311,7 @@ export type Database = {
           race: string | null
           race_id: string | null
           solar_system_id: string | null
+          stat_battle_iq: number | null
           stat_durability: number | null
           stat_intelligence: number | null
           stat_luck: number | null
@@ -337,6 +341,7 @@ export type Database = {
           race?: string | null
           race_id?: string | null
           solar_system_id?: string | null
+          stat_battle_iq?: number | null
           stat_durability?: number | null
           stat_intelligence?: number | null
           stat_luck?: number | null
@@ -366,6 +371,7 @@ export type Database = {
           race?: string | null
           race_id?: string | null
           solar_system_id?: string | null
+          stat_battle_iq?: number | null
           stat_durability?: number | null
           stat_intelligence?: number | null
           stat_luck?: number | null

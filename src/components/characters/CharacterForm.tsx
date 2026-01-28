@@ -19,10 +19,11 @@ import StatSlider from './StatSlider';
 import OwnershipNotice from '@/components/legal/OwnershipNotice';
 import { useAutoSave } from '@/hooks/use-auto-save';
 import { AutoSaveIndicator } from '@/components/ui/auto-save-indicator';
-import { ArrowLeft, Save, Sparkles, Camera, Brain, Dumbbell, Flame, Zap, Shield, Heart, Target, Wand2, Smile, Lightbulb, Globe, Mountain, Thermometer, FileText, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Sparkles, Camera, Brain, Crosshair, Dumbbell, Flame, Zap, Shield, Heart, Target, Wand2, Smile, Lightbulb, Globe, Mountain, Thermometer, FileText, Loader2 } from 'lucide-react';
 
 const iconMap = {
   Brain: <Brain className="w-4 h-4" />,
+  Crosshair: <Crosshair className="w-4 h-4" />,
   Dumbbell: <Dumbbell className="w-4 h-4" />,
   Flame: <Flame className="w-4 h-4" />,
   Zap: <Zap className="w-4 h-4" />,
@@ -91,6 +92,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
 
   const [stats, setStats] = useState<CharacterStats>({
     stat_intelligence: initialData?.stat_intelligence ?? DEFAULT_STATS.stat_intelligence,
+    stat_battle_iq: (initialData as any)?.stat_battle_iq ?? DEFAULT_STATS.stat_battle_iq,
     stat_strength: initialData?.stat_strength ?? DEFAULT_STATS.stat_strength,
     stat_power: initialData?.stat_power ?? DEFAULT_STATS.stat_power,
     stat_speed: initialData?.stat_speed ?? DEFAULT_STATS.stat_speed,
