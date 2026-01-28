@@ -7,7 +7,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.battle-simulation]
-verify_jwt = true
+verify_jwt = false
 
 [functions.parse-species-info]
 verify_jwt = true
