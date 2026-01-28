@@ -25,11 +25,11 @@ interface GroupMember {
   };
 }
 
-export default function Groups() {
+export default function Teams() {
   const { user } = useAuth();
   const { groups, loading, createGroup, updateGroup, deleteGroup } = useCharacterGroups();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editingGroup, setEditingGroup] = useState<CharacterGroup | null>(null);
+  const [editingTeam, setEditingTeam] = useState<CharacterGroup | null>(null);
   const [newName, setNewName] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [newColor, setNewColor] = useState('#8B5CF6');
@@ -74,26 +74,26 @@ export default function Groups() {
   };
 
   const handleUpdate = async () => {
-    if (!editingGroup || !newName.trim()) return;
-    await updateGroup(editingGroup.id, {
+    if (!editingTeam || !newName.trim()) return;
+    await updateGroup(editingTeam.id, {
       name: newName.trim(),
       description: newDescription.trim() || null,
       color: newColor,
     });
-    setEditingGroup(null);
+    setEditingTeam(null);
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this group?')) {
+    if (confirm('Are you sure you want to delete this team?')) {
       await deleteGroup(id);
     }
   };
 
-  const openEditDialog = (group: CharacterGroup) => {
-    setEditingGroup(group);
-    setNewName(group.name);
-    setNewDescription(group.description || '');
-    setNewColor(group.color);
+  const openEditDialog = (team: CharacterGroup) => {
+    setEditingTeam(team);
+    setNewName(team.name);
+    setNewDescription(team.description || '');
+    setNewColor(team.color);
   };
 
   if (loading) {
@@ -118,10 +118,10 @@ export default function Groups() {
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
             <FolderOpen className="h-8 w-8 text-primary" />
-            Character Groups
+            Character Teams
           </h1>
           <p className="text-muted-foreground mt-1">
-            Organize your characters into teams and groups
+            Organize your characters into teams
           </p>
         </div>
         
@@ -129,14 +129,14 @@ export default function Groups() {
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              New Group
+              New Team
             </Button>
           </DialogTrigger>
           <DialogContent className="bg-popover">
             <DialogHeader>
-              <DialogTitle>Create New Group</DialogTitle>
+              <DialogTitle>Create New Team</DialogTitle>
               <DialogDescription>
-                Create a new group to organize your characters.
+                Create a new team to organize your characters.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -146,7 +146,7 @@ export default function Groups() {
                   id="name"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Group name..."
+                  placeholder="Team name..."
                 />
               </div>
               <div className="space-y-2">
@@ -189,41 +189,41 @@ export default function Groups() {
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FolderOpen className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No groups yet</h3>
+            <h3 className="text-lg font-semibold mb-2">No teams yet</h3>
             <p className="text-muted-foreground text-center mb-4">
-              Create your first group to start organizing your characters into teams.
+              Create your first team to start organizing your characters.
             </p>
             <Button onClick={() => setIsCreateOpen(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Create Group
+              Create Team
             </Button>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {groups.map((group) => {
-            const members = allMembers?.[group.id] || [];
+          {groups.map((team) => {
+            const members = allMembers?.[team.id] || [];
             return (
-              <Card key={group.id} className="relative overflow-hidden">
+              <Card key={team.id} className="relative overflow-hidden">
                 <div
                   className="absolute top-0 left-0 right-0 h-1"
-                  style={{ backgroundColor: group.color }}
+                  style={{ backgroundColor: team.color }}
                 />
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
                       <div
                         className="w-4 h-4 rounded-full"
-                        style={{ backgroundColor: group.color }}
+                        style={{ backgroundColor: team.color }}
                       />
-                      <CardTitle className="text-lg">{group.name}</CardTitle>
+                      <CardTitle className="text-lg">{team.name}</CardTitle>
                     </div>
                     <div className="flex gap-1">
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
-                        onClick={() => openEditDialog(group)}
+                        onClick={() => openEditDialog(team)}
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
@@ -231,15 +231,15 @@ export default function Groups() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(group.id)}
+                        onClick={() => handleDelete(team.id)}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
-                  {group.description && (
+                  {team.description && (
                     <CardDescription className="line-clamp-2">
-                      {group.description}
+                      {team.description}
                     </CardDescription>
                   )}
                 </CardHeader>
@@ -267,7 +267,7 @@ export default function Groups() {
                     </ScrollArea>
                   ) : (
                     <p className="text-sm text-muted-foreground italic">
-                      No characters in this group yet
+                      No characters in this team yet
                     </p>
                   )}
                 </CardContent>
@@ -278,12 +278,12 @@ export default function Groups() {
       )}
 
       {/* Edit Dialog */}
-      <Dialog open={!!editingGroup} onOpenChange={(open) => !open && setEditingGroup(null)}>
+      <Dialog open={!!editingTeam} onOpenChange={(open) => !open && setEditingTeam(null)}>
         <DialogContent className="bg-popover">
           <DialogHeader>
-            <DialogTitle>Edit Group</DialogTitle>
+            <DialogTitle>Edit Team</DialogTitle>
             <DialogDescription>
-              Update group details.
+              Update team details.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -293,9 +293,9 @@ export default function Groups() {
                 id="edit-name"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                placeholder="Group name..."
-              />
-            </div>
+                  placeholder="Team name..."
+                />
+              </div>
             <div className="space-y-2">
               <Label htmlFor="edit-description">Description</Label>
               <Textarea
@@ -321,7 +321,7 @@ export default function Groups() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingGroup(null)}>
+            <Button variant="outline" onClick={() => setEditingTeam(null)}>
               Cancel
             </Button>
             <Button onClick={handleUpdate} disabled={!newName.trim()}>

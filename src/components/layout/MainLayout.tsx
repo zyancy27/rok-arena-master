@@ -109,9 +109,9 @@ export default function MainLayout() {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link to="/groups" className="flex items-center cursor-pointer">
+                  <Link to="/teams" className="flex items-center cursor-pointer">
                     <FolderOpen className="mr-2 h-4 w-4" />
-                    Groups
+                    Teams
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
