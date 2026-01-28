@@ -11,9 +11,11 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, Edit2, Trash2, Users, FolderOpen } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Plus, Edit2, Trash2, Users, FolderOpen, UserPlus } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 
 interface GroupMember {
   character_id: string;
@@ -25,14 +27,40 @@ interface GroupMember {
   };
 }
 
+interface Character {
+  id: string;
+  name: string;
+  level: number;
+  image_url: string | null;
+}
+
 export default function Teams() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { groups, loading, createGroup, updateGroup, deleteGroup } = useCharacterGroups();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingTeam, setEditingTeam] = useState<CharacterGroup | null>(null);
+  const [addingToTeam, setAddingToTeam] = useState<CharacterGroup | null>(null);
+  const [selectedCharacters, setSelectedCharacters] = useState<string[]>([]);
   const [newName, setNewName] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [newColor, setNewColor] = useState('#8B5CF6');
+
+  // Fetch all user's characters
+  const { data: allCharacters = [] } = useQuery({
+    queryKey: ['user-characters', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from('characters')
+        .select('id, name, level, image_url')
+        .eq('user_id', user.id)
+        .order('name');
+      if (error) throw error;
+      return data as Character[];
+    },
+    enabled: !!user,
+  });
 
   // Fetch members for all groups
   const { data: allMembers } = useQuery({
@@ -96,6 +124,50 @@ export default function Teams() {
     setNewColor(team.color);
   };
 
+  const openAddCharactersDialog = (team: CharacterGroup) => {
+    const currentMemberIds = (allMembers?.[team.id] || []).map(m => m.character_id);
+    setSelectedCharacters([]);
+    setAddingToTeam(team);
+  };
+
+  const getAvailableCharacters = () => {
+    if (!addingToTeam) return [];
+    const currentMemberIds = (allMembers?.[addingToTeam.id] || []).map(m => m.character_id);
+    return allCharacters.filter(c => !currentMemberIds.includes(c.id));
+  };
+
+  const toggleCharacterSelection = (characterId: string) => {
+    setSelectedCharacters(prev =>
+      prev.includes(characterId)
+        ? prev.filter(id => id !== characterId)
+        : [...prev, characterId]
+    );
+  };
+
+  const handleAddCharacters = async () => {
+    if (!addingToTeam || selectedCharacters.length === 0) return;
+
+    const insertData = selectedCharacters.map(characterId => ({
+      group_id: addingToTeam.id,
+      character_id: characterId,
+    }));
+
+    const { error } = await supabase
+      .from('character_group_members')
+      .insert(insertData);
+
+    if (error) {
+      toast.error('Failed to add characters to team');
+      console.error(error);
+      return;
+    }
+
+    toast.success(`Added ${selectedCharacters.length} character(s) to ${addingToTeam.name}`);
+    queryClient.invalidateQueries({ queryKey: ['all-group-members'] });
+    setAddingToTeam(null);
+    setSelectedCharacters([]);
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -111,6 +183,8 @@ export default function Teams() {
       </div>
     );
   }
+
+  const availableCharacters = getAvailableCharacters();
 
   return (
     <div className="space-y-6">
@@ -223,6 +297,15 @@ export default function Teams() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
+                        onClick={() => openAddCharactersDialog(team)}
+                        title="Add Characters"
+                      >
+                        <UserPlus className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
                         onClick={() => openEditDialog(team)}
                       >
                         <Edit2 className="h-4 w-4" />
@@ -326,6 +409,59 @@ export default function Teams() {
             </Button>
             <Button onClick={handleUpdate} disabled={!newName.trim()}>
               Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Characters Dialog */}
+      <Dialog open={!!addingToTeam} onOpenChange={(open) => !open && setAddingToTeam(null)}>
+        <DialogContent className="bg-popover max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Characters to {addingToTeam?.name}</DialogTitle>
+            <DialogDescription>
+              Select characters to add to this team.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            {availableCharacters.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                All your characters are already in this team.
+              </p>
+            ) : (
+              <ScrollArea className="h-64">
+                <div className="space-y-2">
+                  {availableCharacters.map((character) => (
+                    <div
+                      key={character.id}
+                      className="flex items-center gap-3 p-2 rounded hover:bg-accent/50 cursor-pointer"
+                      onClick={() => toggleCharacterSelection(character.id)}
+                    >
+                      <Checkbox
+                        checked={selectedCharacters.includes(character.id)}
+                        onCheckedChange={() => toggleCharacterSelection(character.id)}
+                      />
+                      <div className="flex-1 flex items-center justify-between">
+                        <span>{character.name}</span>
+                        <Badge variant="secondary" className="text-xs">
+                          Lv.{character.level}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddingToTeam(null)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleAddCharacters} 
+              disabled={selectedCharacters.length === 0}
+            >
+              Add {selectedCharacters.length > 0 ? `(${selectedCharacters.length})` : ''}
             </Button>
           </DialogFooter>
         </DialogContent>
