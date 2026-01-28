@@ -658,8 +658,13 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
   }, [cameraLookAt, isMobile]);
 
   const handleEditPlanet = useCallback(() => {
+    // Block editing when viewing friend's system
+    if (isViewingFriend) {
+      toast.info('You cannot edit another user\'s planet');
+      return;
+    }
     setViewState('editor');
-  }, []);
+  }, [isViewingFriend]);
   
   const handleMobilePlanetSheetClose = useCallback(() => {
     setMobilePlanetSheetOpen(false);
@@ -820,8 +825,13 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
   };
 
   const handleSunClick = useCallback(() => {
+    // Only allow editing if viewing own system
+    if (isViewingFriend) {
+      toast.info('You cannot edit another user\'s star');
+      return;
+    }
     setViewState('sun-editor');
-  }, []);
+  }, [isViewingFriend]);
 
   const handleSaveSun = async (data: SunCustomization) => {
     if (!user || !currentSystem) return;
@@ -897,8 +907,13 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
   }, []);
 
   const handleCreatePlanet = useCallback(() => {
+    // Only allow creating planets in own system
+    if (isViewingFriend) {
+      toast.info('You cannot create planets in another user\'s system');
+      return;
+    }
     setViewState('create-planet');
-  }, []);
+  }, [isViewingFriend]);
 
   const handleCreatePlanetSuccess = useCallback(() => {
     fetchCustomizations();
@@ -907,6 +922,11 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
   }, [currentSystem]);
 
   const handleDeletePlanet = useCallback(async () => {
+    // Block deletion when viewing friend's system
+    if (isViewingFriend) {
+      toast.info('You cannot delete another user\'s planet');
+      return;
+    }
     if (!selectedPlanet || !user || !currentSystem) return;
     
     const { error } = await supabase
@@ -930,12 +950,16 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
 
     toast.success(`${selectedPlanet.displayName} has been deleted`);
     handleBackToGalaxy();
-  }, [selectedPlanet, user, currentSystem, handleBackToGalaxy]);
+  }, [selectedPlanet, user, currentSystem, handleBackToGalaxy, isViewingFriend]);
 
   // Open merge planet dialog
   const handleOpenMergePlanet = useCallback(() => {
+    if (isViewingFriend) {
+      toast.info('You cannot modify another user\'s planets');
+      return;
+    }
     setMergePlanetDialogOpen(true);
-  }, []);
+  }, [isViewingFriend]);
 
   // Merge planets: transfer all characters and moons from source to target, then delete source
   const handleMergePlanets = useCallback(async (sourcePlanetName: string, targetPlanetName: string) => {
@@ -1005,8 +1029,12 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
 
   // Open convert to moon dialog
   const handleOpenConvertToMoon = useCallback(() => {
+    if (isViewingFriend) {
+      toast.info('You cannot modify another user\'s planets');
+      return;
+    }
     setConvertToMoonDialogOpen(true);
-  }, []);
+  }, [isViewingFriend]);
 
   // Convert planet to moon: create moon from planet, transfer characters, delete planet
   const handleConvertToMoon = useCallback(async (sourcePlanetName: string, targetPlanetName: string) => {
@@ -1342,15 +1370,16 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
           displayName={selectedPlanet.displayName}
           characterCount={selectedPlanet.characterCount}
           onViewCharacters={handleViewCharacters}
-          onEditPlanet={handleEditPlanet}
-          onDeletePlanet={handleDeletePlanet}
-          onMergePlanet={handleOpenMergePlanet}
-          onConvertToMoon={handleOpenConvertToMoon}
+          onEditPlanet={isViewingFriend ? undefined : handleEditPlanet}
+          onDeletePlanet={isViewingFriend ? undefined : handleDeletePlanet}
+          onMergePlanet={isViewingFriend ? undefined : handleOpenMergePlanet}
+          onConvertToMoon={isViewingFriend ? undefined : handleOpenConvertToMoon}
           onFullscreenInspect={() => setInspectionModeActive(true)}
           onBack={handleBack}
-          canDelete={selectedPlanet.isUserCreated === true}
+          canDelete={!isViewingFriend && selectedPlanet.isUserCreated === true}
           canMerge={!isViewingFriend && planets.length > 1}
           canConvertToMoon={!isViewingFriend && planets.length > 1}
+          isReadOnly={isViewingFriend}
         />
       )}
 
@@ -1521,20 +1550,24 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
           <div className="text-center space-y-4 pointer-events-auto">
             <p className="text-muted-foreground text-lg">
-              Your solar system is empty. Create your first planet or character!
+              {isViewingFriend 
+                ? 'This solar system is empty.'
+                : 'Your solar system is empty. Create your first planet or character!'}
             </p>
-            <div className="flex gap-2 justify-center">
-              <Button variant="outline" onClick={handleCreatePlanet}>
-                <Globe className="w-4 h-4 mr-2" />
-                Create Planet
-              </Button>
-              <Button asChild>
-                <Link to="/characters/new">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Character
-                </Link>
-              </Button>
-            </div>
+            {!isViewingFriend && (
+              <div className="flex gap-2 justify-center">
+                <Button variant="outline" onClick={handleCreatePlanet}>
+                  <Globe className="w-4 h-4 mr-2" />
+                  Create Planet
+                </Button>
+                <Button asChild>
+                  <Link to="/characters/new">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Character
+                  </Link>
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       )}
