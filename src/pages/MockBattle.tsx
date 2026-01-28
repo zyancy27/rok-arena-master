@@ -2144,6 +2144,8 @@ export default function MockBattle() {
                     messages={messages.filter(m => m.channel === 'in_universe')}
                     scrollRef={scrollRef}
                     isInUniverse={true}
+                    isLoading={isLoading && activeChannel === 'in_universe'}
+                    opponentName={currentOpponent?.name}
                   />
                 </TabsContent>
                 <TabsContent value="out_of_universe" className="mt-0">
@@ -2151,6 +2153,8 @@ export default function MockBattle() {
                     messages={messages.filter(m => m.channel === 'out_of_universe')}
                     scrollRef={scrollRef}
                     isInUniverse={false}
+                    isLoading={isLoading && activeChannel === 'out_of_universe'}
+                    opponentName={currentOpponent?.name}
                   />
                 </TabsContent>
               </Tabs>
@@ -2178,18 +2182,40 @@ export default function MockBattle() {
   );
 }
 
+function TypingIndicator({ opponentName }: { opponentName?: string }) {
+  return (
+    <div className="p-3 rounded-lg bg-muted/50 border-l-4 border-accent mr-8 animate-fade-in">
+      <p className="text-xs mb-1 text-muted-foreground">
+        {opponentName || 'Opponent'}
+      </p>
+      <div className="flex items-center gap-1">
+        <span className="text-muted-foreground text-sm">thinking</span>
+        <span className="flex gap-1">
+          <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+          <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+          <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function MessageArea({ 
   messages, 
   scrollRef, 
-  isInUniverse 
+  isInUniverse,
+  isLoading,
+  opponentName
 }: { 
   messages: Message[]; 
   scrollRef: React.RefObject<HTMLDivElement>;
   isInUniverse: boolean;
+  isLoading?: boolean;
+  opponentName?: string;
 }) {
   return (
     <ScrollArea className="h-[400px] rounded-lg border border-border p-4" ref={scrollRef}>
-      {messages.length === 0 ? (
+      {messages.length === 0 && !isLoading ? (
         <div className="flex items-center justify-center h-full text-muted-foreground">
           <p>{isInUniverse ? 'The arena awaits your first move...' : 'No OOC messages yet'}</p>
         </div>
@@ -2220,6 +2246,7 @@ function MessageArea({
               <p className="whitespace-pre-wrap">{message.content}</p>
             </div>
           ))}
+          {isLoading && <TypingIndicator opponentName={opponentName} />}
         </div>
       )}
     </ScrollArea>
