@@ -148,7 +148,7 @@ export default function OpponentFinder() {
         <Button variant="outline" asChild>
           <Link to="/battles/practice">
             <Bot className="w-4 h-4 mr-2" />
-            Practice vs AI
+            Battle Simulation
           </Link>
         </Button>
       </div>
