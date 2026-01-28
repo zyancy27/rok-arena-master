@@ -6,6 +6,9 @@ verify_jwt = false
 [functions.battle-narrator]
 verify_jwt = false
 
+[functions.battle-simulation]
+verify_jwt = false
+
 [functions.parse-species-info]
 verify_jwt = false
 
