@@ -264,7 +264,7 @@ export default function BattleSimulation({ characters }: BattleSimulationProps) 
 
           {/* Simulation Results */}
           {result && (
-            <ScrollArea className="flex-1 border rounded-lg">
+            <ScrollArea className="flex-1 min-h-[300px] max-h-[50vh] border rounded-lg">
               <div className="p-4 space-y-3">
                 {result.turns.slice(0, currentTurn + 1).map((turn, index) => {
                   const char = getCharacterForTurn(turn);
