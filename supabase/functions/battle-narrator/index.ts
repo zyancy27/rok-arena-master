@@ -3,8 +3,13 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// Input validation constants
+const MAX_ACTION_LENGTH = 5000;
+const MAX_LOCATION_LENGTH = 500;
+const MAX_NAME_LENGTH = 100;
 
 interface CharacterEntranceData {
   name: string;
@@ -38,9 +43,7 @@ interface NarratorRequest {
   battleLocation: string;
   turnNumber: number;
   frequency?: 'always' | 'key_moments';
-  // Environmental effect detection
   detectEnvironmentalEffects?: boolean;
-  // Distance tracking
   currentDistance?: {
     zone: string;
     meters: number;
@@ -50,6 +53,20 @@ interface NarratorRequest {
 interface EnvironmentalEffect {
   type: string;
   description: string;
+}
+
+// Validation helper
+function validateCharacterData(char: CharacterEntranceData | undefined, fieldName: string): string | null {
+  if (!char || typeof char !== 'object') {
+    return `${fieldName} is required and must be an object`;
+  }
+  if (!char.name || typeof char.name !== 'string' || char.name.length > MAX_NAME_LENGTH) {
+    return `${fieldName}.name is required and must be a string under ${MAX_NAME_LENGTH} characters`;
+  }
+  if (typeof char.level !== 'number' || char.level < 1 || char.level > 10) {
+    return `${fieldName}.level must be a number between 1 and 10`;
+  }
+  return null;
 }
 
 serve(async (req) => {
@@ -82,7 +99,16 @@ serve(async (req) => {
       );
     }
 
-    const requestBody = await req.json();
+    // Parse and validate request body
+    let requestBody;
+    try {
+      requestBody = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -92,9 +118,35 @@ serve(async (req) => {
     // Handle entrance generation
     if (requestBody.type === 'entrance') {
       const { character1, character2, battleLocation }: EntranceRequest = requestBody;
+      
+      // Validate entrance request
+      const char1Error = validateCharacterData(character1, 'character1');
+      if (char1Error) {
+        return new Response(
+          JSON.stringify({ error: char1Error }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      const char2Error = validateCharacterData(character2, 'character2');
+      if (char2Error) {
+        return new Response(
+          JSON.stringify({ error: char2Error }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
+      if (!battleLocation || typeof battleLocation !== 'string' || battleLocation.length > MAX_LOCATION_LENGTH) {
+        return new Response(
+          JSON.stringify({ error: `battleLocation is required and must be under ${MAX_LOCATION_LENGTH} characters` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
       return await generateEntrances(character1, character2, battleLocation, LOVABLE_API_KEY, corsHeaders);
     }
     
+    // Validate narration request
     const { 
       userCharacter, 
       opponent, 
@@ -106,6 +158,42 @@ serve(async (req) => {
       detectEnvironmentalEffects = true,
       currentDistance,
     }: NarratorRequest = requestBody;
+
+    // Validate required fields
+    if (!userCharacter?.name || typeof userCharacter.name !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'userCharacter.name is required' }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    if (!opponent?.name || typeof opponent.name !== 'string') {
+      return new Response(
+        JSON.stringify({ error: 'opponent.name is required' }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    if (!userAction || typeof userAction !== 'string' || userAction.length > MAX_ACTION_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: `userAction is required and must be under ${MAX_ACTION_LENGTH} characters` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    if (!battleLocation || typeof battleLocation !== 'string' || battleLocation.length > MAX_LOCATION_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: `battleLocation is required and must be under ${MAX_LOCATION_LENGTH} characters` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    if (typeof turnNumber !== 'number' || turnNumber < 1) {
+      return new Response(
+        JSON.stringify({ error: 'turnNumber must be a positive number' }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Detect environmental effects from the attacker's action
     const environmentalEffects = detectEnvironmentalEffects 
@@ -232,7 +320,7 @@ Provide your narrator observation${environmentalEffects.length > 0 ? ', making s
   } catch (error) {
     console.error("Battle narrator error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: "An error occurred while processing your request" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

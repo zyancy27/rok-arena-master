@@ -6,6 +6,13 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Input validation constants
+const MAX_NAME_LENGTH = 100;
+const MAX_POWERS_LENGTH = 2000;
+const MAX_LOCATION_LENGTH = 500;
+const MAX_TURN_COUNT = 20;
+const MIN_TURN_COUNT = 1;
+
 interface Character {
   name: string;
   level: number;
@@ -22,7 +29,23 @@ interface SimulationRequest {
   character1: Character;
   character2: Character;
   battleLocation?: string;
-  turnCount?: number; // How many exchanges (default 10)
+  turnCount?: number;
+}
+
+function validateCharacter(char: Character | undefined, fieldName: string): string | null {
+  if (!char || typeof char !== 'object') {
+    return `${fieldName} is required and must be an object`;
+  }
+  if (!char.name || typeof char.name !== 'string' || char.name.length > MAX_NAME_LENGTH) {
+    return `${fieldName}.name is required and must be under ${MAX_NAME_LENGTH} characters`;
+  }
+  if (typeof char.level !== 'number' || char.level < 1 || char.level > 10) {
+    return `${fieldName}.level must be a number between 1 and 10`;
+  }
+  if (char.powers && (typeof char.powers !== 'string' || char.powers.length > MAX_POWERS_LENGTH)) {
+    return `${fieldName}.powers must be under ${MAX_POWERS_LENGTH} characters`;
+  }
+  return null;
 }
 
 serve(async (req) => {
@@ -55,20 +78,64 @@ serve(async (req) => {
       );
     }
 
-    const { character1, character2, battleLocation, turnCount = 10 }: SimulationRequest = await req.json();
+    // Parse and validate request body
+    let requestData: SimulationRequest;
+    try {
+      requestData = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON body' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { character1, character2, battleLocation, turnCount = 10 } = requestData;
+
+    // Validate characters
+    const char1Error = validateCharacter(character1, 'character1');
+    if (char1Error) {
+      return new Response(
+        JSON.stringify({ error: char1Error }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const char2Error = validateCharacter(character2, 'character2');
+    if (char2Error) {
+      return new Response(
+        JSON.stringify({ error: char2Error }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate turn count
+    if (typeof turnCount !== 'number' || turnCount < MIN_TURN_COUNT || turnCount > MAX_TURN_COUNT) {
+      return new Response(
+        JSON.stringify({ error: `turnCount must be between ${MIN_TURN_COUNT} and ${MAX_TURN_COUNT}` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate battle location
+    if (battleLocation && (typeof battleLocation !== 'string' || battleLocation.length > MAX_LOCATION_LENGTH)) {
+      return new Response(
+        JSON.stringify({ error: `battleLocation must be under ${MAX_LOCATION_LENGTH} characters` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Build character profiles
+    // Build character profiles with truncation
     const buildProfile = (char: Character) => {
       let profile = `Name: ${char.name} (Tier ${char.level})`;
-      if (char.powers) profile += `\nPowers: ${char.powers}`;
-      if (char.abilities) profile += `\nAbilities: ${char.abilities}`;
-      if (char.personality) profile += `\nPersonality: ${char.personality}`;
-      if (char.mentality) profile += `\nMentality: ${char.mentality}`;
+      if (char.powers) profile += `\nPowers: ${char.powers.slice(0, MAX_POWERS_LENGTH)}`;
+      if (char.abilities) profile += `\nAbilities: ${(char.abilities || '').slice(0, MAX_POWERS_LENGTH)}`;
+      if (char.personality) profile += `\nPersonality: ${(char.personality || '').slice(0, 500)}`;
+      if (char.mentality) profile += `\nMentality: ${(char.mentality || '').slice(0, 500)}`;
       return profile;
     };
 
@@ -168,7 +235,6 @@ Generate exactly ${turnCount} actions per character (${turnCount * 2} total turn
       return new Response(
         JSON.stringify({ 
           error: "Failed to generate simulation",
-          rawResponse: aiResponse 
         }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -181,7 +247,7 @@ Generate exactly ${turnCount} actions per character (${turnCount * 2} total turn
   } catch (error) {
     console.error("Battle simulation error:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: "An error occurred while processing your request" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
