@@ -37,6 +37,11 @@ import {
   type ConstructDefenseResult,
   type ConstructRepairResult,
 } from '@/lib/battle-dice';
+import {
+  validateDefense,
+  generateDefenseEnforcementPrompt,
+  getDamageLevel,
+} from '@/lib/defense-validation';
 import SkillProficiencyBar from '@/components/battles/SkillProficiencyBar';
 import TurnOrderIndicator from '@/components/battles/TurnOrderIndicator';
 import ConcentrationButton from '@/components/battles/ConcentrationButton';
@@ -90,6 +95,7 @@ interface DiceRollMessage {
   defenderName: string;
   timestamp: Date;
   channel: 'in_universe';
+  isAIRoll?: boolean; // Indicates this is an AI opponent's attack roll
 }
 
 interface ConstructEventMessage {
@@ -1037,6 +1043,14 @@ export default function MockBattle() {
   const [statPenalties, setStatPenalties] = useState<Record<string, number>>({});
   const [diceEnabled, setDiceEnabled] = useState(true);
   
+  // AI opponent concentration tracking
+  const [aiConcentrationUses, setAiConcentrationUses] = useState<number>(3);
+  const [aiStatPenalty, setAiStatPenalty] = useState<number>(0);
+  
+  // Defense validation tracking
+  const [lastOpponentAction, setLastOpponentAction] = useState<string>('');
+  const [lastHitResult, setLastHitResult] = useState<{ hit: boolean; gap: number } | null>(null);
+  
   // Construct mechanics
   const [constructs, setConstructs] = useState<Record<string, Construct>>({});
   const [constructEventMessages, setConstructEventMessages] = useState<ConstructEventMessage[]>([]);
@@ -1694,6 +1708,27 @@ export default function MockBattle() {
       }
     }
 
+    // Defense validation - check if player addressed opponent's last attack
+    let defenseEnforcementPrompt = '';
+    if (diceEnabled && activeChannel === 'in_universe' && lastOpponentAction && lastHitResult && turnNumber > 1) {
+      const validation = validateDefense(currentInput, lastOpponentAction, lastHitResult.hit);
+      
+      if (validation.shouldEnforceHit && validation.hasAttackToAddress) {
+        // Player ignored an attack that should have hit them
+        const damageLevel = getDamageLevel(lastHitResult.gap);
+        defenseEnforcementPrompt = generateDefenseEnforcementPrompt(
+          selectedCharacter.name,
+          currentOpponent?.name || 'opponent',
+          lastOpponentAction,
+          damageLevel
+        );
+        
+        toast.warning('Your move didn\'t address the incoming attack - the hit will be enforced!', {
+          duration: 4000,
+        });
+      }
+    }
+
     // For in-universe attacks with dice enabled, roll dice for the opponent's counter-attack
     if (diceEnabled && activeChannel === 'in_universe' && currentOpponent && turnNumber > 1) {
       const attackerStats = getOpponentStats(currentOpponent);
@@ -1733,8 +1768,12 @@ export default function MockBattle() {
               defenderName: selectedCharacter.name,
               timestamp: new Date(),
               channel: 'in_universe',
+              isAIRoll: true,
             };
             setDiceRollMessages(prev => [...prev, diceMsg]);
+            
+            // Store for defense validation
+            setLastHitResult({ hit: hit.wouldHit, gap: hit.gap });
           }
         }
         // If construct took damage but wasn't destroyed, attack was absorbed
@@ -1761,8 +1800,12 @@ export default function MockBattle() {
             defenderName: selectedCharacter.name,
             timestamp: new Date(),
             channel: 'in_universe',
+            isAIRoll: true,
           };
           setDiceRollMessages(prev => [...prev, diceMsg]);
+          
+          // Store for defense validation
+          setLastHitResult({ hit: hit.wouldHit, gap: hit.gap });
         }
       }
     }
@@ -1797,6 +1840,55 @@ export default function MockBattle() {
       skillEventNote = '\n\n[CRITICAL SUCCESS: The user executed their technique with exceptional precision! Describe an impressive or unexpected positive outcome!]';
     }
 
+    // Roll dice for the player's attack against the AI opponent
+    let playerAttackContext = '';
+    if (diceEnabled && activeChannel === 'in_universe' && currentOpponent && turnNumber > 0) {
+      const playerStats = getCharacterStats(selectedCharacter);
+      const opponentDefenseStats = getOpponentStats(currentOpponent);
+      const opponentPenalty = aiStatPenalty;
+      
+      const isMentalAttack = /mind|psychic|telepathy|illusion|mental|brain|thought/i.test(selectedCharacter.powers || '');
+      
+      const playerHit = isMentalAttack
+        ? determineMentalHit(playerStats, selectedCharacter.level, opponentDefenseStats, currentOpponent.level, true, opponentPenalty)
+        : determineHit(playerStats, selectedCharacter.level, opponentDefenseStats, currentOpponent.level, true, opponentPenalty);
+      
+      // Add player's attack roll to messages
+      const playerDiceMsg: DiceRollMessage = {
+        id: crypto.randomUUID(),
+        hitDetermination: playerHit,
+        attackerName: selectedCharacter.name,
+        defenderName: currentOpponent.name,
+        timestamp: new Date(),
+        channel: 'in_universe',
+        isAIRoll: false,
+      };
+      setDiceRollMessages(prev => [...prev, playerDiceMsg]);
+      
+      // Check if AI should use concentration
+      if (playerHit.wouldHit && aiConcentrationUses > 0 && Math.random() < 0.5) {
+        // AI uses concentration (50% chance when it would help)
+        const aiConcentrationResult = useConcentration(opponentDefenseStats, playerHit);
+        
+        if (aiConcentrationResult.dodgeSuccess) {
+          playerAttackContext = `\n\n[DICE RESULT: ${selectedCharacter.name}'s attack roll ${playerHit.attackRoll.total} vs ${currentOpponent.name}'s defense ${playerHit.defenseRoll.total}. ${currentOpponent.name} USED CONCENTRATION (+${aiConcentrationResult.bonusRoll}) and DODGED! They suffer -${aiConcentrationResult.statPenalty}% stats on their next action. Narrate how ${currentOpponent.name} narrowly evades through intense focus.]`;
+          setAiConcentrationUses(prev => prev - 1);
+          setAiStatPenalty(aiConcentrationResult.statPenalty);
+        } else {
+          playerAttackContext = `\n\n[DICE RESULT: ${selectedCharacter.name}'s attack roll ${playerHit.attackRoll.total} vs ${currentOpponent.name}'s defense ${playerHit.defenseRoll.total}. ${currentOpponent.name} tried to use concentration (+${aiConcentrationResult.bonusRoll}) but FAILED! The attack HITS! Narrate taking the damage and how it affects them.]`;
+          setAiConcentrationUses(prev => prev - 1);
+        }
+      } else if (playerHit.wouldHit) {
+        playerAttackContext = `\n\n[DICE RESULT: ${selectedCharacter.name}'s attack roll ${playerHit.attackRoll.total} vs ${currentOpponent.name}'s defense ${playerHit.defenseRoll.total}. Attack HITS! ${aiConcentrationUses > 0 ? `(${currentOpponent.name} has ${aiConcentrationUses} concentration uses remaining but chose not to use one)` : `(No concentration uses remaining)`}. Narrate taking the damage and how it affects ${currentOpponent.name}.]`;
+        // Clear AI stat penalty after their action
+        setAiStatPenalty(0);
+      } else {
+        playerAttackContext = `\n\n[DICE RESULT: ${selectedCharacter.name}'s attack roll ${playerHit.attackRoll.total} vs ${currentOpponent.name}'s defense ${playerHit.defenseRoll.total}. Attack MISSES! Narrate how ${currentOpponent.name} avoids or deflects the attack.]`;
+        // Clear AI stat penalty after their action
+        setAiStatPenalty(0);
+      }
+    }
+
     try {
       const response = await supabase.functions.invoke('mock-battle-ai', {
         body: {
@@ -1813,7 +1905,7 @@ export default function MockBattle() {
             ...currentOpponent,
             skill: opponentSkill,
           },
-          userMessage: input + skillEventNote,
+          userMessage: input + skillEventNote + playerAttackContext + defenseEnforcementPrompt,
           channel: activeChannel,
           messageHistory: messages.slice(-10),
           battleLocation,
@@ -1837,6 +1929,11 @@ export default function MockBattle() {
       };
       
       setMessages(prev => [...prev, aiMessage]);
+      
+      // Store opponent's action for defense validation next turn
+      if (activeChannel === 'in_universe') {
+        setLastOpponentAction(response.data.response);
+      }
 
       // Trigger narrator for in-universe exchanges (based on frequency setting)
       if (narratorFrequency !== 'off' && activeChannel === 'in_universe' && currentOpponent) {
@@ -1917,6 +2014,11 @@ export default function MockBattle() {
     setDiceRollMessages([]);
     setConcentrationUses({});
     setStatPenalties({});
+    // Reset AI concentration and defense validation
+    setAiConcentrationUses(3);
+    setAiStatPenalty(0);
+    setLastOpponentAction('');
+    setLastHitResult(null);
     // Reset construct mechanics
     setConstructs({});
     setConstructEventMessages([]);
