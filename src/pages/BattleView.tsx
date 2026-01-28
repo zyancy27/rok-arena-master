@@ -45,6 +45,9 @@ import MoveValidationWarning from '@/components/battles/MoveValidationWarning';
 import MatchupWarning from '@/components/battles/MatchupWarning';
 import ConcentrationButton from '@/components/battles/ConcentrationButton';
 import DiceRollChatMessage from '@/components/battles/DiceRollChatMessage';
+import TurnIndicatorWrapper from '@/components/battles/TurnIndicatorWrapper';
+import BattleTurnColorPicker from '@/components/battles/BattleTurnColorPicker';
+import { useBattleTurnColor } from '@/hooks/use-battle-turn-color';
 import {
   ArrowLeft,
   Send,
@@ -202,6 +205,9 @@ export default function BattleView() {
   
   // Track if we're using snapshot data (battle is active)
   const [usingSnapshot, setUsingSnapshot] = useState(false);
+  
+  // Battle turn color preference
+  const { color: userTurnColor, updateColor: updateTurnColor } = useBattleTurnColor();
 
   // Generate environment and entrances when battle becomes active with a location
   useEffect(() => {
@@ -1070,6 +1076,10 @@ export default function BattleView() {
 
   const inUniverseMessages = messages.filter(m => m.channel === 'in_universe');
   const outOfUniverseMessages = messages.filter(m => m.channel === 'out_of_universe');
+  
+  // Determine whose turn it is based on last message sender
+  const lastInUniverseMessage = inUniverseMessages[inUniverseMessages.length - 1];
+  const isUserTurn = !lastInUniverseMessage || lastInUniverseMessage.character_id !== userCharacter?.character_id;
 
   if (loading) {
     return (
@@ -1118,6 +1128,12 @@ export default function BattleView() {
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+          )}
+          {battle.status === 'active' && (
+            <BattleTurnColorPicker
+              color={userTurnColor}
+              onChange={updateTurnColor}
+            />
           )}
           <Button
             variant="outline"
@@ -1481,7 +1497,12 @@ export default function BattleView() {
       {/* Chat Area */}
       <div className="grid lg:grid-cols-2 gap-4">
         {/* In-Universe Chat */}
-        <Card className="bg-card-gradient border-border">
+        <TurnIndicatorWrapper
+          isUserTurn={isUserTurn}
+          userColor={userTurnColor}
+          opponentColor="#EF4444"
+        >
+          <Card className="bg-card-gradient border-border">
           <CardHeader className="py-3 border-b border-border">
             <CardTitle className="text-sm flex items-center gap-2">
               <Swords className="w-4 h-4 text-primary" />
@@ -1591,6 +1612,7 @@ export default function BattleView() {
             )}
           </CardContent>
         </Card>
+        </TurnIndicatorWrapper>
 
         {/* Out-of-Universe Chat */}
         <Card className="bg-card-gradient border-border">

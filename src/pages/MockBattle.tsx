@@ -48,6 +48,9 @@ import ConcentrationButton from '@/components/battles/ConcentrationButton';
 import DiceRollChatMessage from '@/components/battles/DiceRollChatMessage';
 import ConstructPanel from '@/components/battles/ConstructPanel';
 import ConstructDiceMessage from '@/components/battles/ConstructDiceMessage';
+import TurnIndicatorWrapper from '@/components/battles/TurnIndicatorWrapper';
+import BattleTurnColorPicker from '@/components/battles/BattleTurnColorPicker';
+import { useBattleTurnColor } from '@/hooks/use-battle-turn-color';
 import { 
   ArrowLeft, 
   Swords, 
@@ -1062,6 +1065,9 @@ export default function MockBattle() {
   // Power tier and category filters
   const [selectedTierFilter, setSelectedTierFilter] = useState<string>('all');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
+  
+  // Battle turn color preference
+  const { color: userTurnColor, updateColor: updateTurnColor } = useBattleTurnColor();
   
   // Filter opponents by tier and category
   const filteredOpponents = AI_OPPONENTS.filter(opponent => {
@@ -2585,7 +2591,28 @@ export default function MockBattle() {
                   />
                 </div>
 
-                {/* Environment Preview */}
+                {/* Turn Color Customization */}
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-5 h-5 rounded-full"
+                      style={{ backgroundColor: userTurnColor }}
+                    />
+                    <div>
+                      <Label className="text-sm font-medium">
+                        Turn Indicator Color
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Your color when it's your turn to attack
+                      </p>
+                    </div>
+                  </div>
+                  <BattleTurnColorPicker
+                    color={userTurnColor}
+                    onChange={updateTurnColor}
+                  />
+                </div>
+
                 {battleEnvironment && dynamicEnvironment && (
                   <div className="p-3 rounded-lg border bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/30 space-y-2">
                     <div className="flex items-center gap-2 text-sm font-medium">
@@ -2772,6 +2799,8 @@ export default function MockBattle() {
                     isInUniverse={true}
                     isLoading={isLoading && activeChannel === 'in_universe'}
                     opponentName={currentOpponent?.name}
+                    isUserTurn={!isLoading}
+                    userTurnColor={userTurnColor}
                   />
                 </TabsContent>
                 <TabsContent value="out_of_universe" className="mt-0">
@@ -2783,6 +2812,8 @@ export default function MockBattle() {
                     isInUniverse={false}
                     isLoading={isLoading && activeChannel === 'out_of_universe'}
                     opponentName={currentOpponent?.name}
+                    isUserTurn={!isLoading}
+                    userTurnColor={userTurnColor}
                   />
                 </TabsContent>
               </Tabs>
@@ -2883,7 +2914,9 @@ function MessageArea({
   scrollRef, 
   isInUniverse,
   isLoading,
-  opponentName
+  opponentName,
+  isUserTurn,
+  userTurnColor,
 }: { 
   messages: Message[]; 
   diceRollMessages?: DiceRollMessage[];
@@ -2892,79 +2925,87 @@ function MessageArea({
   isInUniverse: boolean;
   isLoading?: boolean;
   opponentName?: string;
+  isUserTurn?: boolean;
+  userTurnColor?: string;
 }) {
   return (
-    <ScrollArea className="h-[400px] rounded-lg border border-border p-4" ref={scrollRef}>
-      {messages.length === 0 && diceRollMessages.length === 0 && !isLoading ? (
-        <div className="flex items-center justify-center h-full text-muted-foreground">
-          <p>{isInUniverse ? 'The arena awaits your first move...' : 'No OOC messages yet'}</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {messages.map((message, idx) => {
-            // Find construct events that happened around this message
-            const relevantConstructEvents = constructEventMessages.filter((evt, evtIdx) => 
-              evtIdx === Math.floor(idx / 2)
-            );
-            
-            return (
-              <div key={message.id}>
-                <div
-                  className={`p-3 rounded-lg ${
-                    message.role === 'user'
-                      ? 'bg-primary/20 border-l-4 border-primary ml-8'
-                      : message.role === 'narrator'
-                      ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-l-4 border-purple-500 mx-4 italic'
-                      : message.role === 'system'
-                      ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border-l-4 border-cyan-500 mx-4 text-center'
-                      : 'bg-muted/50 border-l-4 border-accent mr-8'
-                  }`}
-                >
-                  <p className={`text-xs mb-1 ${
-                    message.role === 'narrator' 
-                      ? 'text-purple-400 font-semibold' 
-                      : message.role === 'system'
-                      ? 'text-cyan-400 font-semibold'
-                      : 'text-muted-foreground'
-                  }`}>
-                    {message.characterName}
-                  </p>
-                  <p className="whitespace-pre-wrap">{message.content}</p>
-                </div>
-                {/* Show construct events after user messages */}
-                {message.role === 'user' && isInUniverse && relevantConstructEvents.length > 0 && (
-                  <div className="mt-2 space-y-2">
-                    {relevantConstructEvents.map(evt => (
-                      <ConstructDiceMessage
-                        key={evt.id}
-                        type={evt.type === 'create' ? 'repair' : evt.type}
-                        construct={evt.construct}
-                        attackResult={evt.attackResult}
-                        repairResult={evt.repairResult}
-                        attackerName={evt.attackerName}
-                        defenderName={evt.defenderName}
+    <TurnIndicatorWrapper
+      isUserTurn={isUserTurn ?? true}
+      userColor={userTurnColor}
+      opponentColor="#EF4444"
+    >
+      <ScrollArea className="h-[400px] rounded-lg border border-border p-4" ref={scrollRef}>
+        {messages.length === 0 && diceRollMessages.length === 0 && !isLoading ? (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            <p>{isInUniverse ? 'The arena awaits your first move...' : 'No OOC messages yet'}</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {messages.map((message, idx) => {
+              // Find construct events that happened around this message
+              const relevantConstructEvents = constructEventMessages.filter((evt, evtIdx) => 
+                evtIdx === Math.floor(idx / 2)
+              );
+              
+              return (
+                <div key={message.id}>
+                  <div
+                    className={`p-3 rounded-lg ${
+                      message.role === 'user'
+                        ? 'bg-primary/20 border-l-4 border-primary ml-8'
+                        : message.role === 'narrator'
+                        ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-l-4 border-purple-500 mx-4 italic'
+                        : message.role === 'system'
+                        ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border-l-4 border-cyan-500 mx-4 text-center'
+                        : 'bg-muted/50 border-l-4 border-accent mr-8'
+                    }`}
+                  >
+                    <p className={`text-xs mb-1 ${
+                      message.role === 'narrator' 
+                        ? 'text-purple-400 font-semibold' 
+                        : message.role === 'system'
+                        ? 'text-cyan-400 font-semibold'
+                        : 'text-muted-foreground'
+                    }`}>
+                      {message.characterName}
+                    </p>
+                    <p className="whitespace-pre-wrap">{message.content}</p>
+                  </div>
+                  {/* Show construct events after user messages */}
+                  {message.role === 'user' && isInUniverse && relevantConstructEvents.length > 0 && (
+                    <div className="mt-2 space-y-2">
+                      {relevantConstructEvents.map(evt => (
+                        <ConstructDiceMessage
+                          key={evt.id}
+                          type={evt.type === 'create' ? 'repair' : evt.type}
+                          construct={evt.construct}
+                          attackResult={evt.attackResult}
+                          repairResult={evt.repairResult}
+                          attackerName={evt.attackerName}
+                          defenderName={evt.defenderName}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  {/* Show dice roll after user messages if one exists */}
+                  {message.role === 'user' && isInUniverse && diceRollMessages[Math.floor(idx / 2)] && (
+                    <div className="mt-2">
+                      <DiceRollChatMessage
+                        hitDetermination={diceRollMessages[Math.floor(idx / 2)].hitDetermination}
+                        concentrationResult={diceRollMessages[Math.floor(idx / 2)].concentrationResult}
+                        attackerName={diceRollMessages[Math.floor(idx / 2)].attackerName}
+                        defenderName={diceRollMessages[Math.floor(idx / 2)].defenderName}
+                        timestamp={diceRollMessages[Math.floor(idx / 2)].timestamp}
                       />
-                    ))}
-                  </div>
-                )}
-                {/* Show dice roll after user messages if one exists */}
-                {message.role === 'user' && isInUniverse && diceRollMessages[Math.floor(idx / 2)] && (
-                  <div className="mt-2">
-                    <DiceRollChatMessage
-                      hitDetermination={diceRollMessages[Math.floor(idx / 2)].hitDetermination}
-                      concentrationResult={diceRollMessages[Math.floor(idx / 2)].concentrationResult}
-                      attackerName={diceRollMessages[Math.floor(idx / 2)].attackerName}
-                      defenderName={diceRollMessages[Math.floor(idx / 2)].defenderName}
-                      timestamp={diceRollMessages[Math.floor(idx / 2)].timestamp}
-                    />
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          {isLoading && <TypingIndicator opponentName={opponentName} />}
-        </div>
-      )}
-    </ScrollArea>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {isLoading && <TypingIndicator opponentName={opponentName} />}
+          </div>
+        )}
+      </ScrollArea>
+    </TurnIndicatorWrapper>
   );
 }
