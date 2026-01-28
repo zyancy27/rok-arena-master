@@ -47,7 +47,9 @@ import ConcentrationButton from '@/components/battles/ConcentrationButton';
 import DiceRollChatMessage from '@/components/battles/DiceRollChatMessage';
 import TurnIndicatorWrapper from '@/components/battles/TurnIndicatorWrapper';
 import BattleTurnColorPicker from '@/components/battles/BattleTurnColorPicker';
+import BattlefieldEffectsOverlay from '@/components/battles/BattlefieldEffectsOverlay';
 import { useBattleTurnColor } from '@/hooks/use-battle-turn-color';
+import { useBattlefieldEffects } from '@/components/battles/useBattlefieldEffects';
 import {
   ArrowLeft,
   Send,
@@ -208,6 +210,9 @@ export default function BattleView() {
   
   // Battle turn color preference
   const { color: userTurnColor, updateColor: updateTurnColor } = useBattleTurnColor();
+  
+  // Battlefield visual effects (fire, ice, smoke, etc.)
+  const { activeEffects: battlefieldEffects, processMessage: processBattlefieldEffect } = useBattlefieldEffects();
 
   // Generate environment and entrances when battle becomes active with a location
   useEffect(() => {
@@ -487,6 +492,11 @@ export default function BattleView() {
           };
 
           setMessages(prev => [...prev, messageWithName]);
+          
+          // Process battlefield effects from in-universe messages
+          if (newMessage.channel === 'in_universe') {
+            processBattlefieldEffect(newMessage.content);
+          }
 
           // Show notification if message is from another user
           if (charData?.user_id !== user?.id) {
@@ -1502,14 +1512,18 @@ export default function BattleView() {
           userColor={userTurnColor}
           opponentColor="#EF4444"
         >
-          <Card className="bg-card-gradient border-border">
-          <CardHeader className="py-3 border-b border-border">
+          <Card className="bg-card-gradient border-border relative">
+          {/* Battlefield Effects Overlay */}
+          {battlefieldEffects.length > 0 && (
+            <BattlefieldEffectsOverlay effects={battlefieldEffects} className="rounded-lg" />
+          )}
+          <CardHeader className="py-3 border-b border-border relative z-10">
             <CardTitle className="text-sm flex items-center gap-2">
               <Swords className="w-4 h-4 text-primary" />
               In-Universe (Roleplay)
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="p-0 relative z-10">
             <ScrollArea className="h-[400px] p-4">
               {inUniverseMessages.length === 0 ? (
                 <div className="text-center text-muted-foreground py-8">
