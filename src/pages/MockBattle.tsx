@@ -1482,7 +1482,7 @@ export default function MockBattle() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bot className="w-6 h-6 text-primary" />
-            Practice Arena
+            PvE Battle
             <Badge variant="outline" className="ml-2">AI Opponent</Badge>
           </CardTitle>
         </CardHeader>
