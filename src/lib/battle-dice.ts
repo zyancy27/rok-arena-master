@@ -10,6 +10,7 @@ export interface DiceRollResult {
     battleIqBonus: number;
   };
   total: number;
+  rollType: 'attack' | 'defense' | 'mental_attack' | 'mental_defense';
 }
 
 export interface ConcentrationResult {
@@ -24,6 +25,7 @@ export interface HitDetermination {
   defenseRoll: DiceRollResult;
   wouldHit: boolean;
   gap: number; // Difference between attack and defense
+  isMentalAttack: boolean;
 }
 
 export interface BattleState {
@@ -34,7 +36,7 @@ export interface BattleState {
 const MAX_CONCENTRATION_USES = 3;
 
 /**
- * Roll a d20 with stat-based modifiers
+ * Roll a d20 with stat-based modifiers for physical attacks
  */
 export function rollAttackDice(
   attackerStats: CharacterStats,
@@ -65,11 +67,84 @@ export function rollAttackDice(
       battleIqBonus,
     },
     total: baseRoll + tierBonus + statBonus + skillBonus + battleIqBonus,
+    rollType: 'attack',
   };
 }
 
 /**
- * Roll defense dice
+ * Roll a d20 with stat-based modifiers for mental/psychic attacks
+ */
+export function rollMentalAttackDice(
+  attackerStats: CharacterStats,
+  attackerTier: number,
+  usesSkill: boolean = false
+): DiceRollResult {
+  const baseRoll = Math.floor(Math.random() * 20) + 1; // d20
+  
+  // Tier bonus
+  const tierBonus = attackerTier;
+  
+  // Mental attacks use intelligence + power + battle_iq
+  const relevantStats = (attackerStats.stat_intelligence + attackerStats.stat_power + attackerStats.stat_battle_iq) / 3;
+  const statBonus = Math.floor(relevantStats / 10);
+  
+  // Battle IQ is crucial for mental attacks
+  const battleIqBonus = Math.floor(attackerStats.stat_battle_iq / 15); // +1 per 15 points (stronger for mental)
+  
+  // Skill bonus
+  const skillBonus = usesSkill ? Math.floor(attackerStats.stat_skill / 15) : 0;
+  
+  return {
+    baseRoll,
+    modifiers: {
+      tierBonus,
+      statBonus,
+      skillBonus,
+      battleIqBonus,
+    },
+    total: baseRoll + tierBonus + statBonus + skillBonus + battleIqBonus,
+    rollType: 'mental_attack',
+  };
+}
+
+/**
+ * Roll mental defense dice
+ */
+export function rollMentalDefenseDice(
+  defenderStats: CharacterStats,
+  defenderTier: number,
+  currentPenalty: number = 0
+): DiceRollResult {
+  const baseRoll = Math.floor(Math.random() * 20) + 1; // d20
+  
+  // Tier bonus
+  const tierBonus = defenderTier;
+  
+  // Mental defense uses intelligence + willpower (stamina) + battle IQ
+  const relevantStats = (defenderStats.stat_intelligence + defenderStats.stat_stamina + defenderStats.stat_battle_iq) / 3;
+  const statBonus = Math.floor(relevantStats / 10);
+  
+  // Battle IQ helps resist mental attacks
+  const battleIqBonus = Math.floor(defenderStats.stat_battle_iq / 20);
+  
+  // Apply penalty from previous concentration use
+  const penaltyReduction = Math.floor((tierBonus + statBonus + battleIqBonus) * (currentPenalty / 100));
+  
+  return {
+    baseRoll,
+    modifiers: {
+      tierBonus,
+      statBonus,
+      skillBonus: 0,
+      battleIqBonus,
+    },
+    total: Math.max(1, baseRoll + tierBonus + statBonus + battleIqBonus - penaltyReduction),
+    rollType: 'mental_defense',
+  };
+}
+
+/**
+ * Roll defense dice for physical attacks
  */
 export function rollDefenseDice(
   defenderStats: CharacterStats,
@@ -100,11 +175,12 @@ export function rollDefenseDice(
       battleIqBonus,
     },
     total: Math.max(1, baseRoll + tierBonus + statBonus + battleIqBonus - penaltyReduction),
+    rollType: 'defense',
   };
 }
 
 /**
- * Determine if an attack would hit
+ * Determine if a physical attack would hit
  */
 export function determineHit(
   attackerStats: CharacterStats,
@@ -125,6 +201,33 @@ export function determineHit(
     defenseRoll,
     wouldHit,
     gap,
+    isMentalAttack: false,
+  };
+}
+
+/**
+ * Determine if a mental/psychic attack would hit
+ */
+export function determineMentalHit(
+  attackerStats: CharacterStats,
+  attackerTier: number,
+  defenderStats: CharacterStats,
+  defenderTier: number,
+  usesSkill: boolean = false,
+  defenderPenalty: number = 0
+): HitDetermination {
+  const attackRoll = rollMentalAttackDice(attackerStats, attackerTier, usesSkill);
+  const defenseRoll = rollMentalDefenseDice(defenderStats, defenderTier, defenderPenalty);
+  
+  const gap = attackRoll.total - defenseRoll.total;
+  const wouldHit = gap > 0;
+  
+  return {
+    attackRoll,
+    defenseRoll,
+    wouldHit,
+    gap,
+    isMentalAttack: true,
   };
 }
 

@@ -25,6 +25,9 @@ import {
 import { toast } from 'sonner';
 import { ROK_RULES } from '@/lib/game-constants';
 import { generateBattleEnvironment, BattleEnvironment } from '@/lib/battle-environment';
+import { validateMove, isMentalAttack, type MoveValidationResult, type CharacterAbilities } from '@/lib/move-validation';
+import MoveValidationWarning from '@/components/battles/MoveValidationWarning';
+import MatchupWarning from '@/components/battles/MatchupWarning';
 import {
   ArrowLeft,
   Send,
@@ -41,6 +44,7 @@ import {
   Wind,
   Flame,
   Snowflake,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface Battle {
@@ -57,16 +61,20 @@ interface Battle {
   environment_effects: string | null;
 }
 
+interface CharacterData {
+  id: string;
+  name: string;
+  level: number;
+  user_id: string;
+  powers?: string | null;
+  abilities?: string | null;
+}
+
 interface Participant {
   id: string;
   character_id: string;
   turn_order: number;
-  character?: {
-    id: string;
-    name: string;
-    level: number;
-    user_id: string;
-  };
+  character?: CharacterData;
 }
 
 interface Message {
@@ -96,6 +104,11 @@ export default function BattleView() {
   const [isFlippingCoin, setIsFlippingCoin] = useState(false);
   const [dynamicEnvironmentEnabled, setDynamicEnvironmentEnabled] = useState(true);
   const [battleEnvironment, setBattleEnvironment] = useState<BattleEnvironment | null>(null);
+  
+  // Move validation state
+  const [pendingMove, setPendingMove] = useState<string | null>(null);
+  const [moveValidation, setMoveValidation] = useState<MoveValidationResult | null>(null);
+  const [showMatchupWarning, setShowMatchupWarning] = useState(true);
 
   // Generate environment when battle becomes active with a location
   useEffect(() => {
@@ -140,7 +153,7 @@ export default function BattleView() {
 
     setBattle(battleData as Battle);
 
-    // Fetch participants with character info
+    // Fetch participants with character info including powers/abilities
     const { data: participantsData } = await supabase
       .from('battle_participants')
       .select('id, character_id, turn_order')
@@ -148,11 +161,11 @@ export default function BattleView() {
       .order('turn_order');
 
     if (participantsData) {
-      // Fetch character details
+      // Fetch character details with powers and abilities for validation
       const charIds = participantsData.map(p => p.character_id);
       const { data: charsData } = await supabase
         .from('characters')
-        .select('id, name, level, user_id')
+        .select('id, name, level, user_id, powers, abilities')
         .in('id', charIds);
 
       const participantsWithChars = participantsData.map(p => ({
@@ -277,13 +290,40 @@ export default function BattleView() {
       .subscribe();
   };
 
-  const sendMessage = async () => {
+  // Validate and send message
+  const handleSendMessage = async () => {
     if (!messageInput.trim() || !userCharacter) return;
+
+    // Only validate in-universe moves
+    if (activeChannel === 'in_universe' && userCharacter.character) {
+      const characterAbilities: CharacterAbilities = {
+        powers: userCharacter.character.powers || null,
+        abilities: userCharacter.character.abilities || null,
+        name: userCharacter.character.name,
+      };
+      
+      const validation = validateMove(messageInput, characterAbilities);
+      
+      if (!validation.isValid) {
+        // Store the pending move and show warning
+        setPendingMove(messageInput);
+        setMoveValidation(validation);
+        setMessageInput('');
+        return;
+      }
+    }
+
+    // Send the message
+    await sendMessage(messageInput);
+  };
+
+  const sendMessage = async (content: string) => {
+    if (!content.trim() || !userCharacter) return;
 
     const { error } = await supabase.from('battle_messages').insert({
       battle_id: id,
       character_id: userCharacter.character_id,
-      content: messageInput.trim(),
+      content: content.trim(),
       channel: activeChannel,
     });
 
@@ -293,6 +333,45 @@ export default function BattleView() {
     }
 
     setMessageInput('');
+    setPendingMove(null);
+    setMoveValidation(null);
+  };
+
+  // Handle move explanation
+  const handleMoveExplanation = async (explanation: string) => {
+    if (!pendingMove || !userCharacter) return;
+    
+    // Send the original move with the explanation in OOC
+    await sendMessage(pendingMove);
+    
+    // Also send the explanation to out-of-universe chat
+    const { error } = await supabase.from('battle_messages').insert({
+      battle_id: id,
+      character_id: userCharacter.character_id,
+      content: `📋 **Move Explanation:** ${explanation}`,
+      channel: 'out_of_universe',
+    });
+
+    if (error) {
+      console.error('Failed to send explanation:', error);
+    }
+
+    setPendingMove(null);
+    setMoveValidation(null);
+    toast.success('Move submitted with explanation');
+  };
+
+  // Handle move redo
+  const handleMoveRedo = () => {
+    setMessageInput(pendingMove || '');
+    setPendingMove(null);
+    setMoveValidation(null);
+  };
+
+  // Handle accepting move without explanation (for edge cases)
+  const handleAcceptMove = async () => {
+    if (!pendingMove) return;
+    await sendMessage(pendingMove);
   };
 
   const handleConcede = async () => {
@@ -677,6 +756,46 @@ export default function BattleView() {
         </CardContent>
       </Card>
 
+      {/* Matchup Warning for Uneven Battles */}
+      {battle.status === 'active' && showMatchupWarning && participants.length >= 2 && (
+        (() => {
+          const player = participants.find(p => p.character?.user_id === user?.id);
+          const opponent = participants.find(p => p.character?.user_id !== user?.id);
+          if (player?.character && opponent?.character && Math.abs(player.character.level - opponent.character.level) >= 2) {
+            return (
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute top-2 right-2 z-10"
+                  onClick={() => setShowMatchupWarning(false)}
+                >
+                  ×
+                </Button>
+                <MatchupWarning
+                  playerTier={player.character.level}
+                  opponentTier={opponent.character.level}
+                  playerName={player.character.name}
+                  opponentName={opponent.character.name}
+                />
+              </div>
+            );
+          }
+          return null;
+        })()
+      )}
+
+      {/* Move Validation Warning */}
+      {moveValidation && !moveValidation.isValid && userCharacter?.character && (
+        <MoveValidationWarning
+          validation={moveValidation}
+          characterName={userCharacter.character.name}
+          onExplain={handleMoveExplanation}
+          onRedo={handleMoveRedo}
+          onAccept={handleAcceptMove}
+        />
+      )}
+
       {/* Chat Area */}
       <div className="grid lg:grid-cols-2 gap-4">
         {/* In-Universe Chat */}
@@ -719,7 +838,7 @@ export default function BattleView() {
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
-                    sendMessage();
+                    handleSendMessage();
                   }}
                   className="flex gap-2"
                 >
@@ -780,7 +899,7 @@ export default function BattleView() {
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
-                    sendMessage();
+                    handleSendMessage();
                   }}
                   className="flex gap-2"
                 >
@@ -815,7 +934,7 @@ export default function BattleView() {
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
-                  sendMessage();
+                  handleSendMessage();
                 }}
                 className="flex gap-2"
               >
