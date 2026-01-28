@@ -17,8 +17,19 @@ import { toast } from 'sonner';
 import { getTierName } from '@/lib/game-constants';
 import { generateBattleEnvironment, getEnvironmentStatImpact, BattleEnvironment, shouldTriggerHazard, generateHazardEventPrompt } from '@/lib/battle-environment';
 import { generatePhysicsContext, generateSkillContext, shouldTriggerSkillMishap, shouldTriggerCritical } from '@/lib/battle-physics';
+import {
+  determineHit,
+  determineMentalHit,
+  initializeBattleState,
+  useConcentration,
+  type HitDetermination,
+  type ConcentrationResult,
+  type BattleState,
+} from '@/lib/battle-dice';
 import SkillProficiencyBar from '@/components/battles/SkillProficiencyBar';
 import TurnOrderIndicator from '@/components/battles/TurnOrderIndicator';
+import ConcentrationButton from '@/components/battles/ConcentrationButton';
+import DiceRollChatMessage from '@/components/battles/DiceRollChatMessage';
 import { 
   ArrowLeft, 
   Swords, 
@@ -34,7 +45,8 @@ import {
   Zap,
   Atom,
   AlertTriangle,
-  Info
+  Info,
+  Dices
 } from 'lucide-react';
 
 interface UserCharacter {
@@ -45,8 +57,26 @@ interface UserCharacter {
   powers: string | null;
   abilities: string | null;
   stat_skill?: number | null;
+  stat_strength?: number | null;
+  stat_power?: number | null;
+  stat_speed?: number | null;
+  stat_durability?: number | null;
+  stat_stamina?: number | null;
+  stat_intelligence?: number | null;
+  stat_battle_iq?: number | null;
+  stat_luck?: number | null;
   personality?: string | null;
   mentality?: string | null;
+}
+
+interface DiceRollMessage {
+  id: string;
+  hitDetermination: HitDetermination;
+  concentrationResult?: ConcentrationResult;
+  attackerName: string;
+  defenderName: string;
+  timestamp: Date;
+  channel: 'in_universe';
 }
 
 interface Message {
@@ -973,6 +1003,15 @@ export default function MockBattle() {
   const [userGoesFirst, setUserGoesFirst] = useState(true);
   const [isFirstMove, setIsFirstMove] = useState(true);
   
+  // Dice roll and concentration mechanics
+  const [battleState, setBattleState] = useState<BattleState | null>(null);
+  const [pendingHit, setPendingHit] = useState<HitDetermination | null>(null);
+  const [pendingUserAction, setPendingUserAction] = useState<string>('');
+  const [diceRollMessages, setDiceRollMessages] = useState<DiceRollMessage[]>([]);
+  const [concentrationUses, setConcentrationUses] = useState<Record<string, number>>({});
+  const [statPenalties, setStatPenalties] = useState<Record<string, number>>({});
+  const [diceEnabled, setDiceEnabled] = useState(true);
+  
   // Character story lore for AI battles
   const [characterStoryLore, setCharacterStoryLore] = useState<string>('');
   
@@ -1071,7 +1110,7 @@ export default function MockBattle() {
   const fetchUserCharacters = async () => {
     const { data } = await supabase
       .from('characters')
-      .select('id, name, level, image_url, powers, abilities, stat_skill, personality, mentality')
+      .select('id, name, level, image_url, powers, abilities, stat_skill, stat_strength, stat_power, stat_speed, stat_durability, stat_stamina, stat_intelligence, stat_battle_iq, stat_luck, personality, mentality')
       .eq('user_id', user?.id);
     
     if (data && data.length > 0) {
@@ -1146,6 +1185,16 @@ export default function MockBattle() {
     }
     
     setBattleStarted(true);
+    
+    // Initialize dice mechanics
+    if (diceEnabled && selectedCharacter) {
+      const characterId = selectedCharacter.id;
+      const opponentId = currentOpponent.id;
+      const initialState = initializeBattleState([characterId, opponentId], 'mid');
+      setBattleState(initialState);
+      setConcentrationUses(initialState.concentrationUsesLeft);
+      setStatPenalties(initialState.statPenalties);
+    }
     
     // Determine physics context based on tiers
     const highestTier = Math.max(selectedCharacter.level, currentOpponent.level);
@@ -1290,8 +1339,175 @@ export default function MockBattle() {
     }
   };
 
+  // Helper to get character stats for dice rolls
+  const getCharacterStats = (char: UserCharacter) => ({
+    stat_intelligence: char.stat_intelligence ?? 50,
+    stat_strength: char.stat_strength ?? 50,
+    stat_power: char.stat_power ?? 50,
+    stat_speed: char.stat_speed ?? 50,
+    stat_durability: char.stat_durability ?? 50,
+    stat_stamina: char.stat_stamina ?? 50,
+    stat_skill: char.stat_skill ?? 50,
+    stat_luck: char.stat_luck ?? 50,
+    stat_battle_iq: char.stat_battle_iq ?? 50,
+  });
+
+  // Helper to get AI opponent stats (simulated based on tier and skill)
+  const getOpponentStats = (opponent: { level: number; skill?: number; powers?: string } | null) => {
+    if (!opponent) return getCharacterStats({} as UserCharacter);
+    const baseStat = 30 + (opponent.level * 10); // Higher tier = higher base stats
+    const skill = opponent.skill || 50;
+    return {
+      stat_intelligence: Math.min(100, baseStat + Math.floor(Math.random() * 20)),
+      stat_strength: Math.min(100, baseStat + Math.floor(Math.random() * 20)),
+      stat_power: Math.min(100, baseStat + Math.floor(Math.random() * 20)),
+      stat_speed: Math.min(100, baseStat + Math.floor(Math.random() * 20)),
+      stat_durability: Math.min(100, baseStat + Math.floor(Math.random() * 20)),
+      stat_stamina: Math.min(100, baseStat + Math.floor(Math.random() * 20)),
+      stat_skill: skill,
+      stat_luck: Math.min(100, baseStat + Math.floor(Math.random() * 20)),
+      stat_battle_iq: Math.min(100, baseStat + Math.floor(Math.random() * 15)),
+    };
+  };
+
+  // Handle concentration result
+  const handleConcentrationResult = async (result: ConcentrationResult) => {
+    if (!selectedCharacter || !currentOpponent || !pendingHit) return;
+    
+    // Update concentration uses
+    const newUses = { ...concentrationUses };
+    newUses[selectedCharacter.id] = (newUses[selectedCharacter.id] || 3) - 1;
+    setConcentrationUses(newUses);
+
+    // Add dice roll message with concentration result
+    const diceMsg: DiceRollMessage = {
+      id: crypto.randomUUID(),
+      hitDetermination: pendingHit,
+      concentrationResult: result,
+      attackerName: currentOpponent.name,
+      defenderName: selectedCharacter.name,
+      timestamp: new Date(),
+      channel: 'in_universe',
+    };
+    setDiceRollMessages(prev => [...prev, diceMsg]);
+
+    // Apply stat penalty if dodge succeeded
+    if (result.dodgeSuccess) {
+      const newPenalties = { ...statPenalties };
+      newPenalties[selectedCharacter.id] = result.statPenalty;
+      setStatPenalties(newPenalties);
+      
+      toast.success(`Dodged! But -${result.statPenalty}% stats on next action`);
+    } else {
+      toast.error('Concentration failed! The attack lands!');
+    }
+
+    // Clear pending hit and continue with the action
+    setPendingHit(null);
+    
+    // Now send the actual message with the dice result context
+    await sendMessageWithDiceResult(pendingUserAction, result);
+  };
+
+  // Handle skipping concentration (taking the hit)
+  const handleSkipConcentration = async () => {
+    if (!selectedCharacter || !currentOpponent || !pendingHit) return;
+    
+    // Add dice roll message without concentration
+    const diceMsg: DiceRollMessage = {
+      id: crypto.randomUUID(),
+      hitDetermination: pendingHit,
+      attackerName: currentOpponent.name,
+      defenderName: selectedCharacter.name,
+      timestamp: new Date(),
+      channel: 'in_universe',
+    };
+    setDiceRollMessages(prev => [...prev, diceMsg]);
+
+    toast.info('You take the hit!');
+    
+    // Clear pending hit and continue
+    setPendingHit(null);
+    await sendMessageWithDiceResult(pendingUserAction, undefined);
+  };
+
+  // Send message with dice result context
+  const sendMessageWithDiceResult = async (userInput: string, concentrationResult?: ConcentrationResult) => {
+    if (!selectedCharacter || !currentOpponent) return;
+    
+    setIsLoading(true);
+    
+    const userSkill = selectedCharacter.stat_skill || 50;
+    const opponentSkill = currentOpponent.skill || 50;
+    
+    // Build dice context for AI
+    let diceContext = '';
+    if (pendingHit) {
+      const finalHit = concentrationResult ? !concentrationResult.dodgeSuccess : pendingHit.wouldHit;
+      diceContext = `\n\n[DICE RESULT: Attack roll ${pendingHit.attackRoll.total} vs Defense ${pendingHit.defenseRoll.total}. `;
+      if (concentrationResult) {
+        diceContext += `Defender used concentration (+${concentrationResult.bonusRoll}). `;
+        diceContext += concentrationResult.dodgeSuccess ? 'DODGED!' : 'Still hit!';
+      } else {
+        diceContext += finalHit ? 'Attack HITS!' : 'Attack MISSES!';
+      }
+      diceContext += ` Incorporate this into the narrative.]`;
+    }
+
+    try {
+      const response = await supabase.functions.invoke('mock-battle-ai', {
+        body: {
+          userCharacter: {
+            name: selectedCharacter.name,
+            level: selectedCharacter.level,
+            powers: selectedCharacter.powers,
+            abilities: selectedCharacter.abilities,
+            skill: userSkill,
+            personality: selectedCharacter.personality,
+            mentality: selectedCharacter.mentality,
+          },
+          opponent: {
+            ...currentOpponent,
+            skill: opponentSkill,
+          },
+          userMessage: userInput + diceContext,
+          channel: 'in_universe',
+          messageHistory: messages.slice(-10),
+          battleLocation,
+          dynamicEnvironment: dynamicEnvironment && !!battleEnvironment,
+          environmentEffects: battleEnvironment?.effectsPrompt || '',
+          userGoesFirst,
+          isFirstMove: false,
+          characterStoryLore: characterStoryLore || undefined,
+        },
+      });
+
+      if (!response.error) {
+        const aiMessage: Message = {
+          id: crypto.randomUUID(),
+          role: 'ai',
+          content: response.data.response,
+          channel: 'in_universe',
+          characterName: currentOpponent.name,
+        };
+        setMessages(prev => [...prev, aiMessage]);
+        setTurnNumber(prev => prev + 1);
+        
+        // Clear any penalties after the action
+        const newPenalties = { ...statPenalties };
+        newPenalties[selectedCharacter.id] = 0;
+        setStatPenalties(newPenalties);
+      }
+    } catch (error) {
+      console.error('AI response error:', error);
+    } finally {
+      setIsLoading(false);
+      setPendingUserAction('');
+    }
+  };
+
   const sendMessage = async () => {
-    if (!input.trim() || !selectedCharacter || isLoading) return;
+    if (!input.trim() || !selectedCharacter || isLoading || pendingHit) return;
 
     const userMessage: Message = {
       id: crypto.randomUUID(),
@@ -1302,7 +1518,42 @@ export default function MockBattle() {
     };
     
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = input;
     setInput('');
+
+    // For in-universe attacks with dice enabled, roll dice for the opponent's counter-attack
+    if (diceEnabled && activeChannel === 'in_universe' && currentOpponent && turnNumber > 1) {
+      const attackerStats = getOpponentStats(currentOpponent);
+      const defenderStats = getCharacterStats(selectedCharacter);
+      const defenderPenalty = statPenalties[selectedCharacter.id] || 0;
+      
+      // Detect if this might be a mental attack based on keywords
+      const isMental = /mind|psychic|telepathy|illusion|mental|brain|thought/i.test(currentOpponent.powers || '');
+      
+      const hit = isMental
+        ? determineMentalHit(attackerStats, currentOpponent.level, defenderStats, selectedCharacter.level, true, defenderPenalty)
+        : determineHit(attackerStats, currentOpponent.level, defenderStats, selectedCharacter.level, true, defenderPenalty);
+      
+      // If the attack would hit, show concentration option
+      if (hit.wouldHit && (concentrationUses[selectedCharacter.id] ?? 3) > 0) {
+        setPendingHit(hit);
+        setPendingUserAction(currentInput);
+        setIsLoading(false);
+        return; // Wait for concentration decision
+      } else {
+        // Add dice roll message (miss or no concentration left)
+        const diceMsg: DiceRollMessage = {
+          id: crypto.randomUUID(),
+          hitDetermination: hit,
+          attackerName: currentOpponent.name,
+          defenderName: selectedCharacter.name,
+          timestamp: new Date(),
+          channel: 'in_universe',
+        };
+        setDiceRollMessages(prev => [...prev, diceMsg]);
+      }
+    }
+    
     setIsLoading(true);
 
     // Determine if an environmental hazard should trigger
@@ -1326,7 +1577,7 @@ export default function MockBattle() {
     const userMishap = shouldTriggerSkillMishap(userSkill);
     const userCritical = !userMishap && shouldTriggerCritical(userSkill);
     
-    let skillEventNote = '';
+    let skillEventNote = ''
     if (userMishap && activeChannel === 'in_universe') {
       skillEventNote = '\n\n[SKILL MISHAP: The user\'s low skill caused their attack/ability to misfire or behave unexpectedly. Incorporate this into the narrative!]';
     } else if (userCritical && activeChannel === 'in_universe') {
@@ -1446,6 +1697,13 @@ export default function MockBattle() {
     setTurnOrderDetermined(false);
     setUserGoesFirst(true);
     setIsFirstMove(true);
+    // Reset dice mechanics
+    setBattleState(null);
+    setPendingHit(null);
+    setPendingUserAction('');
+    setDiceRollMessages([]);
+    setConcentrationUses({});
+    setStatPenalties({});
   };
 
   if (userCharacters.length === 0) {
@@ -1988,6 +2246,26 @@ export default function MockBattle() {
                   </Select>
                 </div>
 
+                {/* Dice Roll Combat System Toggle */}
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border">
+                  <div className="flex items-center gap-3">
+                    <Dices className="w-5 h-5 text-amber-500" />
+                    <div>
+                      <Label htmlFor="dice-combat" className="text-sm font-medium">
+                        Dice Combat System
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Attack/defense rolls with concentration mechanics
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="dice-combat"
+                    checked={diceEnabled}
+                    onCheckedChange={setDiceEnabled}
+                  />
+                </div>
+
                 {/* Environment Preview */}
                 {battleEnvironment && dynamicEnvironment && (
                   <div className="p-3 rounded-lg border bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/30 space-y-2">
@@ -2126,6 +2404,20 @@ export default function MockBattle() {
                 </div>
               </div>
 
+              {/* Concentration Button when pending hit */}
+              {pendingHit && selectedCharacter && (
+                <TooltipProvider>
+                  <ConcentrationButton
+                    hitDetermination={pendingHit}
+                    defenderStats={getCharacterStats(selectedCharacter)}
+                    usesRemaining={concentrationUses[selectedCharacter.id] ?? 3}
+                    onUseConcentration={handleConcentrationResult}
+                    onSkip={handleSkipConcentration}
+                    disabled={isLoading}
+                  />
+                </TooltipProvider>
+              )}
+
               {/* Channel Tabs */}
               <Tabs value={activeChannel} onValueChange={(v) => setActiveChannel(v as 'in_universe' | 'out_of_universe')}>
                 <TabsList className="grid w-full grid-cols-2">
@@ -2142,6 +2434,7 @@ export default function MockBattle() {
                 <TabsContent value="in_universe" className="mt-0">
                   <MessageArea 
                     messages={messages.filter(m => m.channel === 'in_universe')}
+                    diceRollMessages={diceRollMessages}
                     scrollRef={scrollRef}
                     isInUniverse={true}
                     isLoading={isLoading && activeChannel === 'in_universe'}
@@ -2151,6 +2444,7 @@ export default function MockBattle() {
                 <TabsContent value="out_of_universe" className="mt-0">
                   <MessageArea 
                     messages={messages.filter(m => m.channel === 'out_of_universe')}
+                    diceRollMessages={[]}
                     scrollRef={scrollRef}
                     isInUniverse={false}
                     isLoading={isLoading && activeChannel === 'out_of_universe'}
@@ -2159,18 +2453,40 @@ export default function MockBattle() {
                 </TabsContent>
               </Tabs>
 
+              {/* Dice Combat Status */}
+              {diceEnabled && battleStarted && selectedCharacter && (
+                <div className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border text-xs">
+                  <div className="flex items-center gap-2">
+                    <Dices className="w-4 h-4 text-amber-500" />
+                    <span>Dice Combat Active</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="text-xs">
+                      Concentration: {concentrationUses[selectedCharacter.id] ?? 3}/3
+                    </Badge>
+                    {(statPenalties[selectedCharacter.id] || 0) > 0 && (
+                      <Badge variant="destructive" className="text-xs">
+                        -{statPenalties[selectedCharacter.id]}% stats
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Input */}
               <div className="flex gap-2">
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder={activeChannel === 'in_universe' 
+                  placeholder={pendingHit 
+                    ? 'Resolve the incoming attack first...'
+                    : activeChannel === 'in_universe' 
                     ? 'Describe your action or attack...' 
                     : 'Ask a question or discuss strategy...'}
-                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                  disabled={isLoading}
+                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && !pendingHit && sendMessage()}
+                  disabled={isLoading || !!pendingHit}
                 />
-                <Button onClick={sendMessage} disabled={isLoading || !input.trim()}>
+                <Button onClick={sendMessage} disabled={isLoading || !input.trim() || !!pendingHit}>
                   <Send className="w-4 h-4" />
                 </Button>
               </div>
@@ -2202,48 +2518,68 @@ function TypingIndicator({ opponentName }: { opponentName?: string }) {
 
 function MessageArea({ 
   messages, 
+  diceRollMessages = [],
   scrollRef, 
   isInUniverse,
   isLoading,
   opponentName
 }: { 
   messages: Message[]; 
+  diceRollMessages?: DiceRollMessage[];
   scrollRef: React.RefObject<HTMLDivElement>;
   isInUniverse: boolean;
   isLoading?: boolean;
   opponentName?: string;
 }) {
+  // Merge messages and dice rolls by timestamp for chronological display
+  const allItems = [
+    ...messages.map(m => ({ type: 'message' as const, data: m, time: new Date().getTime() })),
+  ];
+  
   return (
     <ScrollArea className="h-[400px] rounded-lg border border-border p-4" ref={scrollRef}>
-      {messages.length === 0 && !isLoading ? (
+      {messages.length === 0 && diceRollMessages.length === 0 && !isLoading ? (
         <div className="flex items-center justify-center h-full text-muted-foreground">
           <p>{isInUniverse ? 'The arena awaits your first move...' : 'No OOC messages yet'}</p>
         </div>
       ) : (
         <div className="space-y-4">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`p-3 rounded-lg ${
-                message.role === 'user'
-                  ? 'bg-primary/20 border-l-4 border-primary ml-8'
-                  : message.role === 'narrator'
-                  ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-l-4 border-purple-500 mx-4 italic'
-                  : message.role === 'system'
-                  ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border-l-4 border-cyan-500 mx-4 text-center'
-                  : 'bg-muted/50 border-l-4 border-accent mr-8'
-              }`}
-            >
-              <p className={`text-xs mb-1 ${
-                message.role === 'narrator' 
-                  ? 'text-purple-400 font-semibold' 
-                  : message.role === 'system'
-                  ? 'text-cyan-400 font-semibold'
-                  : 'text-muted-foreground'
-              }`}>
-                {message.characterName}
-              </p>
-              <p className="whitespace-pre-wrap">{message.content}</p>
+          {messages.map((message, idx) => (
+            <div key={message.id}>
+              <div
+                className={`p-3 rounded-lg ${
+                  message.role === 'user'
+                    ? 'bg-primary/20 border-l-4 border-primary ml-8'
+                    : message.role === 'narrator'
+                    ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-l-4 border-purple-500 mx-4 italic'
+                    : message.role === 'system'
+                    ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border-l-4 border-cyan-500 mx-4 text-center'
+                    : 'bg-muted/50 border-l-4 border-accent mr-8'
+                }`}
+              >
+                <p className={`text-xs mb-1 ${
+                  message.role === 'narrator' 
+                    ? 'text-purple-400 font-semibold' 
+                    : message.role === 'system'
+                    ? 'text-cyan-400 font-semibold'
+                    : 'text-muted-foreground'
+                }`}>
+                  {message.characterName}
+                </p>
+                <p className="whitespace-pre-wrap">{message.content}</p>
+              </div>
+              {/* Show dice roll after user messages if one exists */}
+              {message.role === 'user' && isInUniverse && diceRollMessages[Math.floor(idx / 2)] && (
+                <div className="mt-2">
+                  <DiceRollChatMessage
+                    hitDetermination={diceRollMessages[Math.floor(idx / 2)].hitDetermination}
+                    concentrationResult={diceRollMessages[Math.floor(idx / 2)].concentrationResult}
+                    attackerName={diceRollMessages[Math.floor(idx / 2)].attackerName}
+                    defenderName={diceRollMessages[Math.floor(idx / 2)].defenderName}
+                    timestamp={diceRollMessages[Math.floor(idx / 2)].timestamp}
+                  />
+                </div>
+              )}
             </div>
           ))}
           {isLoading && <TypingIndicator opponentName={opponentName} />}
