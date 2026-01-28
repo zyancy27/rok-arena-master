@@ -50,7 +50,10 @@ import ConstructPanel from '@/components/battles/ConstructPanel';
 import ConstructDiceMessage from '@/components/battles/ConstructDiceMessage';
 import TurnIndicatorWrapper from '@/components/battles/TurnIndicatorWrapper';
 import BattleTurnColorPicker from '@/components/battles/BattleTurnColorPicker';
+import BattlefieldEffectsOverlay from '@/components/battles/BattlefieldEffectsOverlay';
 import { useBattleTurnColor } from '@/hooks/use-battle-turn-color';
+import { useBattlefieldEffects } from '@/components/battles/useBattlefieldEffects';
+import type { ActiveBattlefieldEffect } from '@/lib/battlefield-effects';
 import { 
   ArrowLeft, 
   Swords, 
@@ -1069,6 +1072,9 @@ export default function MockBattle() {
   // Battle turn color preference
   const { color: userTurnColor, updateColor: updateTurnColor } = useBattleTurnColor();
   
+  // Battlefield visual effects (fire, ice, smoke, etc.)
+  const { activeEffects: battlefieldEffects, processMessage: processBattlefieldEffect } = useBattlefieldEffects();
+  
   // Filter opponents by tier and category
   const filteredOpponents = AI_OPPONENTS.filter(opponent => {
     // Tier filter
@@ -1703,6 +1709,12 @@ export default function MockBattle() {
     };
     
     setMessages(prev => [...prev, userMessage]);
+    
+    // Process battlefield effects from user message
+    if (activeChannel === 'in_universe') {
+      processBattlefieldEffect(input);
+    }
+    
     const currentInput = input;
     setInput('');
 
@@ -1935,6 +1947,11 @@ export default function MockBattle() {
       };
       
       setMessages(prev => [...prev, aiMessage]);
+      
+      // Process battlefield effects from AI message
+      if (activeChannel === 'in_universe') {
+        processBattlefieldEffect(response.data.response);
+      }
       
       // Store opponent's action for defense validation next turn
       if (activeChannel === 'in_universe') {
@@ -2801,6 +2818,7 @@ export default function MockBattle() {
                     opponentName={currentOpponent?.name}
                     isUserTurn={!isLoading}
                     userTurnColor={userTurnColor}
+                    battlefieldEffects={battlefieldEffects}
                   />
                 </TabsContent>
                 <TabsContent value="out_of_universe" className="mt-0">
@@ -2814,6 +2832,7 @@ export default function MockBattle() {
                     opponentName={currentOpponent?.name}
                     isUserTurn={!isLoading}
                     userTurnColor={userTurnColor}
+                    battlefieldEffects={[]}
                   />
                 </TabsContent>
               </Tabs>
@@ -2907,16 +2926,17 @@ function TypingIndicator({ opponentName }: { opponentName?: string }) {
   );
 }
 
-function MessageArea({ 
-  messages, 
+function MessageArea({
+  messages,
   diceRollMessages = [],
   constructEventMessages = [],
-  scrollRef, 
+  scrollRef,
   isInUniverse,
   isLoading,
   opponentName,
   isUserTurn,
   userTurnColor,
+  battlefieldEffects = [],
 }: { 
   messages: Message[]; 
   diceRollMessages?: DiceRollMessage[];
@@ -2927,6 +2947,7 @@ function MessageArea({
   opponentName?: string;
   isUserTurn?: boolean;
   userTurnColor?: string;
+  battlefieldEffects?: ActiveBattlefieldEffect[];
 }) {
   return (
     <TurnIndicatorWrapper
@@ -2934,13 +2955,19 @@ function MessageArea({
       userColor={userTurnColor}
       opponentColor="#EF4444"
     >
-      <ScrollArea className="h-[400px] rounded-lg border border-border p-4" ref={scrollRef}>
-        {messages.length === 0 && diceRollMessages.length === 0 && !isLoading ? (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
-            <p>{isInUniverse ? 'The arena awaits your first move...' : 'No OOC messages yet'}</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
+      <div className="relative">
+        {/* Battlefield Effects Overlay - only on in-universe chat */}
+        {isInUniverse && battlefieldEffects.length > 0 && (
+          <BattlefieldEffectsOverlay effects={battlefieldEffects} />
+        )}
+        
+        <ScrollArea className="h-[400px] rounded-lg border border-border p-4 relative z-10" ref={scrollRef}>
+          {messages.length === 0 && diceRollMessages.length === 0 && !isLoading ? (
+            <div className="flex items-center justify-center h-full text-muted-foreground">
+              <p>{isInUniverse ? 'The arena awaits your first move...' : 'No OOC messages yet'}</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
             {messages.map((message, idx) => {
               // Find construct events that happened around this message
               const relevantConstructEvents = constructEventMessages.filter((evt, evtIdx) => 
@@ -3006,6 +3033,7 @@ function MessageArea({
           </div>
         )}
       </ScrollArea>
+      </div>
     </TurnIndicatorWrapper>
   );
 }

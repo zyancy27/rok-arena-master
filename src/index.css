@@ -210,4 +210,195 @@
   .animate-ripple-3 {
     animation: ripple-expand-3 1.6s ease-out 0.2s forwards;
   }
+
+  /* Battlefield Effect Animations */
+  
+  /* Fire particles animation */
+  @keyframes fire-particle-rise {
+    0% {
+      transform: translateY(100%) scale(0);
+      opacity: 0;
+    }
+    20% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-20%) scale(1.5);
+      opacity: 0;
+    }
+  }
+  
+  .battlefield-fire-particles {
+    background-image: 
+      radial-gradient(3px 3px at 10% 90%, hsl(30 100% 60% / 0.8), transparent),
+      radial-gradient(4px 4px at 30% 85%, hsl(20 100% 55% / 0.7), transparent),
+      radial-gradient(2px 2px at 50% 95%, hsl(35 100% 65% / 0.9), transparent),
+      radial-gradient(3px 3px at 70% 88%, hsl(25 100% 50% / 0.8), transparent),
+      radial-gradient(4px 4px at 90% 92%, hsl(15 100% 55% / 0.7), transparent);
+    background-size: 100% 100%;
+    animation: fire-particle-rise 2s ease-out infinite;
+  }
+  
+  /* Frost pattern */
+  .battlefield-frost-pattern {
+    background-image: 
+      radial-gradient(2px 2px at 20% 30%, hsl(200 100% 95% / 0.6), transparent),
+      radial-gradient(1px 1px at 60% 20%, hsl(200 100% 90% / 0.5), transparent),
+      radial-gradient(2px 2px at 80% 60%, hsl(200 100% 95% / 0.7), transparent),
+      radial-gradient(1px 1px at 40% 80%, hsl(200 100% 90% / 0.5), transparent),
+      radial-gradient(3px 3px at 10% 70%, hsl(200 100% 95% / 0.6), transparent);
+    background-size: 100px 100px;
+  }
+  
+  /* Smoke drift animations */
+  @keyframes smoke-drift {
+    0% { transform: translateX(-10%) translateY(5%); }
+    50% { transform: translateX(5%) translateY(-5%); }
+    100% { transform: translateX(-10%) translateY(5%); }
+  }
+  
+  @keyframes smoke-drift-reverse {
+    0% { transform: translateX(10%) translateY(-5%); }
+    50% { transform: translateX(-5%) translateY(5%); }
+    100% { transform: translateX(10%) translateY(-5%); }
+  }
+  
+  .battlefield-smoke-drift {
+    animation: smoke-drift 8s ease-in-out infinite;
+  }
+  
+  .battlefield-smoke-drift-reverse {
+    animation: smoke-drift-reverse 10s ease-in-out infinite;
+  }
+  
+  /* Flash pulse */
+  @keyframes flash-pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 0; }
+  }
+  
+  .battlefield-flash-pulse {
+    animation: flash-pulse 0.5s ease-out forwards;
+  }
+  
+  /* Rain effect */
+  @keyframes rain-fall {
+    0% { background-position: 0 0; }
+    100% { background-position: 20px 100px; }
+  }
+  
+  .battlefield-rain {
+    background-image: 
+      linear-gradient(180deg, hsl(200 50% 70% / 0.3) 0%, transparent 50%),
+      repeating-linear-gradient(
+        100deg,
+        transparent,
+        transparent 2px,
+        hsl(200 60% 80% / 0.2) 2px,
+        hsl(200 60% 80% / 0.2) 3px
+      );
+    background-size: 20px 100px, 20px 100px;
+    animation: rain-fall 0.3s linear infinite;
+  }
+  
+  /* Lightning flash */
+  @keyframes lightning-flash {
+    0%, 90%, 100% { opacity: 0; }
+    91%, 93% { opacity: 0.8; }
+    92% { opacity: 0.3; }
+  }
+  
+  .battlefield-lightning {
+    background: hsl(60 100% 90% / 0.4);
+    animation: lightning-flash 3s ease-in-out infinite;
+  }
+  
+  /* Poison drift */
+  @keyframes poison-drift {
+    0% { transform: translateY(0) scaleY(1); }
+    50% { transform: translateY(-10px) scaleY(1.1); }
+    100% { transform: translateY(0) scaleY(1); }
+  }
+  
+  .battlefield-poison-drift {
+    animation: poison-drift 4s ease-in-out infinite;
+  }
+  
+  /* Poison bubbles */
+  @keyframes bubble-rise {
+    0% { transform: translateY(0) scale(1); opacity: 0.6; }
+    100% { transform: translateY(-50px) scale(0.5); opacity: 0; }
+  }
+  
+  .battlefield-poison-bubbles {
+    background-image: 
+      radial-gradient(4px 4px at 20% 80%, hsl(120 70% 40% / 0.6), transparent),
+      radial-gradient(3px 3px at 50% 90%, hsl(100 60% 45% / 0.5), transparent),
+      radial-gradient(5px 5px at 80% 85%, hsl(110 65% 35% / 0.7), transparent);
+    background-size: 100% 100%;
+    animation: bubble-rise 3s ease-out infinite;
+  }
+  
+  /* Electric pulse */
+  @keyframes electric-pulse {
+    0%, 100% { opacity: 0.5; }
+    25% { opacity: 1; }
+    50% { opacity: 0.3; }
+    75% { opacity: 0.9; }
+  }
+  
+  .battlefield-electric-pulse {
+    animation: electric-pulse 0.5s ease-in-out infinite;
+  }
+  
+  /* Electric arcs */
+  .battlefield-electric-arcs {
+    background-image: 
+      linear-gradient(45deg, transparent 45%, hsl(200 100% 70% / 0.4) 48%, hsl(200 100% 70% / 0.4) 52%, transparent 55%),
+      linear-gradient(-45deg, transparent 45%, hsl(180 100% 60% / 0.3) 48%, hsl(180 100% 60% / 0.3) 52%, transparent 55%);
+    background-size: 30px 30px;
+    animation: electric-pulse 0.2s ease-in-out infinite;
+  }
+  
+  /* Sand drift */
+  @keyframes sand-drift {
+    0% { transform: translateX(-20px); }
+    100% { transform: translateX(20px); }
+  }
+  
+  .battlefield-sand-drift {
+    animation: sand-drift 2s ease-in-out infinite alternate;
+  }
+  
+  /* Sand particles */
+  @keyframes sand-particle-move {
+    0% { background-position: 0 0; }
+    100% { background-position: 50px 20px; }
+  }
+  
+  .battlefield-sand-particles {
+    background-image: 
+      radial-gradient(1px 1px at 10% 30%, hsl(35 70% 60% / 0.5), transparent),
+      radial-gradient(1px 1px at 30% 60%, hsl(40 60% 55% / 0.4), transparent),
+      radial-gradient(2px 2px at 60% 40%, hsl(35 65% 65% / 0.5), transparent),
+      radial-gradient(1px 1px at 80% 70%, hsl(38 70% 58% / 0.4), transparent),
+      radial-gradient(1px 1px at 90% 20%, hsl(35 60% 60% / 0.5), transparent);
+    background-size: 50px 50px;
+    animation: sand-particle-move 1s linear infinite;
+  }
+  
+  /* Water caustics */
+  @keyframes water-caustics {
+    0% { background-position: 0 0, 50px 50px; }
+    100% { background-position: 50px 30px, 0 20px; }
+  }
+  
+  .battlefield-water-caustics {
+    background-image: 
+      radial-gradient(ellipse 30px 20px at 30% 40%, hsl(200 80% 70% / 0.2), transparent),
+      radial-gradient(ellipse 40px 25px at 70% 60%, hsl(200 70% 75% / 0.15), transparent);
+    background-size: 100px 100px;
+    animation: water-caustics 4s ease-in-out infinite;
+  }
 }
