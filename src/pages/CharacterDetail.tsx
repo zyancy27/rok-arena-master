@@ -308,9 +308,9 @@ export default function CharacterDetail() {
                 <FileText className="w-4 h-4" />
                 Sections
               </TabsTrigger>
-              <TabsTrigger value="groups" className="flex items-center gap-2">
+              <TabsTrigger value="teams" className="flex items-center gap-2">
                 <Users className="w-4 h-4" />
-                Groups
+                Teams
               </TabsTrigger>
               {isOwner && (
                 <TabsTrigger value="3d" className="flex items-center gap-2">
@@ -467,7 +467,7 @@ export default function CharacterDetail() {
               />
             </TabsContent>
 
-            <TabsContent value="groups" className="space-y-6">
+            <TabsContent value="teams" className="space-y-6">
               <CharacterGroupsPanel
                 characterId={character.id}
                 readOnly={!isOwner}

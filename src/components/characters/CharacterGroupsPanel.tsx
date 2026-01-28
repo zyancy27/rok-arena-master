@@ -110,7 +110,7 @@ export default function CharacterGroupsPanel({ characterId, readOnly = false }: 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="animate-pulse text-muted-foreground">Loading groups...</div>
+        <div className="animate-pulse text-muted-foreground">Loading teams...</div>
       </div>
     );
   }
@@ -122,11 +122,11 @@ export default function CharacterGroupsPanel({ characterId, readOnly = false }: 
       <div className="space-y-4">
         <div className="flex items-center gap-2 text-muted-foreground">
           <Users className="w-4 h-4" />
-          <span className="text-sm font-medium">Groups</span>
+          <span className="text-sm font-medium">Teams</span>
         </div>
         
         {memberGroups.length === 0 ? (
-          <p className="text-sm text-muted-foreground">This character is not in any groups.</p>
+          <p className="text-sm text-muted-foreground">This character is not in any teams.</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {memberGroups.map(group => (
@@ -150,21 +150,21 @@ export default function CharacterGroupsPanel({ characterId, readOnly = false }: 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Users className="w-5 h-5 text-primary" />
-          <h3 className="font-semibold">Groups & Teams</h3>
+          <h3 className="font-semibold">Teams</h3>
         </div>
         
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
             <Button size="sm">
               <Plus className="w-4 h-4 mr-2" />
-              New Group
+              New Team
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create New Group</DialogTitle>
+              <DialogTitle>Create New Team</DialogTitle>
               <DialogDescription>
-                Create a group to organize your characters into teams, factions, or any category.
+                Create a team to organize your characters into factions, squads, or any category.
               </DialogDescription>
             </DialogHeader>
             
@@ -183,7 +183,7 @@ export default function CharacterGroupsPanel({ characterId, readOnly = false }: 
                 <Label htmlFor="group-description">Description (optional)</Label>
                 <Textarea
                   id="group-description"
-                  placeholder="Brief description of this group..."
+                  placeholder="Brief description of this team..."
                   value={newGroupDescription}
                   onChange={(e) => setNewGroupDescription(e.target.value)}
                   rows={2}
@@ -226,7 +226,7 @@ export default function CharacterGroupsPanel({ characterId, readOnly = false }: 
                 Cancel
               </Button>
               <Button onClick={handleCreateGroup} disabled={!newGroupName.trim()}>
-                Create Group
+                Create Team
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -237,9 +237,9 @@ export default function CharacterGroupsPanel({ characterId, readOnly = false }: 
       {groups.length === 0 ? (
         <div className="text-center py-8 border border-dashed border-border rounded-lg">
           <Users className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
-          <p className="text-muted-foreground mb-2">No groups yet</p>
+          <p className="text-muted-foreground mb-2">No teams yet</p>
           <p className="text-sm text-muted-foreground">
-            Create groups to organize your characters into teams or categories.
+            Create teams to organize your characters into squads or categories.
           </p>
         </div>
       ) : (
@@ -285,7 +285,7 @@ export default function CharacterGroupsPanel({ characterId, readOnly = false }: 
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Edit Group</DialogTitle>
+                        <DialogTitle>Edit Team</DialogTitle>
                       </DialogHeader>
                       
                       <div className="space-y-4 py-4">
@@ -359,9 +359,9 @@ export default function CharacterGroupsPanel({ characterId, readOnly = false }: 
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Group</AlertDialogTitle>
+                        <AlertDialogTitle>Delete Team</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Are you sure you want to delete "{group.name}"? All characters will be removed from this group. This cannot be undone.
+                          Are you sure you want to delete "{group.name}"? All characters will be removed from this team. This cannot be undone.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
