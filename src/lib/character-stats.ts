@@ -8,6 +8,13 @@ export const CHARACTER_STATS = [
     color: 'hsl(220 70% 55%)', // Blue
   },
   {
+    key: 'stat_battle_iq',
+    name: 'Battle IQ',
+    description: 'Combat instincts, tactical awareness in battle. Distinct from Intelligence - measures fight IQ (like Goku). 100 = Perfect combat intuition',
+    icon: 'Crosshair',
+    color: 'hsl(35 90% 55%)', // Orange
+  },
+  {
     key: 'stat_strength',
     name: 'Strength',
     description: 'Physical scaling - how easily you can move weight with your body. 100 = Can lift/push anything physical',
@@ -62,6 +69,7 @@ export type StatKey = typeof CHARACTER_STATS[number]['key'];
 
 export interface CharacterStats {
   stat_intelligence: number;
+  stat_battle_iq: number;
   stat_strength: number;
   stat_power: number;
   stat_speed: number;
@@ -73,6 +81,7 @@ export interface CharacterStats {
 
 export const DEFAULT_STATS: CharacterStats = {
   stat_intelligence: 50,
+  stat_battle_iq: 50,
   stat_strength: 50,
   stat_power: 50,
   stat_speed: 50,
@@ -88,6 +97,7 @@ export const TIER_BASE_STATS: Record<number, CharacterStats> = {
   // Tier 1: Common Human - Normal human capabilities
   1: {
     stat_intelligence: 25,
+    stat_battle_iq: 20,
     stat_strength: 15,
     stat_power: 0,
     stat_speed: 15,
@@ -99,6 +109,7 @@ export const TIER_BASE_STATS: Record<number, CharacterStats> = {
   // Tier 2: Enhanced Human - Peak physical condition
   2: {
     stat_intelligence: 35,
+    stat_battle_iq: 40,
     stat_strength: 35,
     stat_power: 10,
     stat_speed: 35,
@@ -110,6 +121,7 @@ export const TIER_BASE_STATS: Record<number, CharacterStats> = {
   // Tier 3: Super Human - Beyond human limits
   3: {
     stat_intelligence: 45,
+    stat_battle_iq: 55,
     stat_strength: 50,
     stat_power: 40,
     stat_speed: 50,
@@ -121,6 +133,7 @@ export const TIER_BASE_STATS: Record<number, CharacterStats> = {
   // Tier 4: Title of God - Mass manipulation, energy control
   4: {
     stat_intelligence: 60,
+    stat_battle_iq: 70,
     stat_strength: 65,
     stat_power: 65,
     stat_speed: 65,
@@ -132,6 +145,7 @@ export const TIER_BASE_STATS: Record<number, CharacterStats> = {
   // Tier 5: Title of Titan - Reality/dimensional control
   5: {
     stat_intelligence: 75,
+    stat_battle_iq: 80,
     stat_strength: 80,
     stat_power: 80,
     stat_speed: 80,
@@ -143,6 +157,7 @@ export const TIER_BASE_STATS: Record<number, CharacterStats> = {
   // Tier 6: Logic Bending - Balance restoration powers
   6: {
     stat_intelligence: 90,
+    stat_battle_iq: 92,
     stat_strength: 90,
     stat_power: 92,
     stat_speed: 90,
@@ -154,6 +169,7 @@ export const TIER_BASE_STATS: Record<number, CharacterStats> = {
   // Tier 7: Logic Resorts (7:1) - Willpower-based paradox
   7: {
     stat_intelligence: 98,
+    stat_battle_iq: 95,
     stat_strength: 98,
     stat_power: 99,
     stat_speed: 98,

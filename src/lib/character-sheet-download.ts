@@ -79,6 +79,7 @@ export function generateCharacterSheetText(character: CharacterData): string {
   
   const stats: CharacterStats = {
     stat_intelligence: character.stat_intelligence ?? 50,
+    stat_battle_iq: (character as any).stat_battle_iq ?? 50,
     stat_strength: character.stat_strength ?? 50,
     stat_power: character.stat_power ?? 50,
     stat_speed: character.stat_speed ?? 50,

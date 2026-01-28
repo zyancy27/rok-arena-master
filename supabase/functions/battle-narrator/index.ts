@@ -20,6 +20,13 @@ interface NarratorRequest {
   battleLocation: string;
   turnNumber: number;
   frequency?: 'always' | 'key_moments';
+  // New: Environmental effect detection
+  detectEnvironmentalEffects?: boolean;
+}
+
+interface EnvironmentalEffect {
+  type: string;
+  description: string;
 }
 
 serve(async (req) => {
@@ -52,12 +59,26 @@ serve(async (req) => {
       );
     }
 
-    const { userCharacter, opponent, userAction, opponentResponse, battleLocation, turnNumber, frequency = 'key_moments' }: NarratorRequest = await req.json();
+    const { 
+      userCharacter, 
+      opponent, 
+      userAction, 
+      opponentResponse, 
+      battleLocation, 
+      turnNumber, 
+      frequency = 'key_moments',
+      detectEnvironmentalEffects = true
+    }: NarratorRequest = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
+
+    // Detect environmental effects from the attacker's action
+    const environmentalEffects = detectEnvironmentalEffects 
+      ? detectEffectsFromAction(userAction) 
+      : [];
 
     // Build frequency-specific instructions
     const frequencyInstructions = frequency === 'always' 
@@ -70,25 +91,43 @@ Be HIGHLY selective. Only speak when something genuinely notable happens:
 - The environment takes visible damage (craters, cracks, debris)
 - The momentum of the fight shifts dramatically
 - A moment of real tension before a big move
+- IMPORTANT: Any area of effect or stage hazard (smoke, ice, fire, gravity shifts) MUST be narrated
 
 If this exchange is routine, return exactly: [SKIP]
 The [SKIP] response tells the system you chose to stay silent.`;
 
+    // Environmental effect instructions
+    const envInstructions = environmentalEffects.length > 0 
+      ? `\n\nCRITICAL - ENVIRONMENTAL EFFECTS DETECTED:
+The attacker's move has created these battlefield conditions that the defender MUST be aware of:
+${environmentalEffects.map(e => `- ${e.type}: ${e.description}`).join('\n')}
+
+You MUST describe these effects BEFORE the counter-attack happens so the defender knows what conditions they're facing.
+Be clear about how these effects change the battlefield (visibility, footing, breathing, etc.).`
+      : '';
+
     const systemPrompt = `You are an invisible narrator observing a battle. You are not physically present - you exist only in the moment, like a voice in someone's head noticing when something significant happens.
 
-${frequencyInstructions}
+${frequencyInstructions}${envInstructions}
 
 STYLE:
-- 1 sentence, maybe 2 if the moment truly warrants it
+- 1-2 sentences normally, up to 3 if describing major environmental changes
 - Describe what you SEE and FEEL, not physics or mechanics
 - Grounded, atmospheric. Like a thought passing through the mind of an observer.
 - No exclamations. No hype commentary. Just observation.
+- For environmental effects: be PRACTICAL - tell the defender what changed and how it affects them
 
-EXAMPLES:
+EXAMPLES (normal):
 "The ground remembers that one."
 "Something in the air shifted—${opponent.name} felt it too."
 "Dust still hanging where ${userCharacter.name} had been standing a moment ago."
-"A crack runs through the stone like a fresh scar."`;
+"A crack runs through the stone like a fresh scar."
+
+EXAMPLES (environmental effects):
+"Smoke billows across the arena. ${opponent.name} can barely see three feet ahead now."
+"Ice creeps across the floor—every step will be treacherous from here on."
+"The air itself seems to thicken. Something's wrong with the atmosphere."
+"Lava bubbles up through the cracks. The safe ground is shrinking."`;
 
     const userPrompt = `Battle Location: ${battleLocation}
 Turn: ${turnNumber}
@@ -96,10 +135,9 @@ Turn: ${turnNumber}
 ${userCharacter.name} (Tier ${userCharacter.level}) acted:
 "${userAction}"
 
-${opponent.name} (Tier ${opponent.level}) responded:
-"${opponentResponse}"
+${opponent.name} (Tier ${opponent.level}) is about to respond.
 
-Provide your narrator observation based on your frequency mode.`;
+Provide your narrator observation${environmentalEffects.length > 0 ? ', making sure to clearly describe the environmental hazards the defender must now contend with' : ''}.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -113,7 +151,7 @@ Provide your narrator observation based on your frequency mode.`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        max_tokens: 200,
+        max_tokens: 300,
       }),
     });
 
@@ -139,13 +177,19 @@ Provide your narrator observation based on your frequency mode.`;
     // If narrator chose to skip (key moments mode), return null narration
     if (narration.includes('[SKIP]') || narration.trim() === '') {
       return new Response(
-        JSON.stringify({ narration: null }),
+        JSON.stringify({ 
+          narration: null,
+          environmentalEffects: environmentalEffects.length > 0 ? environmentalEffects : null
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     return new Response(
-      JSON.stringify({ narration }),
+      JSON.stringify({ 
+        narration,
+        environmentalEffects: environmentalEffects.length > 0 ? environmentalEffects : null
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
@@ -156,3 +200,54 @@ Provide your narrator observation based on your frequency mode.`;
     );
   }
 });
+
+/**
+ * Detect environmental effects from action text
+ */
+function detectEffectsFromAction(actionText: string): EnvironmentalEffect[] {
+  const text = actionText.toLowerCase();
+  const effects: EnvironmentalEffect[] = [];
+
+  const hazardPatterns: { pattern: RegExp; type: string; description: string }[] = [
+    // Smoke/visibility
+    { pattern: /smoke|fog|mist|haze|obscure|cloud|fumes/i, type: 'smoke', description: 'Visibility is severely reduced. Targeting becomes difficult.' },
+    
+    // Ice/frozen
+    { pattern: /ice|freeze|frozen|frost|glacier|cold|slippery/i, type: 'ice', description: 'The ground is now icy and slippery. Movement is unstable.' },
+    
+    // Fire/lava
+    { pattern: /lava|magma|fire|flame|burn|inferno|scorching|molten/i, type: 'fire', description: 'Fire or lava covers parts of the battlefield. Contact causes damage.' },
+    
+    // Water/flooding
+    { pattern: /flood|water|drown|underwater|submerge|deluge|tidal/i, type: 'water', description: 'Water fills the arena. Movement and breathing are affected.' },
+    
+    // Terrain destruction
+    { pattern: /crater|rubble|debris|collapse|shatter|destroy.*ground|break.*floor/i, type: 'terrain', description: 'The terrain is destroyed and unstable. Watch your footing.' },
+    
+    // Atmosphere changes
+    { pattern: /vacuum|no air|suffocate|atmosphere|oxygen|breathable|air.*thin/i, type: 'atmosphere', description: 'The breathable air is compromised. Stamina drains faster.' },
+    
+    // Gravity changes
+    { pattern: /gravity|weightless|heavy.*force|crushing.*pressure|zero.?g/i, type: 'gravity', description: 'Gravity has been altered. All movement is affected.' },
+    
+    // Darkness
+    { pattern: /darkness|blind|shadow.*engulf|light.*gone|pitch.*black/i, type: 'darkness', description: 'Darkness falls. Visual perception is impaired.' },
+    
+    // Electricity
+    { pattern: /electric|lightning|shock|charged|static|thunder/i, type: 'electricity', description: 'The area is electrified. Metal and water conduct the charge.' },
+    
+    // Poison/toxic
+    { pattern: /poison|toxic|gas|corrosive|acid|venom|noxious/i, type: 'poison', description: 'Toxic substances fill the air. Prolonged exposure is dangerous.' },
+    
+    // Area of Effect
+    { pattern: /explosion|blast.*radius|shockwave|engulf|surrounding.*area|everywhere|all.*around/i, type: 'aoe', description: 'This attack covers a wide area. Dodging requires significant movement.' },
+  ];
+
+  for (const { pattern, type, description } of hazardPatterns) {
+    if (pattern.test(text)) {
+      effects.push({ type, description });
+    }
+  }
+
+  return effects;
+}
