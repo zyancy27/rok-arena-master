@@ -497,11 +497,80 @@ export default function BattleView() {
     // Generate dice roll for in-universe attack moves
     if (activeChannel === 'in_universe' && !skipDiceRoll) {
       generateDiceRoll(content);
+      
+      // Detect new techniques and add to character sheet
+      detectAndCatalogNewTechnique(content);
     }
 
     setMessageInput('');
     setPendingMove(null);
     setMoveValidation(null);
+  };
+  
+  // Detect if the action contains a new technique and add it to character sheet
+  const detectAndCatalogNewTechnique = async (action: string) => {
+    if (!userCharacter?.character || !battle) return;
+    
+    try {
+      const response = await supabase.functions.invoke('detect-new-technique', {
+        body: {
+          action,
+          character: {
+            id: userCharacter.character.id,
+            name: userCharacter.character.name,
+            powers: userCharacter.character.powers,
+            abilities: userCharacter.character.abilities,
+            personality: (userCharacter.character as any).personality,
+            mentality: (userCharacter.character as any).mentality,
+          },
+          battleId: battle.id,
+          battleLocation: battle.chosen_location,
+        },
+      });
+      
+      if (response.data?.isNewTechnique && response.data?.techniqueName) {
+        const { techniqueName, techniqueDescription, battleContext } = response.data;
+        
+        // Build the new technique entry with battle context
+        const techniqueEntry = `\n\n**${techniqueName}** _(Discovered ${battleContext.date} during battle at ${battleContext.location})_\n${techniqueDescription}`;
+        
+        // Append to existing abilities
+        const currentAbilities = userCharacter.character.abilities || '';
+        const updatedAbilities = currentAbilities + techniqueEntry;
+        
+        // Update character in database
+        const { error: updateError } = await supabase
+          .from('characters')
+          .update({ abilities: updatedAbilities })
+          .eq('id', userCharacter.character.id);
+        
+        if (!updateError) {
+          // Update local state
+          setParticipants(prev => prev.map(p => 
+            p.character_id === userCharacter.character_id 
+              ? { ...p, character: { ...p.character!, abilities: updatedAbilities } }
+              : p
+          ));
+          
+          // Notify the user
+          toast.success(`📜 New Technique Catalogued!`, {
+            description: `"${techniqueName}" has been added to ${userCharacter.character.name}'s abilities.`,
+            duration: 5000,
+          });
+          
+          // Also post a system message in OOC
+          await supabase.from('battle_messages').insert({
+            battle_id: id,
+            character_id: userCharacter.character_id,
+            content: `📜 **New Technique Discovered!**\n${userCharacter.character.name} has developed a new technique: **${techniqueName}**\n_${techniqueDescription}_`,
+            channel: 'out_of_universe',
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to detect new technique:', error);
+      // Silently fail - this is a background feature
+    }
   };
 
   // Generate dice roll for an attack
