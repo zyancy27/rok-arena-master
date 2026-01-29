@@ -42,16 +42,38 @@ import {
   isAttackValidForDistance,
   formatDistanceInfo,
   calculateTravelTime,
+  useConcentration,
+  createConstruct,
+  attackConstruct,
+  detectConstructCreation,
+  detectConstructAttack,
   type HitDetermination, 
   type ConcentrationResult,
   type DistanceState,
   type DistanceZone,
+  type Construct,
+  type ConstructDefenseResult,
 } from '@/lib/battle-dice';
+import { 
+  validateDefense, 
+  generateDefenseEnforcementPrompt, 
+  getDamageLevel 
+} from '@/lib/defense-validation';
+import { 
+  generatePhysicsContext, 
+  generateSkillContext,
+  shouldTriggerSkillMishap,
+  shouldTriggerCritical,
+  getSkillProficiency,
+} from '@/lib/battle-physics';
 import type { CharacterStats } from '@/lib/character-stats';
 import MoveValidationWarning from '@/components/battles/MoveValidationWarning';
 import MatchupWarning from '@/components/battles/MatchupWarning';
 import ConcentrationButton from '@/components/battles/ConcentrationButton';
 import DiceRollChatMessage from '@/components/battles/DiceRollChatMessage';
+import SkillProficiencyBar from '@/components/battles/SkillProficiencyBar';
+import ConstructPanel from '@/components/battles/ConstructPanel';
+import ConstructDiceMessage from '@/components/battles/ConstructDiceMessage';
 import TurnIndicatorWrapper from '@/components/battles/TurnIndicatorWrapper';
 import BattleTurnColorPicker from '@/components/battles/BattleTurnColorPicker';
 import BattlefieldEffectsOverlay from '@/components/battles/BattlefieldEffectsOverlay';
@@ -198,6 +220,7 @@ export default function BattleView() {
     attackerName: string;
     defenderName: string;
     timestamp: Date;
+    isPlayerRoll?: boolean;
   }>>([]);
   
   // Distance tracking state
@@ -213,6 +236,16 @@ export default function BattleView() {
   
   // Area damage warning state
   const [areaDamageWarning, setAreaDamageWarning] = useState<AreaDamageWarning | null>(null);
+  
+  // Defense validation tracking
+  const [lastOpponentAction, setLastOpponentAction] = useState<string>('');
+  const [lastHitResult, setLastHitResult] = useState<{ hit: boolean; gap: number } | null>(null);
+  
+  // Construct mechanics
+  const [constructs, setConstructs] = useState<Record<string, Construct>>({});
+  
+  // Skill tracking
+  const [turnNumber, setTurnNumber] = useState(1);
   
   // Typing indicator state
   const [opponentTyping, setOpponentTyping] = useState(false);
@@ -555,6 +588,10 @@ export default function BattleView() {
                   // Process character status effects from opponent's messages
                   if (charData?.user_id !== user?.id) {
                     processStatusEffect(newMessage.content, true);
+                    
+                    // Track opponent's last action for defense validation
+                    setLastOpponentAction(newMessage.content);
+                    setTurnNumber(prev => prev + 1);
                   }
                 }
 
@@ -752,6 +789,30 @@ export default function BattleView() {
       clearTimeout(typingDebounceRef.current);
     }
 
+    // Defense validation - check if player addressed opponent's last attack
+    if (activeChannel === 'in_universe' && lastOpponentAction && lastHitResult && turnNumber > 1) {
+      const validation = validateDefense(content, lastOpponentAction, lastHitResult.hit);
+      
+      if (validation.shouldEnforceHit && validation.hasAttackToAddress) {
+        // Player ignored an attack that should have hit them - notify in OOC
+        const damageLevel = getDamageLevel(lastHitResult.gap);
+        await supabase.from('battle_messages').insert({
+          battle_id: id,
+          character_id: userCharacter.character_id,
+          content: `⚠️ **Defense Check**: Your action didn't address the incoming attack. The ${damageLevel} hit will affect your move.`,
+          channel: 'out_of_universe',
+        });
+      }
+    }
+
+    // Check if user is creating a construct
+    if (activeChannel === 'in_universe' && userCharacter.character) {
+      const constructCreation = detectConstructCreation(content);
+      if (constructCreation.isCreating) {
+        handleConstructCreation(constructCreation.suggestedName, constructCreation.constructType);
+      }
+    }
+
     const { error } = await supabase.from('battle_messages').insert({
       battle_id: id,
       character_id: userCharacter.character_id,
@@ -770,11 +831,73 @@ export default function BattleView() {
       
       // Detect new techniques and add to character sheet
       detectAndCatalogNewTechnique(content);
+      
+      // Increment turn number
+      setTurnNumber(prev => prev + 1);
     }
 
     setMessageInput('');
     setPendingMove(null);
     setMoveValidation(null);
+  };
+  
+  // Handle construct creation
+  const handleConstructCreation = (name: string, type: Construct['type']) => {
+    if (!userCharacter?.character) return;
+    
+    const char = userCharacter.character;
+    const creatorStats: CharacterStats = {
+      stat_intelligence: char.stat_intelligence ?? 50,
+      stat_battle_iq: char.stat_battle_iq ?? 50,
+      stat_strength: char.stat_strength ?? 50,
+      stat_power: char.stat_power ?? 50,
+      stat_speed: char.stat_speed ?? 50,
+      stat_durability: char.stat_durability ?? 50,
+      stat_stamina: char.stat_stamina ?? 50,
+      stat_skill: char.stat_skill ?? 50,
+      stat_luck: char.stat_luck ?? 50,
+    };
+    
+    const newConstruct = createConstruct(creatorStats, userCharacter.character_id, name, type);
+    
+    setConstructs(prev => ({ ...prev, [newConstruct.id]: newConstruct }));
+    
+    toast.success(`🛡️ ${name} created!`, {
+      description: `Durability: ${newConstruct.maxDurability}`,
+    });
+    
+    supabase.from('battle_messages').insert({
+      battle_id: id,
+      character_id: userCharacter.character_id,
+      content: `🛡️ **Construct Created**: ${name} (${type}) — Durability: ${newConstruct.currentDurability}/${newConstruct.maxDurability}`,
+      channel: 'out_of_universe',
+    });
+  };
+  
+  // Handle construct being attacked - simplified version for PvP (opponent handles manually)
+  const handleConstructAttacked = (constructId: string, damage: number) => {
+    const construct = constructs[constructId];
+    if (!construct) return null;
+    
+    const newDurability = Math.max(0, construct.currentDurability - damage);
+    const destroyed = newDurability <= 0;
+    
+    // Update construct state
+    if (destroyed) {
+      setConstructs(prev => {
+        const updated = { ...prev };
+        delete updated[constructId];
+        return updated;
+      });
+      toast.error(`💥 ${construct.name} destroyed!`);
+    } else {
+      setConstructs(prev => ({
+        ...prev,
+        [constructId]: { ...construct, currentDurability: newDurability },
+      }));
+    }
+    
+    return { destroyed, remainingDurability: newDurability };
   };
   
   // Detect if the action contains a new technique and add it to character sheet
@@ -920,9 +1043,13 @@ export default function BattleView() {
       attackerName: attackerChar.name,
       defenderName: defenderChar.name,
       timestamp: new Date(),
+      isPlayerRoll: true,
     };
     
     setDiceRollMessages(prev => [...prev, rollMessage]);
+    
+    // Track this hit result for opponent's defense validation
+    setLastHitResult({ hit: hit.wouldHit, gap: hit.gap });
 
     // If the attack would hit and the defender is the current user's opponent, 
     // we show the concentration button to the opponent (handled through realtime)
@@ -1679,8 +1806,51 @@ export default function BattleView() {
               </div>
             ))}
           </div>
+          
+          {/* Skill Proficiency Bars */}
+          {battle.status === 'active' && participants.length >= 2 && (
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {participants.map((p) => (
+                <SkillProficiencyBar
+                  key={p.id}
+                  characterName={p.character?.name || 'Unknown'}
+                  skillStat={p.character?.stat_skill ?? 50}
+                  compact={true}
+                />
+              ))}
+            </div>
+          )}
+          
+          {/* Concentration & Penalty Status */}
+          {battle.status === 'active' && userCharacter?.character && (
+            <div className="mt-4 flex flex-wrap gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="bg-primary/10">
+                  🎯 Concentration: {concentrationUses[userCharacter.character_id] ?? 3}/3
+                </Badge>
+              </div>
+              {(statPenalties[userCharacter.character_id] ?? 0) > 0 && (
+                <Badge variant="destructive" className="animate-pulse">
+                  ⚠️ -{statPenalties[userCharacter.character_id]}% stats this action
+                </Badge>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
+      
+      {/* Constructs Panel */}
+      {battle.status === 'active' && userCharacter && Object.keys(constructs).length > 0 && (
+        <ConstructPanel
+          constructs={Object.values(constructs)}
+          characterId={userCharacter.character_id}
+          concentrationUsesRemaining={concentrationUses[userCharacter.character_id] ?? 3}
+          onRepairConstruct={(construct) => {
+            // Simplified repair - just notify in OOC
+            toast.info(`Request repair for ${construct.name} in OOC chat`);
+          }}
+        />
+      )}
 
       {/* Matchup Warning for Uneven Battles */}
       {battle.status === 'active' && showMatchupWarning && participants.length >= 2 && (
