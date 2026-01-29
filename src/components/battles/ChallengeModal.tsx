@@ -62,34 +62,21 @@ export default function ChallengeModal({
     setIsLoading(true);
 
     try {
-      // Create the battle with location and challenged user
-      const { data: battle, error: battleError } = await supabase
-        .from('battles')
-        .insert({ 
-          status: 'pending',
-          location_1: userLocation.trim(),
-          challenged_user_id: targetUserId
-        })
-        .select('id')
-        .single();
+      // Use security-definer RPC to atomically create battle + participant
+      const { data: battleId, error: rpcError } = await supabase.rpc(
+        'create_battle_challenge',
+        {
+          _challenged_user_id: targetUserId,
+          _location_1: userLocation.trim(),
+          _challenger_character_id: selectedCharacter,
+        }
+      );
 
-      if (battleError || !battle) throw battleError;
+      if (rpcError || !battleId) throw rpcError ?? new Error('Failed to create challenge');
 
-      // Add only the challenger as participant - defender will choose their character when accepting
-      const { error: participantError } = await supabase
-        .from('battle_participants')
-        .insert([
-          { battle_id: battle.id, character_id: selectedCharacter, turn_order: 1 },
-        ]);
-
-      if (participantError) throw participantError;
-
-      // Store the target user ID in the battle somehow - we'll use a simple approach
-      // For now, we'll navigate and the defender will see it in their pending battles
-      
       toast.success(`Challenge sent to ${targetUsername}!`);
       onOpenChange(false);
-      navigate(`/battles/${battle.id}`);
+      navigate(`/battles/${battleId}`);
     } catch (error: any) {
       toast.error(error.message || 'Failed to create challenge');
     } finally {
