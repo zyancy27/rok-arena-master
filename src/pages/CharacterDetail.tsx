@@ -239,23 +239,25 @@ export default function CharacterDetail() {
             </div>
 
             <div className="flex gap-2 flex-wrap">
-              {/* Download Button - Available to everyone */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline">
-                    <Download className="w-4 h-4 mr-2" />
-                    Download
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => downloadCharacterSheet(character)}>
-                    Download as Text (.txt)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => downloadCharacterSheetJSON(character)}>
-                    Download as JSON (.json)
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {/* Download Button - Only available to owner */}
+              {isOwner && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline">
+                      <Download className="w-4 h-4 mr-2" />
+                      Download
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => downloadCharacterSheet(character)}>
+                      Download as Text (.txt)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => downloadCharacterSheetJSON(character)}>
+                      Download as JSON (.json)
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
 
               {!isOwner && userCharacters.length > 0 && (
                 <Button className="glow-accent" onClick={() => setShowChallengeModal(true)}>
@@ -377,7 +379,8 @@ export default function CharacterDetail() {
                   </AccordionItem>
                 )}
 
-                {character.powers && (
+                {/* Powers, Abilities, Personality, Mentality - Only visible to owner */}
+                {isOwner && character.powers && (
                   <AccordionItem value="powers" className="border-border">
                     <AccordionTrigger className="hover:no-underline">
                       <span className="flex items-center gap-2">
@@ -391,7 +394,7 @@ export default function CharacterDetail() {
                   </AccordionItem>
                 )}
 
-                {character.abilities && (
+                {isOwner && character.abilities && (
                   <AccordionItem value="abilities" className="border-border">
                     <AccordionTrigger className="hover:no-underline">
                       <span className="flex items-center gap-2">
@@ -405,7 +408,7 @@ export default function CharacterDetail() {
                   </AccordionItem>
                 )}
 
-                {character.personality && (
+                {isOwner && character.personality && (
                   <AccordionItem value="personality" className="border-border">
                     <AccordionTrigger className="hover:no-underline">
                       <span className="flex items-center gap-2">
@@ -419,7 +422,7 @@ export default function CharacterDetail() {
                   </AccordionItem>
                 )}
 
-                {character.mentality && (
+                {isOwner && character.mentality && (
                   <AccordionItem value="mentality" className="border-border">
                     <AccordionTrigger className="hover:no-underline">
                       <span className="flex items-center gap-2">
@@ -431,6 +434,16 @@ export default function CharacterDetail() {
                       {character.mentality}
                     </AccordionContent>
                   </AccordionItem>
+                )}
+
+                {/* Message for non-owners about hidden content */}
+                {!isOwner && (character.powers || character.abilities) && (
+                  <div className="flex items-center gap-2 p-4 rounded-lg bg-muted/30 border border-border/50">
+                    <Shield className="w-5 h-5 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      Base powers, abilities, and techniques are private and only visible to the owner.
+                    </p>
+                  </div>
                 )}
 
                 {/* Stats Section - Only visible to owner */}
