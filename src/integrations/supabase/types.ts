@@ -1054,6 +1054,14 @@ export type Database = {
         Args: { _battle_id: string; _character_id: string }
         Returns: boolean
       }
+      create_battle_challenge: {
+        Args: {
+          _challenged_user_id: string
+          _challenger_character_id: string
+          _location_1: string
+        }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
