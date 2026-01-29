@@ -1,10 +1,22 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import PublicNav from '@/components/layout/PublicNav';
 import { Swords, Sparkles, Users, BookOpen, ArrowRight } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Landing() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleFeatureClick = (path: string) => {
+    if (user) {
+      navigate(path);
+    } else {
+      navigate('/auth');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-nebula-gradient bg-stars">
       <PublicNav />
@@ -35,7 +47,7 @@ export default function Landing() {
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
             <Button size="lg" className="glow-primary text-lg px-8" asChild>
-              <Link to="/auth">
+              <Link to={user ? "/hub" : "/auth"}>
                 Enter the Arena
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Link>
@@ -51,7 +63,10 @@ export default function Landing() {
 
         {/* Features Grid */}
         <div className="grid md:grid-cols-3 gap-6 mt-24 max-w-5xl mx-auto">
-          <Card className="bg-card-gradient border-border hover:glow-primary transition-all">
+          <Card 
+            className="bg-card-gradient border-border hover:glow-primary transition-all cursor-pointer"
+            onClick={() => handleFeatureClick('/characters/new')}
+          >
             <CardContent className="pt-8 text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/20 flex items-center justify-center">
                 <Users className="w-8 h-8 text-primary" />
@@ -64,7 +79,10 @@ export default function Landing() {
             </CardContent>
           </Card>
 
-          <Card className="bg-card-gradient border-border hover:glow-accent transition-all">
+          <Card 
+            className="bg-card-gradient border-border hover:glow-accent transition-all cursor-pointer"
+            onClick={() => handleFeatureClick('/battles')}
+          >
             <CardContent className="pt-8 text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-accent/20 flex items-center justify-center">
                 <Swords className="w-8 h-8 text-accent" />
@@ -77,7 +95,10 @@ export default function Landing() {
             </CardContent>
           </Card>
 
-          <Card className="bg-card-gradient border-border hover:glow-gold transition-all">
+          <Card 
+            className="bg-card-gradient border-border hover:glow-gold transition-all cursor-pointer"
+            onClick={() => navigate('/rules')}
+          >
             <CardContent className="pt-8 text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-cosmic-gold/20 flex items-center justify-center">
                 <BookOpen className="w-8 h-8 text-cosmic-gold" />
@@ -118,7 +139,7 @@ export default function Landing() {
             Ready to prove your worth?
           </p>
           <Button size="lg" className="glow-primary" asChild>
-            <Link to="/auth">
+            <Link to={user ? "/hub" : "/auth"}>
               Join the Realm
               <Swords className="ml-2 w-5 h-5" />
             </Link>
