@@ -99,6 +99,22 @@ export default {
           "0%": { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" },
         },
+        "bounce-subtle": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-3px)" },
+        },
+        "ripple-1": {
+          "0%": { transform: "translate(-50%, -50%) scale(1)", opacity: "0.6" },
+          "100%": { transform: "translate(-50%, -50%) scale(15)", opacity: "0" },
+        },
+        "ripple-2": {
+          "0%": { transform: "translate(-50%, -50%) scale(1)", opacity: "0.4" },
+          "100%": { transform: "translate(-50%, -50%) scale(20)", opacity: "0" },
+        },
+        "ripple-3": {
+          "0%": { transform: "translate(-50%, -50%) scale(1)", opacity: "0.2" },
+          "100%": { transform: "translate(-50%, -50%) scale(25)", opacity: "0" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -106,6 +122,10 @@ export default {
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",
         "float": "float 3s ease-in-out infinite",
         "shimmer": "shimmer 2s linear infinite",
+        "bounce-subtle": "bounce-subtle 1s ease-in-out infinite",
+        "ripple-1": "ripple-1 1.5s ease-out forwards",
+        "ripple-2": "ripple-2 1.5s ease-out 0.2s forwards",
+        "ripple-3": "ripple-3 1.5s ease-out 0.4s forwards",
       },
       backgroundImage: {
         "cosmic-radial": "radial-gradient(ellipse at center, hsl(270 30% 15%) 0%, hsl(240 20% 4%) 70%)",
