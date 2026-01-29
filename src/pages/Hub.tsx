@@ -93,51 +93,61 @@ export default function Hub() {
       </div>
 
       {/* User's Characters */}
-      <div className="space-y-4">
-        <h2 className="text-2xl font-bold flex items-center gap-2">
-          <Swords className="w-6 h-6 text-primary" />
-          Your Characters
-        </h2>
-
-        {charactersLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(3)].map((_, i) => (
-              <Card key={i} className="bg-card-gradient border-border animate-pulse">
-                <CardContent className="h-40" />
-              </Card>
-            ))}
+      <Card className="bg-card-gradient border-border">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Swords className="w-5 h-5 text-primary" />
+              Your Characters
+            </CardTitle>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/my-characters">View All</Link>
+            </Button>
           </div>
-        ) : userCharacters.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {userCharacters.map((character) => (
-              <CharacterCard
-                key={character.id}
-                id={character.id}
-                name={character.name}
-                level={character.level}
-                race={character.race}
-                home_planet={character.home_planet}
-              />
-            ))}
-          </div>
-        ) : (
-          <Card className="bg-card-gradient border-border">
-            <CardContent className="py-12 text-center">
-              <Swords className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-xl font-semibold mb-2">No Characters Yet</h3>
-              <p className="text-muted-foreground mb-4">
-                Create your first character to begin your journey in the arena.
-              </p>
-              <Button asChild>
+        </CardHeader>
+        <CardContent>
+          {charactersLoading ? (
+            <div className="space-y-2">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-10 bg-muted rounded animate-pulse" />
+              ))}
+            </div>
+          ) : userCharacters.length > 0 ? (
+            <div className="space-y-2">
+              {userCharacters.map((character) => (
+                <Link
+                  key={character.id}
+                  to={`/characters/${character.id}`}
+                  className="flex items-center justify-between p-2 rounded-lg hover:bg-accent/10 transition-colors group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm">
+                      {character.level}
+                    </div>
+                    <div>
+                      <p className="font-medium group-hover:text-primary transition-colors">{character.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {character.race || 'Unknown Race'}{character.home_planet ? ` • ${character.home_planet}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <Swords className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
+              <p className="text-muted-foreground mb-3">No characters yet</p>
+              <Button size="sm" asChild>
                 <Link to="/characters/new">
                   <Plus className="w-4 h-4 mr-2" />
                   Create Character
                 </Link>
               </Button>
-            </CardContent>
-          </Card>
-        )}
-      </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Friends Section */}
       <div className="space-y-4">
