@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,26 +7,11 @@ import { toast } from 'sonner';
 export function useBattleNotifications() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const userCharacterIds = useRef<string[]>([]);
 
   useEffect(() => {
     if (!user) return;
 
-    // Fetch user's character IDs to check if incoming challenges are for them
-    const fetchUserCharacters = async () => {
-      const { data } = await supabase
-        .from('characters')
-        .select('id')
-        .eq('user_id', user.id);
-      
-      if (data) {
-        userCharacterIds.current = data.map(c => c.id);
-      }
-    };
-
-    fetchUserCharacters();
-
-    // Subscribe to new battle participants
+    // Subscribe to new battles where user is challenged
     const channel = supabase
       .channel('battle-challenges')
       .on(
@@ -34,59 +19,55 @@ export function useBattleNotifications() {
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'battle_participants',
+          table: 'battles',
         },
         async (payload) => {
-          const newParticipant = payload.new as { 
-            battle_id: string; 
-            character_id: string; 
-            turn_order: number;
+          const newBattle = payload.new as { 
+            id: string; 
+            challenged_user_id: string | null;
+            status: string;
           };
 
-          // Check if this participant is one of the user's characters
-          if (!userCharacterIds.current.includes(newParticipant.character_id)) {
+          // Check if this battle is a challenge to the current user
+          if (newBattle.challenged_user_id !== user.id) {
             return;
           }
 
-          // Only notify for turn_order 2 (the challenged player)
-          if (newParticipant.turn_order !== 2) {
-            return;
-          }
-
-          // Fetch battle and challenger info
-          const { data: battleParticipants } = await supabase
+          // Get the challenger info
+          const { data: participants } = await supabase
             .from('battle_participants')
-            .select('character_id, turn_order')
-            .eq('battle_id', newParticipant.battle_id);
+            .select(`
+              character_id, 
+              turn_order,
+              character:characters(name, user_id)
+            `)
+            .eq('battle_id', newBattle.id)
+            .eq('turn_order', 1);
 
-          const challengerParticipant = battleParticipants?.find(p => p.turn_order === 1);
-          
+          const challengerParticipant = participants?.[0];
           if (!challengerParticipant) return;
 
-          // Get challenger character name
-          const { data: challengerChar } = await supabase
-            .from('characters')
-            .select('name')
-            .eq('id', challengerParticipant.character_id)
+          const challengerChar = Array.isArray(challengerParticipant.character) 
+            ? challengerParticipant.character[0] 
+            : challengerParticipant.character;
+
+          // Get challenger username
+          const { data: challengerProfile } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('id', challengerChar?.user_id)
             .maybeSingle();
 
-          // Get the challenged character name
-          const { data: myChar } = await supabase
-            .from('characters')
-            .select('name')
-            .eq('id', newParticipant.character_id)
-            .maybeSingle();
-
-          const challengerName = challengerChar?.name || 'Someone';
-          const myCharName = myChar?.name || 'your character';
+          const challengerName = challengerProfile?.username || 'Someone';
+          const characterName = challengerChar?.name || 'their character';
 
           // Show notification with action button
           toast.info(`⚔️ Battle Challenge!`, {
-            description: `${challengerName} has challenged ${myCharName} to battle!`,
+            description: `${challengerName} has challenged you with ${characterName}!`,
             duration: 10000,
             action: {
-              label: 'View',
-              onClick: () => navigate(`/battles/${newParticipant.battle_id}`),
+              label: 'Respond',
+              onClick: () => navigate(`/battles/${newBattle.id}`),
             },
           });
 

@@ -24,12 +24,25 @@ interface Character {
   stat_skill?: number | null;
 }
 
+interface BattleParticipant {
+  character_id: string;
+  turn_order: number;
+  character: {
+    name: string;
+    image_url: string | null;
+    user_id: string;
+  };
+}
+
 interface Battle {
   id: string;
   status: 'pending' | 'active' | 'completed';
   created_at: string;
   winner_id: string | null;
   loser_id: string | null;
+  challenged_user_id: string | null;
+  participants: BattleParticipant[];
+  challenger_username?: string;
 }
 
 export default function Battles() {
@@ -92,43 +105,115 @@ export default function Battles() {
   };
 
   const fetchBattles = async () => {
-    // Get user's character IDs first
-    const { data: userChars } = await supabase
-      .from('characters')
-      .select('id')
-      .eq('user_id', user?.id);
-
-    if (!userChars || userChars.length === 0) {
+    if (!user?.id) {
       setLoading(false);
       return;
     }
 
-    const charIds = userChars.map(c => c.id);
+    // Get user's character IDs first
+    const { data: userChars } = await supabase
+      .from('characters')
+      .select('id')
+      .eq('user_id', user.id);
 
-    // Get battles where user's characters are participants
+    const charIds = userChars?.map(c => c.id) || [];
+
+    // Get battles where:
+    // 1. User's characters are participants, OR
+    // 2. User is the challenged_user_id (pending challenges for them)
     const { data: participations } = await supabase
       .from('battle_participants')
       .select('battle_id')
       .in('character_id', charIds);
 
-    if (!participations || participations.length === 0) {
+    const participatedBattleIds = participations?.map(p => p.battle_id) || [];
+
+    // Also get battles where user is challenged
+    const { data: challengedBattles } = await supabase
+      .from('battles')
+      .select('id')
+      .eq('challenged_user_id', user.id)
+      .eq('status', 'pending');
+
+    const challengedBattleIds = challengedBattles?.map(b => b.id) || [];
+
+    // Combine and dedupe
+    const allBattleIds = [...new Set([...participatedBattleIds, ...challengedBattleIds])];
+
+    if (allBattleIds.length === 0) {
       setBattles([]);
       setLoading(false);
       return;
     }
 
-    const battleIds = [...new Set(participations.map(p => p.battle_id))];
-
-    // Get battle details
+    // Get battle details with participants
     const { data: battlesData } = await supabase
       .from('battles')
       .select('*')
-      .in('id', battleIds)
+      .in('id', allBattleIds)
       .order('created_at', { ascending: false });
 
-    if (battlesData) {
-      setBattles(battlesData as Battle[]);
+    if (!battlesData) {
+      setBattles([]);
+      setLoading(false);
+      return;
     }
+
+    // Get participants for all battles
+    const { data: allParticipants } = await supabase
+      .from('battle_participants')
+      .select(`
+        battle_id,
+        character_id,
+        turn_order,
+        character:characters(name, image_url, user_id)
+      `)
+      .in('battle_id', allBattleIds);
+
+    // Get usernames for challengers (for pending battles where user is challenged)
+    const challengerCharIds = allParticipants
+      ?.filter(p => p.turn_order === 1)
+      .map(p => p.character_id) || [];
+
+    const { data: challengerChars } = await supabase
+      .from('characters')
+      .select('id, user_id')
+      .in('id', challengerCharIds);
+
+    const challengerUserIds = [...new Set(challengerChars?.map(c => c.user_id) || [])];
+
+    const { data: profiles } = await supabase
+      .from('profiles')
+      .select('id, username')
+      .in('id', challengerUserIds);
+
+    // Build lookup maps
+    const charToUser = new Map(challengerChars?.map(c => [c.id, c.user_id]) || []);
+    const userToUsername = new Map(profiles?.map(p => [p.id, p.username]) || []);
+
+    // Combine data
+    const battlesWithParticipants: Battle[] = battlesData.map(battle => {
+      const battleParticipants = allParticipants
+        ?.filter(p => p.battle_id === battle.id)
+        .map(p => ({
+          character_id: p.character_id,
+          turn_order: p.turn_order,
+          character: Array.isArray(p.character) ? p.character[0] : p.character
+        })) || [];
+
+      // Get challenger username
+      const challengerParticipant = battleParticipants.find(p => p.turn_order === 1);
+      const challengerUserId = challengerParticipant ? charToUser.get(challengerParticipant.character_id) : null;
+      const challengerUsername = challengerUserId ? userToUsername.get(challengerUserId) : undefined;
+
+      return {
+        ...battle,
+        participants: battleParticipants,
+        challenger_username: challengerUsername
+      };
+    });
+
+    setBattles(battlesWithParticipants);
     setLoading(false);
   };
 
@@ -237,26 +322,33 @@ export default function Battles() {
                     Active Battles ({activeBattles.length})
                   </h2>
                   <div className="grid gap-3">
-                    {activeBattles.map((battle) => (
-                      <Link key={battle.id} to={`/battles/${battle.id}`}>
-                        <Card className="bg-card-gradient border-border hover:glow-accent transition-all cursor-pointer">
-                          <CardContent className="p-4 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <Badge className={`${getStatusColor(battle.status)} flex items-center gap-1`}>
-                                {getStatusIcon(battle.status)}
-                                {battle.status}
-                              </Badge>
-                              <span className="text-muted-foreground text-sm">
-                                Started {new Date(battle.created_at).toLocaleDateString()}
-                              </span>
-                            </div>
-                            <Button variant="outline" size="sm">
-                              Continue Battle
-                            </Button>
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    ))}
+                    {activeBattles.map((battle) => {
+                      const p1 = battle.participants.find(p => p.turn_order === 1);
+                      const p2 = battle.participants.find(p => p.turn_order === 2);
+                      return (
+                        <Link key={battle.id} to={`/battles/${battle.id}`}>
+                          <Card className="bg-card-gradient border-border hover:glow-accent transition-all cursor-pointer">
+                            <CardContent className="p-4 flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <Badge className={`${getStatusColor(battle.status)} flex items-center gap-1`}>
+                                  {getStatusIcon(battle.status)}
+                                  {battle.status}
+                                </Badge>
+                                <span className="font-medium">
+                                  {p1?.character?.name || 'Unknown'} vs {p2?.character?.name || 'Unknown'}
+                                </span>
+                                <span className="text-muted-foreground text-sm">
+                                  Started {new Date(battle.created_at).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <Button variant="outline" size="sm">
+                                Continue Battle
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        </Link>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -269,26 +361,41 @@ export default function Battles() {
                     Pending Challenges ({pendingBattles.length})
                   </h2>
                   <div className="grid gap-3">
-                    {pendingBattles.map((battle) => (
-                      <Link key={battle.id} to={`/battles/${battle.id}`}>
-                        <Card className="bg-card-gradient border-border hover:glow-primary transition-all cursor-pointer">
-                          <CardContent className="p-4 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <Badge className={`${getStatusColor(battle.status)} flex items-center gap-1`}>
-                                {getStatusIcon(battle.status)}
-                                {battle.status}
-                              </Badge>
-                              <span className="text-muted-foreground text-sm">
-                                Created {new Date(battle.created_at).toLocaleDateString()}
-                              </span>
-                            </div>
-                            <Button variant="outline" size="sm">
-                              View
-                            </Button>
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    ))}
+                    {pendingBattles.map((battle) => {
+                      const challenger = battle.participants.find(p => p.turn_order === 1);
+                      const isUserChallenged = battle.challenged_user_id === user?.id;
+                      const iAmChallenger = challenger?.character?.user_id === user?.id;
+                      
+                      return (
+                        <Link key={battle.id} to={`/battles/${battle.id}`}>
+                          <Card className="bg-card-gradient border-border hover:glow-primary transition-all cursor-pointer">
+                            <CardContent className="p-4 flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <Badge className={`${getStatusColor(battle.status)} flex items-center gap-1`}>
+                                  {getStatusIcon(battle.status)}
+                                  {battle.status}
+                                </Badge>
+                                <span className="font-medium">
+                                  {isUserChallenged ? (
+                                    <>⚔️ <span className="text-primary">{battle.challenger_username || 'Someone'}</span> challenged you!</>
+                                  ) : iAmChallenger ? (
+                                    <>Waiting for opponent to accept...</>
+                                  ) : (
+                                    <>{challenger?.character?.name || 'Unknown'} vs ???</>
+                                  )}
+                                </span>
+                                <span className="text-muted-foreground text-sm">
+                                  {new Date(battle.created_at).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <Button variant="outline" size="sm">
+                                {isUserChallenged ? 'Respond' : 'View'}
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        </Link>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -301,26 +408,33 @@ export default function Battles() {
                     Completed Battles ({completedBattles.length})
                   </h2>
                   <div className="grid gap-3">
-                    {completedBattles.map((battle) => (
-                      <Link key={battle.id} to={`/battles/${battle.id}`}>
-                        <Card className="bg-card-gradient border-border hover:border-border/80 transition-all cursor-pointer opacity-75">
-                          <CardContent className="p-4 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <Badge className={`${getStatusColor(battle.status)} flex items-center gap-1`}>
-                                {getStatusIcon(battle.status)}
-                                {battle.status}
-                              </Badge>
-                              <span className="text-muted-foreground text-sm">
-                                Ended {new Date(battle.created_at).toLocaleDateString()}
-                              </span>
-                            </div>
-                            <Button variant="ghost" size="sm">
-                              View Transcript
-                            </Button>
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    ))}
+                    {completedBattles.map((battle) => {
+                      const p1 = battle.participants.find(p => p.turn_order === 1);
+                      const p2 = battle.participants.find(p => p.turn_order === 2);
+                      return (
+                        <Link key={battle.id} to={`/battles/${battle.id}`}>
+                          <Card className="bg-card-gradient border-border hover:border-border/80 transition-all cursor-pointer opacity-75">
+                            <CardContent className="p-4 flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <Badge className={`${getStatusColor(battle.status)} flex items-center gap-1`}>
+                                  {getStatusIcon(battle.status)}
+                                  {battle.status}
+                                </Badge>
+                                <span className="font-medium">
+                                  {p1?.character?.name || 'Unknown'} vs {p2?.character?.name || 'Unknown'}
+                                </span>
+                                <span className="text-muted-foreground text-sm">
+                                  Ended {new Date(battle.created_at).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <Button variant="ghost" size="sm">
+                                View Transcript
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        </Link>
+                      );
+                    })}
                   </div>
                 </div>
               )}

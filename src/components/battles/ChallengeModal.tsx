@@ -62,12 +62,13 @@ export default function ChallengeModal({
     setIsLoading(true);
 
     try {
-      // Create the battle with location
+      // Create the battle with location and challenged user
       const { data: battle, error: battleError } = await supabase
         .from('battles')
         .insert({ 
           status: 'pending',
-          location_1: userLocation.trim()
+          location_1: userLocation.trim(),
+          challenged_user_id: targetUserId
         })
         .select('id')
         .single();

@@ -112,6 +112,7 @@ export type Database = {
       }
       battles: {
         Row: {
+          challenged_user_id: string | null
           chosen_location: string | null
           coin_flip_winner_id: string | null
           concentration_uses: Json | null
@@ -127,6 +128,7 @@ export type Database = {
           winner_id: string | null
         }
         Insert: {
+          challenged_user_id?: string | null
           chosen_location?: string | null
           coin_flip_winner_id?: string | null
           concentration_uses?: Json | null
@@ -142,6 +144,7 @@ export type Database = {
           winner_id?: string | null
         }
         Update: {
+          challenged_user_id?: string | null
           chosen_location?: string | null
           coin_flip_winner_id?: string | null
           concentration_uses?: Json | null
