@@ -81,12 +81,12 @@ export default function Battles() {
       .on(
         'postgres_changes',
         {
-          event: 'UPDATE',
+          event: '*',
           schema: 'public',
           table: 'battles',
         },
         () => {
-          // Refetch battles when status changes
+          // Refetch battles when status changes or battles are deleted
           fetchBattles();
         }
       )
