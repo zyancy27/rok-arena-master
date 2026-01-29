@@ -21,6 +21,7 @@ import BattleView from "@/pages/BattleView";
 import MockBattle from "@/pages/MockBattle";
 import Rules from "@/pages/Rules";
 import Profile from "@/pages/Profile";
+import UserProfile from "@/pages/UserProfile";
 import Friends from "@/pages/Friends";
 import Admin from "@/pages/Admin";
 import Terms from "@/pages/Terms";
@@ -55,6 +56,7 @@ const App = () => (
               <Route path="/battles/practice" element={<MockBattle />} />
               <Route path="/battles/:id" element={<BattleView />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/profile/:username" element={<UserProfile />} />
               <Route path="/friends" element={<Friends />} />
               <Route path="/races" element={<Races />} />
               <Route path="/stories" element={<Stories />} />

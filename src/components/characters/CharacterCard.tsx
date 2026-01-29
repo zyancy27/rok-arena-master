@@ -74,7 +74,14 @@ export default function CharacterCard({
           )}
           {showOwner && username && (
             <p className="text-xs text-muted-foreground mt-2">
-              Created by <span className="text-primary">{username}</span>
+              Created by{' '}
+              <Link 
+                to={`/profile/${username}`} 
+                className="text-primary hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {username}
+              </Link>
             </p>
           )}
         </CardContent>
