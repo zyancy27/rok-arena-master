@@ -512,12 +512,7 @@ export default function BattleView() {
   const setupRealtime = () => {
     // Main battle channel for messages and battle updates
     const channel = supabase
-      .channel(`battle-${id}`, {
-        config: {
-          broadcast: { self: false },
-          presence: { key: user?.id || '' },
-        },
-      })
+      .channel(`battle-${id}`)
       .on(
         'postgres_changes',
         {
