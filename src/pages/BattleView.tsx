@@ -48,8 +48,10 @@ import DiceRollChatMessage from '@/components/battles/DiceRollChatMessage';
 import TurnIndicatorWrapper from '@/components/battles/TurnIndicatorWrapper';
 import BattleTurnColorPicker from '@/components/battles/BattleTurnColorPicker';
 import BattlefieldEffectsOverlay from '@/components/battles/BattlefieldEffectsOverlay';
+import { CharacterStatusOverlay } from '@/components/battles/CharacterStatusOverlay';
 import { useBattleTurnColor } from '@/hooks/use-battle-turn-color';
 import { useBattlefieldEffects } from '@/components/battles/useBattlefieldEffects';
+import { useCharacterStatusEffects } from '@/hooks/use-character-status-effects';
 import {
   ArrowLeft,
   Send,
@@ -213,6 +215,15 @@ export default function BattleView() {
   
   // Battlefield visual effects (fire, ice, smoke, etc.)
   const { activeEffects: battlefieldEffects, processMessage: processBattlefieldEffect } = useBattlefieldEffects();
+  
+  // Character-specific status effects (paralyzed, blinded, etc.)
+  const { 
+    activeEffects: characterStatusEffects, 
+    processMessage: processStatusEffect 
+  } = useCharacterStatusEffects({
+    characterName: userCharacter?.character?.name,
+    enabled: battle?.status === 'active',
+  });
 
   // Generate environment and entrances when battle becomes active with a location
   useEffect(() => {
@@ -496,6 +507,11 @@ export default function BattleView() {
           // Process battlefield effects from in-universe messages
           if (newMessage.channel === 'in_universe') {
             processBattlefieldEffect(newMessage.content);
+            
+            // Process character status effects from opponent's messages
+            if (charData?.user_id !== user?.id) {
+              processStatusEffect(newMessage.content, true);
+            }
           }
 
           // Show notification if message is from another user
@@ -1612,12 +1628,19 @@ export default function BattleView() {
                   }}
                   className="flex gap-2"
                 >
-                  <Input
-                    placeholder="Describe your action..."
-                    value={activeChannel === 'in_universe' ? messageInput : ''}
-                    onChange={(e) => handleInputChange(e.target.value, 'in_universe')}
-                    onFocus={() => setActiveChannel('in_universe')}
-                  />
+                  <div className="relative flex-1">
+                    {/* Character Status Effect Overlay - shows effects affecting the user */}
+                    {characterStatusEffects.length > 0 && (
+                      <CharacterStatusOverlay effects={characterStatusEffects} />
+                    )}
+                    <Input
+                      placeholder="Describe your action..."
+                      value={activeChannel === 'in_universe' ? messageInput : ''}
+                      onChange={(e) => handleInputChange(e.target.value, 'in_universe')}
+                      onFocus={() => setActiveChannel('in_universe')}
+                      className="relative z-20"
+                    />
+                  </div>
                   <Button type="submit" size="icon">
                     <Send className="w-4 h-4" />
                   </Button>
@@ -1703,11 +1726,18 @@ export default function BattleView() {
                 }}
                 className="flex gap-2"
               >
-                <Input
-                  placeholder={activeChannel === 'in_universe' ? 'Describe your action...' : 'Say something OOC...'}
-                  value={messageInput}
-                  onChange={(e) => handleInputChange(e.target.value, activeChannel)}
-                />
+                <div className="relative flex-1">
+                  {/* Character Status Effect Overlay - mobile view */}
+                  {activeChannel === 'in_universe' && characterStatusEffects.length > 0 && (
+                    <CharacterStatusOverlay effects={characterStatusEffects} />
+                  )}
+                  <Input
+                    placeholder={activeChannel === 'in_universe' ? 'Describe your action...' : 'Say something OOC...'}
+                    value={messageInput}
+                    onChange={(e) => handleInputChange(e.target.value, activeChannel)}
+                    className="relative z-20"
+                  />
+                </div>
                 <Button type="submit" size="icon">
                   <Send className="w-4 h-4" />
                 </Button>

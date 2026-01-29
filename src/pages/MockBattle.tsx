@@ -51,8 +51,10 @@ import ConstructDiceMessage from '@/components/battles/ConstructDiceMessage';
 import TurnIndicatorWrapper from '@/components/battles/TurnIndicatorWrapper';
 import BattleTurnColorPicker from '@/components/battles/BattleTurnColorPicker';
 import BattlefieldEffectsOverlay from '@/components/battles/BattlefieldEffectsOverlay';
+import { CharacterStatusOverlay } from '@/components/battles/CharacterStatusOverlay';
 import { useBattleTurnColor } from '@/hooks/use-battle-turn-color';
 import { useBattlefieldEffects } from '@/components/battles/useBattlefieldEffects';
+import { useCharacterStatusEffects } from '@/hooks/use-character-status-effects';
 import type { ActiveBattlefieldEffect } from '@/lib/battlefield-effects';
 import { 
   ArrowLeft, 
@@ -1075,6 +1077,15 @@ export default function MockBattle() {
   // Battlefield visual effects (fire, ice, smoke, etc.)
   const { activeEffects: battlefieldEffects, processMessage: processBattlefieldEffect } = useBattlefieldEffects();
   
+  // Character-specific status effects (paralyzed, blinded, submerged, etc.)
+  const { 
+    activeEffects: characterStatusEffects, 
+    processMessage: processCharacterStatusEffect 
+  } = useCharacterStatusEffects({
+    characterName: selectedCharacter?.name,
+    enabled: battleStarted,
+  });
+  
   // Filter opponents by tier and category
   const filteredOpponents = AI_OPPONENTS.filter(opponent => {
     // Tier filter
@@ -1326,6 +1337,8 @@ export default function MockBattle() {
             characterName: currentOpponent.name,
           };
           setMessages(prev => [...prev, aiMessage]);
+          // Process character status effects from AI first move
+          processCharacterStatusEffect(response.data.response, true);
         }
       } catch (error) {
         console.error('First move error:', error);
@@ -1684,6 +1697,9 @@ export default function MockBattle() {
         setMessages(prev => [...prev, aiMessage]);
         setTurnNumber(prev => prev + 1);
         
+        // Process character status effects from AI response (affects the user)
+        processCharacterStatusEffect(response.data.response, true);
+        
         // Clear any penalties after the action
         const newPenalties = { ...statPenalties };
         newPenalties[selectedCharacter.id] = 0;
@@ -1951,6 +1967,8 @@ export default function MockBattle() {
       // Process battlefield effects from AI message
       if (activeChannel === 'in_universe') {
         processBattlefieldEffect(response.data.response);
+        // Process character status effects from AI response (affects the user)
+        processCharacterStatusEffect(response.data.response, true);
       }
       
       // Store opponent's action for defense validation next turn
@@ -2885,17 +2903,24 @@ export default function MockBattle() {
 
               {/* Input */}
               <div className="flex gap-2">
-                <Input
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder={pendingHit 
-                    ? 'Resolve the incoming attack first...'
-                    : activeChannel === 'in_universe' 
-                    ? 'Describe your action or attack...' 
-                    : 'Ask a question or discuss strategy...'}
-                  onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && !pendingHit && sendMessage()}
-                  disabled={isLoading || !!pendingHit}
-                />
+                <div className="relative flex-1">
+                  {/* Character Status Effect Overlay - shows effects affecting the user */}
+                  {activeChannel === 'in_universe' && characterStatusEffects.length > 0 && (
+                    <CharacterStatusOverlay effects={characterStatusEffects} />
+                  )}
+                  <Input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder={pendingHit 
+                      ? 'Resolve the incoming attack first...'
+                      : activeChannel === 'in_universe' 
+                      ? 'Describe your action or attack...' 
+                      : 'Ask a question or discuss strategy...'}
+                    onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && !pendingHit && sendMessage()}
+                    disabled={isLoading || !!pendingHit}
+                    className="relative z-20"
+                  />
+                </div>
                 <Button onClick={sendMessage} disabled={isLoading || !input.trim() || !!pendingHit}>
                   <Send className="w-4 h-4" />
                 </Button>
