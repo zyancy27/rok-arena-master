@@ -71,12 +71,12 @@ export default function Hub() {
           </Card>
         </Link>
 
-        <Link to="/characters">
+        <Link to="/characters/list">
           <Card className="bg-card-gradient border-border hover:glow-accent transition-all cursor-pointer h-full">
             <CardHeader className="text-center">
               <Users className="w-12 h-12 mx-auto text-accent mb-2" />
-              <CardTitle>Browse Characters</CardTitle>
-              <CardDescription>Explore all characters in the realm</CardDescription>
+              <CardTitle>My Characters</CardTitle>
+              <CardDescription>View and manage your warriors</CardDescription>
             </CardHeader>
           </Card>
         </Link>
@@ -101,7 +101,7 @@ export default function Hub() {
               Your Characters
             </CardTitle>
             <Button variant="outline" size="sm" asChild>
-              <Link to="/my-characters">View All</Link>
+              <Link to="/characters/list">View All</Link>
             </Button>
           </div>
         </CardHeader>
