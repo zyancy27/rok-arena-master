@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -56,11 +56,9 @@ import TurnIndicatorWrapper from '@/components/battles/TurnIndicatorWrapper';
 import BattleTurnColorPicker from '@/components/battles/BattleTurnColorPicker';
 import BattlefieldEffectsOverlay from '@/components/battles/BattlefieldEffectsOverlay';
 import { CharacterStatusOverlay } from '@/components/battles/CharacterStatusOverlay';
-import { SpeechInputButton } from '@/components/ui/speech-input-button';
 import { useBattleTurnColor } from '@/hooks/use-battle-turn-color';
 import { useBattlefieldEffects } from '@/components/battles/useBattlefieldEffects';
 import { useCharacterStatusEffects } from '@/hooks/use-character-status-effects';
-import { useSpeechToText } from '@/hooks/use-speech-to-text';
 import {
   ArrowLeft,
   Send,
@@ -242,34 +240,6 @@ export default function BattleView() {
     characterName: userCharacter?.character?.name,
     enabled: battle?.status === 'active',
   });
-  
-  // Speech-to-text for voice input
-  const {
-    isListening: isSpeechListening,
-    transcript: speechTranscript,
-    interimTranscript: speechInterim,
-    isSupported: isSpeechSupported,
-    error: speechError,
-    startListening: startSpeechListening,
-    stopListening: stopSpeechListening,
-    resetTranscript: resetSpeechTranscript,
-  } = useSpeechToText();
-  
-  // Append speech transcript to input when finalized
-  useEffect(() => {
-    if (speechTranscript) {
-      setMessageInput(prev => prev + (prev ? ' ' : '') + speechTranscript);
-      resetSpeechTranscript();
-    }
-  }, [speechTranscript, resetSpeechTranscript]);
-  
-  const toggleSpeech = useCallback(() => {
-    if (isSpeechListening) {
-      stopSpeechListening();
-    } else {
-      startSpeechListening();
-    }
-  }, [isSpeechListening, startSpeechListening, stopSpeechListening]);
 
   // Generate environment and entrances when battle becomes active with a location
   useEffect(() => {
@@ -1909,18 +1879,12 @@ export default function BattleView() {
                     )}
                     <Input
                       placeholder="Describe your action..."
-                      value={(activeChannel === 'in_universe' ? messageInput : '') + (speechInterim ? ` ${speechInterim}` : '')}
+                      value={activeChannel === 'in_universe' ? messageInput : ''}
                       onChange={(e) => handleInputChange(e.target.value, 'in_universe')}
                       onFocus={() => setActiveChannel('in_universe')}
                       className="relative z-20"
                     />
                   </div>
-                  <SpeechInputButton
-                    isListening={isSpeechListening}
-                    isSupported={isSpeechSupported}
-                    error={speechError}
-                    onToggle={toggleSpeech}
-                  />
                   <Button type="submit" size="icon">
                     <Send className="w-4 h-4" />
                   </Button>
@@ -1976,15 +1940,9 @@ export default function BattleView() {
                 >
                   <Input
                     placeholder="Say something OOC..."
-                    value={(activeChannel === 'out_of_universe' ? messageInput : '') + (speechInterim ? ` ${speechInterim}` : '')}
+                    value={activeChannel === 'out_of_universe' ? messageInput : ''}
                     onChange={(e) => handleInputChange(e.target.value, 'out_of_universe')}
                     onFocus={() => setActiveChannel('out_of_universe')}
-                  />
-                  <SpeechInputButton
-                    isListening={isSpeechListening}
-                    isSupported={isSpeechSupported}
-                    error={speechError}
-                    onToggle={toggleSpeech}
                   />
                   <Button type="submit" size="icon" variant="secondary">
                     <Send className="w-4 h-4" />
@@ -2019,17 +1977,11 @@ export default function BattleView() {
                   )}
                   <Input
                     placeholder={activeChannel === 'in_universe' ? 'Describe your action...' : 'Say something OOC...'}
-                    value={messageInput + (speechInterim ? ` ${speechInterim}` : '')}
+                    value={messageInput}
                     onChange={(e) => handleInputChange(e.target.value, activeChannel)}
                     className="relative z-20"
                   />
                 </div>
-                <SpeechInputButton
-                  isListening={isSpeechListening}
-                  isSupported={isSpeechSupported}
-                  error={speechError}
-                  onToggle={toggleSpeech}
-                />
                 <Button type="submit" size="icon">
                   <Send className="w-4 h-4" />
                 </Button>
