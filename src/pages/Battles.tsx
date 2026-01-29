@@ -42,7 +42,6 @@ interface Battle {
   loser_id: string | null;
   challenged_user_id: string | null;
   participants: BattleParticipant[];
-  challenger_username?: string;
 }
 
 export default function Battles() {
@@ -170,27 +169,6 @@ export default function Battles() {
       `)
       .in('battle_id', allBattleIds);
 
-    // Get usernames for challengers (for pending battles where user is challenged)
-    const challengerCharIds = allParticipants
-      ?.filter(p => p.turn_order === 1)
-      .map(p => p.character_id) || [];
-
-    const { data: challengerChars } = await supabase
-      .from('characters')
-      .select('id, user_id')
-      .in('id', challengerCharIds);
-
-    const challengerUserIds = [...new Set(challengerChars?.map(c => c.user_id) || [])];
-
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('id, username')
-      .in('id', challengerUserIds);
-
-    // Build lookup maps
-    const charToUser = new Map(challengerChars?.map(c => [c.id, c.user_id]) || []);
-    const userToUsername = new Map(profiles?.map(p => [p.id, p.username]) || []);
-
     // Combine data
     const battlesWithParticipants: Battle[] = battlesData.map(battle => {
       const battleParticipants = allParticipants
@@ -201,15 +179,9 @@ export default function Battles() {
           character: Array.isArray(p.character) ? p.character[0] : p.character
         })) || [];
 
-      // Get challenger username
-      const challengerParticipant = battleParticipants.find(p => p.turn_order === 1);
-      const challengerUserId = challengerParticipant ? charToUser.get(challengerParticipant.character_id) : null;
-      const challengerUsername = challengerUserId ? userToUsername.get(challengerUserId) : undefined;
-
       return {
         ...battle,
-        participants: battleParticipants,
-        challenger_username: challengerUsername
+        participants: battleParticipants
       };
     });
 
@@ -377,7 +349,7 @@ export default function Battles() {
                                 </Badge>
                                 <span className="font-medium">
                                   {isUserChallenged ? (
-                                    <>⚔️ <span className="text-primary">{battle.challenger_username || 'Someone'}</span> challenged you!</>
+                                    <>⚔️ <span className="text-primary">An opponent</span> challenged you!</>
                                   ) : iAmChallenger ? (
                                     <>Waiting for opponent to accept...</>
                                   ) : (
