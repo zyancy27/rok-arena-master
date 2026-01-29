@@ -433,30 +433,39 @@ export default function CharacterDetail() {
                   </AccordionItem>
                 )}
 
-                {/* Stats Section */}
-                <AccordionItem value="stats" className="border-border">
-                  <AccordionTrigger className="hover:no-underline">
-                    <span className="flex items-center gap-2">
-                      <Target className="w-4 h-4 text-primary" />
-                      Character Stats
-                    </span>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <CharacterStatSheet
-                      stats={{
-                        stat_intelligence: character.stat_intelligence ?? 50,
-                        stat_battle_iq: (character as any).stat_battle_iq ?? 50,
-                        stat_strength: character.stat_strength ?? 50,
-                        stat_power: character.stat_power ?? 50,
-                        stat_speed: character.stat_speed ?? 50,
-                        stat_durability: character.stat_durability ?? 50,
-                        stat_stamina: character.stat_stamina ?? 50,
-                        stat_skill: character.stat_skill ?? 50,
-                        stat_luck: character.stat_luck ?? 50,
-                      }}
-                    />
-                  </AccordionContent>
-                </AccordionItem>
+                {/* Stats Section - Only visible to owner */}
+                {isOwner ? (
+                  <AccordionItem value="stats" className="border-border">
+                    <AccordionTrigger className="hover:no-underline">
+                      <span className="flex items-center gap-2">
+                        <Target className="w-4 h-4 text-primary" />
+                        Character Stats
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <CharacterStatSheet
+                        stats={{
+                          stat_intelligence: character.stat_intelligence ?? 50,
+                          stat_battle_iq: (character as any).stat_battle_iq ?? 50,
+                          stat_strength: character.stat_strength ?? 50,
+                          stat_power: character.stat_power ?? 50,
+                          stat_speed: character.stat_speed ?? 50,
+                          stat_durability: character.stat_durability ?? 50,
+                          stat_stamina: character.stat_stamina ?? 50,
+                          stat_skill: character.stat_skill ?? 50,
+                          stat_luck: character.stat_luck ?? 50,
+                        }}
+                      />
+                    </AccordionContent>
+                  </AccordionItem>
+                ) : (
+                  <div className="flex items-center gap-2 p-4 rounded-lg bg-muted/30 border border-border/50">
+                    <Shield className="w-5 h-5 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      Character stats are private and only visible to the owner
+                    </p>
+                  </div>
+                )}
               </Accordion>
             </TabsContent>
 
