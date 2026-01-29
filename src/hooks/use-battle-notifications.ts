@@ -33,9 +33,37 @@ export function useBattleNotifications() {
             return;
           }
 
+          // Get the challenger info
+          const { data: participants } = await supabase
+            .from('battle_participants')
+            .select(`
+              character_id, 
+              turn_order,
+              character:characters(name, user_id)
+            `)
+            .eq('battle_id', newBattle.id)
+            .eq('turn_order', 1);
+
+          const challengerParticipant = participants?.[0];
+          if (!challengerParticipant) return;
+
+          const challengerChar = Array.isArray(challengerParticipant.character) 
+            ? challengerParticipant.character[0] 
+            : challengerParticipant.character;
+
+          // Get challenger username
+          const { data: challengerProfile } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('id', challengerChar?.user_id)
+            .maybeSingle();
+
+          const challengerName = challengerProfile?.username || 'Someone';
+          const characterName = challengerChar?.name || 'their character';
+
           // Show notification with action button
           toast.info(`⚔️ Battle Challenge!`, {
-            description: `An opponent has challenged you!`,
+            description: `${challengerName} has challenged you with ${characterName}!`,
             duration: 10000,
             action: {
               label: 'Respond',

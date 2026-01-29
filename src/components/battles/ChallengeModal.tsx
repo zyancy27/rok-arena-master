@@ -27,6 +27,7 @@ interface ChallengeModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   targetUserId: string;
+  targetUsername: string;
   userCharacters: {
     id: string;
     name: string;
@@ -38,6 +39,7 @@ export default function ChallengeModal({
   open,
   onOpenChange,
   targetUserId,
+  targetUsername,
   userCharacters,
 }: ChallengeModalProps) {
   const { user } = useAuth();
@@ -83,7 +85,9 @@ export default function ChallengeModal({
       if (participantError) throw participantError;
 
       // Store the target user ID in the battle somehow - we'll use a simple approach
-      toast.success('Challenge sent!');
+      // For now, we'll navigate and the defender will see it in their pending battles
+      
+      toast.success(`Challenge sent to ${targetUsername}!`);
       onOpenChange(false);
       navigate(`/battles/${battle.id}`);
     } catch (error: any) {
@@ -107,8 +111,10 @@ export default function ChallengeModal({
             <Swords className="w-5 h-5 text-primary" />
             Challenge Player
           </DialogTitle>
-          <DialogDescription>
-            Challenge this opponent to a battle. They will choose which character to fight with when they accept.
+          <DialogDescription className="flex items-center gap-2">
+            <User className="w-4 h-4" />
+            Challenge <span className="text-primary font-semibold">{targetUsername}</span> to a battle.
+            They will choose which character to fight with when they accept.
           </DialogDescription>
         </DialogHeader>
 
@@ -158,7 +164,7 @@ export default function ChallengeModal({
             <div className="p-3 rounded-lg bg-muted/50 text-sm text-muted-foreground">
               <p className="flex items-center gap-2">
                 <Swords className="w-4 h-4 text-primary" />
-                Your opponent will receive the challenge and choose which of their characters to fight with.
+                {targetUsername} will receive your challenge and choose which of their characters to fight with.
               </p>
             </div>
           )}

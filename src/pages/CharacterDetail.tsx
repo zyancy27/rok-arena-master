@@ -511,6 +511,7 @@ export default function CharacterDetail() {
           open={showChallengeModal}
           onOpenChange={setShowChallengeModal}
           targetUserId={character.user_id}
+          targetUsername={character.profile?.display_name || character.profile?.username || character.name}
           userCharacters={userCharacters}
         />
       )}

@@ -236,12 +236,12 @@ export default function OpponentFinder() {
                     <Avatar className="w-12 h-12 shrink-0">
                       <AvatarImage src={summary.profile.avatar_url || undefined} />
                       <AvatarFallback className="bg-primary/20 text-primary">
-                        <User className="w-5 h-5" />
+                        {(summary.profile.display_name || summary.profile.username || 'U')[0].toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
                       <p className="font-semibold truncate flex items-center gap-2">
-                        Opponent
+                        {summary.profile.display_name || summary.profile.username || 'Unknown Player'}
                         {summary.isFriend && (
                           <Heart className="w-4 h-4 text-pink-500 fill-pink-500" />
                         )}
@@ -275,11 +275,12 @@ export default function OpponentFinder() {
       )}
 
       {/* Challenge Modal */}
-      {selectedUserId && (
+      {selectedUserId && selectedUserProfile && (
         <ChallengeModal
           open={challengeModalOpen}
           onOpenChange={setChallengeModalOpen}
           targetUserId={selectedUserId}
+          targetUsername={selectedUserProfile.display_name || selectedUserProfile.username}
           userCharacters={userCharacters}
         />
       )}
