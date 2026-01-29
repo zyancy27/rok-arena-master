@@ -5,6 +5,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -74,6 +81,8 @@ import {
   Check,
   CheckCheck,
   Lock,
+  X,
+  UserPlus,
 } from 'lucide-react';
 
 interface Battle {
@@ -88,6 +97,7 @@ interface Battle {
   coin_flip_winner_id: string | null;
   dynamic_environment: boolean;
   environment_effects: string | null;
+  challenged_user_id: string | null;
 }
 
 interface CharacterData {
@@ -165,6 +175,12 @@ export default function BattleView() {
   const [isFlippingCoin, setIsFlippingCoin] = useState(false);
   const [dynamicEnvironmentEnabled, setDynamicEnvironmentEnabled] = useState(true);
   const [battleEnvironment, setBattleEnvironment] = useState<BattleEnvironment | null>(null);
+  
+  // Challenge acceptance state
+  const [userCharacters, setUserCharacters] = useState<CharacterData[]>([]);
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string>('');
+  const [isAcceptingChallenge, setIsAcceptingChallenge] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   
   // Move validation state
   const [pendingMove, setPendingMove] = useState<string | null>(null);
@@ -439,6 +455,25 @@ export default function BattleView() {
         const initialUses: Record<string, number> = {};
         charIds.forEach(id => { initialUses[id] = 3; });
         setConcentrationUses(initialUses);
+      }
+    }
+
+    // If user is the challenged user but not a participant yet, fetch their characters
+    if (battleData.challenged_user_id === user?.id) {
+      const userIsParticipant = participantsData?.some(p => {
+        const charIds = participantsData.map(pd => pd.character_id);
+        // We need to check if any of these chars belong to the user
+        return false; // Will check after chars fetch
+      });
+      
+      // Fetch user's available characters for selection
+      const { data: myChars } = await supabase
+        .from('characters')
+        .select('id, name, level, user_id, powers, abilities, stat_intelligence, stat_battle_iq, stat_strength, stat_power, stat_speed, stat_durability, stat_stamina, stat_skill, stat_luck')
+        .eq('user_id', user.id);
+      
+      if (myChars) {
+        setUserCharacters(myChars);
       }
     }
 
@@ -1021,6 +1056,71 @@ export default function BattleView() {
     navigate('/battles');
   };
 
+  // Accept a challenge by selecting a character and joining the battle
+  const handleAcceptChallenge = async () => {
+    if (!battle || !selectedCharacterId || !user) return;
+    
+    setIsAcceptingChallenge(true);
+    
+    try {
+      // Add user as participant with turn_order 2
+      const { error: participantError } = await supabase
+        .from('battle_participants')
+        .insert({
+          battle_id: battle.id,
+          character_id: selectedCharacterId,
+          turn_order: 2,
+        });
+
+      if (participantError) {
+        toast.error('Failed to join battle: ' + participantError.message);
+        return;
+      }
+
+      toast.success('Challenge accepted! Enter your battle location.');
+      
+      // Refetch battle data to get updated participants
+      await fetchBattleData();
+    } catch (error: any) {
+      toast.error('Failed to accept challenge: ' + error.message);
+    } finally {
+      setIsAcceptingChallenge(false);
+    }
+  };
+
+  // Decline or cancel a challenge
+  const handleDeclineChallenge = async () => {
+    if (!battle) return;
+    
+    setIsCancelling(true);
+    
+    try {
+      // Delete all participants first
+      await supabase
+        .from('battle_participants')
+        .delete()
+        .eq('battle_id', battle.id);
+
+      // Delete the battle
+      const { error } = await supabase
+        .from('battles')
+        .delete()
+        .eq('id', battle.id);
+
+      if (error) {
+        toast.error('Failed to cancel challenge');
+        return;
+      }
+
+      toast.success('Challenge declined');
+      navigate('/battles');
+    } catch (error: any) {
+      toast.error('Failed to decline challenge');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
   const handleAcceptBattle = async () => {
     if (!battle) return;
 
@@ -1210,13 +1310,119 @@ export default function BattleView() {
         </div>
       </div>
 
-      {/* Location Setup for Pending Battle */}
+      {/* Challenge Acceptance for Challenged User (not yet a participant) */}
+      {battle.status === 'pending' && !userCharacter && battle.challenged_user_id === user?.id && (
+        <Card className="bg-card-gradient border-primary/30">
+          <CardHeader className="py-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Swords className="w-4 h-4 text-primary" />
+              You've Been Challenged!
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="p-4 bg-primary/10 rounded-lg">
+              <p className="text-sm mb-4">
+                <span className="font-medium">{participants[0]?.character?.name || 'An opponent'}</span> has challenged you to battle!
+                Select a character to accept the challenge.
+              </p>
+              
+              <div className="space-y-3">
+                <Label>Choose Your Fighter</Label>
+                <Select value={selectedCharacterId} onValueChange={setSelectedCharacterId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a character..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {userCharacters.length === 0 ? (
+                      <SelectItem value="none" disabled>
+                        No characters available
+                      </SelectItem>
+                    ) : (
+                      userCharacters.map((char) => (
+                        <SelectItem key={char.id} value={char.id}>
+                          <span className="flex items-center gap-2">
+                            <Sparkles className="w-3 h-3" />
+                            {char.name} (Tier {char.level})
+                          </span>
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            
+            <div className="flex gap-3">
+              <Button 
+                onClick={handleAcceptChallenge}
+                disabled={!selectedCharacterId || isAcceptingChallenge}
+                className="flex-1 glow-primary"
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                {isAcceptingChallenge ? 'Accepting...' : 'Accept Challenge'}
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" disabled={isCancelling}>
+                    <X className="w-4 h-4 mr-2" />
+                    Decline
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Decline Challenge?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to decline this challenge? This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeclineChallenge}>
+                      Decline Challenge
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Location Setup for Pending Battle (when user is already a participant) */}
       {battle.status === 'pending' && userCharacter && (
         <Card className="bg-card-gradient border-border">
           <CardHeader className="py-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-primary" />
-              Battle Location Setup
+            <CardTitle className="text-sm flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-primary" />
+                Battle Location Setup
+              </span>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" disabled={isCancelling}>
+                    <X className="w-4 h-4 mr-1" />
+                    {userCharacter.turn_order === 1 ? 'Cancel' : 'Decline'}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>
+                      {userCharacter.turn_order === 1 ? 'Cancel Challenge?' : 'Decline Challenge?'}
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {userCharacter.turn_order === 1 
+                        ? 'Are you sure you want to cancel this challenge? This action cannot be undone.'
+                        : 'Are you sure you want to decline this challenge? This action cannot be undone.'}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Keep Challenge</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeclineChallenge}>
+                      {userCharacter.turn_order === 1 ? 'Cancel Challenge' : 'Decline Challenge'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
