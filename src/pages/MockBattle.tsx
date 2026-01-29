@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -52,9 +52,11 @@ import TurnIndicatorWrapper from '@/components/battles/TurnIndicatorWrapper';
 import BattleTurnColorPicker from '@/components/battles/BattleTurnColorPicker';
 import BattlefieldEffectsOverlay from '@/components/battles/BattlefieldEffectsOverlay';
 import { CharacterStatusOverlay } from '@/components/battles/CharacterStatusOverlay';
+import { SpeechInputButton } from '@/components/ui/speech-input-button';
 import { useBattleTurnColor } from '@/hooks/use-battle-turn-color';
 import { useBattlefieldEffects } from '@/components/battles/useBattlefieldEffects';
 import { useCharacterStatusEffects } from '@/hooks/use-character-status-effects';
+import { useSpeechToText } from '@/hooks/use-speech-to-text';
 import type { ActiveBattlefieldEffect } from '@/lib/battlefield-effects';
 import { 
   ArrowLeft, 
@@ -1086,7 +1088,33 @@ export default function MockBattle() {
     enabled: battleStarted,
   });
   
-  // Filter opponents by tier and category
+  // Speech-to-text for voice input
+  const {
+    isListening: isSpeechListening,
+    transcript: speechTranscript,
+    interimTranscript: speechInterim,
+    isSupported: isSpeechSupported,
+    error: speechError,
+    startListening: startSpeechListening,
+    stopListening: stopSpeechListening,
+    resetTranscript: resetSpeechTranscript,
+  } = useSpeechToText();
+  
+  // Append speech transcript to input when finalized
+  useEffect(() => {
+    if (speechTranscript) {
+      setInput(prev => prev + (prev ? ' ' : '') + speechTranscript);
+      resetSpeechTranscript();
+    }
+  }, [speechTranscript, resetSpeechTranscript]);
+  
+  const toggleSpeech = useCallback(() => {
+    if (isSpeechListening) {
+      stopSpeechListening();
+    } else {
+      startSpeechListening();
+    }
+  }, [isSpeechListening, startSpeechListening, stopSpeechListening]);
   const filteredOpponents = AI_OPPONENTS.filter(opponent => {
     // Tier filter
     const tier = POWER_TIERS.find(t => t.id === selectedTierFilter);
@@ -2909,7 +2937,7 @@ export default function MockBattle() {
                     <CharacterStatusOverlay effects={characterStatusEffects} />
                   )}
                   <Input
-                    value={input}
+                    value={input + (speechInterim ? ` ${speechInterim}` : '')}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder={pendingHit 
                       ? 'Resolve the incoming attack first...'
@@ -2921,6 +2949,13 @@ export default function MockBattle() {
                     className="relative z-20"
                   />
                 </div>
+                <SpeechInputButton
+                  isListening={isSpeechListening}
+                  isSupported={isSpeechSupported}
+                  error={speechError}
+                  onToggle={toggleSpeech}
+                  disabled={isLoading || !!pendingHit}
+                />
                 <Button onClick={sendMessage} disabled={isLoading || !input.trim() || !!pendingHit}>
                   <Send className="w-4 h-4" />
                 </Button>
