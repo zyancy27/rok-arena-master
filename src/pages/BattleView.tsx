@@ -2081,232 +2081,241 @@ export default function BattleView() {
         </Card>
       )}
 
-      {/* Chat Area */}
-      <div className="grid lg:grid-cols-2 gap-4">
-        {/* In-Universe Chat */}
-        <TurnIndicatorWrapper
-          isUserTurn={isUserTurn}
-          userColor={userTurnColor}
-          opponentColor="#EF4444"
-        >
-          <Card className="bg-card-gradient border-border relative">
-          {/* Battlefield Effects Overlay */}
-          {battlefieldEffects.length > 0 && (
-            <BattlefieldEffectsOverlay effects={battlefieldEffects} className="rounded-lg" />
-          )}
-          <CardHeader className="py-3 border-b border-border relative z-10">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Swords className="w-4 h-4 text-primary" />
-              In-Universe (Roleplay)
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0 relative z-10">
-            <ScrollArea className="h-[400px] p-4">
-              {inUniverseMessages.length === 0 ? (
-                <div className="text-center text-muted-foreground py-8">
-                  <Swords className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">The battle awaits...</p>
-                  <p className="text-xs">Send your first move!</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {inUniverseMessages.map((msg, idx) => {
-                    const isFromUser = msg.character_id === userCharacter?.character_id;
-                    const isLastUserMessage = isFromUser && 
-                      inUniverseMessages.filter(m => m.character_id === userCharacter?.character_id).pop()?.id === msg.id;
-                    const wasRead = isLastUserMessage && opponentLastReadMessageId === msg.id;
-                    
-                    return (
-                      <div key={msg.id} className="chat-in-universe pl-3 py-2">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold text-primary text-sm">
-                            {msg.character_name}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(msg.created_at).toLocaleTimeString()}
-                          </span>
-                          {/* Read receipt for user's messages */}
-                          {isFromUser && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className="ml-auto">
-                                    {wasRead ? (
-                                      <CheckCheck className="w-3 h-3 text-primary" />
-                                    ) : (
-                                      <Check className="w-3 h-3 text-muted-foreground" />
-                                    )}
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  {wasRead ? 'Read by opponent' : 'Sent'}
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+      {/* Chat Area - Dynamic Tabbed Interface */}
+      <Card className="bg-card-gradient border-border">
+        <CardContent className="p-0">
+          <Tabs value={activeChannel} onValueChange={(v) => setActiveChannel(v as 'in_universe' | 'out_of_universe')}>
+            <TabsList className="grid w-full grid-cols-2 rounded-none border-b border-border">
+              <TabsTrigger value="in_universe" className="flex items-center gap-2 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
+                <Sparkles className="w-4 h-4" />
+                In-Universe (RP)
+              </TabsTrigger>
+              <TabsTrigger value="out_of_universe" className="flex items-center gap-2 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-muted-foreground">
+                <MessageCircle className="w-4 h-4" />
+                Out-of-Universe (OOC)
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="in_universe" className="mt-0">
+              <TurnIndicatorWrapper
+                isUserTurn={isUserTurn}
+                userColor={userTurnColor}
+                opponentColor="#EF4444"
+              >
+                <div className="relative">
+                  {/* Battlefield Effects Overlay */}
+                  {battlefieldEffects.length > 0 && (
+                    <BattlefieldEffectsOverlay effects={battlefieldEffects} className="rounded-b-lg" />
+                  )}
+                  
+                  <ScrollArea className="h-[400px] p-4 relative z-10">
+                    {inUniverseMessages.length === 0 ? (
+                      <div className="flex items-center justify-center h-full">
+                        <div className="text-center text-muted-foreground">
+                          <Swords className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">The arena awaits your first move...</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {inUniverseMessages.map((msg) => {
+                          const isFromUser = msg.character_id === userCharacter?.character_id;
+                          const isLastUserMessage = isFromUser && 
+                            inUniverseMessages.filter(m => m.character_id === userCharacter?.character_id).pop()?.id === msg.id;
+                          const wasRead = isLastUserMessage && opponentLastReadMessageId === msg.id;
+                          
+                          return (
+                            <div 
+                              key={msg.id} 
+                              className={`p-3 rounded-lg ${
+                                isFromUser
+                                  ? 'bg-primary/20 border-l-4 border-primary ml-8'
+                                  : 'bg-muted/50 border-l-4 border-accent mr-8'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-semibold text-sm text-muted-foreground">
+                                  {msg.character_name}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(msg.created_at).toLocaleTimeString()}
+                                </span>
+                                {/* Read receipt for user's messages */}
+                                {isFromUser && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <span className="ml-auto">
+                                          {wasRead ? (
+                                            <CheckCheck className="w-3 h-3 text-primary" />
+                                          ) : (
+                                            <Check className="w-3 h-3 text-muted-foreground" />
+                                          )}
+                                        </span>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        {wasRead ? 'Read by opponent' : 'Sent'}
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
+                              </div>
+                              <p className="whitespace-pre-wrap">{msg.content}</p>
+                            </div>
+                          );
+                        })}
+                        
+                        {/* Typing Indicator */}
+                        {opponentTyping && (
+                          <div className="p-3 rounded-lg bg-muted/50 border-l-4 border-accent mr-8 animate-fade-in">
+                            <p className="text-xs mb-1 text-muted-foreground">
+                              {participants.find(p => p.character?.user_id !== user?.id)?.character?.name}
+                            </p>
+                            <div className="flex items-center gap-1">
+                              <span className="text-muted-foreground text-sm">typing</span>
+                              <span className="flex gap-1">
+                                <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Narrator Loading Indicator */}
+                        {isNarratorLoading && (
+                          <div className="p-3 rounded-lg bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-l-4 border-amber-500 mx-4 animate-fade-in">
+                            <p className="text-xs mb-1 text-amber-400 font-semibold">Narrator</p>
+                            <div className="flex items-center gap-1">
+                              <span className="text-muted-foreground text-sm">observing</span>
+                              <span className="flex gap-1">
+                                <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        <div ref={messagesEndRef} />
+                      </div>
+                    )}
+                  </ScrollArea>
+                  
+                  {/* In-Universe Input */}
+                  {battle.status === 'active' && userCharacter && (
+                    <div className="p-4 border-t border-border space-y-3 relative z-10">
+                      {/* Area Damage Warning - Flavor Only */}
+                      {areaDamageWarning && areaDamageWarning.isSevere && (
+                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 bg-gradient-to-r from-destructive/20 via-orange-500/20 to-destructive/20 border border-destructive/50 rounded-lg p-3 space-y-1">
+                          <div className="flex items-center gap-2 text-destructive font-semibold text-sm">
+                            <AlertTriangle className="w-4 h-4 animate-pulse" />
+                            {areaDamageWarning.warningText}
+                          </div>
+                          {areaDamageWarning.flavorText && (
+                            <p className="text-xs text-muted-foreground italic pl-6">
+                              {areaDamageWarning.flavorText}
+                            </p>
                           )}
                         </div>
-                        <p className="text-sm text-foreground">{msg.content}</p>
-                      </div>
-                    );
-                  })}
-                  
-                  {/* Typing Indicator */}
-                  {opponentTyping && (
-                    <div className="chat-in-universe pl-3 py-2 animate-in fade-in slide-in-from-bottom-2">
-                      <div className="flex items-center gap-2">
-                        <Pencil className="w-3 h-3 text-muted-foreground animate-pulse" />
-                        <span className="text-xs text-muted-foreground italic">
-                          {participants.find(p => p.character?.user_id !== user?.id)?.character?.name} is typing...
-                        </span>
-                      </div>
+                      )}
+                      
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }}
+                        className="flex gap-2"
+                      >
+                        <div className="relative flex-1">
+                          {/* Character Status Effect Overlay */}
+                          {characterStatusEffects.length > 0 && (
+                            <CharacterStatusOverlay effects={characterStatusEffects} />
+                          )}
+                          <Input
+                            value={activeChannel === 'in_universe' ? messageInput : ''}
+                            onChange={(e) => handleInputChange(e.target.value, 'in_universe')}
+                            placeholder={pendingHit 
+                              ? 'Resolve the incoming attack first...'
+                              : 'Describe your action or attack...'}
+                            disabled={!!pendingHit}
+                            className="relative z-20"
+                          />
+                        </div>
+                        <Button type="submit" size="icon" disabled={!!pendingHit || !messageInput.trim()}>
+                          <Send className="w-4 h-4" />
+                        </Button>
+                      </form>
                     </div>
                   )}
-                  
-                  <div ref={messagesEndRef} />
                 </div>
-              )}
-            </ScrollArea>
-            {battle.status === 'active' && userCharacter && activeChannel === 'in_universe' && (
-              <div className="p-4 border-t border-border space-y-3">
-                {/* Area Damage Warning - Flavor Only */}
-                {areaDamageWarning && areaDamageWarning.isSevere && (
-                  <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 bg-gradient-to-r from-destructive/20 via-orange-500/20 to-destructive/20 border border-destructive/50 rounded-lg p-3 space-y-1">
-                    <div className="flex items-center gap-2 text-destructive font-semibold text-sm">
-                      <AlertTriangle className="w-4 h-4 animate-pulse" />
-                      {areaDamageWarning.warningText}
+              </TurnIndicatorWrapper>
+            </TabsContent>
+
+            <TabsContent value="out_of_universe" className="mt-0">
+              <ScrollArea className="h-[400px] p-4">
+                {outOfUniverseMessages.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center text-muted-foreground">
+                      <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No OOC messages yet</p>
+                      <p className="text-xs">Discuss rules or clarify things here</p>
                     </div>
-                    {areaDamageWarning.flavorText && (
-                      <p className="text-xs text-muted-foreground italic pl-6">
-                        {areaDamageWarning.flavorText}
-                      </p>
-                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {outOfUniverseMessages.map((msg) => {
+                      const isFromUser = msg.character_id === userCharacter?.character_id;
+                      return (
+                        <div 
+                          key={msg.id} 
+                          className={`p-3 rounded-lg ${
+                            isFromUser
+                              ? 'bg-muted/30 border-l-4 border-muted-foreground ml-8'
+                              : 'bg-muted/20 border-l-4 border-muted mr-8'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-sm text-muted-foreground">
+                              {msg.character_name}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {new Date(msg.created_at).toLocaleTimeString()}
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{msg.content}</p>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }}
-                  className="flex gap-2"
-                >
-                  <div className="relative flex-1">
-                    {/* Character Status Effect Overlay - shows effects affecting the user */}
-                    {characterStatusEffects.length > 0 && (
-                      <CharacterStatusOverlay effects={characterStatusEffects} />
-                    )}
+              </ScrollArea>
+              
+              {/* OOC Input */}
+              {battle.status === 'active' && userCharacter && (
+                <div className="p-4 border-t border-border">
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }}
+                    className="flex gap-2"
+                  >
                     <Input
-                      placeholder="Describe your action..."
-                      value={activeChannel === 'in_universe' ? messageInput : ''}
-                      onChange={(e) => handleInputChange(e.target.value, 'in_universe')}
-                      onFocus={() => setActiveChannel('in_universe')}
-                      className="relative z-20"
+                      placeholder="Say something OOC..."
+                      value={activeChannel === 'out_of_universe' ? messageInput : ''}
+                      onChange={(e) => handleInputChange(e.target.value, 'out_of_universe')}
                     />
-                  </div>
-                  <Button type="submit" size="icon">
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </form>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-        </TurnIndicatorWrapper>
-
-        {/* Out-of-Universe Chat */}
-        <Card className="bg-card-gradient border-border">
-          <CardHeader className="py-3 border-b border-border">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <MessageCircle className="w-4 h-4 text-muted-foreground" />
-              Out-of-Universe (OOC)
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <ScrollArea className="h-[400px] p-4">
-              {outOfUniverseMessages.length === 0 ? (
-                <div className="text-center text-muted-foreground py-8">
-                  <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">No OOC messages yet</p>
-                  <p className="text-xs">Discuss rules or clarify things here</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {outOfUniverseMessages.map((msg) => (
-                    <div key={msg.id} className="chat-out-of-universe pl-3 py-2">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-muted-foreground text-sm">
-                          {msg.character_name}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(msg.created_at).toLocaleTimeString()}
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{msg.content}</p>
-                    </div>
-                  ))}
+                    <Button type="submit" size="icon" variant="secondary">
+                      <Send className="w-4 h-4" />
+                    </Button>
+                  </form>
                 </div>
               )}
-            </ScrollArea>
-            {battle.status === 'active' && userCharacter && activeChannel === 'out_of_universe' && (
-              <div className="p-4 border-t border-border">
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }}
-                  className="flex gap-2"
-                >
-                  <Input
-                    placeholder="Say something OOC..."
-                    value={activeChannel === 'out_of_universe' ? messageInput : ''}
-                    onChange={(e) => handleInputChange(e.target.value, 'out_of_universe')}
-                    onFocus={() => setActiveChannel('out_of_universe')}
-                  />
-                  <Button type="submit" size="icon" variant="secondary">
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </form>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Quick Channel Toggle for Mobile */}
-      {battle.status === 'active' && userCharacter && (
-        <Card className="bg-card-gradient border-border lg:hidden">
-          <CardContent className="p-4">
-            <Tabs value={activeChannel} onValueChange={(v) => setActiveChannel(v as 'in_universe' | 'out_of_universe')}>
-              <TabsList className="grid grid-cols-2 mb-4">
-                <TabsTrigger value="in_universe">In-Universe</TabsTrigger>
-                <TabsTrigger value="out_of_universe">OOC</TabsTrigger>
-              </TabsList>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSendMessage();
-                }}
-                className="flex gap-2"
-              >
-                <div className="relative flex-1">
-                  {/* Character Status Effect Overlay - mobile view */}
-                  {activeChannel === 'in_universe' && characterStatusEffects.length > 0 && (
-                    <CharacterStatusOverlay effects={characterStatusEffects} />
-                  )}
-                  <Input
-                    placeholder={activeChannel === 'in_universe' ? 'Describe your action...' : 'Say something OOC...'}
-                    value={messageInput}
-                    onChange={(e) => handleInputChange(e.target.value, activeChannel)}
-                    className="relative z-20"
-                  />
-                </div>
-                <Button type="submit" size="icon">
-                  <Send className="w-4 h-4" />
-                </Button>
-              </form>
-            </Tabs>
-          </CardContent>
-        </Card>
-      )}
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
 
       {/* Battle Actions */}
       {battle.status === 'active' && userCharacter && (
