@@ -7,8 +7,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Swords, Search, User, Sparkles, Bot, Users, Dna } from 'lucide-react';
+import { Swords, Search, User, Sparkles, Bot, Users, Dna, Heart } from 'lucide-react';
 import ChallengeModal from './ChallengeModal';
+import { useFriends } from '@/hooks/use-friends';
 
 interface Profile {
   id: string;
@@ -22,6 +23,7 @@ interface UserSummary {
   profile: Profile;
   characterCount: number;
   speciesCount: number;
+  isFriend: boolean;
 }
 
 interface UserCharacter {
@@ -32,6 +34,7 @@ interface UserCharacter {
 
 export default function OpponentFinder() {
   const { user } = useAuth();
+  const { friends, following } = useFriends();
   const [userSummaries, setUserSummaries] = useState<UserSummary[]>([]);
   const [userCharacters, setUserCharacters] = useState<UserCharacter[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,23 +42,34 @@ export default function OpponentFinder() {
   const [challengeModalOpen, setChallengeModalOpen] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
+  // Get all friend/following user IDs
+  const friendUserIds = new Set([
+    ...friends.map(f => f.profile.id),
+    ...following.map(f => f.profile.id),
+  ]);
+
   useEffect(() => {
     fetchData();
-  }, [user]);
+  }, [user, friends, following]);
 
   const fetchData = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
 
     // Fetch other users' characters (only need user_id and race for counting)
+    // This will get public users based on RLS
     const { data: charsData } = await supabase
       .from('characters')
       .select('user_id, race')
-      .neq('user_id', user?.id || '');
+      .neq('user_id', user.id);
 
+    const userDataMap = new Map<string, { characterCount: number; species: Set<string> }>();
+    
     if (charsData && charsData.length > 0) {
-      // Group by user and count characters + unique species
-      const userDataMap = new Map<string, { characterCount: number; species: Set<string> }>();
-      
       charsData.forEach(c => {
         if (!userDataMap.has(c.user_id)) {
           userDataMap.set(c.user_id, { characterCount: 0, species: new Set() });
@@ -66,33 +80,63 @@ export default function OpponentFinder() {
           userData.species.add(c.race);
         }
       });
+    }
 
-      // Fetch profiles for these users
-      const userIds = [...userDataMap.keys()];
+    // For friends with private profiles, we might not have their character data
+    // Add them with 0 counts if they're not already in the map
+    friendUserIds.forEach(friendId => {
+      if (!userDataMap.has(friendId)) {
+        userDataMap.set(friendId, { characterCount: 0, species: new Set() });
+      }
+    });
+
+    // Fetch profiles for all users (including friends)
+    const userIds = [...userDataMap.keys()];
+    
+    if (userIds.length > 0) {
       const { data: profilesData } = await supabase
         .from('profiles')
         .select('id, username, display_name, avatar_url')
         .in('id', userIds);
 
       const summaries: UserSummary[] = [];
-      profilesData?.forEach(profile => {
-        const userData = userDataMap.get(profile.id);
-        if (userData) {
-          summaries.push({
-            userId: profile.id,
-            profile,
-            characterCount: userData.characterCount,
-            speciesCount: userData.species.size,
-          });
+      
+      // Also add friends' profiles even if not in profilesData (due to privacy)
+      const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+      
+      // Add friend profiles from the friends hook data
+      friends.forEach(f => {
+        if (!profilesMap.has(f.profile.id)) {
+          profilesMap.set(f.profile.id, f.profile);
+        }
+      });
+      following.forEach(f => {
+        if (!profilesMap.has(f.profile.id)) {
+          profilesMap.set(f.profile.id, f.profile);
         }
       });
 
-      // Sort by username
-      summaries.sort((a, b) => 
-        (a.profile.display_name || a.profile.username).localeCompare(
+      profilesMap.forEach((profile, profileId) => {
+        if (profileId === user.id) return; // Skip self
+        
+        const userData = userDataMap.get(profileId) || { characterCount: 0, species: new Set() };
+        summaries.push({
+          userId: profileId,
+          profile,
+          characterCount: userData.characterCount,
+          speciesCount: userData.species.size,
+          isFriend: friendUserIds.has(profileId),
+        });
+      });
+
+      // Sort: friends first, then by username
+      summaries.sort((a, b) => {
+        if (a.isFriend && !b.isFriend) return -1;
+        if (!a.isFriend && b.isFriend) return 1;
+        return (a.profile.display_name || a.profile.username).localeCompare(
           b.profile.display_name || b.profile.username
-        )
-      );
+        );
+      });
 
       setUserSummaries(summaries);
     } else {
@@ -100,14 +144,12 @@ export default function OpponentFinder() {
     }
 
     // Fetch current user's characters for the challenge modal
-    if (user) {
-      const { data: userCharsData } = await supabase
-        .from('characters')
-        .select('id, name, level')
-        .eq('user_id', user.id);
+    const { data: userCharsData } = await supabase
+      .from('characters')
+      .select('id, name, level')
+      .eq('user_id', user.id);
 
-      setUserCharacters(userCharsData || []);
-    }
+    setUserCharacters(userCharsData || []);
 
     setLoading(false);
   };
@@ -198,8 +240,11 @@ export default function OpponentFinder() {
                       </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
-                      <p className="font-semibold truncate">
+                      <p className="font-semibold truncate flex items-center gap-2">
                         {summary.profile.display_name || summary.profile.username || 'Unknown Player'}
+                        {summary.isFriend && (
+                          <Heart className="w-4 h-4 text-pink-500 fill-pink-500" />
+                        )}
                       </p>
                       <div className="flex flex-wrap gap-2 mt-1">
                         <Badge variant="outline" className="text-xs gap-1">
