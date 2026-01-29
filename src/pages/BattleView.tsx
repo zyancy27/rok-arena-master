@@ -477,7 +477,12 @@ export default function BattleView() {
   const setupRealtime = () => {
     // Main battle channel for messages and battle updates
     const channel = supabase
-      .channel(`battle-${id}`)
+      .channel(`battle-${id}`, {
+        config: {
+          broadcast: { self: false },
+          presence: { key: user?.id || '' },
+        },
+      })
       .on(
         'postgres_changes',
         {
@@ -489,51 +494,69 @@ export default function BattleView() {
         async (payload) => {
           const newMessage = payload.new as Message;
           
-          // Fetch character name for new message (use snapshot if available)
-          const { data: charData } = await supabase
-            .from('characters')
-            .select('name, user_id')
-            .eq('id', newMessage.character_id)
-            .maybeSingle();
-
-          const messageWithName = {
-            ...newMessage,
-            channel: newMessage.channel as 'in_universe' | 'out_of_universe',
-            character_name: charData?.name || 'Unknown',
-          };
-
-          setMessages(prev => [...prev, messageWithName]);
-          
-          // Process battlefield effects from in-universe messages
-          if (newMessage.channel === 'in_universe') {
-            processBattlefieldEffect(newMessage.content);
-            
-            // Process character status effects from opponent's messages
-            if (charData?.user_id !== user?.id) {
-              processStatusEffect(newMessage.content, true);
+          // Check if message already exists to prevent duplicates
+          setMessages(prev => {
+            if (prev.some(m => m.id === newMessage.id)) {
+              return prev; // Message already exists, skip
             }
-          }
-
-          // Show notification if message is from another user
-          if (charData?.user_id !== user?.id) {
-            const channelLabel = newMessage.channel === 'in_universe' ? '⚔️' : '💬';
-            toast.info(`${channelLabel} ${charData?.name || 'Unknown'}`, {
-              description: newMessage.content.length > 60 
-                ? newMessage.content.substring(0, 60) + '...' 
-                : newMessage.content,
-              duration: 4000,
-            });
-
-            // Play notification sound if available
-            try {
-              const audio = new Audio('/notification.mp3');
-              audio.volume = 0.3;
-              audio.play().catch(() => {});
-            } catch {}
             
-            // Clear opponent typing indicator when they send a message
-            setOpponentTyping(false);
-          }
+            // Fetch character name asynchronously and update
+            supabase
+              .from('characters')
+              .select('name, user_id')
+              .eq('id', newMessage.character_id)
+              .maybeSingle()
+              .then(({ data: charData }) => {
+                const messageWithName = {
+                  ...newMessage,
+                  channel: newMessage.channel as 'in_universe' | 'out_of_universe',
+                  character_name: charData?.name || 'Unknown',
+                };
+                
+                // Update the message with character name
+                setMessages(current => 
+                  current.map(m => m.id === newMessage.id ? messageWithName : m)
+                );
+                
+                // Process battlefield effects from in-universe messages
+                if (newMessage.channel === 'in_universe') {
+                  processBattlefieldEffect(newMessage.content);
+                  
+                  // Process character status effects from opponent's messages
+                  if (charData?.user_id !== user?.id) {
+                    processStatusEffect(newMessage.content, true);
+                  }
+                }
+
+                // Show notification if message is from another user
+                if (charData?.user_id !== user?.id) {
+                  const channelLabel = newMessage.channel === 'in_universe' ? '⚔️' : '💬';
+                  toast.info(`${channelLabel} ${charData?.name || 'Unknown'}`, {
+                    description: newMessage.content.length > 60 
+                      ? newMessage.content.substring(0, 60) + '...' 
+                      : newMessage.content,
+                    duration: 4000,
+                  });
+
+                  // Play notification sound if available
+                  try {
+                    const audio = new Audio('/notification.mp3');
+                    audio.volume = 0.3;
+                    audio.play().catch(() => {});
+                  } catch {}
+                  
+                  // Clear opponent typing indicator when they send a message
+                  setOpponentTyping(false);
+                }
+              });
+            
+            // Immediately add message with placeholder name
+            return [...prev, {
+              ...newMessage,
+              channel: newMessage.channel as 'in_universe' | 'out_of_universe',
+              character_name: 'Loading...',
+            }];
+          });
         }
       )
       .on(
@@ -546,22 +569,29 @@ export default function BattleView() {
         },
         (payload) => {
           const updatedBattle = payload.new as Battle;
-          setBattle(updatedBattle);
-          
-          if (updatedBattle.status === 'active' && battle?.status === 'pending') {
-            toast.success('⚔️ Battle has begun!', {
-              description: 'Your opponent is ready. Make your move!',
-            });
-          }
-          
-          if (updatedBattle.status === 'completed') {
-            toast.info('🏁 Battle completed!', {
-              description: 'The battle has ended.',
-            });
-          }
+          setBattle(prev => {
+            if (updatedBattle.status === 'active' && prev?.status === 'pending') {
+              toast.success('⚔️ Battle has begun!', {
+                description: 'Your opponent is ready. Make your move!',
+              });
+            }
+            
+            if (updatedBattle.status === 'completed') {
+              toast.info('🏁 Battle completed!', {
+                description: 'The battle has ended.',
+              });
+            }
+            return updatedBattle;
+          });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Battle realtime channel connected');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('❌ Battle realtime channel error');
+        }
+      });
       
     // Separate channel for typing indicators and read receipts
     const typingChannel = supabase
@@ -577,24 +607,32 @@ export default function BattleView() {
         (payload) => {
           const updated = payload.new as any;
           
-          // Check if this is from the opponent (not our user)
-          const isOpponent = participants.some(p => 
-            p.id === updated.id && 
-            p.character?.user_id !== user?.id
-          );
-          
-          if (isOpponent) {
-            // Update typing status
-            setOpponentTyping(updated.is_typing || false);
+          // Use userCharacter from state to check if this is opponent
+          setParticipants(currentParticipants => {
+            const isOpponent = currentParticipants.some(p => 
+              p.id === updated.id && 
+              p.character?.user_id !== user?.id
+            );
             
-            // Update read receipt
-            if (updated.last_read_message_id) {
-              setOpponentLastReadMessageId(updated.last_read_message_id);
+            if (isOpponent) {
+              // Update typing status
+              setOpponentTyping(updated.is_typing || false);
+              
+              // Update read receipt
+              if (updated.last_read_message_id) {
+                setOpponentLastReadMessageId(updated.last_read_message_id);
+              }
             }
-          }
+            
+            return currentParticipants;
+          });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Typing indicator channel connected');
+        }
+      });
   };
   
   // Update typing status in database
