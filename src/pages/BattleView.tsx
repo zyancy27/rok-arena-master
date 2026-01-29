@@ -82,6 +82,7 @@ import { CharacterStatusOverlay } from '@/components/battles/CharacterStatusOver
 import { useBattleTurnColor } from '@/hooks/use-battle-turn-color';
 import { useBattlefieldEffects } from '@/components/battles/useBattlefieldEffects';
 import { useCharacterStatusEffects } from '@/hooks/use-character-status-effects';
+import { detectCharacterStatusEffects } from '@/lib/character-status-effects';
 import {
   ArrowLeft,
   Send,
@@ -2044,9 +2045,16 @@ export default function BattleView() {
         />
       )}
 
-      {/* Dice Roll Display */}
-      {diceRollMessages.length > 0 && (
+      {/* Dice Roll Display - Shows recent rolls that aren't displayed inline */}
+      {diceRollMessages.length > 0 && diceRollMessages.some(roll => {
+        // Check if any recent roll isn't associated with a message
+        const msgTimes = messages
+          .filter(m => m.channel === 'in_universe')
+          .map(m => new Date(m.created_at).getTime());
+        return !msgTimes.some(msgTime => Math.abs(roll.timestamp.getTime() - msgTime) < 5000);
+      }) && (
         <div className="space-y-2">
+          <p className="text-xs text-muted-foreground font-medium">Recent Combat Rolls</p>
           {diceRollMessages.slice(-3).map((roll) => (
             <DiceRollChatMessage
               key={roll.id}
@@ -2058,27 +2066,6 @@ export default function BattleView() {
             />
           ))}
         </div>
-      )}
-
-      {/* Narrator Commentary Display */}
-      {narratorMessages.length > 0 && (
-        <Card className="bg-gradient-to-r from-amber-500/10 via-background to-amber-500/10 border-amber-500/30">
-          <CardContent className="p-3">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
-                <BookOpen className="w-4 h-4 text-amber-400" />
-              </div>
-              <div className="flex-1 space-y-1">
-                <p className="text-xs text-amber-400 font-medium uppercase tracking-wider">
-                  Narrator
-                </p>
-                <p className="text-sm text-foreground/90 italic">
-                  {narratorMessages[narratorMessages.length - 1]?.content}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       )}
 
       {/* Chat Area - Dynamic Tabbed Interface */}
@@ -2118,49 +2105,93 @@ export default function BattleView() {
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {inUniverseMessages.map((msg) => {
+                        {inUniverseMessages.map((msg, msgIndex) => {
                           const isFromUser = msg.character_id === userCharacter?.character_id;
+                          const isFromOpponent = !isFromUser;
                           const isLastUserMessage = isFromUser && 
                             inUniverseMessages.filter(m => m.character_id === userCharacter?.character_id).pop()?.id === msg.id;
                           const wasRead = isLastUserMessage && opponentLastReadMessageId === msg.id;
                           
+                          // Find dice roll associated with this message (by approximate timestamp)
+                          const msgTime = new Date(msg.created_at).getTime();
+                          const associatedRoll = diceRollMessages.find(roll => {
+                            const rollTime = roll.timestamp.getTime();
+                            // Match roll within 5 seconds of the message
+                            return Math.abs(rollTime - msgTime) < 5000 && 
+                              (isFromOpponent ? roll.isPlayerRoll !== true : roll.isPlayerRoll === true);
+                          });
+                          
+                          // Detect status effects on opponent messages (they're affecting the user)
+                          const messageStatusEffects = isFromOpponent 
+                            ? detectCharacterStatusEffects(msg.content, userCharacter?.character?.name)
+                            : [];
+                          
                           return (
-                            <div 
-                              key={msg.id} 
-                              className={`p-3 rounded-lg ${
-                                isFromUser
-                                  ? 'bg-primary/20 border-l-4 border-primary ml-8'
-                                  : 'bg-muted/50 border-l-4 border-accent mr-8'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="font-semibold text-sm text-muted-foreground">
-                                  {msg.character_name}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {new Date(msg.created_at).toLocaleTimeString()}
-                                </span>
-                                {/* Read receipt for user's messages */}
-                                {isFromUser && (
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <span className="ml-auto">
-                                          {wasRead ? (
-                                            <CheckCheck className="w-3 h-3 text-primary" />
-                                          ) : (
-                                            <Check className="w-3 h-3 text-muted-foreground" />
-                                          )}
-                                        </span>
-                                      </TooltipTrigger>
-                                      <TooltipContent>
-                                        {wasRead ? 'Read by opponent' : 'Sent'}
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
+                            <div key={msg.id} className="space-y-2">
+                              {/* Show dice roll above message if associated */}
+                              {associatedRoll && (
+                                <DiceRollChatMessage
+                                  hitDetermination={associatedRoll.hitDetermination}
+                                  concentrationResult={associatedRoll.concentrationResult}
+                                  attackerName={associatedRoll.attackerName}
+                                  defenderName={associatedRoll.defenderName}
+                                  timestamp={associatedRoll.timestamp}
+                                  isAIRoll={!isFromUser}
+                                />
+                              )}
+                              
+                              <div 
+                                className={`relative p-3 rounded-lg overflow-hidden ${
+                                  isFromUser
+                                    ? 'bg-primary/20 border-l-4 border-primary ml-8'
+                                    : 'bg-muted/50 border-l-4 border-accent mr-8'
+                                }`}
+                              >
+                                {/* Status Effect Overlay on opponent's messages that describe effects happening TO user */}
+                                {isFromOpponent && messageStatusEffects.length > 0 && (
+                                  <CharacterStatusOverlay 
+                                    effects={messageStatusEffects} 
+                                    className="rounded-lg"
+                                  />
                                 )}
+                                
+                                {/* Show active character status effects on user's own messages */}
+                                {isFromUser && characterStatusEffects.length > 0 && (
+                                  <CharacterStatusOverlay 
+                                    effects={characterStatusEffects} 
+                                    className="rounded-lg"
+                                  />
+                                )}
+                                
+                                <div className="flex items-center gap-2 mb-1 relative z-10">
+                                  <span className="font-semibold text-sm text-muted-foreground">
+                                    {msg.character_name}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(msg.created_at).toLocaleTimeString()}
+                                  </span>
+                                  {/* Read receipt for user's messages */}
+                                  {isFromUser && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="ml-auto">
+                                            {wasRead ? (
+                                              <CheckCheck className="w-3 h-3 text-primary" />
+                                            ) : (
+                                              <Check className="w-3 h-3 text-muted-foreground" />
+                                            )}
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          {wasRead ? 'Read by opponent' : 'Sent'}
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  )}
+                                </div>
+                                <p className="whitespace-pre-wrap relative z-10">{msg.content}</p>
                               </div>
-                              <p className="whitespace-pre-wrap">{msg.content}</p>
                             </div>
                           );
                         })}
@@ -2193,6 +2224,23 @@ export default function BattleView() {
                                 <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                                 <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                               </span>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Inline Narrator Commentary - most recent */}
+                        {narratorMessages.length > 0 && !isNarratorLoading && (
+                          <div className="p-3 rounded-lg bg-gradient-to-r from-amber-500/10 via-background to-amber-500/10 border border-amber-500/30 mx-4 animate-fade-in">
+                            <div className="flex items-start gap-2">
+                              <BookOpen className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                              <div className="flex-1">
+                                <p className="text-xs text-amber-400 font-medium uppercase tracking-wider mb-1">
+                                  Narrator
+                                </p>
+                                <p className="text-sm text-foreground/90 italic">
+                                  {narratorMessages[narratorMessages.length - 1]?.content}
+                                </p>
+                              </div>
                             </div>
                           </div>
                         )}
