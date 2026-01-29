@@ -75,6 +75,7 @@ import SkillProficiencyBar from '@/components/battles/SkillProficiencyBar';
 import ConstructPanel from '@/components/battles/ConstructPanel';
 import ConstructDiceMessage from '@/components/battles/ConstructDiceMessage';
 import TurnIndicatorWrapper from '@/components/battles/TurnIndicatorWrapper';
+import TurnIndicator from '@/components/battles/TurnIndicator';
 import BattleTurnColorPicker from '@/components/battles/BattleTurnColorPicker';
 import BattlefieldEffectsOverlay from '@/components/battles/BattlefieldEffectsOverlay';
 import { CharacterStatusOverlay } from '@/components/battles/CharacterStatusOverlay';
@@ -105,6 +106,9 @@ import {
   Lock,
   X,
   UserPlus,
+  Volume2,
+  VolumeX,
+  Mic,
 } from 'lucide-react';
 
 interface Battle {
@@ -178,6 +182,8 @@ interface Message {
   created_at: string;
   character_name?: string;
 }
+
+type NarratorFrequency = 'always' | 'key_moments' | 'off';
 
 export default function BattleView() {
   const { id } = useParams<{ id: string }>();
@@ -273,6 +279,11 @@ export default function BattleView() {
     characterName: userCharacter?.character?.name,
     enabled: battle?.status === 'active',
   });
+  
+  // Battle narrator state
+  const [narratorFrequency, setNarratorFrequency] = useState<NarratorFrequency>('key_moments');
+  const [narratorMessages, setNarratorMessages] = useState<Array<{ id: string; content: string; timestamp: Date }>>([]);
+  const [isNarratorLoading, setIsNarratorLoading] = useState(false);
 
   // Generate environment and entrances when battle becomes active with a location
   useEffect(() => {
@@ -592,6 +603,9 @@ export default function BattleView() {
                     // Track opponent's last action for defense validation
                     setLastOpponentAction(newMessage.content);
                     setTurnNumber(prev => prev + 1);
+                    
+                    // Call battle narrator for atmospheric commentary
+                    callBattleNarrator(newMessage.content, charData?.name || 'Opponent');
                   }
                 }
 
@@ -1072,6 +1086,62 @@ export default function BattleView() {
     }
   };
 
+  // Call battle narrator for atmospheric commentary
+  const callBattleNarrator = async (opponentAction: string, opponentName: string) => {
+    if (narratorFrequency === 'off' || !battle?.chosen_location || !userCharacter?.character) return;
+    
+    setIsNarratorLoading(true);
+    
+    try {
+      const response = await supabase.functions.invoke('battle-narrator', {
+        body: {
+          type: 'narration',
+          userCharacter: {
+            name: opponentName, // From narrator's perspective, opponent made the move
+            level: participants.find(p => p.character?.name === opponentName)?.character?.level || 1,
+            speed: participants.find(p => p.character?.name === opponentName)?.character?.stat_speed,
+          },
+          opponent: {
+            name: userCharacter.character.name,
+            level: userCharacter.character.level,
+            speed: userCharacter.character.stat_speed,
+          },
+          userAction: opponentAction,
+          opponentResponse: '', // User hasn't responded yet
+          battleLocation: battle.chosen_location,
+          turnNumber,
+          frequency: narratorFrequency,
+          detectEnvironmentalEffects: true,
+          currentDistance: {
+            zone: battleDistance.currentZone,
+            meters: battleDistance.estimatedMeters,
+          },
+        },
+      });
+      
+      if (response.data?.narration) {
+        const narratorMsg = {
+          id: `narrator-${Date.now()}`,
+          content: response.data.narration,
+          timestamp: new Date(),
+        };
+        setNarratorMessages(prev => [...prev, narratorMsg]);
+        
+        // Also post to OOC chat for persistence
+        await supabase.from('battle_messages').insert({
+          battle_id: id,
+          character_id: userCharacter.character_id,
+          content: `📖 *${response.data.narration}*`,
+          channel: 'out_of_universe',
+        });
+      }
+    } catch (error) {
+      console.error('Narrator error:', error);
+    } finally {
+      setIsNarratorLoading(false);
+    }
+  };
+
   // Handle concentration use
   const handleUseConcentration = async (result: ConcentrationResult) => {
     if (!userCharacter?.character || !pendingHit) return;
@@ -1431,6 +1501,67 @@ export default function BattleView() {
           </Button>
         </div>
       </div>
+
+      {/* Turn Indicator - Shows whose turn it is */}
+      {battle.status === 'active' && userCharacter?.character && participants.length >= 2 && (
+        <TurnIndicator
+          isUserTurn={isUserTurn}
+          userName={userCharacter.character.name}
+          opponentName={participants.find(p => p.character?.user_id !== user?.id)?.character?.name || 'Opponent'}
+          userColor={userTurnColor}
+          opponentColor="#EF4444"
+        />
+      )}
+
+      {/* Narrator Settings - Toggle narrator frequency */}
+      {battle.status === 'active' && (
+        <Card className="bg-card-gradient border-border">
+          <CardContent className="p-3">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div className="flex items-center gap-2">
+                <Mic className="w-4 h-4 text-primary" />
+                <span className="text-sm font-medium">Battle Narrator</span>
+                {isNarratorLoading && (
+                  <Badge variant="outline" className="text-xs animate-pulse">
+                    <Pencil className="w-3 h-3 mr-1" />
+                    Narrating...
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Select
+                  value={narratorFrequency}
+                  onValueChange={(v) => setNarratorFrequency(v as NarratorFrequency)}
+                >
+                  <SelectTrigger className="w-[160px] h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="always">
+                      <span className="flex items-center gap-2">
+                        <Volume2 className="w-3 h-3" />
+                        Always
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="key_moments">
+                      <span className="flex items-center gap-2">
+                        <Sparkles className="w-3 h-3" />
+                        Key Moments
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="off">
+                      <span className="flex items-center gap-2">
+                        <VolumeX className="w-3 h-3" />
+                        Off
+                      </span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Challenge Acceptance for Challenged User (not yet a participant) */}
       {battle.status === 'pending' && !userCharacter && battle.challenged_user_id === user?.id && (
@@ -1927,6 +2058,27 @@ export default function BattleView() {
             />
           ))}
         </div>
+      )}
+
+      {/* Narrator Commentary Display */}
+      {narratorMessages.length > 0 && (
+        <Card className="bg-gradient-to-r from-amber-500/10 via-background to-amber-500/10 border-amber-500/30">
+          <CardContent className="p-3">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                <BookOpen className="w-4 h-4 text-amber-400" />
+              </div>
+              <div className="flex-1 space-y-1">
+                <p className="text-xs text-amber-400 font-medium uppercase tracking-wider">
+                  Narrator
+                </p>
+                <p className="text-sm text-foreground/90 italic">
+                  {narratorMessages[narratorMessages.length - 1]?.content}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Chat Area */}
