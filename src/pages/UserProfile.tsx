@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import CharacterCard from '@/components/characters/CharacterCard';
 import { toast } from 'sonner';
-import { User, Users, BookOpen, Shield, Lock, UserPlus, UserCheck, Eye, Clock, Loader2 } from 'lucide-react';
+import { User, Users, BookOpen, Shield, Lock, UserPlus, UserCheck, Eye, Clock, Loader2, Heart } from 'lucide-react';
 
 export default function UserProfile() {
   const { username } = useParams<{ username: string }>();
@@ -98,7 +98,45 @@ export default function UserProfile() {
     enabled: !!profile?.id && !profile?.is_private,
   });
 
+  // Fetch user's friends (only if they haven't hidden their friends list)
+  const { data: userFriends, isLoading: friendsLoading } = useQuery({
+    queryKey: ['user-friends', profile?.id],
+    queryFn: async () => {
+      // First check if the user has hidden their friends list
+      if ((profile as any)?.hide_friends_list && !isOwnProfile) {
+        return [];
+      }
+
+      // Get accepted friendships
+      const { data: friendshipData, error } = await supabase
+        .from('friendships')
+        .select('*')
+        .or(`requester_id.eq.${profile!.id},addressee_id.eq.${profile!.id}`)
+        .eq('status', 'accepted')
+        .eq('is_follow', false);
+
+      if (error) throw error;
+      if (!friendshipData || friendshipData.length === 0) return [];
+
+      // Get the other user IDs
+      const otherUserIds = friendshipData.map(f => 
+        f.requester_id === profile!.id ? f.addressee_id : f.requester_id
+      );
+
+      // Fetch their profiles
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, username, display_name, avatar_url')
+        .in('id', otherUserIds)
+        .limit(8);
+
+      return profiles || [];
+    },
+    enabled: !!profile?.id && !profile?.is_private,
+  });
+
   const isOwnProfile = user?.id === profile?.id;
+  const showFriendsList = !(profile as any)?.hide_friends_list || isOwnProfile;
 
   // Action handlers for friend/follow
   const handleSendFriendRequest = async () => {
@@ -365,6 +403,53 @@ export default function UserProfile() {
           )}
         </CardContent>
       </Card>
+
+      {/* Friends Section */}
+      {showFriendsList && (
+        <Card className="bg-card-gradient border-border">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Heart className="w-5 h-5 text-cosmic-pink" />
+              Friends
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {friendsLoading ? (
+              <div className="flex gap-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} className="h-16 w-16 rounded-full" />
+                ))}
+              </div>
+            ) : userFriends && userFriends.length > 0 ? (
+              <div className="flex flex-wrap gap-4">
+                {userFriends.map((friend) => (
+                  <Link
+                    key={friend.id}
+                    to={`/profile/${friend.username}`}
+                    className="flex flex-col items-center gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors"
+                  >
+                    <Avatar className="h-12 w-12 border-2 border-primary/30">
+                      <AvatarImage src={friend.avatar_url || undefined} />
+                      <AvatarFallback className="bg-primary/20 text-primary">
+                        {friend.username?.charAt(0).toUpperCase() || '?'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-xs text-muted-foreground">
+                      {friend.display_name || friend.username}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground py-4">
+                {(profile as any)?.hide_friends_list && !isOwnProfile 
+                  ? "Friends list is private" 
+                  : "No friends yet"}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Races Section */}
       {races && races.length > 0 && (

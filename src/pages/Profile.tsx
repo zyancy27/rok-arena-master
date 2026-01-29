@@ -21,7 +21,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { User, Save, Camera, Trash2, EyeOff } from 'lucide-react';
+import { User, Save, Camera, Trash2, EyeOff, Users } from 'lucide-react';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -33,6 +33,7 @@ export default function Profile() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isPrivate, setIsPrivate] = useState(profile?.is_private || false);
+  const [hideFriendsList, setHideFriendsList] = useState((profile as any)?.hide_friends_list || false);
 
   const handleSave = async () => {
     if (!user || !profile) return;
@@ -67,7 +68,8 @@ export default function Profile() {
           bio: bio.trim() || null,
           avatar_url: avatarUrl,
           is_private: isPrivate,
-        })
+          hide_friends_list: hideFriendsList,
+        } as any)
         .eq('id', user.id);
 
       if (error) throw error;
@@ -277,6 +279,33 @@ export default function Profile() {
             {isPrivate && (
               <p className="text-xs text-amber-500 mt-3 flex items-center gap-1">
                 ⚠️ Your profile and characters won't appear in search results or public listings
+              </p>
+            )}
+          </div>
+
+          {/* Friends List Privacy */}
+          <div className="p-4 rounded-lg bg-muted/50 border border-border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Users className="w-5 h-5 text-muted-foreground" />
+                <div>
+                  <Label htmlFor="hide-friends" className="font-semibold cursor-pointer">
+                    Hide Friends List
+                  </Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Hide your friends and followers from other users
+                  </p>
+                </div>
+              </div>
+              <Switch
+                id="hide-friends"
+                checked={hideFriendsList}
+                onCheckedChange={setHideFriendsList}
+              />
+            </div>
+            {hideFriendsList && (
+              <p className="text-xs text-amber-500 mt-3 flex items-center gap-1">
+                ⚠️ Your friends list won't be visible on your public profile
               </p>
             )}
           </div>
