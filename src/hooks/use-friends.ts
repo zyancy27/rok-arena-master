@@ -21,6 +21,7 @@ export function useFriends() {
   const { user } = useAuth();
   const [friends, setFriends] = useState<FriendshipWithProfile[]>([]);
   const [pendingRequests, setPendingRequests] = useState<FriendshipWithProfile[]>([]);
+  const [sentRequests, setSentRequests] = useState<FriendshipWithProfile[]>([]);
   const [followers, setFollowers] = useState<FriendshipWithProfile[]>([]);
   const [following, setFollowing] = useState<FriendshipWithProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,6 +65,7 @@ export function useFriends() {
       // Process friendships into categories
       const processedFriends: FriendshipWithProfile[] = [];
       const processedPending: FriendshipWithProfile[] = [];
+      const processedSentRequests: FriendshipWithProfile[] = [];
       const processedFollowers: FriendshipWithProfile[] = [];
       const processedFollowing: FriendshipWithProfile[] = [];
 
@@ -89,14 +91,20 @@ export function useFriends() {
           // It's a friend request
           if (f.status === 'accepted') {
             processedFriends.push(friendshipWithProfile);
-          } else if (f.status === 'pending' && f.addressee_id === user.id) {
-            processedPending.push(friendshipWithProfile);
+          } else if (f.status === 'pending') {
+            if (f.addressee_id === user.id) {
+              processedPending.push(friendshipWithProfile);
+            } else {
+              // User sent this request
+              processedSentRequests.push(friendshipWithProfile);
+            }
           }
         }
       });
 
       setFriends(processedFriends);
       setPendingRequests(processedPending);
+      setSentRequests(processedSentRequests);
       setFollowers(processedFollowers);
       setFollowing(processedFollowing);
     } catch (error) {
@@ -198,9 +206,29 @@ export function useFriends() {
     return pendingRequests.some(f => f.profile.id === userId);
   };
 
+  const hasSentRequest = (userId: string): boolean => {
+    return sentRequests.some(f => f.profile.id === userId);
+  };
+
+  const cancelSentRequest = async (userId: string) => {
+    const request = sentRequests.find(f => f.profile.id === userId);
+    if (!request) return { error: 'Request not found' };
+
+    const { error } = await supabase
+      .from('friendships')
+      .delete()
+      .eq('id', request.id);
+
+    if (!error) {
+      fetchFriendships();
+    }
+    return { error: error?.message };
+  };
+
   return {
     friends,
     pendingRequests,
+    sentRequests,
     followers,
     following,
     loading,
@@ -213,6 +241,8 @@ export function useFriends() {
     isFriend,
     isFollowing,
     hasPendingRequest,
+    hasSentRequest,
+    cancelSentRequest,
     refresh: fetchFriendships,
   };
 }

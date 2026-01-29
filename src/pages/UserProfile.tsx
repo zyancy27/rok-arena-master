@@ -1,17 +1,34 @@
+import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useFriends } from '@/hooks/use-friends';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import CharacterCard from '@/components/characters/CharacterCard';
-import { User, Users, BookOpen, Shield, Lock } from 'lucide-react';
+import { toast } from 'sonner';
+import { User, Users, BookOpen, Shield, Lock, UserPlus, UserCheck, Eye, Clock, Loader2 } from 'lucide-react';
 
 export default function UserProfile() {
   const { username } = useParams<{ username: string }>();
   const { user } = useAuth();
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  
+  const {
+    isFriend,
+    isFollowing,
+    hasSentRequest,
+    sendFriendRequest,
+    followUser,
+    removeFriend,
+    unfollowUser,
+    cancelSentRequest,
+    friends,
+    following,
+  } = useFriends();
 
   // Fetch the profile by username
   const { data: profile, isLoading: profileLoading } = useQuery({
@@ -82,6 +99,71 @@ export default function UserProfile() {
   });
 
   const isOwnProfile = user?.id === profile?.id;
+
+  // Action handlers for friend/follow
+  const handleSendFriendRequest = async () => {
+    if (!profile) return;
+    setActionLoading('friend');
+    const { error } = await sendFriendRequest(profile.id);
+    if (error) {
+      toast.error(error);
+    } else {
+      toast.success('Friend request sent!');
+    }
+    setActionLoading(null);
+  };
+
+  const handleCancelRequest = async () => {
+    if (!profile) return;
+    setActionLoading('cancel');
+    const { error } = await cancelSentRequest(profile.id);
+    if (error) {
+      toast.error(error);
+    } else {
+      toast.success('Request cancelled');
+    }
+    setActionLoading(null);
+  };
+
+  const handleRemoveFriend = async () => {
+    if (!profile) return;
+    const friendship = friends.find(f => f.profile.id === profile.id);
+    if (!friendship) return;
+    setActionLoading('unfriend');
+    const { error } = await removeFriend(friendship.id);
+    if (error) {
+      toast.error(error);
+    } else {
+      toast.success('Friend removed');
+    }
+    setActionLoading(null);
+  };
+
+  const handleFollow = async () => {
+    if (!profile) return;
+    setActionLoading('follow');
+    const { error } = await followUser(profile.id);
+    if (error) {
+      toast.error(error);
+    } else {
+      toast.success('Now following!');
+    }
+    setActionLoading(null);
+  };
+
+  const handleUnfollow = async () => {
+    if (!profile) return;
+    const followRelation = following.find(f => f.profile.id === profile.id);
+    if (!followRelation) return;
+    setActionLoading('unfollow');
+    const { error } = await unfollowUser(followRelation.id);
+    if (error) {
+      toast.error(error);
+    } else {
+      toast.success('Unfollowed');
+    }
+    setActionLoading(null);
+  };
 
   if (profileLoading) {
     return (
@@ -160,10 +242,88 @@ export default function UserProfile() {
                 <p className="mt-3 text-foreground/80">{profile.bio}</p>
               )}
             </div>
-            {isOwnProfile && (
+            {isOwnProfile ? (
               <Button variant="outline" asChild>
                 <Link to="/profile">Edit Profile</Link>
               </Button>
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-2">
+                {/* Friend Request Button */}
+                {isFriend(profile.id) ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRemoveFriend}
+                    disabled={actionLoading === 'unfriend'}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    {actionLoading === 'unfriend' ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                    ) : (
+                      <UserCheck className="w-4 h-4 mr-1" />
+                    )}
+                    Unfriend
+                  </Button>
+                ) : hasSentRequest(profile.id) ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCancelRequest}
+                    disabled={actionLoading === 'cancel'}
+                  >
+                    {actionLoading === 'cancel' ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                    ) : (
+                      <Clock className="w-4 h-4 mr-1" />
+                    )}
+                    Request Sent
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={handleSendFriendRequest}
+                    disabled={actionLoading === 'friend'}
+                  >
+                    {actionLoading === 'friend' ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                    ) : (
+                      <UserPlus className="w-4 h-4 mr-1" />
+                    )}
+                    Add Friend
+                  </Button>
+                )}
+
+                {/* Follow Button */}
+                {isFollowing(profile.id) ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleUnfollow}
+                    disabled={actionLoading === 'unfollow'}
+                  >
+                    {actionLoading === 'unfollow' ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                    ) : (
+                      <Eye className="w-4 h-4 mr-1" />
+                    )}
+                    Following
+                  </Button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleFollow}
+                    disabled={actionLoading === 'follow'}
+                  >
+                    {actionLoading === 'follow' ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                    ) : (
+                      <Eye className="w-4 h-4 mr-1" />
+                    )}
+                    Follow
+                  </Button>
+                )}
+              </div>
             )}
           </div>
         </CardContent>
