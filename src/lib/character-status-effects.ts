@@ -14,7 +14,13 @@ export type CharacterStatusType =
   | 'stunned'      // dazed/confused
   | 'restrained'   // bound/trapped/webbed
   | 'slowed'       // sluggish/heavy/weighted
-  | 'exhausted';   // fatigued/tired/drained
+  | 'exhausted'    // fatigued/tired/drained
+  | 'aerial'       // flying/airborne
+  | 'smokescreen'  // surrounded by smoke/fog
+  | 'bleeding'     // bleeding/hemorrhaging
+  | 'electrified'  // coursing with electricity
+  | 'magnetized'   // static/glitch interference
+  | 'cosmicVacuum'; // being pulled into a void
 
 export interface CharacterStatusEffect {
   type: CharacterStatusType;
@@ -32,7 +38,6 @@ interface StatusPattern {
 }
 
 // Patterns that indicate a character is AFFECTED BY a status (not causing it)
-// These are from the defender's perspective
 const STATUS_PATTERNS: StatusPattern[] = [
   // Paralysis - electricity, stunning
   {
@@ -255,12 +260,135 @@ const STATUS_PATTERNS: StatusPattern[] = [
     intensity: 'severe',
     duration: 18000,
   },
+
+  // === NEW EFFECTS FROM PDF ===
+
+  // Aerial/Flying - character is airborne
+  {
+    type: 'aerial',
+    patterns: [
+      /\b(flying|airborne|soaring|hovering|levitat)\w*/i,
+      /\b(takes?\s+(?:to\s+)?(?:the\s+)?(?:sky|air|flight))\b/i,
+      /\b(lifts?\s+off|rises?\s+(?:into|above))\b/i,
+      /\b(float|glide|ascend)\w*.{0,10}(air|sky|above)/i,
+    ],
+    intensity: 'moderate',
+    duration: 15000,
+  },
+  {
+    type: 'aerial',
+    patterns: [
+      /\b(high\s+above|far\s+above|stratosphere)\b/i,
+      /\b(soaring|flying).{0,10}(high|far)/i,
+    ],
+    intensity: 'severe',
+    duration: 20000,
+  },
+
+  // Smokescreen - surrounded by smoke/fog individually
+  {
+    type: 'smokescreen',
+    patterns: [
+      /\b(smoke|fog|mist).{0,15}(surrounds?|engulfs?|envelops?|wraps?)/i,
+      /\b(can'?t|cannot).{0,15}(see\s+through|find)/i,
+      /\b(hidden|concealed|obscured).{0,10}(in|by).{0,10}(smoke|fog|mist)/i,
+      /\b(smoke\s*screen|smokescreen)\b/i,
+    ],
+    intensity: 'moderate',
+    duration: 12000,
+  },
+  {
+    type: 'smokescreen',
+    patterns: [
+      /\b(thick|dense|impenetrable).{0,10}(smoke|fog|mist)/i,
+    ],
+    intensity: 'severe',
+    duration: 18000,
+  },
+
+  // Bleeding - hemorrhaging
+  {
+    type: 'bleeding',
+    patterns: [
+      /\b(bleeding|bleed|hemorrhag)\w*/i,
+      /\b(blood).{0,15}(pours?|flows?|drips?|gushes?|seeps?)/i,
+      /\b(wound|cut|gash|laceration).{0,15}(deep|open|bleeding)/i,
+      /\b(blood|crimson).{0,15}(pools?|stains?|spreads?)/i,
+    ],
+    intensity: 'moderate',
+    duration: 12000,
+  },
+  {
+    type: 'bleeding',
+    patterns: [
+      /\b(massive|severe|uncontrollable).{0,10}(bleeding|hemorrhag)/i,
+      /\b(blood).{0,10}everywhere\b/i,
+    ],
+    intensity: 'severe',
+    duration: 18000,
+  },
+
+  // Electrified - coursing with electricity (different from paralysis - active crackling)
+  {
+    type: 'electrified',
+    patterns: [
+      /\b(electrified|charged|crackling)\b/i,
+      /\b(electricity|current).{0,15}(arcs?|courses?|flows?)/i,
+      /\b(sparks?|arcs?).{0,15}(dance|fly|crackle|jump)/i,
+      /\b(body|form).{0,15}(crackles?|hums?|buzzes?).{0,10}(electric|energy)/i,
+    ],
+    intensity: 'moderate',
+    duration: 10000,
+  },
+  {
+    type: 'electrified',
+    patterns: [
+      /\b(massive|overwhelming).{0,10}(electric|voltage|current)/i,
+      /\b(lightning).{0,10}(courses?|wraps?|envelops?)/i,
+    ],
+    intensity: 'severe',
+    duration: 15000,
+  },
+
+  // Magnetized/Static - glitch interference
+  {
+    type: 'magnetized',
+    patterns: [
+      /\b(magnetiz|magnetic)\w*/i,
+      /\b(static).{0,15}(interference|charge|field)/i,
+      /\b(emp|electromagnetic)\b/i,
+      /\b(disrupted?|distorted?|interfere)\w*.{0,10}(field|energy|signal)/i,
+    ],
+    intensity: 'moderate',
+    duration: 10000,
+  },
+
+  // Cosmic Vacuum - being pulled into a void
+  {
+    type: 'cosmicVacuum',
+    patterns: [
+      /\b(cosmic|space|void).{0,15}(vacuum|pull|suck|drain)/i,
+      /\b(black\s*hole|singularity|event\s*horizon)\b/i,
+      /\b(reality|space).{0,15}(warps?|bends?|tears?|rips?)/i,
+      /\b(pulled|drawn|dragged).{0,15}(void|nothingness|darkness|singularity)/i,
+      /\b(dimensional|spatial).{0,10}(rift|tear|distortion)/i,
+    ],
+    intensity: 'moderate',
+    duration: 12000,
+  },
+  {
+    type: 'cosmicVacuum',
+    patterns: [
+      /\b(consumed|swallowed).{0,10}(void|nothingness|black\s*hole)/i,
+      /\b(reality).{0,10}(shatters?|collapses?|breaks?)/i,
+    ],
+    intensity: 'severe',
+    duration: 18000,
+  },
 ];
 
 /**
  * Detect status effects targeting a specific character from a message
- * @param message The battle message content
- * @param targetName The character name to check effects for (optional - if not provided, detects general effects)
  */
 export function detectCharacterStatusEffects(
   message: string,
@@ -269,14 +397,9 @@ export function detectCharacterStatusEffects(
   const detectedEffects: CharacterStatusEffect[] = [];
   const now = Date.now();
   
-  // Track which effect types we've already found at higher intensities
   const foundTypes = new Map<CharacterStatusType, 'light' | 'moderate' | 'severe'>();
   const intensityOrder = { light: 1, moderate: 2, severe: 3 };
   
-  // If a target name is provided, check if the message references them being affected
-  const messageToCheck = message;
-  
-  // Check if message is targeting this character (or is general)
   const isTargetingCharacter = !targetName || 
     message.toLowerCase().includes(targetName.toLowerCase()) ||
     message.toLowerCase().includes('you ') ||
@@ -287,15 +410,13 @@ export function detectCharacterStatusEffects(
   }
   
   for (const pattern of STATUS_PATTERNS) {
-    // Skip if we already found this type at a higher or equal intensity
     const existingIntensity = foundTypes.get(pattern.type);
     if (existingIntensity && intensityOrder[existingIntensity] >= intensityOrder[pattern.intensity]) {
       continue;
     }
     
     for (const regex of pattern.patterns) {
-      if (regex.test(messageToCheck)) {
-        // Remove lower intensity version if exists
+      if (regex.test(message)) {
         const existingIndex = detectedEffects.findIndex(e => e.type === pattern.type);
         if (existingIndex !== -1) {
           detectedEffects.splice(existingIndex, 1);
@@ -306,7 +427,7 @@ export function detectCharacterStatusEffects(
           intensity: pattern.intensity,
           duration: pattern.duration,
           startTime: now,
-          source: messageToCheck.slice(0, 80),
+          source: message.slice(0, 80),
         });
         
         foundTypes.set(pattern.type, pattern.intensity);
@@ -340,13 +461,12 @@ export function mergeStatusEffects(
     
     if (existingIndex !== -1) {
       const existing = result[existingIndex];
-      // Extend duration and possibly upgrade intensity
       result[existingIndex] = {
         ...existing,
         intensity: intensityOrder[newEffect.intensity] > intensityOrder[existing.intensity]
           ? newEffect.intensity
           : existing.intensity,
-        duration: Math.min(existing.duration + newEffect.duration / 2, 25000), // Cap at 25s
+        duration: Math.min(existing.duration + newEffect.duration / 2, 25000),
         source: newEffect.source,
       };
     } else {
@@ -379,7 +499,36 @@ export function getStatusEffectDescription(effect: CharacterStatusEffect): strin
     restrained: 'Restrained - movement restricted',
     slowed: 'Slowed - movement hindered',
     exhausted: 'Exhausted - energy depleted',
+    aerial: 'Aerial - airborne/flying',
+    smokescreen: 'Smoke - surrounded by fog',
+    bleeding: 'Bleeding - hemorrhaging',
+    electrified: 'Electrified - crackling with energy',
+    magnetized: 'Magnetized - static interference',
+    cosmicVacuum: 'Cosmic Vacuum - spatial distortion',
   };
   
   return `${descriptions[effect.type]} (${effect.intensity})`;
 }
+
+/**
+ * Effect priority map for layering/suppression
+ * Higher priority effects can suppress lower ones when redundant
+ */
+export const EFFECT_PRIORITY: Record<CharacterStatusType, number> = {
+  cosmicVacuum: 100,
+  burning: 60,
+  frozen: 60,
+  electrified: 55,
+  paralyzed: 50,
+  bleeding: 45,
+  submerged: 40,
+  aerial: 40,
+  magnetized: 35,
+  poisoned: 35,
+  stunned: 30,
+  blinded: 30,
+  restrained: 25,
+  smokescreen: 20,
+  slowed: 15,
+  exhausted: 10,
+};
