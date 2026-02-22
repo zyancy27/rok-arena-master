@@ -270,8 +270,12 @@ export default function BattleView() {
   // Battle turn color preference
   const { color: userTurnColor, updateColor: updateTurnColor } = useBattleTurnColor();
   
-  // Battlefield visual effects (fire, ice, smoke, etc.)
-  const { activeEffects: battlefieldEffects, processMessage: processBattlefieldEffect } = useBattlefieldEffects();
+  // Battlefield visual effects (fire, ice, smoke, etc.) — synced to DB for PvP
+  const { 
+    activeEffects: battlefieldEffects, 
+    processMessage: processBattlefieldEffect,
+    hydrateFromDatabase: hydrateBattlefieldEffects,
+  } = useBattlefieldEffects({ battleId: id, enabled: battle?.dynamic_environment !== false });
   
   // Character-specific status effects (paralyzed, blinded, etc.)
   const { 
@@ -288,10 +292,15 @@ export default function BattleView() {
   const [isNarratorLoading, setIsNarratorLoading] = useState(false);
 
   // Generate environment and entrances when battle becomes active with a location
+  // Also hydrate any persisted battlefield effects from the database
   useEffect(() => {
     if (battle?.chosen_location && battle?.dynamic_environment) {
       const env = generateBattleEnvironment(battle.chosen_location, null, null);
       setBattleEnvironment(env);
+    }
+    // Hydrate persisted battlefield effects on initial load
+    if (battle?.environment_effects) {
+      hydrateBattlefieldEffects(battle.environment_effects);
     }
   }, [battle?.chosen_location, battle?.dynamic_environment]);
   
@@ -666,6 +675,11 @@ export default function BattleView() {
             }
             return updatedBattle;
           });
+          
+          // Sync battlefield effects from opponent's updates
+          if (updatedBattle.environment_effects) {
+            hydrateBattlefieldEffects(updatedBattle.environment_effects);
+          }
         }
       )
       .subscribe((status) => {
