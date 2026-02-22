@@ -13,7 +13,11 @@ export type BattlefieldEffectType =
   | 'poison'    // toxic, acid, corrosive
   | 'electric'  // lightning, shock, electricity
   | 'sand'      // sandstorm, dust, desert
-  | 'water';    // flood, wave, underwater
+  | 'water'     // flood, wave, underwater
+  | 'inferno'   // full battlefield fire with heat distortion
+  | 'flooded'   // water at borders/edges
+  | 'gravity'   // gravity distortion pulling inward
+  | 'blackhole'; // spatial distortion / black hole
 
 export interface ActiveBattlefieldEffect {
   type: BattlefieldEffectType;
@@ -232,7 +236,112 @@ const EFFECT_PATTERNS: EffectPattern[] = [
     intensity: 'low',
     duration: 6000,
   },
+
+  // === NEW FIELD-WIDE EFFECTS ===
+
+  // Inferno - full battlefield engulfed in flames with heat distortion
+  {
+    type: 'inferno',
+    patterns: [
+      /\b(entire|whole|all).{0,15}(battlefield|arena|field).{0,15}(burns?|ablaze|fire|flames?)\b/i,
+      /\b(inferno|hellscape|firestorm).{0,10}(engulfs?|covers?|consumes?)\b/i,
+      /\b(sea|ocean|wall)\s+(of\s+)?(fire|flame|lava)\b/i,
+    ],
+    intensity: 'high',
+    duration: 20000,
+  },
+
+  // Flooded - water at borders/edges
+  {
+    type: 'flooded',
+    patterns: [
+      /\b(battlefield|arena|field).{0,15}(floods?|submerge|underwater)\b/i,
+      /\b(water|waves?).{0,15}(rising|rise|flood|surge).{0,10}(everywhere|around)\b/i,
+      /\b(flooded|flooding|deluge|tsunami)\b/i,
+    ],
+    intensity: 'high',
+    duration: 18000,
+  },
+  {
+    type: 'flooded',
+    patterns: [
+      /\b(water\s+level|flood\s+waters?|rising\s+water)\b/i,
+    ],
+    intensity: 'medium',
+    duration: 12000,
+  },
+
+  // Gravity Distortion - altered gravity
+  {
+    type: 'gravity',
+    patterns: [
+      /\b(gravity).{0,15}(shifts?|changes?|increases?|crushes?|intensif|distort|alter)\w*/i,
+      /\b(gravitational).{0,10}(pull|force|anomaly|distortion)/i,
+      /\b(heavy|crushing|intense).{0,10}gravity\b/i,
+      /\b(zero.{0,3}gravity|weightless|anti.{0,3}gravity)\b/i,
+    ],
+    intensity: 'high',
+    duration: 15000,
+  },
+
+  // Black Hole / Spatial Distortion
+  {
+    type: 'blackhole',
+    patterns: [
+      /\b(black\s*hole|singularity|event\s*horizon)\b/i,
+      /\b(space|reality|dimension).{0,15}(tears?|rips?|warps?|distorts?|collapses?)\b/i,
+      /\b(spatial|dimensional).{0,10}(rift|tear|anomaly|distortion)/i,
+      /\b(vortex|maelstrom).{0,10}(opens?|forms?|appears?)\b/i,
+    ],
+    intensity: 'high',
+    duration: 18000,
+  },
 ];
+
+/**
+ * Effect priority for layering. Higher = renders on top / suppresses lower ones
+ */
+export const FIELD_EFFECT_PRIORITY: Record<BattlefieldEffectType, number> = {
+  blackhole: 100,
+  inferno: 90,
+  gravity: 85,
+  darkness: 80,
+  storm: 70,
+  flooded: 65,
+  flash: 60,
+  fire: 50,
+  ice: 50,
+  electric: 45,
+  smoke: 40,
+  poison: 35,
+  sand: 30,
+  water: 25,
+};
+
+/**
+ * Suppression rules: when a global effect is active, these local effects are redundant
+ */
+export const SUPPRESSION_MAP: Partial<Record<BattlefieldEffectType, string[]>> = {
+  inferno: ['burning'], // Global inferno suppresses individual burning status
+  flooded: ['submerged'], // Global flood suppresses individual submerged
+  darkness: ['blinded'], // Global darkness makes individual blinding redundant
+};
+
+/**
+ * Check if a character status should be suppressed by active field effects
+ */
+export function shouldSuppressStatus(
+  statusType: string,
+  activeFieldEffects: ActiveBattlefieldEffect[]
+): boolean {
+  for (const fieldEffect of activeFieldEffects) {
+    const suppressed = SUPPRESSION_MAP[fieldEffect.type];
+    if (suppressed?.includes(statusType)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 /**
  * Detect battlefield effects from a message
@@ -241,11 +350,9 @@ export function detectBattlefieldEffects(message: string): ActiveBattlefieldEffe
   const detectedEffects: ActiveBattlefieldEffect[] = [];
   const now = Date.now();
   
-  // Track which effect types we've already found at higher intensities
   const foundTypes = new Map<BattlefieldEffectType, 'low' | 'medium' | 'high'>();
   
   for (const pattern of EFFECT_PATTERNS) {
-    // Skip if we already found this type at a higher or equal intensity
     const existingIntensity = foundTypes.get(pattern.type);
     if (existingIntensity) {
       const intensityOrder = { low: 1, medium: 2, high: 3 };
@@ -256,7 +363,6 @@ export function detectBattlefieldEffects(message: string): ActiveBattlefieldEffe
     
     for (const regex of pattern.patterns) {
       if (regex.test(message)) {
-        // Remove lower intensity version if exists
         const existingIndex = detectedEffects.findIndex(e => e.type === pattern.type);
         if (existingIndex !== -1) {
           detectedEffects.splice(existingIndex, 1);
@@ -271,7 +377,7 @@ export function detectBattlefieldEffects(message: string): ActiveBattlefieldEffe
         });
         
         foundTypes.set(pattern.type, pattern.intensity);
-        break; // Found a match for this pattern group
+        break;
       }
     }
   }
@@ -306,7 +412,6 @@ export function mergeEffects(
     const existingIndex = result.findIndex(e => e.type === newEffect.type);
     
     if (existingIndex !== -1) {
-      // Extend duration and possibly upgrade intensity
       const existing = result[existingIndex];
       const intensityOrder = { low: 1, medium: 2, high: 3 };
       
@@ -315,13 +420,16 @@ export function mergeEffects(
         intensity: intensityOrder[newEffect.intensity] > intensityOrder[existing.intensity]
           ? newEffect.intensity
           : existing.intensity,
-        duration: Math.min(existing.duration + newEffect.duration / 2, 30000), // Cap at 30s
+        duration: Math.min(existing.duration + newEffect.duration / 2, 30000),
         description: newEffect.description,
       };
     } else {
       result.push(newEffect);
     }
   }
+  
+  // Sort by priority so higher-priority effects render on top
+  result.sort((a, b) => (FIELD_EFFECT_PRIORITY[a.type] || 0) - (FIELD_EFFECT_PRIORITY[b.type] || 0));
   
   return result;
 }

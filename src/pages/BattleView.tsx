@@ -83,6 +83,7 @@ import { useBattleTurnColor } from '@/hooks/use-battle-turn-color';
 import { useBattlefieldEffects } from '@/components/battles/useBattlefieldEffects';
 import { useCharacterStatusEffects } from '@/hooks/use-character-status-effects';
 import { detectCharacterStatusEffects } from '@/lib/character-status-effects';
+import { shouldSuppressStatus } from '@/lib/battlefield-effects';
 import {
   ArrowLeft,
   Send,

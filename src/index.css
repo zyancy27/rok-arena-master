@@ -506,4 +506,107 @@
       opacity: 0;
     }
   }
+
+  /* === NEW EFFECTS FROM PDF === */
+
+  /* Cloud drift for aerial status */
+  @keyframes cloudDrift {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+  }
+
+  /* Gentle floating for aerial */
+  @keyframes gentleFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+  }
+
+  /* Spark flash for electrified */
+  @keyframes sparkFlash {
+    0% { opacity: 0; transform: scale(0.5); }
+    50% { opacity: 1; transform: scale(1.5); }
+    100% { opacity: 0; transform: scale(0.5); }
+  }
+
+  /* Jitter for magnetized/static */
+  @keyframes jitter {
+    0%, 100% { transform: translate(0, 0); }
+    25% { transform: translate(1px, 0); }
+    50% { transform: translate(-1px, 1px); }
+    75% { transform: translate(0, -1px); }
+  }
+
+  /* Static noise flicker */
+  @keyframes staticNoise {
+    0% { opacity: 0.3; }
+    25% { opacity: 0; }
+    50% { opacity: 0.2; }
+    75% { opacity: 0; }
+    100% { opacity: 0.3; }
+  }
+
+  /* Cosmic spin for vacuum/black hole */
+  @keyframes cosmicSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  /* Cosmic pull - particles drawn to center */
+  @keyframes cosmicPull {
+    0% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+    100% { transform: translate(calc(50cqw - 100%), calc(50cqh - 100%)) scale(0); opacity: 0; }
+  }
+
+  /* Cosmic shrink for severe vacuum */
+  @keyframes cosmicShrink {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(0.98); }
+  }
+
+  /* Heat wave distortion for inferno */
+  @keyframes heatWave {
+    0%, 100% { transform: translateY(0); }
+    25% { transform: translateY(1px); }
+    50% { transform: translateY(-1px); }
+    75% { transform: translateY(0.5px); }
+  }
+
+  /* Gravity pulse */
+  @keyframes gravityPulse {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.05); }
+  }
+
+  /* Gravity lines */
+  @keyframes gravityLine {
+    0% { opacity: 0; transform: scaleY(0.5); }
+    50% { opacity: 0.4; transform: scaleY(1); }
+    100% { opacity: 0; transform: scaleY(0.5); }
+  }
+
+  /* === PREFERS REDUCED MOTION === */
+  @media (prefers-reduced-motion: reduce) {
+    .battlefield-fire-particles,
+    .battlefield-frost-pattern,
+    .battlefield-smoke-drift,
+    .battlefield-smoke-drift-reverse,
+    .battlefield-flash-pulse,
+    .battlefield-rain,
+    .battlefield-lightning,
+    .battlefield-poison-drift,
+    .battlefield-poison-bubbles,
+    .battlefield-electric-pulse,
+    .battlefield-electric-arcs,
+    .battlefield-sand-drift,
+    .battlefield-sand-particles,
+    .battlefield-water-caustics {
+      animation: none !important;
+    }
+
+    *[class*="animate-"] {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
