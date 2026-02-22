@@ -1529,55 +1529,6 @@ export default function BattleView() {
         />
       )}
 
-      {/* Narrator Settings - Toggle narrator frequency */}
-      {battle.status === 'active' && (
-        <Card className="bg-card-gradient border-border">
-          <CardContent className="p-3">
-            <div className="flex items-center justify-between flex-wrap gap-3">
-              <div className="flex items-center gap-2">
-                <Mic className="w-4 h-4 text-primary" />
-                <span className="text-sm font-medium">Battle Narrator</span>
-                {isNarratorLoading && (
-                  <Badge variant="outline" className="text-xs animate-pulse">
-                    <Pencil className="w-3 h-3 mr-1" />
-                    Narrating...
-                  </Badge>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <Select
-                  value={narratorFrequency}
-                  onValueChange={(v) => setNarratorFrequency(v as NarratorFrequency)}
-                >
-                  <SelectTrigger className="w-[160px] h-8">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="always">
-                      <span className="flex items-center gap-2">
-                        <Volume2 className="w-3 h-3" />
-                        Always
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="key_moments">
-                      <span className="flex items-center gap-2">
-                        <Sparkles className="w-3 h-3" />
-                        Key Moments
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="off">
-                      <span className="flex items-center gap-2">
-                        <VolumeX className="w-3 h-3" />
-                        Off
-                      </span>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Challenge Acceptance for Challenged User (not yet a participant) */}
       {battle.status === 'pending' && !userCharacter && battle.challenged_user_id === user?.id && (
@@ -1803,107 +1754,6 @@ export default function BattleView() {
         </Card>
       )}
 
-      {/* Show chosen location when battle is active */}
-      {battle.chosen_location && (
-        <Card className="bg-gradient-to-br from-primary/10 to-accent/10 border-primary/30">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <MapPin className="w-5 h-5 text-primary" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Battle Location</p>
-                  <p className="font-semibold text-lg">{battle.chosen_location}</p>
-                </div>
-              </div>
-              {battle.dynamic_environment && (
-                <Badge variant="outline" className="flex items-center gap-1 text-primary border-primary/30">
-                  <Atom className="w-3 h-3" />
-                  Dynamic Effects Active
-                </Badge>
-              )}
-            </div>
-            
-            {/* Environment Effects Display */}
-            {battle.dynamic_environment && battleEnvironment && (
-              <div className="mt-4 p-3 bg-background/50 rounded-lg space-y-2">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <Zap className="w-4 h-4 text-amber-400" />
-                  Battlefield Conditions
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
-                  <div className="flex items-center gap-1 text-muted-foreground">
-                    <span className="text-primary">⬇️</span>
-                    Gravity: {battleEnvironment.gravity.toFixed(2)}g ({battleEnvironment.gravityClass.name})
-                  </div>
-                  {battleEnvironment.terrainFeatures?.atmosphereType && (
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      <Wind className="w-3 h-3 text-cyan-400" />
-                      {battleEnvironment.terrainFeatures.atmosphereType} atmosphere
-                    </div>
-                  )}
-                  {battleEnvironment.terrainFeatures?.primaryBiome && (
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                      {battleEnvironment.terrainFeatures.hasVolcanoes ? (
-                        <Flame className="w-3 h-3 text-orange-400" />
-                      ) : battleEnvironment.terrainFeatures.hasTundra ? (
-                        <Snowflake className="w-3 h-3 text-blue-400" />
-                      ) : (
-                        <Sparkles className="w-3 h-3 text-purple-400" />
-                      )}
-                      {battleEnvironment.terrainFeatures.primaryBiome}
-                    </div>
-                  )}
-                </div>
-                {battleEnvironment.shortSummary && (
-                  <p className="text-xs text-muted-foreground italic mt-1">
-                    {battleEnvironment.shortSummary}
-                  </p>
-                )}
-              </div>
-            )}
-            
-            {/* Distance Indicator */}
-            {battle.status === 'active' && (
-              <div className="mt-4 p-3 bg-background/50 rounded-lg space-y-2 border border-primary/20">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <MapPin className="w-4 h-4 text-primary" />
-                    Combat Distance
-                  </div>
-                  <Badge variant="outline" className="text-xs">
-                    {battleDistance.currentZone.charAt(0).toUpperCase() + battleDistance.currentZone.slice(1)} Range
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 transition-all duration-300"
-                      style={{ 
-                        width: `${['melee', 'close', 'mid', 'long', 'extreme'].indexOf(battleDistance.currentZone) / 4 * 100}%` 
-                      }}
-                    />
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    ~{battleDistance.estimatedMeters.toFixed(0)}m
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {battleDistance.currentZone === 'melee' && "Within arm's reach - punches, grabs, and close combat effective"}
-                  {battleDistance.currentZone === 'close' && "A few steps apart - quick lunges and short-range attacks work"}
-                  {battleDistance.currentZone === 'mid' && "Moderate distance - projectiles and charges needed to close"}
-                  {battleDistance.currentZone === 'long' && "Far apart - ranged attacks or significant movement required"}
-                  {battleDistance.currentZone === 'extreme' && "Very distant - only long-range powers or travel can bridge the gap"}
-                </p>
-                {battleDistance.lastMovement !== 'none' && (
-                  <p className="text-xs text-primary/80">
-                    ↔ Last movement: {battleDistance.lastMovement === 'closer' ? 'Closed distance' : 'Created distance'}
-                  </p>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
       {/* Rules Panel */}
       {showRules && (
@@ -1930,62 +1780,6 @@ export default function BattleView() {
         </Card>
       )}
 
-      {/* Participants */}
-      <Card className="bg-card-gradient border-border">
-        <CardHeader className="py-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Users className="w-4 h-4 text-accent" />
-            Combatants
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="py-2">
-          <div className="flex flex-wrap gap-3">
-            {participants.map((p, index) => (
-              <div key={p.id} className="flex items-center gap-2">
-                {index > 0 && <span className="text-primary font-bold">VS</span>}
-                <Badge variant="outline" className="flex items-center gap-1">
-                  <Sparkles className="w-3 h-3" />
-                  {p.character?.name || 'Unknown'}
-                  <span className="text-xs text-muted-foreground ml-1">
-                    (Tier {p.character?.level})
-                  </span>
-                </Badge>
-              </div>
-            ))}
-          </div>
-          
-          {/* Skill Proficiency Bars */}
-          {battle.status === 'active' && participants.length >= 2 && (
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {participants.map((p) => (
-                <SkillProficiencyBar
-                  key={p.id}
-                  characterName={p.character?.name || 'Unknown'}
-                  skillStat={p.character?.stat_skill ?? 50}
-                  compact={true}
-                />
-              ))}
-            </div>
-          )}
-          
-          {/* Concentration & Penalty Status */}
-          {battle.status === 'active' && userCharacter?.character && (
-            <div className="mt-4 flex flex-wrap gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="bg-primary/10">
-                  🎯 Concentration: {concentrationUses[userCharacter.character_id] ?? 3}/3
-                </Badge>
-              </div>
-              {(statPenalties[userCharacter.character_id] ?? 0) > 0 && (
-                <Badge variant="destructive" className="animate-pulse">
-                  ⚠️ -{statPenalties[userCharacter.character_id]}% stats this action
-                </Badge>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      
       {/* Constructs Panel */}
       {battle.status === 'active' && userCharacter && Object.keys(constructs).length > 0 && (
         <ConstructPanel
@@ -2316,6 +2110,200 @@ export default function BattleView() {
             </TabsContent>
 
             <TabsContent value="out_of_universe" className="mt-0">
+              {/* Battle Info Section - Combatants, Location, Narrator */}
+              <div className="p-4 space-y-4 border-b border-border">
+                {/* Combatants */}
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Users className="w-4 h-4 text-accent" />
+                    <span className="text-sm font-semibold">Combatants</span>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    {participants.map((p, index) => (
+                      <div key={p.id} className="flex items-center gap-2">
+                        {index > 0 && <span className="text-primary font-bold">VS</span>}
+                        <Badge variant="outline" className="flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" />
+                          {p.character?.name || 'Unknown'}
+                          <span className="text-xs text-muted-foreground ml-1">
+                            (Tier {p.character?.level})
+                          </span>
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Skill Proficiency Bars */}
+                  {battle.status === 'active' && participants.length >= 2 && (
+                    <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {participants.map((p) => (
+                        <SkillProficiencyBar
+                          key={p.id}
+                          characterName={p.character?.name || 'Unknown'}
+                          skillStat={p.character?.stat_skill ?? 50}
+                          compact={true}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Concentration & Penalty Status */}
+                  {battle.status === 'active' && userCharacter?.character && (
+                    <div className="mt-3 flex flex-wrap gap-3 text-sm">
+                      <Badge variant="outline" className="bg-primary/10">
+                        🎯 Concentration: {concentrationUses[userCharacter.character_id] ?? 3}/3
+                      </Badge>
+                      {(statPenalties[userCharacter.character_id] ?? 0) > 0 && (
+                        <Badge variant="destructive" className="animate-pulse">
+                          ⚠️ -{statPenalties[userCharacter.character_id]}% stats this action
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Battle Location */}
+                {battle.chosen_location && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-primary" />
+                        <span className="text-sm font-semibold">Battle Location</span>
+                      </div>
+                      {battle.dynamic_environment && (
+                        <Badge variant="outline" className="flex items-center gap-1 text-primary border-primary/30 text-xs">
+                          <Atom className="w-3 h-3" />
+                          Dynamic Effects
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="font-semibold">{battle.chosen_location}</p>
+                    
+                    {battle.dynamic_environment && battleEnvironment && (
+                      <div className="mt-2 p-3 bg-background/50 rounded-lg space-y-2">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <Zap className="w-4 h-4 text-amber-400" />
+                          Battlefield Conditions
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <span className="text-primary">⬇️</span>
+                            Gravity: {battleEnvironment.gravity.toFixed(2)}g ({battleEnvironment.gravityClass.name})
+                          </div>
+                          {battleEnvironment.terrainFeatures?.atmosphereType && (
+                            <div className="flex items-center gap-1 text-muted-foreground">
+                              <Wind className="w-3 h-3 text-cyan-400" />
+                              {battleEnvironment.terrainFeatures.atmosphereType} atmosphere
+                            </div>
+                          )}
+                          {battleEnvironment.terrainFeatures?.primaryBiome && (
+                            <div className="flex items-center gap-1 text-muted-foreground">
+                              {battleEnvironment.terrainFeatures.hasVolcanoes ? (
+                                <Flame className="w-3 h-3 text-orange-400" />
+                              ) : battleEnvironment.terrainFeatures.hasTundra ? (
+                                <Snowflake className="w-3 h-3 text-blue-400" />
+                              ) : (
+                                <Sparkles className="w-3 h-3 text-purple-400" />
+                              )}
+                              {battleEnvironment.terrainFeatures.primaryBiome}
+                            </div>
+                          )}
+                        </div>
+                        {battleEnvironment.shortSummary && (
+                          <p className="text-xs text-muted-foreground italic mt-1">
+                            {battleEnvironment.shortSummary}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Distance Indicator */}
+                    {battle.status === 'active' && (
+                      <div className="mt-2 p-3 bg-background/50 rounded-lg space-y-2 border border-primary/20">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-sm font-medium">
+                            <MapPin className="w-4 h-4 text-primary" />
+                            Combat Distance
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            {battleDistance.currentZone.charAt(0).toUpperCase() + battleDistance.currentZone.slice(1)} Range
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-gradient-to-r from-red-500 via-yellow-500 to-green-500 transition-all duration-300"
+                              style={{ 
+                                width: `${['melee', 'close', 'mid', 'long', 'extreme'].indexOf(battleDistance.currentZone) / 4 * 100}%` 
+                              }}
+                            />
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            ~{battleDistance.estimatedMeters.toFixed(0)}m
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          {battleDistance.currentZone === 'melee' && "Within arm's reach - punches, grabs, and close combat effective"}
+                          {battleDistance.currentZone === 'close' && "A few steps apart - quick lunges and short-range attacks work"}
+                          {battleDistance.currentZone === 'mid' && "Moderate distance - projectiles and charges needed to close"}
+                          {battleDistance.currentZone === 'long' && "Far apart - ranged attacks or significant movement required"}
+                          {battleDistance.currentZone === 'extreme' && "Very distant - only long-range powers or travel can bridge the gap"}
+                        </p>
+                        {battleDistance.lastMovement !== 'none' && (
+                          <p className="text-xs text-primary/80">
+                            ↔ Last movement: {battleDistance.lastMovement === 'closer' ? 'Closed distance' : 'Created distance'}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Battle Narrator */}
+                {battle.status === 'active' && (
+                  <div className="flex items-center justify-between flex-wrap gap-3">
+                    <div className="flex items-center gap-2">
+                      <Mic className="w-4 h-4 text-primary" />
+                      <span className="text-sm font-medium">Battle Narrator</span>
+                      {isNarratorLoading && (
+                        <Badge variant="outline" className="text-xs animate-pulse">
+                          <Pencil className="w-3 h-3 mr-1" />
+                          Narrating...
+                        </Badge>
+                      )}
+                    </div>
+                    <Select
+                      value={narratorFrequency}
+                      onValueChange={(v) => setNarratorFrequency(v as NarratorFrequency)}
+                    >
+                      <SelectTrigger className="w-[160px] h-8">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="always">
+                          <span className="flex items-center gap-2">
+                            <Volume2 className="w-3 h-3" />
+                            Always
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="key_moments">
+                          <span className="flex items-center gap-2">
+                            <Sparkles className="w-3 h-3" />
+                            Key Moments
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="off">
+                          <span className="flex items-center gap-2">
+                            <VolumeX className="w-3 h-3" />
+                            Off
+                          </span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+
               <ScrollArea className="h-[400px] p-4">
                 {outOfUniverseMessages.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
