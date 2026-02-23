@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +14,9 @@ export default function Auth() {
   const { user, signIn, signUp, loading } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetSent, setResetSent] = useState(false);
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
@@ -48,6 +52,25 @@ export default function Auth() {
     } else {
       toast.success('Welcome back, warrior!');
       navigate('/hub');
+    }
+    setIsLoading(false);
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail.trim()) {
+      toast.error('Please enter your email');
+      return;
+    }
+    setIsLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail.trim(), {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) {
+      toast.error(error.message);
+    } else {
+      setResetSent(true);
+      toast.success('Password reset link sent! Check your email.');
     }
     setIsLoading(false);
   };
@@ -90,12 +113,50 @@ export default function Auth() {
 
         <Card className="bg-card-gradient border-border glow-primary">
           <CardHeader className="text-center">
-            <CardTitle>Enter the Arena</CardTitle>
+            <CardTitle>{forgotMode ? 'Reset Password' : 'Enter the Arena'}</CardTitle>
             <CardDescription>
-              Sign in to your account or create a new one to begin your journey
+              {forgotMode
+                ? 'Enter your email and we\'ll send you a reset link'
+                : 'Sign in to your account or create a new one to begin your journey'}
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {forgotMode ? (
+              resetSent ? (
+                <div className="text-center space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Check your email for a password reset link. It may take a minute to arrive.
+                  </p>
+                  <Button variant="outline" onClick={() => { setForgotMode(false); setResetSent(false); }}>
+                    Back to Sign In
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="reset-email">Email</Label>
+                    <Input
+                      id="reset-email"
+                      type="email"
+                      placeholder="warrior@realm.com"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full glow-primary" disabled={isLoading}>
+                    {isLoading ? 'Sending...' : 'Send Reset Link'}
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => setForgotMode(false)}
+                    className="w-full text-sm text-muted-foreground hover:text-primary transition-colors"
+                  >
+                    Back to Sign In
+                  </button>
+                </form>
+              )
+            ) : (
             <Tabs defaultValue="login" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="login">Sign In</TabsTrigger>
@@ -126,11 +187,18 @@ export default function Auth() {
                       required
                     />
                   </div>
-                  <Button type="submit" className="w-full glow-primary" disabled={isLoading}>
-                    {isLoading ? 'Entering...' : 'Enter Arena'}
-                  </Button>
-                </form>
-              </TabsContent>
+                   <Button type="submit" className="w-full glow-primary" disabled={isLoading}>
+                     {isLoading ? 'Entering...' : 'Enter Arena'}
+                   </Button>
+                   <button
+                     type="button"
+                     onClick={() => { setForgotMode(true); setResetEmail(loginEmail); }}
+                     className="w-full text-sm text-muted-foreground hover:text-primary transition-colors"
+                   >
+                     Forgot your password?
+                   </button>
+                 </form>
+               </TabsContent>
 
               <TabsContent value="signup">
                 <form onSubmit={handleSignup} className="space-y-4">
@@ -175,6 +243,7 @@ export default function Auth() {
                 </form>
               </TabsContent>
             </Tabs>
+            )}
           </CardContent>
         </Card>
       </div>
