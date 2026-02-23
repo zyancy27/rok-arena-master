@@ -1145,6 +1145,7 @@ export default function MockBattle() {
   
   // Arena modifiers (daily/weekly rotating)
   const [arenaModifiers] = useState<ActiveArenaModifiers>(() => getActiveArenaModifiers());
+  const [arenaModifiersEnabled, setArenaModifiersEnabled] = useState(true);
   
   // Battle SFX engine
   const { muted: sfxMuted, toggleMute: toggleSfxMute, processText: processSfxText, playEvent: playSfxEvent } = useBattleSfx({ enabled: battleStarted });
@@ -2160,7 +2161,7 @@ export default function MockBattle() {
             ...currentOpponent,
             skill: opponentSkill,
           },
-          userMessage: input + skillEventNote + playerAttackContext + defenseEnforcementPrompt + overchargeAIContext + momentumAIContext + psychAIContext + adaptiveAIContext + arenaModifiers.combinedPrompt,
+          userMessage: input + skillEventNote + playerAttackContext + defenseEnforcementPrompt + overchargeAIContext + momentumAIContext + psychAIContext + adaptiveAIContext + (arenaModifiersEnabled ? arenaModifiers.combinedPrompt : ''),
           channel: activeChannel,
           messageHistory: messages.slice(-10),
           battleLocation,
@@ -2957,13 +2958,33 @@ export default function MockBattle() {
 
                 {/* Arena Modifiers Preview */}
                 <div className="p-3 rounded-lg border bg-gradient-to-r from-purple-500/5 to-indigo-500/5 border-purple-500/20 space-y-2">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    🌐 Today's Arena Modifiers
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      🌐 Today's Arena Modifiers
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="arena-mod-toggle" className="text-xs text-muted-foreground">
+                        {arenaModifiersEnabled ? 'On' : 'Off'}
+                      </Label>
+                      <Switch
+                        id="arena-mod-toggle"
+                        checked={arenaModifiersEnabled}
+                        onCheckedChange={setArenaModifiersEnabled}
+                      />
+                    </div>
                   </div>
-                  <ArenaModifierBadge modifiers={arenaModifiers} />
-                  <p className="text-[10px] text-muted-foreground">
-                    Same modifiers for all players globally. Affects stats, momentum, and glitch chances.
-                  </p>
+                  {arenaModifiersEnabled ? (
+                    <>
+                      <ArenaModifierBadge modifiers={arenaModifiers} />
+                      <p className="text-[10px] text-muted-foreground">
+                        Same modifiers for all players globally. Affects stats, momentum, and glitch chances.
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground">
+                      Arena modifiers are disabled for this battle.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -3040,9 +3061,11 @@ export default function MockBattle() {
                   </div>
                 </div>
                 {/* Arena Modifiers */}
-                <div className="flex items-center gap-2 mt-2">
-                  <ArenaModifierBadge modifiers={arenaModifiers} />
-                </div>
+                {arenaModifiersEnabled && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <ArenaModifierBadge modifiers={arenaModifiers} />
+                  </div>
+                )}
                 {battleEnvironment && dynamicEnvironment && battleEnvironment.terrainFeatures && (
                   <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                     <Globe className="w-3 h-3" />
