@@ -12,7 +12,7 @@ export interface ArenaModifier {
   promptEffect: string;
   /** Stat modifier percentages (applied on top of existing) */
   statMods?: Partial<Record<'strength' | 'speed' | 'durability' | 'stamina' | 'power' | 'skill' | 'luck' | 'intelligence' | 'battle_iq', number>>;
-  /** Glitch chance modifier (-0.1 = 10% less glitching) */
+  /** Risk chance modifier (-0.1 = 10% less risk) */
   glitchMod?: number;
   /** Momentum gain multiplier */
   momentumMultiplier?: number;
@@ -41,7 +41,7 @@ const DAILY_MODIFIERS: ArenaModifier[] = [
     id: 'void_tide',
     name: 'Void Tide',
     emoji: '🌀',
-    description: 'Dimensional rifts make attacks unpredictable. Higher glitch chance, but momentum builds faster.',
+    description: 'Dimensional rifts make attacks unpredictable. Higher risk chance, but momentum builds faster.',
     promptEffect: 'Small dimensional rifts flicker in and out of existence across the arena. Reality feels unstable — attacks may phase partially through targets or strike from unexpected angles. Describe the dimensional instability.',
     glitchMod: 0.1,
     momentumMultiplier: 1.3,
@@ -73,7 +73,7 @@ const DAILY_MODIFIERS: ArenaModifier[] = [
     id: 'lunar_serenity',
     name: 'Lunar Serenity',
     emoji: '🌙',
-    description: 'Moonlit calm reduces glitch chance and boosts intelligence.',
+    description: 'Moonlit calm reduces risk chance and boosts intelligence.',
     promptEffect: 'A serene full moon hangs impossibly close, bathing the arena in silver light. Minds feel clearer, strategies sharper, and the tranquil energy stabilizes dimensional frequencies. Describe the peaceful yet intense atmosphere.',
     statMods: { intelligence: 8, battle_iq: 8 },
     glitchMod: -0.08,
@@ -148,7 +148,7 @@ const WEEKLY_MODIFIERS: ArenaModifier[] = [
     id: 'chaos_week',
     name: 'Chaos Week',
     emoji: '🎪',
-    description: 'Anything can happen. Glitch chance increased, but overcharge is more powerful.',
+    description: 'Anything can happen. Risk chance increased, but overcharge is more powerful.',
     promptEffect: 'It\'s Chaos Week! Reality itself seems drunk. Physics work differently moment to moment, attacks can have unexpected side effects, and the impossible becomes merely improbable.',
     glitchMod: 0.15,
     overchargeRiskMod: -0.1,
@@ -224,7 +224,7 @@ export interface ActiveArenaModifiers {
   combinedStatMods: Record<string, number>;
   /** Combined prompt for AI */
   combinedPrompt: string;
-  /** Combined glitch modifier */
+  /** Combined risk modifier */
   glitchMod: number;
   /** Combined momentum multiplier */
   momentumMultiplier: number;

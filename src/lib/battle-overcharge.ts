@@ -3,11 +3,11 @@
  * 
  * Players can optionally overcharge abilities:
  * - Increased potency
- * - Increased glitch probability
+ * - Increased risk probability
  * - Increased dimensional instability
  * 
- * Normal attack → 10% glitch chance
- * Overcharged → 30% glitch chance + amplified effect
+ * Normal attack → 10% risk chance
+ * Overcharged → 30% risk chance + amplified effect
  */
 
 export interface OverchargeResult {
@@ -22,7 +22,7 @@ export interface OverchargeResult {
 const NORMAL_GLITCH_CHANCE = 0.10;
 const OVERCHARGE_GLITCH_CHANCE = 0.30;
 
-const GLITCH_EFFECTS = [
+const RISK_EFFECTS = [
   'Power surge backfires — energy explodes outward uncontrollably',
   'Dimensional rift opens briefly — gravity inverts for a split second',
   'Attack warps mid-flight — trajectory becomes unpredictable',
@@ -67,7 +67,7 @@ export function resolveOvercharge(
     glitchChance: adjustedChance,
     glitchOccurred,
     glitchEffect: glitchOccurred 
-      ? GLITCH_EFFECTS[Math.floor(Math.random() * GLITCH_EFFECTS.length)]
+      ? RISK_EFFECTS[Math.floor(Math.random() * RISK_EFFECTS.length)]
       : null,
     dimensionalInstability: isOvercharged && glitchOccurred && Math.random() < 0.4,
   };
@@ -86,7 +86,7 @@ export function getOverchargeContext(result: OverchargeResult, attackerName: str
   }
 
   if (result.glitchOccurred && result.glitchEffect) {
-    lines.push(`[GLITCH EVENT: ${result.glitchEffect}. Incorporate this unpredictable effect into the narrative!]`);
+    lines.push(`[RISK EVENT: ${result.glitchEffect}. Incorporate this unpredictable effect into the narrative!]`);
   }
 
   if (result.dimensionalInstability) {

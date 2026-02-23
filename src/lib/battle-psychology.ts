@@ -2,7 +2,7 @@
  * Psychological Combat Layer
  * 
  * Hidden stats: Confidence, Fear, Resolve, Rage
- * These influence: glitch chance, accuracy, momentum gain rate, environmental resistance
+ * These influence: risk chance, accuracy, momentum gain rate, environmental resistance
  * 
  * Players never see numeric values — only subtle visual cues.
  */
@@ -155,15 +155,15 @@ export function detectPsychEvents(
 }
 
 /**
- * Get glitch chance modifier from psychological state
+ * Get risk chance modifier from psychological state
  * Returns a multiplier (1.0 = normal, >1 = increased, <1 = decreased)
  */
 export function getGlitchChanceModifier(state: PsychologicalState): number {
-  // High Fear → increased glitch risk
+  // High Fear → increased risk
   const fearFactor = state.fear / 100; // 0-1
-  // High Resolve → reduced glitch
+  // High Resolve → reduced risk
   const resolveFactor = state.resolve / 100; // 0-1
-  // High Rage → slightly increased glitch (loss of control)
+  // High Rage → slightly increased risk (loss of control)
   const rageFactor = state.rage / 200; // 0-0.5
 
   return 1 + (fearFactor * 0.5) - (resolveFactor * 0.3) + rageFactor;
