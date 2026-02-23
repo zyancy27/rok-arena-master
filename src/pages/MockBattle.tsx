@@ -64,7 +64,7 @@ import {
   tickEdgeState,
   getMomentumContext,
   EDGE_STATE_PRECISION_BONUS,
-  EDGE_STATE_GLITCH_REDUCTION,
+  EDGE_STATE_RISK_REDUCTION,
   type MomentumState,
 } from '@/lib/battle-momentum';
 import {
@@ -72,7 +72,7 @@ import {
   applyPsychEvent,
   detectPsychEvents,
   getDominantPsychCue,
-  getGlitchChanceModifier,
+  getRiskChanceModifier,
   getAccuracyModifier,
   getPsychologyContext,
   type PsychologicalState,
@@ -2110,14 +2110,14 @@ export default function MockBattle() {
     if (activeChannel === 'in_universe' && currentOpponent) {
       // Resolve overcharge if enabled
       if (overchargeEnabled) {
-        const glitchMod = getGlitchChanceModifier(userPsych);
-        const overchargeResult = resolveOvercharge(true, glitchMod, userMomentum.edgeStateActive);
+        const riskMod = getRiskChanceModifier(userPsych);
+        const overchargeResult = resolveOvercharge(true, riskMod, userMomentum.edgeStateActive);
         overchargeAIContext = getOverchargeContext(overchargeResult, selectedCharacter.name);
 
         // Apply psych events from overcharge outcome
-        if (overchargeResult.glitchOccurred) {
+        if (overchargeResult.riskOccurred) {
           setUserPsych(prev => applyPsychEvent(prev, 'overcharge_fail'));
-          setUserMomentum(prev => applyMomentumEvents(prev, [{ type: 'loss', amount: 25, reason: 'Glitch misfire' }], userPsych.fear, userPsych.resolve));
+          setUserMomentum(prev => applyMomentumEvents(prev, [{ type: 'loss', amount: 25, reason: 'Risk misfire' }], userPsych.fear, userPsych.resolve));
         } else {
           setUserPsych(prev => applyPsychEvent(prev, 'overcharge_success'));
         }
@@ -2977,7 +2977,7 @@ export default function MockBattle() {
                     <>
                       <ArenaModifierBadge modifiers={arenaModifiers} />
                       <p className="text-[10px] text-muted-foreground">
-                        Same modifiers for all players globally. Affects stats, momentum, and glitch chances.
+                        Same modifiers for all players globally. Affects stats, momentum, and risk chances.
                       </p>
                     </>
                   ) : (

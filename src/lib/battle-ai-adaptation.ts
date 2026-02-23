@@ -311,7 +311,7 @@ function buildDirective(params: {
   // Risk-taker counter
   if (params.isRiskTaker) {
     lines.push(
-      '• Player takes high risks (overcharge). Bait overcharge moments and punish the glitch window.',
+      '• Player takes high risks (overcharge). Bait overcharge moments and punish the risk window.',
     );
   }
 
