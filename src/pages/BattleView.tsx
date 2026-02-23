@@ -176,6 +176,10 @@ interface Participant {
   character_snapshot?: CharacterSnapshot | null;
 }
 
+interface StatusEffectsSnapshot {
+  [key: string]: { type: string; intensity: string } | undefined;
+}
+
 interface Message {
   id: string;
   character_id: string;
@@ -183,6 +187,10 @@ interface Message {
   channel: 'in_universe' | 'out_of_universe';
   created_at: string;
   character_name?: string;
+  /** Status effects active on the sender's character at send time */
+  statusEffectsSnapshot?: StatusEffectsSnapshot;
+  /** True while the message is being sent to the server */
+  isPending?: boolean;
 }
 
 type NarratorFrequency = 'always' | 'key_moments' | 'off';
@@ -200,6 +208,7 @@ export default function BattleView() {
   const [loading, setLoading] = useState(true);
   const [messageInput, setMessageInput] = useState('');
   const [activeChannel, setActiveChannel] = useState<'in_universe' | 'out_of_universe'>('in_universe');
+  const [isSending, setIsSending] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const [locationInput, setLocationInput] = useState('');
   const [isFlippingCoin, setIsFlippingCoin] = useState(false);
@@ -579,10 +588,11 @@ export default function BattleView() {
         async (payload) => {
           const newMessage = payload.new as Message;
           
-          // Check if message already exists to prevent duplicates
+          // Reconcile: check if this message was optimistically added (pending)
           setMessages(prev => {
-            if (prev.some(m => m.id === newMessage.id)) {
-              return prev; // Message already exists, skip
+            // Check if already exists by real ID
+            if (prev.some(m => m.id === newMessage.id && !m.isPending)) {
+              return prev; // Already confirmed, skip
             }
             
             // Fetch character name asynchronously and update
@@ -596,12 +606,29 @@ export default function BattleView() {
                   ...newMessage,
                   channel: newMessage.channel as 'in_universe' | 'out_of_universe',
                   character_name: charData?.name || 'Unknown',
+                  isPending: false,
                 };
                 
-                // Update the message with character name
-                setMessages(current => 
-                  current.map(m => m.id === newMessage.id ? messageWithName : m)
-                );
+                // Replace optimistic message or update placeholder
+                setMessages(current => {
+                  // Find and replace optimistic message for this user's message
+                  const optimisticIndex = current.findIndex(m => 
+                    m.isPending && m.character_id === newMessage.character_id && m.content === newMessage.content
+                  );
+                  if (optimisticIndex !== -1) {
+                    // Reconcile: replace optimistic with server-confirmed, preserving snapshot
+                    const optimistic = current[optimisticIndex];
+                    const reconciled = { ...messageWithName, statusEffectsSnapshot: optimistic.statusEffectsSnapshot };
+                    return current.map((m, i) => i === optimisticIndex ? reconciled : m);
+                  }
+                  // Otherwise just update the placeholder
+                  return current.map(m => m.id === newMessage.id ? messageWithName : m);
+                });
+                
+                // Unlock sending after server confirms
+                if (charData?.user_id === user?.id) {
+                  setIsSending(false);
+                }
                 
                 // Process battlefield effects from in-universe messages
                 if (newMessage.channel === 'in_universe') {
@@ -630,19 +657,25 @@ export default function BattleView() {
                     duration: 4000,
                   });
 
-                  // Play notification sound if available
                   try {
                     const audio = new Audio('/notification.mp3');
                     audio.volume = 0.3;
                     audio.play().catch(() => {});
                   } catch {}
                   
-                  // Clear opponent typing indicator when they send a message
                   setOpponentTyping(false);
                 }
               });
             
-            // Immediately add message with placeholder name
+            // Check if an optimistic version already exists for this content
+            const hasOptimistic = prev.some(m => 
+              m.isPending && m.character_id === newMessage.character_id && m.content === newMessage.content
+            );
+            if (hasOptimistic) {
+              return prev; // Optimistic message already shown, wait for reconciliation
+            }
+            
+            // Immediately add message with placeholder name (from opponent)
             return [...prev, {
               ...newMessage,
               channel: newMessage.channel as 'in_universe' | 'out_of_universe',
@@ -770,7 +803,7 @@ export default function BattleView() {
 
   // Validate and send message
   const handleSendMessage = async () => {
-    if (!messageInput.trim() || !userCharacter) return;
+    if (!messageInput.trim() || !userCharacter || isSending) return;
 
     // Only validate in-universe moves
     if (activeChannel === 'in_universe' && userCharacter.character) {
@@ -811,7 +844,10 @@ export default function BattleView() {
   };
 
   const sendMessage = async (content: string, skipDiceRoll: boolean = false) => {
-    if (!content.trim() || !userCharacter) return;
+    if (!content.trim() || !userCharacter || isSending) return;
+    
+    // Lock sending
+    setIsSending(true);
     
     // Clear typing status before sending
     updateTypingStatus(false);
@@ -824,7 +860,6 @@ export default function BattleView() {
       const validation = validateDefense(content, lastOpponentAction, lastHitResult.hit);
       
       if (validation.shouldEnforceHit && validation.hasAttackToAddress) {
-        // Player ignored an attack that should have hit them - notify in OOC
         const damageLevel = getDamageLevel(lastHitResult.gap);
         await supabase.from('battle_messages').insert({
           battle_id: id,
@@ -843,6 +878,33 @@ export default function BattleView() {
       }
     }
 
+    // Build status effects snapshot for this message
+    const snapshot: StatusEffectsSnapshot = {};
+    if (activeChannel === 'in_universe') {
+      for (const effect of characterStatusEffects) {
+        snapshot[effect.type] = { type: effect.type, intensity: effect.intensity };
+      }
+    }
+
+    // OPTIMISTIC: Add message to UI immediately
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const optimisticMessage: Message = {
+      id: tempId,
+      character_id: userCharacter.character_id,
+      content: content.trim(),
+      channel: activeChannel,
+      created_at: new Date().toISOString(),
+      character_name: userCharacter.character?.name || 'You',
+      statusEffectsSnapshot: Object.keys(snapshot).length > 0 ? snapshot : undefined,
+      isPending: true,
+    };
+    
+    setMessages(prev => [...prev, optimisticMessage]);
+    setMessageInput('');
+    setPendingMove(null);
+    setMoveValidation(null);
+
+    // Send to server
     const { error } = await supabase.from('battle_messages').insert({
       battle_id: id,
       character_id: userCharacter.character_id,
@@ -851,6 +913,9 @@ export default function BattleView() {
     });
 
     if (error) {
+      // Rollback optimistic message
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+      setIsSending(false);
       toast.error('Failed to send message');
       return;
     }
@@ -858,17 +923,14 @@ export default function BattleView() {
     // Generate dice roll for in-universe attack moves
     if (activeChannel === 'in_universe' && !skipDiceRoll) {
       generateDiceRoll(content);
-      
-      // Detect new techniques and add to character sheet
       detectAndCatalogNewTechnique(content);
-      
-      // Increment turn number
       setTurnNumber(prev => prev + 1);
     }
-
-    setMessageInput('');
-    setPendingMove(null);
-    setMoveValidation(null);
+    
+    // Failsafe: unlock sending after 5 seconds if realtime doesn't confirm
+    setTimeout(() => {
+      setIsSending(false);
+    }, 5000);
   };
   
   // Handle construct creation
@@ -1930,10 +1992,33 @@ export default function BattleView() {
                               (isFromOpponent ? roll.isPlayerRoll !== true : roll.isPlayerRoll === true);
                           });
                           
-                          // Detect status effects on opponent messages (they're affecting the user)
-                          const messageStatusEffects = isFromOpponent 
-                            ? detectCharacterStatusEffects(msg.content, userCharacter?.character?.name)
-                            : [];
+                          // Build snapshot-based effects for this specific message
+                          // For opponent messages: detect effects described in the message
+                          // For user messages: use the stored snapshot from send-time
+                          const snapshotEffects: import('@/lib/character-status-effects').CharacterStatusEffect[] = [];
+                          
+                          if (msg.statusEffectsSnapshot && isFromUser) {
+                            // User's own message: render from saved snapshot (permanent)
+                            for (const [, effectData] of Object.entries(msg.statusEffectsSnapshot)) {
+                              if (effectData) {
+                                snapshotEffects.push({
+                                  type: effectData.type as import('@/lib/character-status-effects').CharacterStatusType,
+                                  intensity: effectData.intensity as 'light' | 'moderate' | 'severe',
+                                  duration: 999999999, // Permanent for rendering
+                                  startTime: Date.now(), // Always active
+                                  source: 'snapshot',
+                                });
+                              }
+                            }
+                          } else if (isFromOpponent) {
+                            // Opponent messages: detect effects described in their action
+                            const detected = detectCharacterStatusEffects(msg.content, userCharacter?.character?.name);
+                            snapshotEffects.push(...detected.map(e => ({
+                              ...e,
+                              duration: 999999999,
+                              startTime: Date.now(),
+                            })));
+                          }
                           
                           return (
                             <div key={msg.id} className="space-y-2">
@@ -1952,22 +2037,14 @@ export default function BattleView() {
                               <div 
                                 className={`relative p-3 rounded-lg overflow-hidden ${
                                   isFromUser
-                                    ? 'bg-primary/20 border-l-4 border-primary ml-8'
+                                    ? `bg-primary/20 border-l-4 border-primary ml-8${msg.isPending ? ' opacity-70' : ''}`
                                     : 'bg-muted/50 border-l-4 border-accent mr-8'
                                 }`}
                               >
-                                {/* Status Effect Overlay on opponent's messages that describe effects happening TO user */}
-                                {isFromOpponent && messageStatusEffects.length > 0 && (
+                                {/* Snapshot-based Status Effect Overlay — permanent per message */}
+                                {snapshotEffects.length > 0 && (
                                   <CharacterStatusOverlay 
-                                    effects={messageStatusEffects} 
-                                    className="rounded-lg"
-                                  />
-                                )}
-                                
-                                {/* Show active character status effects on user's own messages */}
-                                {isFromUser && characterStatusEffects.length > 0 && (
-                                  <CharacterStatusOverlay 
-                                    effects={characterStatusEffects} 
+                                    effects={snapshotEffects} 
                                     className="rounded-lg"
                                   />
                                 )}
@@ -1979,8 +2056,12 @@ export default function BattleView() {
                                   <span className="text-xs text-muted-foreground">
                                     {new Date(msg.created_at).toLocaleTimeString()}
                                   </span>
+                                  {/* Pending indicator */}
+                                  {msg.isPending && (
+                                    <span className="text-xs text-muted-foreground italic ml-auto">Sending...</span>
+                                  )}
                                   {/* Read receipt for user's messages */}
-                                  {isFromUser && (
+                                  {isFromUser && !msg.isPending && (
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger asChild>
@@ -2092,15 +2173,21 @@ export default function BattleView() {
                           <Input
                             value={activeChannel === 'in_universe' ? messageInput : ''}
                             onChange={(e) => handleInputChange(e.target.value, 'in_universe')}
-                            placeholder={pendingHit 
+                            placeholder={isSending
+                              ? 'Sending...'
+                              : pendingHit 
                               ? 'Resolve the incoming attack first...'
                               : 'Describe your action or attack...'}
-                            disabled={!!pendingHit}
+                            disabled={!!pendingHit || isSending}
                             className="relative z-20"
                           />
                         </div>
-                        <Button type="submit" size="icon" disabled={!!pendingHit || !messageInput.trim()}>
-                          <Send className="w-4 h-4" />
+                        <Button type="submit" size="icon" disabled={!!pendingHit || !messageInput.trim() || isSending}>
+                          {isSending ? (
+                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Send className="w-4 h-4" />
+                          )}
                         </Button>
                       </form>
                     </div>
@@ -2353,12 +2440,17 @@ export default function BattleView() {
                     className="flex gap-2"
                   >
                     <Input
-                      placeholder="Say something OOC..."
+                      placeholder={isSending ? "Sending..." : "Say something OOC..."}
                       value={activeChannel === 'out_of_universe' ? messageInput : ''}
                       onChange={(e) => handleInputChange(e.target.value, 'out_of_universe')}
+                      disabled={isSending}
                     />
-                    <Button type="submit" size="icon" variant="secondary">
-                      <Send className="w-4 h-4" />
+                    <Button type="submit" size="icon" variant="secondary" disabled={isSending || !messageInput.trim()}>
+                      {isSending ? (
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Send className="w-4 h-4" />
+                      )}
                     </Button>
                   </form>
                 </div>
