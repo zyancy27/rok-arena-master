@@ -97,6 +97,7 @@ import {
   type PlayerPattern,
   type AdaptiveStrategy,
 } from '@/lib/battle-ai-adaptation';
+import BattleOnboarding, { isOnboardingComplete, resetOnboarding } from '@/components/battles/BattleOnboarding';
 import { 
   ArrowLeft, 
   Swords, 
@@ -113,7 +114,8 @@ import {
   Atom,
   AlertTriangle,
   Info,
-  Dices
+  Dices,
+  HelpCircle
 } from 'lucide-react';
 
 interface UserCharacter {
@@ -1132,6 +1134,9 @@ export default function MockBattle() {
   const [selectedTierFilter, setSelectedTierFilter] = useState<string>('all');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
   
+  // Onboarding
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  
   // Battle turn color preference
   const { color: userTurnColor, updateColor: updateTurnColor } = useBattleTurnColor();
   
@@ -1194,6 +1199,10 @@ export default function MockBattle() {
     if (user) {
       fetchUserCharacters();
       fetchUserPlanets();
+      // Show onboarding for first-time players
+      if (!isOnboardingComplete()) {
+        setShowOnboarding(true);
+      }
     }
   }, [user]);
   
@@ -2337,17 +2346,38 @@ export default function MockBattle() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {/* Battle Onboarding Modal */}
+      {showOnboarding && (
+        <BattleOnboarding
+          onComplete={() => setShowOnboarding(false)}
+          forceShow={showOnboarding}
+        />
+      )}
+
       <div className="flex items-center justify-between">
         <Button variant="ghost" onClick={() => navigate('/battles')}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
-        {battleStarted && (
-          <Button variant="outline" onClick={resetBattle}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Reset Battle
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              resetOnboarding();
+              setShowOnboarding(true);
+            }}
+          >
+            <HelpCircle className="w-4 h-4 mr-1" />
+            How to Play
           </Button>
-        )}
+          {battleStarted && (
+            <Button variant="outline" onClick={resetBattle}>
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Reset Battle
+            </Button>
+          )}
+        </div>
       </div>
 
       <Card className="bg-card-gradient border-border">
