@@ -1108,6 +1108,27 @@ export default function MockBattle() {
     return tierPass && categoryPass;
   });
 
+  // Save battle session to localStorage whenever key state changes
+  useEffect(() => {
+    if (!battleStarted || !selectedCharacter || !currentOpponent) return;
+    const session = {
+      characterId: selectedCharacter.id,
+      opponentId: currentOpponent.id,
+      opponentType,
+      battleLocation,
+      dynamicEnvironment,
+      diceEnabled,
+      userGoesFirst,
+      turnNumber,
+      narratorFrequency,
+      messages,
+      turnOrderDetermined,
+      activeChannel,
+    };
+    localStorage.setItem('pveBattleSession', JSON.stringify(session));
+  }, [battleStarted, messages, turnNumber, activeChannel]);
+
+  // Restore saved session on mount
   useEffect(() => {
     if (user) {
       fetchUserCharacters();
@@ -1188,6 +1209,49 @@ export default function MockBattle() {
     
     if (data && data.length > 0) {
       setUserCharacters(data);
+      
+      // Try to restore a saved PvE battle session
+      try {
+        const saved = localStorage.getItem('pveBattleSession');
+        if (saved) {
+          const session = JSON.parse(saved);
+          const savedChar = data.find(c => c.id === session.characterId);
+          if (savedChar && session.messages?.length > 0) {
+            setSelectedCharacter(savedChar);
+            
+            // Restore opponent
+            if (session.opponentType === 'ai') {
+              const savedOpponent = AI_OPPONENTS.find(o => o.id === session.opponentId);
+              if (savedOpponent) {
+                setSelectedOpponent(savedOpponent);
+                setOpponentType('ai');
+              }
+            } else {
+              const savedOwnChar = data.find(c => c.id === session.opponentId);
+              if (savedOwnChar) {
+                setSelectedOwnCharacter(savedOwnChar);
+                setOpponentType('own');
+              }
+            }
+            
+            // Restore battle state
+            setMessages(session.messages);
+            setBattleLocation(session.battleLocation || '');
+            setDynamicEnvironment(session.dynamicEnvironment ?? true);
+            setDiceEnabled(session.diceEnabled ?? true);
+            setUserGoesFirst(session.userGoesFirst ?? true);
+            setTurnNumber(session.turnNumber || 1);
+            setNarratorFrequency(session.narratorFrequency || 'key_moments');
+            setTurnOrderDetermined(true);
+            setBattleStarted(true);
+            setActiveChannel(session.activeChannel || 'in_universe');
+            return; // Don't set default character
+          }
+        }
+      } catch (e) {
+        console.error('Failed to restore PvE session:', e);
+      }
+      
       setSelectedCharacter(data[0]);
     }
   };
@@ -2096,6 +2160,7 @@ export default function MockBattle() {
     setConstructEventMessages([]);
     setPendingConstructRepair(null);
     // Clear PvE battle from localStorage
+    localStorage.removeItem('pveBattleSession');
     if (selectedCharacter) {
       const existing = JSON.parse(localStorage.getItem('activePveBattles') || '[]');
       const filtered = existing.filter((b: any) => b.characterName !== selectedCharacter.name);
