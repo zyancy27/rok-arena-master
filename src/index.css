@@ -271,29 +271,32 @@
     animation: smoke-drift-reverse 10s ease-in-out infinite;
   }
 
-  /* Smoke puff animations - wispy rising clouds */
+  /* Smoke puff animations - billowing rising clouds */
   @keyframes smoke-puff-drift {
-    0% { transform: translateY(0) translateX(0) scale(1); opacity: 0.7; }
-    25% { transform: translateY(-15px) translateX(8px) scale(1.15); opacity: 0.5; }
-    50% { transform: translateY(-30px) translateX(-5px) scale(1.3); opacity: 0.35; }
-    75% { transform: translateY(-45px) translateX(10px) scale(1.1); opacity: 0.2; }
-    100% { transform: translateY(-60px) translateX(0) scale(0.9); opacity: 0; }
+    0% { transform: translateY(0) translateX(0) scale(0.8); opacity: 0; }
+    10% { transform: translateY(-5px) translateX(3px) scale(1.1); opacity: 0.7; }
+    30% { transform: translateY(-18px) translateX(12px) scale(1.6); opacity: 0.55; }
+    50% { transform: translateY(-35px) translateX(-8px) scale(2.0); opacity: 0.4; }
+    70% { transform: translateY(-55px) translateX(15px) scale(2.2); opacity: 0.25; }
+    85% { transform: translateY(-70px) translateX(-5px) scale(1.8); opacity: 0.12; }
+    100% { transform: translateY(-90px) translateX(0) scale(1.4); opacity: 0; }
   }
 
   .smoke-puff-drift {
-    animation: smoke-puff-drift 6s ease-out infinite;
+    animation: smoke-puff-drift 5s ease-out infinite;
   }
 
-  /* Slow curling wisp movement */
+  /* Slow billowing curl movement */
   @keyframes smoke-wisp-curl {
-    0% { transform: translateX(-3%) translateY(2%) rotate(0deg); }
-    33% { transform: translateX(4%) translateY(-3%) rotate(2deg); }
-    66% { transform: translateX(-2%) translateY(1%) rotate(-1deg); }
-    100% { transform: translateX(-3%) translateY(2%) rotate(0deg); }
+    0% { transform: translateX(-4%) translateY(3%) rotate(0deg) scale(1); }
+    20% { transform: translateX(6%) translateY(-2%) rotate(3deg) scale(1.15); }
+    50% { transform: translateX(-3%) translateY(-5%) rotate(-2deg) scale(1.25); }
+    75% { transform: translateX(5%) translateY(1%) rotate(4deg) scale(1.1); }
+    100% { transform: translateX(-4%) translateY(3%) rotate(0deg) scale(1); }
   }
 
   .smoke-wisp-curl {
-    animation: smoke-wisp-curl 12s ease-in-out infinite;
+    animation: smoke-wisp-curl 10s ease-in-out infinite;
   }
   
   /* Flash pulse */
