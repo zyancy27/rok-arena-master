@@ -2121,7 +2121,7 @@ export default function MockBattle() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={() => navigate(-1)}>
+        <Button variant="ghost" onClick={() => navigate('/battles')}>
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
