@@ -85,6 +85,7 @@ import {
   getOverchargeContext,
 } from '@/lib/battle-overcharge';
 import MomentumMeter from '@/components/battles/MomentumMeter';
+import ChargeIndicator from '@/components/battles/ChargeIndicator';
 import OverchargeToggle from '@/components/battles/OverchargeToggle';
 import PsychCueIndicator from '@/components/battles/PsychCueIndicator';
 import ArenaModifierBadge from '@/components/battles/ArenaModifierBadge';
@@ -101,6 +102,22 @@ import {
   type AdaptiveStrategy,
 } from '@/lib/battle-ai-adaptation';
 import BattleOnboarding, { isOnboardingComplete, resetOnboarding } from '@/components/battles/BattleOnboarding';
+import {
+  createChargeState,
+  detectChargeInitiation,
+  initiateCharge,
+  validateChargeAction,
+  tickChargeTurn,
+  checkChargeInterruption,
+  interruptCharge,
+  resolveChargeAttack,
+  completeCharge,
+  tickChargeCooldown,
+  getChargeContext,
+  getChargeDefenseMultiplier,
+  checkChargeRisk,
+  type ChargeState,
+} from '@/lib/battle-charge';
 import { 
   ArrowLeft, 
   Swords, 
@@ -1132,6 +1149,9 @@ export default function MockBattle() {
   // Overcharge toggle
   const [overchargeEnabled, setOverchargeEnabled] = useState(false);
   
+  // Charge attack system
+  const [userChargeState, setUserChargeState] = useState<ChargeState>(createChargeState());
+  
   // Adaptive AI learning engine
   const [playerPattern, setPlayerPattern] = useState<PlayerPattern>(createPlayerPattern());
   const [adaptiveStrategy, setAdaptiveStrategy] = useState<AdaptiveStrategy | null>(null);
@@ -2054,6 +2074,77 @@ export default function MockBattle() {
     const currentInput = input;
     setInput('');
 
+    // === CHARGE ATTACK DETECTION ===
+    let chargeReleaseContext = '';
+    let chargeActiveContext = '';
+    if (activeChannel === 'in_universe' && diceEnabled) {
+      // If currently charging: validate action + tick turn
+      if (userChargeState.isCharging) {
+        const validation = validateChargeAction(currentInput);
+        if (!validation.allowed) {
+          toast.error(validation.reason, { duration: 4000 });
+          // Still allow the message but add enforcement context
+        }
+
+        // Tick charge turn
+        const skillMastery = selectedCharacter.stat_skill ?? 50;
+        const ticked = tickChargeTurn(userChargeState, skillMastery);
+        
+        // Check for risk during charge
+        if (checkChargeRisk(ticked)) {
+          toast.warning('⚡ Energy destabilized during charge! Risk event!', { duration: 3000 });
+          playSfxEvent('charge_interrupted');
+        } else {
+          playSfxEvent('charge_tick');
+        }
+        
+        // Check if charge is complete (chargeTurnsRemaining hit 0 after tick)
+        if (ticked.chargeTurnsRemaining <= 0) {
+          // Resolve the charged attack
+          const chargeResult = resolveChargeAttack(
+            ticked,
+            selectedCharacter.level,
+            selectedCharacter.stat_skill ?? 50,
+            userMomentum.value,
+            userPsych.resolve,
+            userPsych.fear,
+          );
+          
+          // Apply momentum bonus
+          setUserMomentum(prev => applyMomentumEvents(prev, [
+            { type: 'gain', amount: chargeResult.momentumBonus, reason: 'Charge attack completed' },
+          ], userPsych.fear, userPsych.resolve));
+          
+          toast.success(`⚡ ${chargeResult.description}`, { duration: 4000 });
+          playSfxEvent('charge_release');
+          
+          setUserChargeState(completeCharge(ticked));
+          
+          // Inject charge multiplier context into the message — stored for AI call
+          chargeReleaseContext = `\n\n[CHARGE ATTACK RELEASED: ${selectedCharacter.name} unleashes their charged attack at x${chargeResult.finalMultiplier.toFixed(1)} power multiplier! ${chargeResult.riskDuringCharge ? 'Energy was unstable — reduced effectiveness.' : 'Full power achieved!'} Describe a devastating, screen-shaking attack with burst animation and impact!]`;
+        } else {
+          setUserChargeState(ticked);
+          // Generate active charge context for AI
+          chargeActiveContext = getChargeContext(selectedCharacter.name, ticked, currentOpponent?.name || 'opponent');
+        }
+      } else if (!userChargeState.isCharging && userChargeState.cooldownTurnsRemaining <= 0) {
+        // Detect new charge initiation
+        const detection = detectChargeInitiation(currentInput);
+        if (detection.isCharging) {
+          const newChargeState = initiateCharge(userChargeState, detection.requestedTurns, selectedCharacter.level);
+          setUserChargeState(newChargeState);
+          toast.info(`⚡ Charging! ${newChargeState.totalChargeTurns} turns — defend only!`, { duration: 4000 });
+          playSfxEvent('charge_start');
+          chargeActiveContext = getChargeContext(selectedCharacter.name, newChargeState, currentOpponent?.name || 'opponent');
+        }
+      }
+      
+      // Tick cooldown
+      if (userChargeState.cooldownTurnsRemaining > 0 && !userChargeState.isCharging) {
+        setUserChargeState(prev => tickChargeCooldown(prev));
+      }
+    }
+
     // Check if user is creating a construct
     if (diceEnabled && activeChannel === 'in_universe') {
       const constructCreation = detectConstructCreation(currentInput);
@@ -2160,6 +2251,20 @@ export default function MockBattle() {
           
           // Store for defense validation
           setLastHitResult({ hit: hit.wouldHit, gap: hit.gap });
+          
+          // Check charge interruption if player is charging and got hit
+          if (hit.wouldHit && userChargeState.isCharging) {
+            const interruptCheck = checkChargeInterruption(
+              userChargeState, hit.gap, userPsych.resolve, userPsych.fear, userMomentum.value, userMomentum.edgeStateActive
+            );
+            if (interruptCheck.interrupted) {
+              setUserChargeState(interruptCharge(userChargeState));
+              setUserMomentum(prev => applyMomentumEvents(prev, [{ type: 'loss', amount: Math.round(userMomentum.value / 2), reason: 'Charge interrupted' }], userPsych.fear, userPsych.resolve));
+              toast.error('⚡ Charge Disrupted!', { duration: 3000 });
+              playSfxEvent('charge_interrupted');
+              chargeActiveContext = `\n\n[CHARGE INTERRUPTED: ${selectedCharacter.name}'s charge was disrupted by the hit! Energy dissipates. Describe the failed charge dramatically.]`;
+            }
+          }
         }
       }
     }
@@ -2321,7 +2426,7 @@ export default function MockBattle() {
             ...currentOpponent,
             skill: opponentSkill,
           },
-          userMessage: input + skillEventNote + playerAttackContext + defenseEnforcementPrompt + overchargeAIContext + momentumAIContext + psychAIContext + adaptiveAIContext + (arenaModifiersEnabled ? arenaModifiers.combinedPrompt : ''),
+          userMessage: input + skillEventNote + playerAttackContext + defenseEnforcementPrompt + overchargeAIContext + momentumAIContext + psychAIContext + adaptiveAIContext + chargeReleaseContext + chargeActiveContext + (arenaModifiersEnabled ? arenaModifiers.combinedPrompt : ''),
           channel: activeChannel,
           messageHistory: messages.slice(-10),
           battleLocation,
@@ -2464,6 +2569,8 @@ export default function MockBattle() {
     setDiceRollMessages([]);
     setConcentrationUses({});
     setStatPenalties({});
+    // Reset charge state
+    setUserChargeState(createChargeState());
     // Reset AI concentration and defense validation
     setAiConcentrationUses(3);
     setAiStatPenalty(0);
@@ -3342,6 +3449,9 @@ export default function MockBattle() {
                       <PsychCueIndicator cue={getDominantPsychCue(userPsych)} characterName={selectedCharacter.name} variant="user" />
                     </div>
                     <MomentumMeter momentum={userMomentum} characterName={selectedCharacter.name} variant="user" />
+                    {userChargeState.isCharging && (
+                      <ChargeIndicator chargeState={userChargeState} characterName={selectedCharacter.name} />
+                    )}
                   </div>
 
                   {/* AI Opponent Status */}
@@ -3418,7 +3528,7 @@ export default function MockBattle() {
                   <OverchargeToggle
                     enabled={overchargeEnabled}
                     onToggle={setOverchargeEnabled}
-                    disabled={isLoading || !!pendingHit || !!pendingOffensiveHit}
+                    disabled={isLoading || !!pendingHit || !!pendingOffensiveHit || userChargeState.isCharging}
                   />
                 )}
                 <div className="relative flex-1">
@@ -3433,6 +3543,8 @@ export default function MockBattle() {
                       ? 'Resolve the incoming attack first...'
                       : pendingOffensiveHit
                       ? 'Resolve your near-miss first...'
+                      : userChargeState.isCharging
+                      ? `⚡ CHARGING (${userChargeState.totalChargeTurns - userChargeState.chargeTurnsRemaining}/${userChargeState.totalChargeTurns}) — Defend only!`
                       : overchargeEnabled
                       ? '⚡ OVERCHARGED — Describe your amplified attack...'
                       : activeChannel === 'in_universe' 
