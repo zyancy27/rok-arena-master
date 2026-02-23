@@ -32,15 +32,15 @@ const HOW_TO_PLAY_STEPS = [
     title: 'Momentum & Edge State',
     icon: <Zap className="w-5 h-5" />,
     description: 'Landing hits and combos builds Momentum (0–100). At 100, you enter Edge State for 2 turns of enhanced power.',
-    details: ['Combo chains, counters, and environment plays build momentum', 'Getting interrupted or glitch misfires drain momentum', 'Edge State grants +10% precision and −15% glitch chance', 'After Edge State expires, momentum drops to 70'],
+    details: ['Combo chains, counters, and environment plays build momentum', 'Getting interrupted or risk misfires drain momentum', 'Edge State grants +10% precision and −15% risk chance', 'After Edge State expires, momentum drops to 70'],
     tip: 'Chain creative attacks together to build momentum fast.',
   },
   {
     title: 'Overcharge & Risk',
     icon: <Flame className="w-5 h-5" />,
-    description: 'Toggle Overcharge before an attack for 1.5–2× potency — but with a 30% chance of a glitch misfire.',
-    details: ['Toggle the ⚡ Overcharge button before sending your move', 'Success = massive damage amplification', 'Failure = glitch misfire, momentum loss, and psychological penalty', 'Edge State reduces glitch chance during Overcharge'],
-    tip: 'Overcharge is high-risk, high-reward. Use it when your momentum is high to minimize glitch chance.',
+    description: 'Toggle Overcharge before an attack for 1.5–2× potency — but with a 30% chance of a risk misfire.',
+    details: ['Toggle the ⚡ Overcharge button before sending your move', 'Success = massive damage amplification', 'Failure = risk misfire, momentum loss, and psychological penalty', 'Edge State reduces risk chance during Overcharge'],
+    tip: 'Overcharge is high-risk, high-reward. Use it when your momentum is high to minimize risk chance.',
   },
   {
     title: 'Psychology & Adaptation',
@@ -53,7 +53,7 @@ const HOW_TO_PLAY_STEPS = [
     title: 'Arena Modifiers',
     icon: <Target className="w-5 h-5" />,
     description: 'Daily and weekly modifiers rotate automatically, adding environmental conditions to every battle.',
-    details: ['Daily modifiers change the arena conditions (gravity, hazards, etc.)', 'Weekly modifiers add global effects that last all week', 'Modifier badges appear at the top of the battle — hover for details', 'Modifiers affect stats, glitch chance, and momentum'],
+    details: ['Daily modifiers change the arena conditions (gravity, hazards, etc.)', 'Weekly modifiers add global effects that last all week', 'Modifier badges appear at the top of the battle — hover for details', 'Modifiers affect stats, risk chance, and momentum'],
     tip: 'Check the modifier badges before planning your strategy.',
   },
 ];

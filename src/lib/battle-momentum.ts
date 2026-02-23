@@ -12,7 +12,7 @@
  * 
  * Momentum decreases from:
  * - Interrupted mid-action
- * - Glitch misfire
+ * - Risk misfire
  * - Environmental hazard failure
  * - Psychological break
  */
@@ -33,8 +33,8 @@ const EDGE_STATE_DURATION = 2; // turns
 
 // Precision bonus while in Edge State (percentage)
 export const EDGE_STATE_PRECISION_BONUS = 10;
-// Glitch chance reduction while in Edge State (percentage points)
-export const EDGE_STATE_GLITCH_REDUCTION = 15;
+// Risk chance reduction while in Edge State (percentage points)
+export const EDGE_STATE_RISK_REDUCTION = 15;
 
 export function createMomentumState(): MomentumState {
   return {
@@ -52,7 +52,7 @@ export function detectMomentumEvents(
   isFromUser: boolean,
   hitLanded: boolean | null,
   wasCountered: boolean = false,
-  glitchOccurred: boolean = false,
+  riskOccurred: boolean = false,
 ): MomentumEvent[] {
   const events: MomentumEvent[] = [];
 
@@ -90,9 +90,9 @@ export function detectMomentumEvents(
     events.push({ type: 'loss', amount: 20, reason: 'Interrupted' });
   }
 
-  // Glitch misfire
-  if (glitchOccurred) {
-    events.push({ type: 'loss', amount: 25, reason: 'Glitch misfire' });
+  // Risk misfire
+  if (riskOccurred) {
+    events.push({ type: 'loss', amount: 25, reason: 'Risk misfire' });
   }
 
   // Environmental hazard failure
@@ -185,7 +185,7 @@ export function getMomentumContext(
 
   const describeState = (name: string, m: MomentumState) => {
     if (m.edgeStateActive) {
-      lines.push(`• ${name} is in EDGE STATE (${m.edgeStateTurnsRemaining} turns remaining)! Enhanced precision, reduced glitch chance. Describe their movements as sharp, decisive, almost prescient.`);
+      lines.push(`• ${name} is in EDGE STATE (${m.edgeStateTurnsRemaining} turns remaining)! Enhanced precision, reduced risk chance. Describe their movements as sharp, decisive, almost prescient.`);
     } else if (m.value >= 80) {
       lines.push(`• ${name} has HIGH momentum (${m.value}/100). They're building toward a peak. Describe growing confidence and sharper execution.`);
     } else if (m.value >= 50) {
