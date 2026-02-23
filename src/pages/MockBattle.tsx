@@ -2117,7 +2117,7 @@ export default function MockBattle() {
         // Apply psych events from overcharge outcome
         if (overchargeResult.glitchOccurred) {
           setUserPsych(prev => applyPsychEvent(prev, 'overcharge_fail'));
-          setUserMomentum(prev => applyMomentumEvents(prev, [{ type: 'loss', amount: 25, reason: 'Risk misfire' }], userPsych.fear, userPsych.resolve));
+          setUserMomentum(prev => applyMomentumEvents(prev, [{ type: 'loss', amount: 25, reason: 'Glitch misfire' }], userPsych.fear, userPsych.resolve));
         } else {
           setUserPsych(prev => applyPsychEvent(prev, 'overcharge_success'));
         }
@@ -2977,7 +2977,7 @@ export default function MockBattle() {
                     <>
                       <ArenaModifierBadge modifiers={arenaModifiers} />
                       <p className="text-[10px] text-muted-foreground">
-                        Same modifiers for all players globally. Affects stats, momentum, and risk chances.
+                        Same modifiers for all players globally. Affects stats, momentum, and glitch chances.
                       </p>
                     </>
                   ) : (
