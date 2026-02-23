@@ -88,6 +88,15 @@ import ArenaModifierBadge from '@/components/battles/ArenaModifierBadge';
 import SfxToggle from '@/components/battles/SfxToggle';
 import { getActiveArenaModifiers, type ActiveArenaModifiers } from '@/lib/arena-modifiers';
 import { useBattleSfx } from '@/hooks/use-battle-sfx';
+import {
+  createPlayerPattern,
+  recordPlayerAction,
+  deriveStrategy,
+  shouldAdapt,
+  getAdaptiveAIContext,
+  type PlayerPattern,
+  type AdaptiveStrategy,
+} from '@/lib/battle-ai-adaptation';
 import { 
   ArrowLeft, 
   Swords, 
@@ -1115,6 +1124,10 @@ export default function MockBattle() {
   // Overcharge toggle
   const [overchargeEnabled, setOverchargeEnabled] = useState(false);
   
+  // Adaptive AI learning engine
+  const [playerPattern, setPlayerPattern] = useState<PlayerPattern>(createPlayerPattern());
+  const [adaptiveStrategy, setAdaptiveStrategy] = useState<AdaptiveStrategy | null>(null);
+  
   // Power tier and category filters
   const [selectedTierFilter, setSelectedTierFilter] = useState<string>('all');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
@@ -2065,6 +2078,20 @@ export default function MockBattle() {
         setAiStatPenalty(0);
       }
     }
+    // === Phase 3: Adaptive AI — track player action ===
+    let adaptiveAIContext = '';
+    if (activeChannel === 'in_universe' && currentOpponent) {
+      const updatedPattern = recordPlayerAction(playerPattern, currentInput, overchargeEnabled, false);
+      setPlayerPattern(updatedPattern);
+
+      // Re-evaluate strategy every ADAPTATION_INTERVAL turns
+      if (shouldAdapt(turnNumber)) {
+        const newStrategy = deriveStrategy(updatedPattern);
+        setAdaptiveStrategy(newStrategy);
+      }
+      adaptiveAIContext = getAdaptiveAIContext(adaptiveStrategy, currentOpponent.name);
+    }
+
     // === Phase 1: Overcharge, Momentum, Psychology context for AI ===
     let overchargeAIContext = '';
     let momentumAIContext = '';
@@ -2124,7 +2151,7 @@ export default function MockBattle() {
             ...currentOpponent,
             skill: opponentSkill,
           },
-          userMessage: input + skillEventNote + playerAttackContext + defenseEnforcementPrompt + overchargeAIContext + momentumAIContext + psychAIContext + arenaModifiers.combinedPrompt,
+          userMessage: input + skillEventNote + playerAttackContext + defenseEnforcementPrompt + overchargeAIContext + momentumAIContext + psychAIContext + adaptiveAIContext + arenaModifiers.combinedPrompt,
           channel: activeChannel,
           messageHistory: messages.slice(-10),
           battleLocation,
@@ -2281,6 +2308,9 @@ export default function MockBattle() {
     setUserPsych(createPsychologicalState());
     setOpponentPsych(createPsychologicalState());
     setOverchargeEnabled(false);
+    // Reset Phase 3 adaptive AI
+    setPlayerPattern(createPlayerPattern());
+    setAdaptiveStrategy(null);
     // Clear PvE battle from localStorage
     localStorage.removeItem('pveBattleSession');
     if (selectedCharacter) {
