@@ -56,6 +56,7 @@ import { useBattleTurnColor } from '@/hooks/use-battle-turn-color';
 import { useBattlefieldEffects } from '@/components/battles/useBattlefieldEffects';
 import { useCharacterStatusEffects } from '@/hooks/use-character-status-effects';
 import type { ActiveBattlefieldEffect } from '@/lib/battlefield-effects';
+import { detectCharacterStatusEffects } from '@/lib/character-status-effects';
 import { 
   ArrowLeft, 
   Swords, 
@@ -118,12 +119,17 @@ interface ConstructEventMessage {
   channel: 'in_universe';
 }
 
+interface StatusEffectsSnapshot {
+  [key: string]: { type: string; intensity: string } | undefined;
+}
+
 interface Message {
   id: string;
   role: 'user' | 'ai' | 'narrator' | 'system';
   content: string;
   channel: 'in_universe' | 'out_of_universe';
   characterName?: string;
+  statusEffectsSnapshot?: StatusEffectsSnapshot;
 }
 
 interface AIOpponent {
@@ -1716,12 +1722,21 @@ export default function MockBattle() {
   const sendMessage = async () => {
     if (!input.trim() || !selectedCharacter || isLoading || pendingHit) return;
 
+    // Capture status effects snapshot for in-universe messages
+    const snapshot: StatusEffectsSnapshot = {};
+    if (activeChannel === 'in_universe') {
+      for (const effect of characterStatusEffects) {
+        snapshot[effect.type] = { type: effect.type, intensity: effect.intensity };
+      }
+    }
+
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: 'user',
       content: input,
       channel: activeChannel,
       characterName: selectedCharacter.name,
+      statusEffectsSnapshot: Object.keys(snapshot).length > 0 ? snapshot : undefined,
     };
     
     setMessages(prev => [...prev, userMessage]);
@@ -2837,6 +2852,7 @@ export default function MockBattle() {
                     isUserTurn={!isLoading}
                     userTurnColor={userTurnColor}
                     battlefieldEffects={battlefieldEffects}
+                    userCharacterName={selectedCharacter?.name}
                   />
                 </TabsContent>
                 <TabsContent value="out_of_universe" className="mt-0">
@@ -2962,6 +2978,7 @@ function MessageArea({
   isUserTurn,
   userTurnColor,
   battlefieldEffects = [],
+  userCharacterName,
 }: { 
   messages: Message[]; 
   diceRollMessages?: DiceRollMessage[];
@@ -2973,6 +2990,7 @@ function MessageArea({
   isUserTurn?: boolean;
   userTurnColor?: string;
   battlefieldEffects?: ActiveBattlefieldEffect[];
+  userCharacterName?: string;
 }) {
   return (
     <TurnIndicatorWrapper
@@ -2999,10 +3017,38 @@ function MessageArea({
                 evtIdx === Math.floor(idx / 2)
               );
               
+              // Build snapshot-based effects for this specific message
+              const snapshotEffects: import('@/lib/character-status-effects').CharacterStatusEffect[] = [];
+              
+              if (isInUniverse) {
+                if (message.statusEffectsSnapshot && message.role === 'user') {
+                  // User's own message: render from saved snapshot (permanent)
+                  for (const [, effectData] of Object.entries(message.statusEffectsSnapshot)) {
+                    if (effectData) {
+                      snapshotEffects.push({
+                        type: effectData.type as import('@/lib/character-status-effects').CharacterStatusType,
+                        intensity: effectData.intensity as 'light' | 'moderate' | 'severe',
+                        duration: 999999999,
+                        startTime: Date.now(),
+                        source: 'snapshot',
+                      });
+                    }
+                  }
+                } else if (message.role === 'ai') {
+                  // AI messages: detect effects described in their action
+                  const detected = detectCharacterStatusEffects(message.content, userCharacterName);
+                  snapshotEffects.push(...detected.map(e => ({
+                    ...e,
+                    duration: 999999999,
+                    startTime: Date.now(),
+                  })));
+                }
+              }
+              
               return (
                 <div key={message.id}>
                   <div
-                    className={`p-3 rounded-lg ${
+                    className={`relative p-3 rounded-lg overflow-hidden ${
                       message.role === 'user'
                         ? 'bg-primary/20 border-l-4 border-primary ml-8'
                         : message.role === 'narrator'
@@ -3012,7 +3058,15 @@ function MessageArea({
                         : 'bg-muted/50 border-l-4 border-accent mr-8'
                     }`}
                   >
-                    <p className={`text-xs mb-1 ${
+                    {/* Snapshot-based Status Effect Overlay — permanent per message */}
+                    {snapshotEffects.length > 0 && (
+                      <CharacterStatusOverlay 
+                        effects={snapshotEffects} 
+                        className="rounded-lg"
+                      />
+                    )}
+                    
+                    <p className={`text-xs mb-1 relative z-10 ${
                       message.role === 'narrator' 
                         ? 'text-purple-400 font-semibold' 
                         : message.role === 'system'
@@ -3021,7 +3075,7 @@ function MessageArea({
                     }`}>
                       {message.characterName}
                     </p>
-                    <p className="whitespace-pre-wrap">{message.content}</p>
+                    <p className="whitespace-pre-wrap relative z-10">{message.content}</p>
                   </div>
                   {/* Show construct events after user messages */}
                   {message.role === 'user' && isInUniverse && relevantConstructEvents.length > 0 && (
