@@ -2800,19 +2800,7 @@ export default function MockBattle() {
                 </div>
               </div>
 
-              {/* Concentration Button when pending hit */}
-              {pendingHit && selectedCharacter && (
-                <TooltipProvider>
-                  <ConcentrationButton
-                    hitDetermination={pendingHit}
-                    defenderStats={getCharacterStats(selectedCharacter)}
-                    usesRemaining={concentrationUses[selectedCharacter.id] ?? 3}
-                    onUseConcentration={handleConcentrationResult}
-                    onSkip={handleSkipConcentration}
-                    disabled={isLoading}
-                  />
-                </TooltipProvider>
-              )}
+              {/* Concentration Button moved to above input */}
 
               {/* Construct Panel - show when user has active constructs */}
               {diceEnabled && battleStarted && selectedCharacter && userConstructs.length > 0 && (
@@ -2915,6 +2903,20 @@ export default function MockBattle() {
                     </div>
                   </div>
                 </div>
+              )}
+
+              {/* Concentration Button when pending hit - above input for visibility */}
+              {pendingHit && selectedCharacter && (
+                <TooltipProvider>
+                  <ConcentrationButton
+                    hitDetermination={pendingHit}
+                    defenderStats={getCharacterStats(selectedCharacter)}
+                    usesRemaining={concentrationUses[selectedCharacter.id] ?? 3}
+                    onUseConcentration={handleConcentrationResult}
+                    onSkip={handleSkipConcentration}
+                    disabled={isLoading}
+                  />
+                </TooltipProvider>
               )}
 
               {/* Input */}
