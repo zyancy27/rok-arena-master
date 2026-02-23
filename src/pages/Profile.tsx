@@ -21,7 +21,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { User, Save, Camera, Trash2, EyeOff, Users } from 'lucide-react';
+import { User, Save, Camera, Trash2, EyeOff, Users, KeyRound, AtSign } from 'lucide-react';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -34,6 +34,80 @@ export default function Profile() {
   const [deleteConfirmation, setDeleteConfirmation] = useState('');
   const [isPrivate, setIsPrivate] = useState(profile?.is_private || false);
   const [hideFriendsList, setHideFriendsList] = useState((profile as any)?.hide_friends_list || false);
+  const [newUsername, setNewUsername] = useState(profile?.username || '');
+  const [isUpdatingUsername, setIsUpdatingUsername] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
+  const handleUpdateUsername = async () => {
+    if (!user || !profile) return;
+    const trimmed = newUsername.trim();
+    if (!trimmed || trimmed.length < 3) {
+      toast.error('Username must be at least 3 characters');
+      return;
+    }
+    if (trimmed.length > 30) {
+      toast.error('Username must be 30 characters or less');
+      return;
+    }
+    if (!/^[a-zA-Z0-9_-]+$/.test(trimmed)) {
+      toast.error('Username can only contain letters, numbers, hyphens, and underscores');
+      return;
+    }
+    if (trimmed === profile.username) return;
+
+    setIsUpdatingUsername(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ username: trimmed })
+        .eq('id', user.id);
+      if (error) {
+        if (error.message.includes('unique') || error.code === '23505') {
+          toast.error('Username is already taken');
+        } else {
+          throw error;
+        }
+      } else {
+        await refreshProfile();
+        toast.success('Username updated!');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update username');
+    } finally {
+      setIsUpdatingUsername(false);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      toast.error('Please fill in all password fields');
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    setIsUpdatingPassword(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      toast.success('Password updated successfully!');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update password');
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!user || !profile) return;
@@ -310,19 +384,57 @@ export default function Profile() {
             )}
           </div>
 
-          {/* Account Info */}
-          <div className="p-4 rounded-lg bg-muted/50">
-            <h4 className="font-semibold mb-2">Account Information</h4>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-muted-foreground">Username</p>
-                <p className="font-medium">{profile?.username}</p>
-              </div>
-              <div>
-                <p className="text-muted-foreground">Member Since</p>
-                <p className="font-medium">Member</p>
-              </div>
+          {/* Change Username */}
+          <div className="p-4 rounded-lg bg-muted/50 border border-border space-y-3">
+            <div className="flex items-center gap-2">
+              <AtSign className="w-5 h-5 text-primary" />
+              <Label className="font-semibold">Change Username</Label>
             </div>
+            <Input
+              placeholder="New username"
+              value={newUsername}
+              onChange={(e) => setNewUsername(e.target.value)}
+              maxLength={30}
+            />
+            <p className="text-xs text-muted-foreground">
+              Letters, numbers, hyphens, and underscores only. 3–30 characters.
+            </p>
+            <Button
+              onClick={handleUpdateUsername}
+              disabled={isUpdatingUsername || newUsername.trim() === profile?.username}
+              size="sm"
+              variant="outline"
+            >
+              {isUpdatingUsername ? 'Updating...' : 'Update Username'}
+            </Button>
+          </div>
+
+          {/* Change Password */}
+          <div className="p-4 rounded-lg bg-muted/50 border border-border space-y-3">
+            <div className="flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-primary" />
+              <Label className="font-semibold">Change Password</Label>
+            </div>
+            <Input
+              type="password"
+              placeholder="New password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
+            <Input
+              type="password"
+              placeholder="Confirm new password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+            <Button
+              onClick={handleUpdatePassword}
+              disabled={isUpdatingPassword || !newPassword || !confirmPassword}
+              size="sm"
+              variant="outline"
+            >
+              {isUpdatingPassword ? 'Updating...' : 'Update Password'}
+            </Button>
           </div>
 
           <Button onClick={handleSave} className="w-full glow-primary" disabled={isLoading}>
