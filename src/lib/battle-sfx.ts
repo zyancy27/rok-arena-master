@@ -45,7 +45,11 @@ export type SfxEventType =
   | 'overcharge'
   | 'momentum_gain'
   | 'psych_shift'
-  | 'turn_start';
+  | 'turn_start'
+  | 'charge_start'
+  | 'charge_tick'
+  | 'charge_release'
+  | 'charge_interrupted';
 
 /** Maps event types to sound keys + config */
 interface SfxLayer {
@@ -112,6 +116,22 @@ const EVENT_LAYERS: Record<SfxEventType, SfxLayer[]> = {
   ],
   turn_start: [
     { soundKey: 'whoosh', volume: 0.2, playbackRate: 1.5 },
+  ],
+  charge_start: [
+    { soundKey: 'power_up', volume: 0.5, playbackRate: 0.6 },
+    { soundKey: 'tension_drone', volume: 0.3, delay: 200 },
+  ],
+  charge_tick: [
+    { soundKey: 'power_up', volume: 0.25, playbackRate: 0.8 },
+  ],
+  charge_release: [
+    { soundKey: 'explosion', volume: 0.8, playbackRate: 0.9 },
+    { soundKey: 'power_up', volume: 0.6, playbackRate: 1.4, delay: 50 },
+    { soundKey: 'crowd_cheer', volume: 0.2, delay: 400 },
+  ],
+  charge_interrupted: [
+    { soundKey: 'ice_shatter', volume: 0.5 },
+    { soundKey: 'whoosh', volume: 0.3, playbackRate: 0.6, delay: 100 },
   ],
 };
 
