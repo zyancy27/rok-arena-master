@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Swords, Plus, Clock, CheckCircle, Users, Bot } from 'lucide-react';
+import { Swords, Plus, Clock, CheckCircle, Users } from 'lucide-react';
 import OpponentFinder from '@/components/battles/OpponentFinder';
 import BattleSimulation from '@/components/battles/BattleSimulation';
 
@@ -314,60 +314,44 @@ export default function Battles() {
             </Card>
           ) : (
             <div className="space-y-6">
-              {/* Active Battles + PvE */}
-              <div className="space-y-3">
-                <h2 className="text-xl font-semibold flex items-center gap-2">
-                  <Swords className="w-5 h-5 text-green-400" />
-                  Active Battles ({activeBattles.length + 1})
-                </h2>
-                <div className="grid gap-3">
-                  {/* PvE Practice Battle */}
-                  <Link to="/battles/practice">
-                    <Card className="bg-card-gradient border-primary/30 hover:glow-primary transition-all cursor-pointer">
-                      <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Badge className="bg-primary/20 text-primary border-primary/50 flex items-center gap-1">
-                            <Bot className="w-4 h-4" />
-                            PvE
-                          </Badge>
-                          <span className="font-medium">Practice Battle vs AI</span>
-                          <span className="text-muted-foreground text-sm">Always available</span>
-                        </div>
-                        <Button variant="outline" size="sm">
-                          Play
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                  {activeBattles.map((battle) => {
-                    const p1 = battle.participants.find(p => p.turn_order === 1);
-                    const p2 = battle.participants.find(p => p.turn_order === 2);
-                    return (
-                      <Link key={battle.id} to={`/battles/${battle.id}`}>
-                        <Card className="bg-card-gradient border-border hover:glow-accent transition-all cursor-pointer">
-                          <CardContent className="p-4 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <Badge className={`${getStatusColor(battle.status)} flex items-center gap-1`}>
-                                {getStatusIcon(battle.status)}
-                                {battle.status}
-                              </Badge>
-                              <span className="font-medium">
-                                {p1?.character?.name || 'Unknown'} vs {p2?.character?.name || 'Unknown'}
-                              </span>
-                              <span className="text-muted-foreground text-sm">
-                                Started {new Date(battle.created_at).toLocaleDateString()}
-                              </span>
-                            </div>
-                            <Button variant="outline" size="sm">
-                              Continue Battle
-                            </Button>
-                          </CardContent>
-                        </Card>
-                      </Link>
-                    );
-                  })}
+              {/* Active Battles */}
+              {activeBattles.length > 0 && (
+                <div className="space-y-3">
+                  <h2 className="text-xl font-semibold flex items-center gap-2">
+                    <Swords className="w-5 h-5 text-green-400" />
+                    Active Battles ({activeBattles.length})
+                  </h2>
+                  <div className="grid gap-3">
+                    {activeBattles.map((battle) => {
+                      const p1 = battle.participants.find(p => p.turn_order === 1);
+                      const p2 = battle.participants.find(p => p.turn_order === 2);
+                      return (
+                        <Link key={battle.id} to={`/battles/${battle.id}`}>
+                          <Card className="bg-card-gradient border-border hover:glow-accent transition-all cursor-pointer">
+                            <CardContent className="p-4 flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <Badge className={`${getStatusColor(battle.status)} flex items-center gap-1`}>
+                                  {getStatusIcon(battle.status)}
+                                  {battle.status}
+                                </Badge>
+                                <span className="font-medium">
+                                  {p1?.character?.name || 'Unknown'} vs {p2?.character?.name || 'Unknown'}
+                                </span>
+                                <span className="text-muted-foreground text-sm">
+                                  Started {new Date(battle.created_at).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <Button variant="outline" size="sm">
+                                Continue Battle
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        </Link>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Pending Battles */}
               {pendingBattles.length > 0 && (
