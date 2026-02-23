@@ -1259,6 +1259,22 @@ export default function MockBattle() {
     
     setBattleStarted(true);
     
+    // Save PvE battle to localStorage so it shows in Active Battles
+    const pveBattle = {
+      id: `pve-${Date.now()}`,
+      characterName: selectedCharacter.name,
+      characterImage: selectedCharacter.image_url,
+      opponentName: currentOpponent.name,
+      opponentLevel: currentOpponent.level,
+      location: battleLocation,
+      startedAt: new Date().toISOString(),
+    };
+    const existing = JSON.parse(localStorage.getItem('activePveBattles') || '[]');
+    // Clear old PvE battles for this character (only one active at a time per character)
+    const filtered = existing.filter((b: any) => b.characterName !== selectedCharacter.name);
+    filtered.push(pveBattle);
+    localStorage.setItem('activePveBattles', JSON.stringify(filtered));
+    
     // Initialize dice mechanics
     if (diceEnabled && selectedCharacter) {
       const characterId = selectedCharacter.id;
@@ -2079,6 +2095,12 @@ export default function MockBattle() {
     setConstructs({});
     setConstructEventMessages([]);
     setPendingConstructRepair(null);
+    // Clear PvE battle from localStorage
+    if (selectedCharacter) {
+      const existing = JSON.parse(localStorage.getItem('activePveBattles') || '[]');
+      const filtered = existing.filter((b: any) => b.characterName !== selectedCharacter.name);
+      localStorage.setItem('activePveBattles', JSON.stringify(filtered));
+    }
   };
 
   if (userCharacters.length === 0) {

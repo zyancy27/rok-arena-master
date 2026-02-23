@@ -6,9 +6,19 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Swords, Plus, Clock, CheckCircle, Users } from 'lucide-react';
+import { Swords, Plus, Clock, CheckCircle, Users, Bot } from 'lucide-react';
 import OpponentFinder from '@/components/battles/OpponentFinder';
 import BattleSimulation from '@/components/battles/BattleSimulation';
+
+interface PveBattle {
+  id: string;
+  characterName: string;
+  characterImage: string | null;
+  opponentName: string;
+  opponentLevel: number;
+  location: string;
+  startedAt: string;
+}
 
 interface Character {
   id: string;
@@ -50,18 +60,29 @@ export default function Battles() {
   const [battles, setBattles] = useState<Battle[]>([]);
   const [characters, setCharacters] = useState<Character[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pveBattles, setPveBattles] = useState<PveBattle[]>([]);
 
   useEffect(() => {
     if (user) {
       fetchBattles();
       fetchCharacters();
       setupRealtime();
+      loadPveBattles();
     }
 
     return () => {
       supabase.removeChannel(supabase.channel('my-battles'));
     };
   }, [user]);
+
+  const loadPveBattles = () => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('activePveBattles') || '[]');
+      setPveBattles(stored);
+    } catch {
+      setPveBattles([]);
+    }
+  };
 
   const setupRealtime = () => {
     supabase
@@ -281,9 +302,9 @@ export default function Battles() {
           <TabsTrigger value="battles" className="flex items-center gap-2">
             <Swords className="w-4 h-4" />
             My Battles
-            {battles.length > 0 && (
+            {(battles.length + pveBattles.length) > 0 && (
               <Badge variant="secondary" className="ml-1">
-                {battles.length}
+                {battles.length + pveBattles.length}
               </Badge>
             )}
           </TabsTrigger>
@@ -302,7 +323,7 @@ export default function Battles() {
                 </Card>
               ))}
             </div>
-          ) : battles.length === 0 ? (
+          ) : (battles.length === 0 && pveBattles.length === 0) ? (
             <Card className="bg-card-gradient border-border">
               <CardContent className="py-12 text-center">
                 <Swords className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
@@ -314,14 +335,39 @@ export default function Battles() {
             </Card>
           ) : (
             <div className="space-y-6">
-              {/* Active Battles */}
-              {activeBattles.length > 0 && (
+              {/* Active Battles (PvP + PvE) */}
+              {(activeBattles.length > 0 || pveBattles.length > 0) && (
                 <div className="space-y-3">
                   <h2 className="text-xl font-semibold flex items-center gap-2">
                     <Swords className="w-5 h-5 text-green-400" />
-                    Active Battles ({activeBattles.length})
+                    Active Battles ({activeBattles.length + pveBattles.length})
                   </h2>
                   <div className="grid gap-3">
+                    {/* PvE Battles */}
+                    {pveBattles.map((pve) => (
+                      <Link key={pve.id} to="/battles/practice">
+                        <Card className="bg-card-gradient border-border hover:glow-accent transition-all cursor-pointer">
+                          <CardContent className="p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/50 flex items-center gap-1">
+                                <Bot className="w-3 h-3" />
+                                PvE
+                              </Badge>
+                              <span className="font-medium">
+                                {pve.characterName} vs {pve.opponentName}
+                              </span>
+                              <span className="text-muted-foreground text-sm">
+                                Started {new Date(pve.startedAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <Button variant="outline" size="sm">
+                              Continue Battle
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    ))}
+                    {/* PvP Active Battles */}
                     {activeBattles.map((battle) => {
                       const p1 = battle.participants.find(p => p.turn_order === 1);
                       const p2 = battle.participants.find(p => p.turn_order === 2);
