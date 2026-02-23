@@ -43,8 +43,8 @@ export default function OverchargeToggle({ enabled, onToggle, disabled = false }
           </p>
           <p className="text-[10px] text-muted-foreground">
             {enabled
-              ? 'Attack potency ×1.5-2.0 but glitch chance triples!'
-              : 'Boost attack power at the cost of higher glitch risk'}
+              ? 'Attack potency ×1.5-2.0 but risk chance triples!'
+              : 'Boost attack power at the cost of higher risk'}
           </p>
         </TooltipContent>
       </Tooltip>
