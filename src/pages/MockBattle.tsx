@@ -57,6 +57,33 @@ import { useBattlefieldEffects } from '@/components/battles/useBattlefieldEffect
 import { useCharacterStatusEffects } from '@/hooks/use-character-status-effects';
 import type { ActiveBattlefieldEffect } from '@/lib/battlefield-effects';
 import { detectCharacterStatusEffects } from '@/lib/character-status-effects';
+import {
+  createMomentumState,
+  applyMomentumEvents,
+  detectMomentumEvents,
+  tickEdgeState,
+  getMomentumContext,
+  EDGE_STATE_PRECISION_BONUS,
+  EDGE_STATE_GLITCH_REDUCTION,
+  type MomentumState,
+} from '@/lib/battle-momentum';
+import {
+  createPsychologicalState,
+  applyPsychEvent,
+  detectPsychEvents,
+  getDominantPsychCue,
+  getGlitchChanceModifier,
+  getAccuracyModifier,
+  getPsychologyContext,
+  type PsychologicalState,
+} from '@/lib/battle-psychology';
+import {
+  resolveOvercharge,
+  getOverchargeContext,
+} from '@/lib/battle-overcharge';
+import MomentumMeter from '@/components/battles/MomentumMeter';
+import OverchargeToggle from '@/components/battles/OverchargeToggle';
+import PsychCueIndicator from '@/components/battles/PsychCueIndicator';
 import { 
   ArrowLeft, 
   Swords, 
@@ -1073,6 +1100,17 @@ export default function MockBattle() {
   // Character story lore for AI battles
   const [characterStoryLore, setCharacterStoryLore] = useState<string>('');
   
+  // Momentum system
+  const [userMomentum, setUserMomentum] = useState<MomentumState>(createMomentumState());
+  const [opponentMomentum, setOpponentMomentum] = useState<MomentumState>(createMomentumState());
+  
+  // Psychological combat layer (hidden stats)
+  const [userPsych, setUserPsych] = useState<PsychologicalState>(createPsychologicalState());
+  const [opponentPsych, setOpponentPsych] = useState<PsychologicalState>(createPsychologicalState());
+  
+  // Overcharge toggle
+  const [overchargeEnabled, setOverchargeEnabled] = useState(false);
+  
   // Power tier and category filters
   const [selectedTierFilter, setSelectedTierFilter] = useState<string>('all');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('all');
@@ -2017,6 +2055,48 @@ export default function MockBattle() {
         setAiStatPenalty(0);
       }
     }
+    // === Phase 1: Overcharge, Momentum, Psychology context for AI ===
+    let overchargeAIContext = '';
+    let momentumAIContext = '';
+    let psychAIContext = '';
+
+    if (activeChannel === 'in_universe' && currentOpponent) {
+      // Resolve overcharge if enabled
+      if (overchargeEnabled) {
+        const glitchMod = getGlitchChanceModifier(userPsych);
+        const overchargeResult = resolveOvercharge(true, glitchMod, userMomentum.edgeStateActive);
+        overchargeAIContext = getOverchargeContext(overchargeResult, selectedCharacter.name);
+
+        // Apply psych events from overcharge outcome
+        if (overchargeResult.glitchOccurred) {
+          setUserPsych(prev => applyPsychEvent(prev, 'overcharge_fail'));
+          setUserMomentum(prev => applyMomentumEvents(prev, [{ type: 'loss', amount: 25, reason: 'Glitch misfire' }], userPsych.fear, userPsych.resolve));
+        } else {
+          setUserPsych(prev => applyPsychEvent(prev, 'overcharge_success'));
+        }
+        setOverchargeEnabled(false); // Reset after use
+      }
+
+      // User momentum events from their own action
+      const userHitLanded = playerAttackContext.includes('HITS!');
+      const userMomentumEvents = detectMomentumEvents(currentInput, true, userHitLanded, false, false);
+      if (userMomentumEvents.length > 0) {
+        setUserMomentum(prev => applyMomentumEvents(prev, userMomentumEvents, userPsych.fear, userPsych.resolve));
+      }
+      // Tick Edge State for user
+      setUserMomentum(prev => tickEdgeState(prev));
+      // Check if edge state just activated
+      setUserMomentum(prev => {
+        if (prev.edgeStateActive && prev.edgeStateTurnsRemaining === 2) {
+          setUserPsych(p => applyPsychEvent(p, 'edge_state_entered'));
+        }
+        return prev;
+      });
+
+      // Build context strings
+      momentumAIContext = getMomentumContext(selectedCharacter.name, userMomentum, currentOpponent.name, opponentMomentum);
+      psychAIContext = getPsychologyContext(selectedCharacter.name, userPsych, currentOpponent.name, opponentPsych);
+    }
 
     try {
       const response = await supabase.functions.invoke('mock-battle-ai', {
@@ -2034,7 +2114,7 @@ export default function MockBattle() {
             ...currentOpponent,
             skill: opponentSkill,
           },
-          userMessage: input + skillEventNote + playerAttackContext + defenseEnforcementPrompt,
+          userMessage: input + skillEventNote + playerAttackContext + defenseEnforcementPrompt + overchargeAIContext + momentumAIContext + psychAIContext,
           channel: activeChannel,
           messageHistory: messages.slice(-10),
           battleLocation,
@@ -2064,6 +2144,30 @@ export default function MockBattle() {
         processBattlefieldEffect(response.data.response);
         // Process character status effects from AI response (affects the user)
         processCharacterStatusEffect(response.data.response, true);
+        
+        // Process momentum events from AI response (opponent's actions affect user)
+        const aiMomentumEvents = detectMomentumEvents(response.data.response, false, null, false, false);
+        if (aiMomentumEvents.length > 0) {
+          setUserMomentum(prev => applyMomentumEvents(prev, aiMomentumEvents, userPsych.fear, userPsych.resolve));
+        }
+        // Opponent gains momentum from their actions
+        const oppMomentumEvents = detectMomentumEvents(response.data.response, true, true, false, false);
+        if (oppMomentumEvents.length > 0) {
+          setOpponentMomentum(prev => applyMomentumEvents(prev, oppMomentumEvents, opponentPsych.fear, opponentPsych.resolve));
+        }
+        // Tick Edge State for opponent
+        setOpponentMomentum(prev => tickEdgeState(prev));
+        
+        // Process psychological events from AI response
+        const aiPsychEvents = detectPsychEvents(response.data.response, true);
+        for (const evt of aiPsychEvents) {
+          setUserPsych(prev => applyPsychEvent(prev, evt));
+        }
+        // Opponent psychological shifts from player's action context
+        const oppPsychEvents = detectPsychEvents(currentInput, false);
+        for (const evt of oppPsychEvents) {
+          setOpponentPsych(prev => applyPsychEvent(prev, evt));
+        }
       }
       
       // Store opponent's action for defense validation next turn
@@ -2159,6 +2263,12 @@ export default function MockBattle() {
     setConstructs({});
     setConstructEventMessages([]);
     setPendingConstructRepair(null);
+    // Reset Phase 1 advanced systems
+    setUserMomentum(createMomentumState());
+    setOpponentMomentum(createMomentumState());
+    setUserPsych(createPsychologicalState());
+    setOpponentPsych(createPsychologicalState());
+    setOverchargeEnabled(false);
     // Clear PvE battle from localStorage
     localStorage.removeItem('pveBattleSession');
     if (selectedCharacter) {
@@ -2957,7 +3067,9 @@ export default function MockBattle() {
                           {userConstructs.length} 🛡️
                         </Badge>
                       )}
+                      <PsychCueIndicator cue={getDominantPsychCue(userPsych)} characterName={selectedCharacter.name} variant="user" />
                     </div>
+                    <MomentumMeter momentum={userMomentum} characterName={selectedCharacter.name} variant="user" />
                   </div>
 
                   {/* AI Opponent Status */}
@@ -2975,7 +3087,9 @@ export default function MockBattle() {
                           -{aiStatPenalty}%
                         </Badge>
                       )}
+                      <PsychCueIndicator cue={getDominantPsychCue(opponentPsych)} characterName={currentOpponent.name} variant="opponent" />
                     </div>
+                    <MomentumMeter momentum={opponentMomentum} characterName={currentOpponent.name} variant="opponent" />
                   </div>
                 </div>
               )}
@@ -3008,7 +3122,15 @@ export default function MockBattle() {
               )}
 
               {/* Input */}
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-end">
+                {/* Overcharge Toggle - only in-universe */}
+                {activeChannel === 'in_universe' && diceEnabled && battleStarted && (
+                  <OverchargeToggle
+                    enabled={overchargeEnabled}
+                    onToggle={setOverchargeEnabled}
+                    disabled={isLoading || !!pendingHit}
+                  />
+                )}
                 <div className="relative flex-1">
                   {/* Character Status Effect Overlay - shows effects affecting the user */}
                   {activeChannel === 'in_universe' && characterStatusEffects.length > 0 && (
@@ -3019,6 +3141,8 @@ export default function MockBattle() {
                     onChange={(e) => setInput(e.target.value)}
                     placeholder={pendingHit 
                       ? 'Resolve the incoming attack first...'
+                      : overchargeEnabled
+                      ? '⚡ OVERCHARGED — Describe your amplified attack...'
                       : activeChannel === 'in_universe' 
                       ? 'Describe your action or attack...' 
                       : 'Ask a question or discuss strategy...'}

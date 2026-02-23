@@ -1,0 +1,97 @@
+/**
+ * Variable Risk-Reward System: Overcharge Mechanic
+ * 
+ * Players can optionally overcharge abilities:
+ * - Increased potency
+ * - Increased glitch probability
+ * - Increased dimensional instability
+ * 
+ * Normal attack → 10% glitch chance
+ * Overcharged → 30% glitch chance + amplified effect
+ */
+
+export interface OverchargeResult {
+  isOvercharged: boolean;
+  potencyMultiplier: number; // 1.0 normal, 1.5-2.0 overcharged
+  glitchChance: number; // 0-1
+  glitchOccurred: boolean;
+  glitchEffect: string | null;
+  dimensionalInstability: boolean;
+}
+
+const NORMAL_GLITCH_CHANCE = 0.10;
+const OVERCHARGE_GLITCH_CHANCE = 0.30;
+
+const GLITCH_EFFECTS = [
+  'Power surge backfires — energy explodes outward uncontrollably',
+  'Dimensional rift opens briefly — gravity inverts for a split second',
+  'Attack warps mid-flight — trajectory becomes unpredictable',
+  'Overloaded energy destabilizes — causes environmental tremor',
+  'Power misfires — releases a shockwave that hits both fighters',
+  'Reality flickers — the attack phases in and out of existence',
+  'Energy feedback — the caster takes minor recoil damage',
+  'Temporal stutter — the attack freezes mid-motion then accelerates',
+  'Elemental corruption — the attack changes element randomly',
+  'Spatial distortion — distance warps, attack may land closer or farther',
+];
+
+/**
+ * Roll for overcharge effects
+ * @param isOvercharged Whether the player toggled overcharge
+ * @param psychGlitchModifier Multiplier from psychological state (1.0 normal)
+ * @param edgeStateActive Whether Edge State reduces glitch chance
+ */
+export function resolveOvercharge(
+  isOvercharged: boolean,
+  psychGlitchModifier: number = 1.0,
+  edgeStateActive: boolean = false,
+): OverchargeResult {
+  const baseGlitchChance = isOvercharged ? OVERCHARGE_GLITCH_CHANCE : NORMAL_GLITCH_CHANCE;
+  
+  // Apply psychological modifier
+  let adjustedChance = baseGlitchChance * psychGlitchModifier;
+  
+  // Edge State reduces glitch chance
+  if (edgeStateActive) {
+    adjustedChance *= 0.5; // 50% reduction
+  }
+  
+  // Clamp
+  adjustedChance = Math.max(0.02, Math.min(0.6, adjustedChance));
+  
+  const glitchOccurred = Math.random() < adjustedChance;
+  
+  return {
+    isOvercharged,
+    potencyMultiplier: isOvercharged ? 1.5 + Math.random() * 0.5 : 1.0, // 1.5-2.0x
+    glitchChance: adjustedChance,
+    glitchOccurred,
+    glitchEffect: glitchOccurred 
+      ? GLITCH_EFFECTS[Math.floor(Math.random() * GLITCH_EFFECTS.length)]
+      : null,
+    dimensionalInstability: isOvercharged && glitchOccurred && Math.random() < 0.4,
+  };
+}
+
+/**
+ * Generate AI context for overcharge state
+ */
+export function getOverchargeContext(result: OverchargeResult, attackerName: string): string {
+  if (!result.isOvercharged && !result.glitchOccurred) return '';
+
+  const lines: string[] = [];
+
+  if (result.isOvercharged) {
+    lines.push(`\n[OVERCHARGE ACTIVE: ${attackerName} is pushing beyond safe limits! Potency x${result.potencyMultiplier.toFixed(1)}. Describe the attack as amplified, volatile, visually intense.]`);
+  }
+
+  if (result.glitchOccurred && result.glitchEffect) {
+    lines.push(`[GLITCH EVENT: ${result.glitchEffect}. Incorporate this unpredictable effect into the narrative!]`);
+  }
+
+  if (result.dimensionalInstability) {
+    lines.push(`[DIMENSIONAL INSTABILITY: Reality warps around the overcharged attack. Describe spatial distortion, flickering terrain, or brief reality tears.]`);
+  }
+
+  return lines.join('\n');
+}
