@@ -121,11 +121,34 @@ function IceEffect({ intensity }: { intensity: 'low' | 'medium' | 'high' }) {
 }
 
 function SmokeEffect({ intensity }: { intensity: 'low' | 'medium' | 'high' }) {
+  const mult = intensity === 'high' ? 1.5 : intensity === 'medium' ? 1 : 0.6;
   return (
     <>
-      <div className="absolute inset-0 battlefield-smoke-drift" style={{ background: `linear-gradient(135deg, hsl(0 0% 30% / 0.5) 0%, hsl(0 0% 40% / 0.3) 50%, hsl(0 0% 35% / 0.4) 100%)` }} />
-      <div className="absolute inset-0 battlefield-smoke-drift-reverse" style={{ background: `linear-gradient(225deg, hsl(0 0% 25% / 0.4) 0%, transparent 50%, hsl(0 0% 30% / 0.3) 100%)` }} />
-      <div className="absolute inset-0" style={{ backdropFilter: intensity === 'high' ? 'blur(2px)' : 'blur(1px)' }} />
+      {/* Base haze */}
+      <div className="absolute inset-0" style={{ background: `linear-gradient(to top, hsl(0 0% 20% / ${0.4 * mult}) 0%, hsl(0 0% 35% / ${0.2 * mult}) 60%, transparent 100%)` }} />
+      {/* Drifting smoke puffs */}
+      {[...Array(6)].map((_, i) => (
+        <div
+          key={i}
+          className="absolute rounded-full smoke-puff-drift"
+          style={{
+            width: `${60 + i * 20}px`,
+            height: `${35 + i * 12}px`,
+            left: `${(i * 18) % 85}%`,
+            bottom: `${(i * 15) % 70}%`,
+            background: `radial-gradient(ellipse, hsl(0 0% ${30 + i * 5}% / ${0.35 * mult}) 0%, hsl(0 0% 25% / ${0.1 * mult}) 70%, transparent 100%)`,
+            filter: `blur(${4 + i}px)`,
+            animationDelay: `${i * 1.1}s`,
+            animationDuration: `${6 + i * 1.3}s`,
+          }}
+        />
+      ))}
+      {/* Curling wisp layer */}
+      <div className="absolute inset-0 smoke-wisp-curl" style={{
+        background: `radial-gradient(ellipse at 25% 75%, hsl(0 0% 40% / ${0.25 * mult}) 0%, transparent 55%), radial-gradient(ellipse at 75% 35%, hsl(0 0% 30% / ${0.2 * mult}) 0%, transparent 50%)`,
+        filter: 'blur(5px)',
+      }} />
+      <div className="absolute inset-0" style={{ backdropFilter: intensity === 'high' ? 'blur(2px)' : intensity === 'medium' ? 'blur(1px)' : 'none' }} />
     </>
   );
 }

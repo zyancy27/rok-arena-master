@@ -323,26 +323,44 @@ const EffectOverlay = memo(({ effect }: { effect: CharacterStatusEffect }) => {
     case 'smokescreen':
       return (
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {/* Swirling smoke layers */}
+          {/* Base haze layer */}
           <div 
-            className="absolute inset-0 battlefield-smoke-drift"
+            className="absolute inset-0"
             style={{
-              background: `radial-gradient(ellipse at center, 
-                hsl(0 0% 40% / ${0.3 * intensityMultiplier}) 0%, 
-                hsl(0 0% 30% / ${0.2 * intensityMultiplier}) 60%,
+              background: `linear-gradient(to top, 
+                hsl(0 0% 25% / ${0.35 * intensityMultiplier}) 0%, 
+                hsl(0 0% 40% / ${0.15 * intensityMultiplier}) 60%,
                 transparent 100%)`,
             }}
           />
+          {/* Wispy smoke puffs */}
+          {[...Array(Math.floor(5 * intensityMultiplier))].map((_, i) => (
+            <div
+              key={i}
+              className="absolute rounded-full smoke-puff-drift"
+              style={{
+                width: `${40 + i * 15}px`,
+                height: `${25 + i * 10}px`,
+                left: `${-5 + (i * 22) % 90}%`,
+                bottom: `${5 + (i * 17) % 60}%`,
+                background: `radial-gradient(ellipse, hsl(0 0% ${35 + i * 5}% / ${0.4 * intensityMultiplier}) 0%, hsl(0 0% 30% / ${0.15 * intensityMultiplier}) 60%, transparent 100%)`,
+                filter: `blur(${3 + i}px)`,
+                animationDelay: `${i * 1.2}s`,
+                animationDuration: `${5 + i * 1.5}s`,
+              }}
+            />
+          ))}
+          {/* Slow curling wisps */}
           <div 
-            className="absolute inset-0 battlefield-smoke-drift-reverse"
+            className="absolute inset-0 smoke-wisp-curl"
             style={{
-              background: `radial-gradient(ellipse at 70% 30%, 
-                hsl(0 0% 35% / ${0.25 * intensityMultiplier}) 0%, 
-                transparent 60%)`,
+              background: `radial-gradient(ellipse at 30% 70%, hsl(0 0% 45% / ${0.2 * intensityMultiplier}) 0%, transparent 50%),
+                           radial-gradient(ellipse at 70% 40%, hsl(0 0% 35% / ${0.18 * intensityMultiplier}) 0%, transparent 45%)`,
+              filter: 'blur(4px)',
             }}
           />
-          {effect.intensity === 'severe' && (
-            <div className="absolute inset-0" style={{ backdropFilter: 'blur(1px)' }} />
+          {effect.intensity !== 'light' && (
+            <div className="absolute inset-0" style={{ backdropFilter: `blur(${effect.intensity === 'severe' ? 2 : 1}px)` }} />
           )}
         </div>
       );
