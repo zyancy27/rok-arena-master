@@ -84,6 +84,10 @@ import {
 import MomentumMeter from '@/components/battles/MomentumMeter';
 import OverchargeToggle from '@/components/battles/OverchargeToggle';
 import PsychCueIndicator from '@/components/battles/PsychCueIndicator';
+import ArenaModifierBadge from '@/components/battles/ArenaModifierBadge';
+import SfxToggle from '@/components/battles/SfxToggle';
+import { getActiveArenaModifiers, type ActiveArenaModifiers } from '@/lib/arena-modifiers';
+import { useBattleSfx } from '@/hooks/use-battle-sfx';
 import { 
   ArrowLeft, 
   Swords, 
@@ -1121,6 +1125,12 @@ export default function MockBattle() {
   // Battlefield visual effects (fire, ice, smoke, etc.)
   const { activeEffects: battlefieldEffects, processMessage: processBattlefieldEffect } = useBattlefieldEffects();
   
+  // Arena modifiers (daily/weekly rotating)
+  const [arenaModifiers] = useState<ActiveArenaModifiers>(() => getActiveArenaModifiers());
+  
+  // Battle SFX engine
+  const { muted: sfxMuted, toggleMute: toggleSfxMute, processText: processSfxText, playEvent: playSfxEvent } = useBattleSfx({ enabled: battleStarted });
+  
   // Character-specific status effects (paralyzed, blinded, submerged, etc.)
   const { 
     activeEffects: characterStatusEffects, 
@@ -2114,7 +2124,7 @@ export default function MockBattle() {
             ...currentOpponent,
             skill: opponentSkill,
           },
-          userMessage: input + skillEventNote + playerAttackContext + defenseEnforcementPrompt + overchargeAIContext + momentumAIContext + psychAIContext,
+          userMessage: input + skillEventNote + playerAttackContext + defenseEnforcementPrompt + overchargeAIContext + momentumAIContext + psychAIContext + arenaModifiers.combinedPrompt,
           channel: activeChannel,
           messageHistory: messages.slice(-10),
           battleLocation,
@@ -2144,6 +2154,8 @@ export default function MockBattle() {
         processBattlefieldEffect(response.data.response);
         // Process character status effects from AI response (affects the user)
         processCharacterStatusEffect(response.data.response, true);
+        // Process SFX from AI response
+        processSfxText(response.data.response);
         
         // Process momentum events from AI response (opponent's actions affect user)
         const aiMomentumEvents = detectMomentumEvents(response.data.response, false, null, false, false);
@@ -2882,6 +2894,17 @@ export default function MockBattle() {
                     )}
                   </div>
                 )}
+
+                {/* Arena Modifiers Preview */}
+                <div className="p-3 rounded-lg border bg-gradient-to-r from-purple-500/5 to-indigo-500/5 border-purple-500/20 space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    🌐 Today's Arena Modifiers
+                  </div>
+                  <ArenaModifierBadge modifiers={arenaModifiers} />
+                  <p className="text-[10px] text-muted-foreground">
+                    Same modifiers for all players globally. Affects stats, momentum, and glitch chances.
+                  </p>
+                </div>
               </div>
 
               {/* Turn Order Roll */}
@@ -2946,14 +2969,19 @@ export default function MockBattle() {
                     <span className="text-muted-foreground">Location:</span>
                     <span className="font-semibold">{battleLocation}</span>
                   </div>
-                  {battleEnvironment && dynamicEnvironment && (
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <SfxToggle muted={sfxMuted} onToggle={toggleSfxMute} />
+                    {battleEnvironment && dynamicEnvironment && (
                       <Badge variant="outline" className="text-xs bg-amber-500/10 border-amber-500/30 text-amber-600">
                         <Zap className="w-3 h-3 mr-1" />
                         {battleEnvironment.gravity.toFixed(1)}g • {battleEnvironment.gravityClass.name}
                       </Badge>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                </div>
+                {/* Arena Modifiers */}
+                <div className="flex items-center gap-2 mt-2">
+                  <ArenaModifierBadge modifiers={arenaModifiers} />
                 </div>
                 {battleEnvironment && dynamicEnvironment && battleEnvironment.terrainFeatures && (
                   <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
