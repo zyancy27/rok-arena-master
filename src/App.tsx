@@ -28,6 +28,7 @@ import Terms from "@/pages/Terms";
 import Races from "@/pages/Races";
 import Stories from "@/pages/Stories";
 import Teams from "@/pages/Teams";
+import Settings from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
 import ResetPassword from "@/pages/ResetPassword";
 
@@ -63,6 +64,7 @@ const App = () => (
               <Route path="/races" element={<Races />} />
               <Route path="/stories" element={<Stories />} />
               <Route path="/teams" element={<Teams />} />
+              <Route path="/settings" element={<Settings />} />
               <Route path="/admin" element={<ProtectedRoute requireModerator><Admin /></ProtectedRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />
