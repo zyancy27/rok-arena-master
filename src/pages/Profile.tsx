@@ -40,6 +40,7 @@ export default function Profile() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -84,6 +85,10 @@ export default function Profile() {
   };
 
   const handleUpdatePassword = async () => {
+    if (!currentPassword) {
+      toast.error('Please enter your current password');
+      return;
+    }
     if (!newPassword || !confirmPassword) {
       toast.error('Please fill in all password fields');
       return;
@@ -98,6 +103,15 @@ export default function Profile() {
     }
     setIsUpdatingPassword(true);
     try {
+      // Re-authenticate with current password first
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user?.email || '',
+        password: currentPassword,
+      });
+      if (signInError) {
+        toast.error('Current password is incorrect');
+        return;
+      }
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
       setCurrentPassword('');
@@ -419,11 +433,33 @@ export default function Profile() {
             </div>
             <div className="relative">
               <Input
+                type={showCurrentPassword ? "text" : "password"}
+                placeholder="Current password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="pr-10"
+                onCopy={(e) => e.preventDefault()}
+                onCut={(e) => e.preventDefault()}
+                onPaste={(e) => e.preventDefault()}
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            <div className="relative">
+              <Input
                 type={showNewPassword ? "text" : "password"}
                 placeholder="New password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="pr-10"
+                onCopy={(e) => e.preventDefault()}
+                onCut={(e) => e.preventDefault()}
+                onPaste={(e) => e.preventDefault()}
               />
               <button
                 type="button"
@@ -440,6 +476,9 @@ export default function Profile() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="pr-10"
+                onCopy={(e) => e.preventDefault()}
+                onCut={(e) => e.preventDefault()}
+                onPaste={(e) => e.preventDefault()}
               />
               <button
                 type="button"
@@ -451,7 +490,7 @@ export default function Profile() {
             </div>
             <Button
               onClick={handleUpdatePassword}
-              disabled={isUpdatingPassword || !newPassword || !confirmPassword}
+              disabled={isUpdatingPassword || !currentPassword || !newPassword || !confirmPassword}
               size="sm"
               variant="outline"
             >
