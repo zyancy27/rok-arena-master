@@ -13,9 +13,8 @@ import { SocialTab } from '@/components/settings/SocialTab';
 import { NotificationsTab } from '@/components/settings/NotificationsTab';
 import { DataAccountTab } from '@/components/settings/DataAccountTab';
 import { AccessibilityTab } from '@/components/settings/AccessibilityTab';
-import { CompetitiveTab } from '@/components/settings/CompetitiveTab';
 import { DeveloperTab } from '@/components/settings/DeveloperTab';
-import { Settings as SettingsIcon, Volume2, Eye, Zap, Swords, Theater, Bot, Users, Bell, Database, Accessibility, Trophy, Wrench } from 'lucide-react';
+import { Settings as SettingsIcon, Volume2, Eye, Zap, Swords, Theater, Bot, Users, Bell, Database, Accessibility, Wrench } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 const TABS = [
@@ -26,7 +25,6 @@ const TABS = [
   { id: 'immersion', label: 'RP & Immersion', icon: Theater },
   { id: 'ai', label: 'AI (PvE)', icon: Bot },
   { id: 'social', label: 'Social & Privacy', icon: Users },
-  { id: 'competitive', label: 'Competitive', icon: Trophy },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'data', label: 'Data & Account', icon: Database },
   { id: 'accessibility', label: 'Accessibility', icon: Accessibility },
@@ -86,9 +84,6 @@ export default function Settings() {
         </TabsContent>
         <TabsContent value="social">
           <SocialTab settings={settings.social} onChange={u => updateSettings('social', u)} onReset={() => resetCategory('social')} />
-        </TabsContent>
-        <TabsContent value="competitive">
-          <CompetitiveTab settings={settings.competitive} onChange={u => updateSettings('competitive', u)} onReset={() => resetCategory('competitive')} />
         </TabsContent>
         <TabsContent value="notifications">
           <NotificationsTab settings={settings.notifications} onChange={u => updateSettings('notifications', u)} onReset={() => resetCategory('notifications')} />

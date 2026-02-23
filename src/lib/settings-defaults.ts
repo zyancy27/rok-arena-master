@@ -8,7 +8,6 @@ export interface UserSettings {
   social: SocialSettings;
   notifications: NotificationSettings;
   accessibility: AccessibilitySettings;
-  competitive: CompetitiveSettings;
 }
 
 export interface AudioSettings {
@@ -49,7 +48,6 @@ export interface PerformanceSettings {
 
 export interface BattlePreferences {
   confirmOvercharge: boolean;
-  autoGuardCharge: boolean;
   showDodgeChance: boolean;
   showMomentum: boolean;
   showPsychIndicator: boolean;
@@ -104,12 +102,6 @@ export interface AccessibilitySettings {
   sfxSubtitles: boolean;
 }
 
-export interface CompetitiveSettings {
-  showTierBadge: boolean;
-  enableRankedQueue: boolean;
-  preferSameTier: boolean;
-}
-
 export const DEFAULT_SETTINGS: UserSettings = {
   audio: {
     masterVolume: 0.8,
@@ -146,7 +138,6 @@ export const DEFAULT_SETTINGS: UserSettings = {
   },
   battle: {
     confirmOvercharge: true,
-    autoGuardCharge: false,
     showDodgeChance: false,
     showMomentum: true,
     showPsychIndicator: false,
@@ -194,10 +185,5 @@ export const DEFAULT_SETTINGS: UserSettings = {
     reduceMotion: false,
     ttsLogs: false,
     sfxSubtitles: false,
-  },
-  competitive: {
-    showTierBadge: true,
-    enableRankedQueue: true,
-    preferSameTier: true,
   },
 };
