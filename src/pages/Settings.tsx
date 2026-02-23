@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
+
 import { AudioTab } from '@/components/settings/AudioTab';
 import { VisualTab } from '@/components/settings/VisualTab';
 import { PerformanceTab } from '@/components/settings/PerformanceTab';
@@ -53,7 +53,7 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="audio" className="w-full">
-        <ScrollArea className="w-full">
+        <div className="w-full overflow-x-auto pb-2 scrollbar-thin">
           <TabsList className="flex w-max gap-1 bg-muted/50 p-1 mb-4">
             {allTabs.map(tab => (
               <TabsTrigger key={tab.id} value={tab.id} className="flex items-center gap-1.5 text-xs whitespace-nowrap px-3 py-1.5">
@@ -62,7 +62,7 @@ export default function Settings() {
               </TabsTrigger>
             ))}
           </TabsList>
-        </ScrollArea>
+        </div>
 
         <TabsContent value="audio">
           <AudioTab settings={settings.audio} onChange={u => updateSettings('audio', u)} onReset={() => resetCategory('audio')} />
