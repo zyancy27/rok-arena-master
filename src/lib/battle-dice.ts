@@ -300,7 +300,7 @@ export function determineMentalHit(
 
 /**
  * Use concentration to attempt a last-ditch dodge
- * Only available if the attack would hit
+ * Only available if the attack would hit and gap is within 5
  */
 export function useConcentration(
   defenderStats: CharacterStats,
@@ -324,6 +324,42 @@ export function useConcentration(
     newDefenseTotal,
   };
 }
+
+export interface OffensiveConcentrationResult {
+  bonusRoll: number; // D5 (1-5)
+  statPenalty: number; // % reduction for next move
+  hitSuccess: boolean;
+  newAttackTotal: number;
+}
+
+/**
+ * Use concentration to boost a near-miss attack
+ * Only available if the attack missed by 5 or less
+ */
+export function useOffensiveConcentration(
+  attackerStats: CharacterStats,
+  hitDetermination: HitDetermination
+): OffensiveConcentrationResult {
+  // Concentration bonus roll: D5 (1-5)
+  const bonusRoll = Math.floor(Math.random() * 5) + 1;
+  
+  const newAttackTotal = hitDetermination.attackRoll.total + bonusRoll;
+  const hitSuccess = newAttackTotal > hitDetermination.defenseRoll.total;
+  
+  // Stat penalty for next move based on effort to land the blow
+  const basePenalty = Math.abs(hitDetermination.gap) * 3;
+  const statPenalty = Math.min(50, basePenalty);
+  
+  return {
+    bonusRoll,
+    statPenalty: hitSuccess ? statPenalty : 0,
+    hitSuccess,
+    newAttackTotal,
+  };
+}
+
+/** Max gap (inclusive) at which concentration can be used */
+export const CONCENTRATION_GAP_THRESHOLD = 5;
 
 /**
  * Calculate skill bonus for counter-attacks

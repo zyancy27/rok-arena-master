@@ -22,6 +22,8 @@ import {
   determineMentalHit,
   initializeBattleState,
   useConcentration,
+  useOffensiveConcentration,
+  CONCENTRATION_GAP_THRESHOLD,
   createConstruct,
   attackConstruct,
   repairConstructWithConcentration,
@@ -32,6 +34,7 @@ import {
   detectConstructAttack,
   type HitDetermination,
   type ConcentrationResult,
+  type OffensiveConcentrationResult,
   type BattleState,
   type Construct,
   type ConstructDefenseResult,
@@ -1103,6 +1106,9 @@ export default function MockBattle() {
   const [aiConcentrationUses, setAiConcentrationUses] = useState<number>(3);
   const [aiStatPenalty, setAiStatPenalty] = useState<number>(0);
   
+  // Offensive concentration (player near-miss attack)
+  const [pendingOffensiveHit, setPendingOffensiveHit] = useState<HitDetermination | null>(null);
+  
   // Defense validation tracking
   const [lastOpponentAction, setLastOpponentAction] = useState<string>('');
   const [lastHitResult, setLastHitResult] = useState<{ hit: boolean; gap: number } | null>(null);
@@ -1635,6 +1641,154 @@ export default function MockBattle() {
     await sendMessageWithDiceResult(pendingUserAction, result);
   };
 
+  // Handle offensive concentration result (player boosting near-miss attack)
+  const handleOffensiveConcentrationResult = async (result: OffensiveConcentrationResult) => {
+    if (!selectedCharacter || !currentOpponent || !pendingOffensiveHit) return;
+    
+    // Update concentration uses
+    const newUses = { ...concentrationUses };
+    newUses[selectedCharacter.id] = (newUses[selectedCharacter.id] || 3) - 1;
+    setConcentrationUses(newUses);
+
+    // Apply stat penalty if hit succeeded
+    if (result.hitSuccess) {
+      const newPenalties = { ...statPenalties };
+      newPenalties[selectedCharacter.id] = result.statPenalty;
+      setStatPenalties(newPenalties);
+      
+      toast.success(`Concentration boosted your attack! +${result.bonusRoll} — HIT! But -${result.statPenalty}% stats on next action`);
+    } else {
+      toast.error(`Concentration (+${result.bonusRoll}) wasn't enough. Attack still misses!`);
+    }
+
+    // Store the offensive result for the AI context
+    const offensiveContext = result.hitSuccess
+      ? `\n\n[DICE RESULT: ${selectedCharacter.name}'s attack roll ${pendingOffensiveHit.attackRoll.total} vs ${currentOpponent.name}'s defense ${pendingOffensiveHit.defenseRoll.total}. ${selectedCharacter.name} USED CONCENTRATION (+${result.bonusRoll}), new attack total ${result.newAttackTotal}. Attack now HITS! Narrate ${currentOpponent.name} taking damage from the focused strike.]`
+      : `\n\n[DICE RESULT: ${selectedCharacter.name}'s attack roll ${pendingOffensiveHit.attackRoll.total} vs ${currentOpponent.name}'s defense ${pendingOffensiveHit.defenseRoll.total}. ${selectedCharacter.name} tried concentration (+${result.bonusRoll}), new attack total ${result.newAttackTotal}. Still MISSES. Narrate how ${currentOpponent.name} narrowly avoids.]`;
+
+    // Clear pending and continue
+    setPendingOffensiveHit(null);
+    
+    // Send the message with the offensive concentration context injected
+    setIsLoading(true);
+    const userSkill = selectedCharacter.stat_skill || 50;
+    const opponentSkill = currentOpponent.skill || 50;
+
+    try {
+      const response = await supabase.functions.invoke('mock-battle-ai', {
+        body: {
+          userCharacter: {
+            name: selectedCharacter.name,
+            level: selectedCharacter.level,
+            powers: selectedCharacter.powers,
+            abilities: selectedCharacter.abilities,
+            skill: userSkill,
+            personality: selectedCharacter.personality,
+            mentality: selectedCharacter.mentality,
+          },
+          opponent: {
+            ...currentOpponent,
+            skill: opponentSkill,
+          },
+          userMessage: pendingUserAction + offensiveContext,
+          channel: 'in_universe',
+          messageHistory: messages.slice(-10),
+          battleLocation,
+          dynamicEnvironment: dynamicEnvironment && !!battleEnvironment,
+          environmentEffects: battleEnvironment?.effectsPrompt || '',
+          userGoesFirst,
+          isFirstMove: false,
+          characterStoryLore: characterStoryLore || undefined,
+        },
+      });
+
+      if (!response.error) {
+        const aiMessage: Message = {
+          id: crypto.randomUUID(),
+          role: 'ai',
+          content: response.data.response,
+          channel: 'in_universe',
+          characterName: currentOpponent.name,
+        };
+        setMessages(prev => [...prev, aiMessage]);
+        setTurnNumber(prev => prev + 1);
+        processCharacterStatusEffect(response.data.response, true);
+        
+        const newPenalties2 = { ...statPenalties };
+        newPenalties2[selectedCharacter.id] = 0;
+        setStatPenalties(newPenalties2);
+      }
+    } catch (error) {
+      console.error('AI response error:', error);
+    } finally {
+      setIsLoading(false);
+      setPendingUserAction('');
+    }
+  };
+
+  // Handle skipping offensive concentration (accept the miss)
+  const handleSkipOffensiveConcentration = async () => {
+    if (!selectedCharacter || !currentOpponent || !pendingOffensiveHit) return;
+    
+    toast.info('You accept the miss.');
+    
+    const missContext = `\n\n[DICE RESULT: ${selectedCharacter.name}'s attack roll ${pendingOffensiveHit.attackRoll.total} vs ${currentOpponent.name}'s defense ${pendingOffensiveHit.defenseRoll.total}. Attack MISSES! Narrate how ${currentOpponent.name} avoids or deflects the attack.]`;
+    
+    setPendingOffensiveHit(null);
+    setAiStatPenalty(0);
+    
+    setIsLoading(true);
+    const userSkill = selectedCharacter.stat_skill || 50;
+    const opponentSkill = currentOpponent.skill || 50;
+
+    try {
+      const response = await supabase.functions.invoke('mock-battle-ai', {
+        body: {
+          userCharacter: {
+            name: selectedCharacter.name,
+            level: selectedCharacter.level,
+            powers: selectedCharacter.powers,
+            abilities: selectedCharacter.abilities,
+            skill: userSkill,
+            personality: selectedCharacter.personality,
+            mentality: selectedCharacter.mentality,
+          },
+          opponent: {
+            ...currentOpponent,
+            skill: opponentSkill,
+          },
+          userMessage: pendingUserAction + missContext,
+          channel: 'in_universe',
+          messageHistory: messages.slice(-10),
+          battleLocation,
+          dynamicEnvironment: dynamicEnvironment && !!battleEnvironment,
+          environmentEffects: battleEnvironment?.effectsPrompt || '',
+          userGoesFirst,
+          isFirstMove: false,
+          characterStoryLore: characterStoryLore || undefined,
+        },
+      });
+
+      if (!response.error) {
+        const aiMessage: Message = {
+          id: crypto.randomUUID(),
+          role: 'ai',
+          content: response.data.response,
+          channel: 'in_universe',
+          characterName: currentOpponent.name,
+        };
+        setMessages(prev => [...prev, aiMessage]);
+        setTurnNumber(prev => prev + 1);
+        processCharacterStatusEffect(response.data.response, true);
+      }
+    } catch (error) {
+      console.error('AI response error:', error);
+    } finally {
+      setIsLoading(false);
+      setPendingUserAction('');
+    }
+  };
+
   // Handle skipping concentration (taking the hit)
   const handleSkipConcentration = async () => {
     if (!selectedCharacter || !currentOpponent || !pendingHit) return;
@@ -1871,7 +2025,7 @@ export default function MockBattle() {
   };
 
   const sendMessage = async () => {
-    if (!input.trim() || !selectedCharacter || isLoading || pendingHit) return;
+    if (!input.trim() || !selectedCharacter || isLoading || pendingHit || pendingOffensiveHit) return;
 
     // Capture status effects snapshot for in-universe messages
     const snapshot: StatusEffectsSnapshot = {};
@@ -1955,7 +2109,7 @@ export default function MockBattle() {
             ? determineMentalHit(attackerStats, currentOpponent.level, defenderStats, selectedCharacter.level, true, defenderPenalty)
             : determineHit(attackerStats, currentOpponent.level, defenderStats, selectedCharacter.level, true, defenderPenalty);
           
-          if (hit.wouldHit && (concentrationUses[selectedCharacter.id] ?? 3) > 0) {
+          if (hit.wouldHit && hit.gap <= CONCENTRATION_GAP_THRESHOLD && (concentrationUses[selectedCharacter.id] ?? 3) > 0) {
             setPendingHit(hit);
             setPendingUserAction(currentInput);
             setIsLoading(false);
@@ -1985,8 +2139,8 @@ export default function MockBattle() {
           ? determineMentalHit(attackerStats, currentOpponent.level, defenderStats, selectedCharacter.level, true, defenderPenalty)
           : determineHit(attackerStats, currentOpponent.level, defenderStats, selectedCharacter.level, true, defenderPenalty);
         
-        // If the attack would hit, show concentration option
-        if (hit.wouldHit && (concentrationUses[selectedCharacter.id] ?? 3) > 0) {
+        // If the attack would hit by 5 or less, show concentration option
+        if (hit.wouldHit && hit.gap <= CONCENTRATION_GAP_THRESHOLD && (concentrationUses[selectedCharacter.id] ?? 3) > 0) {
           setPendingHit(hit);
           setPendingUserAction(currentInput);
           setIsLoading(false);
@@ -2065,8 +2219,8 @@ export default function MockBattle() {
       };
       setDiceRollMessages(prev => [...prev, playerDiceMsg]);
       
-      // Check if AI should use concentration
-      if (playerHit.wouldHit && aiConcentrationUses > 0 && Math.random() < 0.5) {
+      // Check if AI should use concentration (only for close hits, gap ≤ 5)
+      if (playerHit.wouldHit && playerHit.gap <= CONCENTRATION_GAP_THRESHOLD && aiConcentrationUses > 0 && Math.random() < 0.5) {
         // AI uses concentration (50% chance when it would help)
         const aiConcentrationResult = useConcentration(opponentDefenseStats, playerHit);
         
@@ -2082,6 +2236,12 @@ export default function MockBattle() {
         playerAttackContext = `\n\n[DICE RESULT: ${selectedCharacter.name}'s attack roll ${playerHit.attackRoll.total} vs ${currentOpponent.name}'s defense ${playerHit.defenseRoll.total}. Attack HITS! ${aiConcentrationUses > 0 ? `(${currentOpponent.name} has ${aiConcentrationUses} concentration uses remaining but chose not to use one)` : `(No concentration uses remaining)`}. Narrate taking the damage and how it affects ${currentOpponent.name}.]`;
         // Clear AI stat penalty after their action
         setAiStatPenalty(0);
+      } else if (!playerHit.wouldHit && Math.abs(playerHit.gap) <= CONCENTRATION_GAP_THRESHOLD && (concentrationUses[selectedCharacter.id] ?? 3) > 0) {
+        // Player's attack missed by 5 or less — offer offensive concentration
+        setPendingOffensiveHit(playerHit);
+        setPendingUserAction(currentInput);
+        setIsLoading(false);
+        return; // Wait for offensive concentration decision
       } else {
         playerAttackContext = `\n\n[DICE RESULT: ${selectedCharacter.name}'s attack roll ${playerHit.attackRoll.total} vs ${currentOpponent.name}'s defense ${playerHit.defenseRoll.total}. Attack MISSES! Narrate how ${currentOpponent.name} avoids or deflects the attack.]`;
         // Clear AI stat penalty after their action
@@ -2299,6 +2459,7 @@ export default function MockBattle() {
     // Reset dice mechanics
     setBattleState(null);
     setPendingHit(null);
+    setPendingOffensiveHit(null);
     setPendingUserAction('');
     setDiceRollMessages([]);
     setConcentrationUses({});
@@ -3213,21 +3374,39 @@ export default function MockBattle() {
                     characterId={selectedCharacter.id}
                     concentrationUsesRemaining={concentrationUses[selectedCharacter.id] ?? 3}
                     onRepairConstruct={handleConstructRepair}
-                    disabled={isLoading || !!pendingHit}
+                    disabled={isLoading || !!pendingHit || !!pendingOffensiveHit}
                   />
                 </TooltipProvider>
               )}
 
-              {/* Concentration Button when pending hit - above input for visibility */}
+              {/* Defensive Concentration Button when pending hit */}
               {pendingHit && selectedCharacter && (
                 <TooltipProvider>
                   <ConcentrationButton
                     hitDetermination={pendingHit}
                     defenderStats={getCharacterStats(selectedCharacter)}
                     usesRemaining={concentrationUses[selectedCharacter.id] ?? 3}
+                    mode="defense"
                     onUseConcentration={handleConcentrationResult}
                     onSkip={handleSkipConcentration}
                     disabled={isLoading}
+                  />
+                </TooltipProvider>
+              )}
+
+              {/* Offensive Concentration Button when player's attack near-missed */}
+              {pendingOffensiveHit && selectedCharacter && (
+                <TooltipProvider>
+                  <ConcentrationButton
+                    hitDetermination={pendingOffensiveHit}
+                    attackerStats={getCharacterStats(selectedCharacter)}
+                    usesRemaining={concentrationUses[selectedCharacter.id] ?? 3}
+                    mode="offense"
+                    onUseOffensiveConcentration={handleOffensiveConcentrationResult}
+                    onSkip={handleSkipOffensiveConcentration}
+                    disabled={isLoading}
+                    characterName={selectedCharacter.name}
+                    opponentName={currentOpponent?.name}
                   />
                 </TooltipProvider>
               )}
@@ -3239,7 +3418,7 @@ export default function MockBattle() {
                   <OverchargeToggle
                     enabled={overchargeEnabled}
                     onToggle={setOverchargeEnabled}
-                    disabled={isLoading || !!pendingHit}
+                    disabled={isLoading || !!pendingHit || !!pendingOffensiveHit}
                   />
                 )}
                 <div className="relative flex-1">
@@ -3252,17 +3431,19 @@ export default function MockBattle() {
                     onChange={(e) => setInput(e.target.value)}
                     placeholder={pendingHit 
                       ? 'Resolve the incoming attack first...'
+                      : pendingOffensiveHit
+                      ? 'Resolve your near-miss first...'
                       : overchargeEnabled
                       ? '⚡ OVERCHARGED — Describe your amplified attack...'
                       : activeChannel === 'in_universe' 
                       ? 'Describe your action or attack...' 
                       : 'Ask a question or discuss strategy...'}
-                    onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && !pendingHit && sendMessage()}
-                    disabled={isLoading || !!pendingHit}
+                    onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && !pendingHit && !pendingOffensiveHit && sendMessage()}
+                    disabled={isLoading || !!pendingHit || !!pendingOffensiveHit}
                     className="relative z-20"
                   />
                 </div>
-                <Button onClick={sendMessage} disabled={isLoading || !input.trim() || !!pendingHit}>
+                <Button onClick={sendMessage} disabled={isLoading || !input.trim() || !!pendingHit || !!pendingOffensiveHit}>
                   <Send className="w-4 h-4" />
                 </Button>
               </div>
