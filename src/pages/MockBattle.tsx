@@ -2824,18 +2824,6 @@ export default function MockBattle() {
 
               {/* Concentration Button moved to above input */}
 
-              {/* Construct Panel - show when user has active constructs */}
-              {diceEnabled && battleStarted && selectedCharacter && userConstructs.length > 0 && (
-                <TooltipProvider>
-                  <ConstructPanel
-                    constructs={userConstructs}
-                    characterId={selectedCharacter.id}
-                    concentrationUsesRemaining={concentrationUses[selectedCharacter.id] ?? 3}
-                    onRepairConstruct={handleConstructRepair}
-                    disabled={isLoading || !!pendingHit}
-                  />
-                </TooltipProvider>
-              )}
 
               {/* Channel Tabs */}
               <Tabs value={activeChannel} onValueChange={(v) => setActiveChannel(v as 'in_universe' | 'out_of_universe')}>
@@ -2925,6 +2913,19 @@ export default function MockBattle() {
                     </div>
                   </div>
                 </div>
+              )}
+
+              {/* Construct Panel - above input for visibility */}
+              {diceEnabled && battleStarted && selectedCharacter && userConstructs.length > 0 && (
+                <TooltipProvider>
+                  <ConstructPanel
+                    constructs={userConstructs}
+                    characterId={selectedCharacter.id}
+                    concentrationUsesRemaining={concentrationUses[selectedCharacter.id] ?? 3}
+                    onRepairConstruct={handleConstructRepair}
+                    disabled={isLoading || !!pendingHit}
+                  />
+                </TooltipProvider>
               )}
 
               {/* Concentration Button when pending hit - above input for visibility */}
