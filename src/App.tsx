@@ -65,7 +65,7 @@ const App = () => (
               <Route path="/stories" element={<Stories />} />
               <Route path="/teams" element={<Teams />} />
               <Route path="/settings" element={<Settings />} />
-              <Route path="/admin" element={<ProtectedRoute requireModerator><Admin /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
