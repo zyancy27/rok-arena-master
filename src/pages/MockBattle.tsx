@@ -54,6 +54,7 @@ import ConstructDiceMessage from '@/components/battles/ConstructDiceMessage';
 import TurnIndicatorWrapper from '@/components/battles/TurnIndicatorWrapper';
 import BattleTurnColorPicker from '@/components/battles/BattleTurnColorPicker';
 import BattlefieldEffectsOverlay from '@/components/battles/BattlefieldEffectsOverlay';
+import EnvironmentChatBackground from '@/components/battles/EnvironmentChatBackground';
 import { CharacterStatusOverlay } from '@/components/battles/CharacterStatusOverlay';
 import { useBattleTurnColor } from '@/hooks/use-battle-turn-color';
 import { useBattlefieldEffects } from '@/components/battles/useBattlefieldEffects';
@@ -3479,6 +3480,7 @@ export default function MockBattle() {
                     userTurnColor={userTurnColor}
                     battlefieldEffects={battlefieldEffects}
                     userCharacterName={selectedCharacter?.name}
+                    battleLocation={battleLocation}
                   />
                 </TabsContent>
                 <TabsContent value="out_of_universe" className="mt-0">
@@ -3671,6 +3673,7 @@ function MessageArea({
   userTurnColor,
   battlefieldEffects = [],
   userCharacterName,
+  battleLocation,
 }: { 
   messages: Message[]; 
   diceRollMessages?: DiceRollMessage[];
@@ -3683,6 +3686,7 @@ function MessageArea({
   userTurnColor?: string;
   battlefieldEffects?: ActiveBattlefieldEffect[];
   userCharacterName?: string;
+  battleLocation?: string;
 }) {
   return (
     <TurnIndicatorWrapper
@@ -3691,7 +3695,12 @@ function MessageArea({
       opponentColor="#EF4444"
     >
       <div className="relative">
-        {/* Battlefield Effects Overlay - only on in-universe chat */}
+        {/* Persistent Environment Background tied to battle location */}
+        {isInUniverse && battleLocation && (
+          <EnvironmentChatBackground location={battleLocation} />
+        )}
+        
+        {/* Battlefield Effects Overlay - temporary message-triggered effects */}
         {isInUniverse && battlefieldEffects.length > 0 && (
           <BattlefieldEffectsOverlay effects={battlefieldEffects} />
         )}
