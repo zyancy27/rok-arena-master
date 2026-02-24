@@ -918,6 +918,125 @@
     animation: env-blood-throb 4s ease-in-out infinite;
   }
 
+  /* Black hole gravitational pull */
+  @keyframes env-blackhole-spin {
+    0% { transform: rotate(0deg) scale(1); opacity: 0.3; }
+    50% { transform: rotate(180deg) scale(1.05); opacity: 0.5; }
+    100% { transform: rotate(360deg) scale(1); opacity: 0.3; }
+  }
+  .env-blackhole-pull {
+    background: conic-gradient(from 0deg at 50% 50%, hsl(270 60% 15% / 0.2) 0%, transparent 30%, hsl(280 50% 20% / 0.15) 50%, transparent 70%, hsl(270 60% 15% / 0.2) 100%);
+    animation: env-blackhole-spin 10s linear infinite;
+  }
+
+  /* Dreamscape floating shimmer */
+  @keyframes env-dream-float {
+    0%, 100% { transform: translateY(0) scale(1); opacity: 0.15; }
+    33% { transform: translateY(-8px) scale(1.02); opacity: 0.25; }
+    66% { transform: translateY(4px) scale(0.98); opacity: 0.18; }
+  }
+  .env-dream-float {
+    background: radial-gradient(ellipse at 30% 40%, hsl(280 60% 50% / 0.1) 0%, transparent 40%),
+                radial-gradient(ellipse at 70% 60%, hsl(200 50% 60% / 0.08) 0%, transparent 35%);
+    animation: env-dream-float 8s ease-in-out infinite;
+  }
+
+  /* Dreamscape soft particles */
+  @keyframes env-dream-particle {
+    0% { transform: translateY(0) scale(0.8); opacity: 0; }
+    30% { opacity: 0.4; }
+    70% { opacity: 0.3; }
+    100% { transform: translateY(-50px) scale(1.2); opacity: 0; }
+  }
+  .env-dream-particles {
+    overflow: hidden;
+  }
+  .env-dream-particles::before,
+  .env-dream-particles::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, hsl(280 70% 70% / 0.3) 0%, transparent 70%);
+    animation: env-dream-particle 5s ease-in-out infinite;
+  }
+  .env-dream-particles::before { bottom: 20%; left: 20%; width: 5px; height: 5px; }
+  .env-dream-particles::after { bottom: 30%; left: 65%; width: 4px; height: 4px; animation-delay: 2s; }
+
+  /* Electric crackle */
+  @keyframes env-electric-flash {
+    0%, 85%, 100% { opacity: 0.1; }
+    86% { opacity: 0.6; }
+    88% { opacity: 0.05; }
+    90% { opacity: 0.5; }
+  }
+  .env-electric-crackle {
+    background:
+      linear-gradient(30deg, transparent 48%, hsl(200 100% 70% / 0.15) 49%, hsl(200 100% 70% / 0.15) 51%, transparent 52%),
+      linear-gradient(-60deg, transparent 48%, hsl(180 100% 60% / 0.1) 49%, hsl(180 100% 60% / 0.1) 51%, transparent 52%);
+    animation: env-electric-flash 2s ease-in-out infinite;
+  }
+
+  /* Emergency red pulse */
+  @keyframes env-emergency-pulse {
+    0%, 100% { opacity: 0.05; }
+    50% { opacity: 0.2; }
+  }
+  .env-emergency-pulse {
+    background: hsl(0 80% 40% / 0.1);
+    animation: env-emergency-pulse 1.5s ease-in-out infinite;
+  }
+
+  /* Tremor screen shake */
+  @keyframes env-tremor {
+    0%, 100% { transform: translate(0, 0); }
+    10% { transform: translate(-1px, 1px); }
+    30% { transform: translate(1px, -1px); }
+    50% { transform: translate(-1px, 0); }
+    70% { transform: translate(1px, 1px); }
+    90% { transform: translate(0, -1px); }
+  }
+  .env-tremor-shake {
+    animation: env-tremor 0.5s ease-in-out infinite;
+  }
+
+  /* Chat box urgency animations */
+  @keyframes env-chat-urgency-pulse {
+    0%, 100% { box-shadow: inset 0 0 0 1px hsl(0 70% 50% / 0.2); }
+    50% { box-shadow: inset 0 0 8px 1px hsl(0 70% 50% / 0.35); }
+  }
+  .env-urgency-pulse {
+    animation: env-chat-urgency-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes env-chat-urgency-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-1px); }
+    75% { transform: translateX(1px); }
+  }
+  .env-urgency-shake {
+    animation: env-chat-urgency-shake 0.3s ease-in-out infinite;
+  }
+
+  @keyframes env-chat-urgency-flicker {
+    0%, 90%, 100% { opacity: 1; }
+    92% { opacity: 0.7; }
+    94% { opacity: 1; }
+    96% { opacity: 0.6; }
+  }
+  .env-urgency-flicker {
+    animation: env-chat-urgency-flicker 2s ease-in-out infinite;
+  }
+
+  @keyframes env-chat-urgency-glitch {
+    0%, 88%, 100% { transform: translateX(0); }
+    89% { transform: translateX(2px); }
+    91% { transform: translateX(-2px); }
+    93% { transform: translateX(1px); }
+  }
+  .env-urgency-glitch {
+    animation: env-chat-urgency-glitch 3s ease-in-out infinite;
+  }
+
   /* === PREFERS REDUCED MOTION === */
   @media (prefers-reduced-motion: reduce) {
     .battlefield-fire-particles,
@@ -956,7 +1075,18 @@
     .env-floating-drift,
     .env-mirror-fracture,
     .env-mirror-reflect,
-    .env-blood-pulse {
+    .env-blood-pulse,
+    .env-blackhole-pull,
+    .env-dream-float,
+    .env-dream-particles::before,
+    .env-dream-particles::after,
+    .env-electric-crackle,
+    .env-emergency-pulse,
+    .env-tremor-shake,
+    .env-urgency-pulse,
+    .env-urgency-shake,
+    .env-urgency-flicker,
+    .env-urgency-glitch {
       animation: none !important;
     }
 

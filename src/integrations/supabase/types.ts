@@ -864,6 +864,39 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_battle_themes: {
+        Row: {
+          composition: Json
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          tags: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          composition?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          tags?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          composition?: Json
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          tags?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       solar_systems: {
         Row: {
           created_at: string
