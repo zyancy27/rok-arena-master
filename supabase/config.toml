@@ -23,3 +23,6 @@ verify_jwt = true
 
 [functions.detect-new-technique]
 verify_jwt = false
+
+[functions.generate-emergency-location]
+verify_jwt = false
