@@ -485,6 +485,45 @@ export type Database = {
           },
         ]
       }
+      custom_battle_locations: {
+        Row: {
+          countdown_seconds: number | null
+          created_at: string
+          description: string | null
+          hazard_description: string | null
+          id: string
+          is_emergency: boolean | null
+          name: string
+          tags: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          countdown_seconds?: number | null
+          created_at?: string
+          description?: string | null
+          hazard_description?: string | null
+          id?: string
+          is_emergency?: boolean | null
+          name: string
+          tags?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          countdown_seconds?: number | null
+          created_at?: string
+          description?: string | null
+          hazard_description?: string | null
+          id?: string
+          is_emergency?: boolean | null
+          name?: string
+          tags?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       friendships: {
         Row: {
           addressee_id: string

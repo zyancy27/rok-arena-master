@@ -152,7 +152,7 @@ export default function BattleSimulation({ characters }: BattleSimulationProps) 
           EvE Battle
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col [&_[data-radix-scroll-area-viewport]]:!overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Swords className="h-5 w-5 text-primary" />
@@ -264,7 +264,7 @@ export default function BattleSimulation({ characters }: BattleSimulationProps) 
 
           {/* Simulation Results */}
           {result && (
-            <ScrollArea className="flex-1 min-h-[300px] max-h-[50vh] border rounded-lg">
+            <ScrollArea className="flex-1 min-h-[300px] max-h-[50vh] border rounded-lg scrollbar-thin">
               <div className="p-4 space-y-3">
                 {result.turns.slice(0, currentTurn + 1).map((turn, index) => {
                   const char = getCharacterForTurn(turn);

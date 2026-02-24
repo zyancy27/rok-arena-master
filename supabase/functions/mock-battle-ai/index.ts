@@ -45,6 +45,13 @@ interface BattleRequest {
   userGoesFirst?: boolean;
   isFirstMove?: boolean;
   characterStoryLore?: string;
+  occCorrections?: string[];
+  emergencyLocation?: {
+    name: string;
+    hazards: string;
+    urgency: string;
+    countdownTurns: number;
+  };
 }
 
 serve(async (req) => {
@@ -101,6 +108,8 @@ serve(async (req) => {
       userGoesFirst,
       isFirstMove,
       characterStoryLore,
+      occCorrections,
+      emergencyLocation,
     } = requestData;
 
     // Input validation
@@ -206,6 +215,35 @@ INSTRUCTIONS: Reference this lore when appropriate - mention past events, use es
       firstMoveContext = `\n\nFIRST MOVE: The initiative roll determined that YOU (${opponent.name}) strike first! Open with an aggressive action or tactical positioning. The opponent must react to your opening move.`;
     }
 
+    // OCC Corrections — user corrections to character behavior mid-battle
+    let occCorrectionContext = '';
+    if (occCorrections && occCorrections.length > 0) {
+      occCorrectionContext = `\n\nOCC CORRECTIONS (MUST FOLLOW — these override default behavior):
+${occCorrections.map((c: string, i: number) => `${i + 1}. ${c}`).join('\n')}
+
+You MUST obey these corrections for the remainder of the battle. They modify what moves are valid, how characters fight, and what abilities they have. If a correction says a character cannot do something, DO NOT do it. If it says a character fights a certain way, ADOPT that fighting style.`;
+    }
+
+    // Emergency location context
+    let emergencyLocationContext = '';
+    if (emergencyLocation) {
+      emergencyLocationContext = `\n\nEMERGENCY BATTLE LOCATION: ${emergencyLocation.name}
+Hazards: ${emergencyLocation.hazards}
+Urgency: ${emergencyLocation.urgency}
+Countdown: ${emergencyLocation.countdownTurns} turns remain before catastrophic failure.
+The environment is actively trying to kill both fighters. Weave environmental danger into every action. The crisis escalates each turn.`;
+    }
+
+    // AI Hit Verification context
+    const hitVerificationContext = `\n\nHIT VERIFICATION — CRITICAL:
+Before describing damage to ${userCharacter.name}, you MUST verify:
+1. Was it actually an attack? (Not movement, not environmental interaction, not positioning)
+2. Was the attack physically possible given your character's abilities?
+3. Could the opponent have dodged, blocked, or deflected based on their abilities and position?
+4. Don't auto-hit — describe the ATTEMPT and let the dice system determine the outcome
+5. If the user's action is ambiguous (could be attack or movement), treat it as the less aggressive option
+6. Never register false damage — a glancing blow is NOT a direct hit`;
+
     const systemPrompt = channel === 'in_universe'
       ? `You are roleplaying as ${opponent.name}, a ${(opponent.personality || '').slice(0, 500)}
 
@@ -218,7 +256,7 @@ ${opponent.skill ? `- Skill Proficiency: ${opponent.skill}/100` : ''}
 You are in a practice battle against ${userCharacter.name} (Tier ${userCharacter.level}).
 Their powers: ${sanitizedPowers || 'Unknown'}
 Their abilities: ${sanitizedAbilities || 'Unknown'}
-Their skill: ${userCharacter.skill || 50}/100${characterPersonalityContext}${locationContext}${storyLoreContext}${firstMoveContext}
+Their skill: ${userCharacter.skill || 50}/100${characterPersonalityContext}${locationContext}${storyLoreContext}${firstMoveContext}${occCorrectionContext}${emergencyLocationContext}${hitVerificationContext}
 
 WRITING STYLE - CRITICAL:
 - Write naturally and organically. No over-the-top theatrics.

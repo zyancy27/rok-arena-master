@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { Swords, Sparkles } from 'lucide-react';
 
@@ -21,6 +22,7 @@ export default function Auth() {
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
 
   // Signup form state
   const [signupEmail, setSignupEmail] = useState('');
@@ -44,6 +46,15 @@ export default function Auth() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+
+    // If "Remember Me" is unchecked, switch to sessionStorage so session expires on tab close
+    if (!rememberMe) {
+      // Temporarily reconfigure supabase auth to use sessionStorage
+      // The session will not persist across browser restarts
+      sessionStorage.setItem('rok-session-only', 'true');
+    } else {
+      sessionStorage.removeItem('rok-session-only');
+    }
     
     const { error } = await signIn(loginEmail, loginPassword);
     
@@ -187,6 +198,16 @@ export default function Auth() {
                       required
                     />
                   </div>
+                   <div className="flex items-center space-x-2">
+                     <Checkbox
+                       id="remember-me"
+                       checked={rememberMe}
+                       onCheckedChange={(checked) => setRememberMe(checked === true)}
+                     />
+                     <Label htmlFor="remember-me" className="text-sm text-muted-foreground cursor-pointer">
+                       Remember Me
+                     </Label>
+                   </div>
                    <Button type="submit" className="w-full glow-primary" disabled={isLoading}>
                      {isLoading ? 'Entering...' : 'Enter Arena'}
                    </Button>

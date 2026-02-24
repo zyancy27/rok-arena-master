@@ -102,6 +102,8 @@ import {
   type AdaptiveStrategy,
 } from '@/lib/battle-ai-adaptation';
 import BattleOnboarding, { isOnboardingComplete, resetOnboarding } from '@/components/battles/BattleOnboarding';
+import EmergencyLocationGenerator from '@/components/battles/EmergencyLocationGenerator';
+import SaveLocationPrompt from '@/components/battles/SaveLocationPrompt';
 import {
   createChargeState,
   detectChargeInitiation,
@@ -1173,6 +1175,22 @@ export default function MockBattle() {
   const [arenaModifiers] = useState<ActiveArenaModifiers>(() => getActiveArenaModifiers());
   const [arenaModifiersEnabled, setArenaModifiersEnabled] = useState(true);
   
+  // OCC Chat AI Corrections — user-defined behavior overrides
+  const [occCorrections, setOccCorrections] = useState<string[]>([]);
+  
+  // Emergency location state
+  const [emergencyLocation, setEmergencyLocation] = useState<{
+    name: string;
+    description: string;
+    hazards: string;
+    urgency: string;
+    countdownTurns: number;
+    tags: string[];
+  } | null>(null);
+  
+  // Save location prompt
+  const [showSaveLocationPrompt, setShowSaveLocationPrompt] = useState(false);
+  
   // Battle SFX engine
   const { muted: sfxMuted, toggleMute: toggleSfxMute, processText: processSfxText, playEvent: playSfxEvent } = useBattleSfx({ enabled: battleStarted });
   
@@ -2047,6 +2065,22 @@ export default function MockBattle() {
   const sendMessage = async () => {
     if (!input.trim() || !selectedCharacter || isLoading || pendingHit || pendingOffensiveHit) return;
 
+    // OCC Correction Detection — if OOC channel, check for correction patterns
+    if (activeChannel === 'out_of_universe') {
+      const correctionPatterns = [
+        /cannot|can't|doesn't have|don't have|unable to|incapable of/i,
+        /fights?\s+(defensively|aggressively|cautiously|recklessly)/i,
+        /that (?:was|is|should be)\s+(?:movement|an? attack|repositioning|environmental)/i,
+        /not an? attack/i,
+        /correct(?:ion)?|fix|adjust|modify/i,
+      ];
+      const isCorrection = correctionPatterns.some(p => p.test(input));
+      if (isCorrection) {
+        setOccCorrections(prev => [...prev, input.trim()]);
+        toast.info('AI behavior updated based on your correction', { duration: 3000 });
+      }
+    }
+
     // Capture status effects snapshot for in-universe messages
     const snapshot: StatusEffectsSnapshot = {};
     if (activeChannel === 'in_universe') {
@@ -2436,6 +2470,13 @@ export default function MockBattle() {
           userGoesFirst,
           isFirstMove: false,
           characterStoryLore: characterStoryLore || undefined,
+          occCorrections: occCorrections.length > 0 ? occCorrections : undefined,
+          emergencyLocation: emergencyLocation ? {
+            name: emergencyLocation.name,
+            hazards: emergencyLocation.hazards,
+            urgency: emergencyLocation.urgency,
+            countdownTurns: emergencyLocation.countdownTurns,
+          } : undefined,
         },
       });
 
@@ -2551,6 +2592,11 @@ export default function MockBattle() {
   };
 
   const resetBattle = () => {
+    // Prompt to save location if one was used
+    if (battleLocation.trim() && battleStarted) {
+      setShowSaveLocationPrompt(true);
+    }
+    
     setMessages([]);
     setBattleStarted(false);
     setBattleLocation('');
@@ -2589,6 +2635,9 @@ export default function MockBattle() {
     // Reset Phase 3 adaptive AI
     setPlayerPattern(createPlayerPattern());
     setAdaptiveStrategy(null);
+    // Reset OCC corrections and emergency location
+    setOccCorrections([]);
+    setEmergencyLocation(null);
     // Clear PvE battle from localStorage
     localStorage.removeItem('pveBattleSession');
     if (selectedCharacter) {
@@ -2615,6 +2664,16 @@ export default function MockBattle() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      {/* Save Location Prompt */}
+      <SaveLocationPrompt
+        open={showSaveLocationPrompt}
+        onOpenChange={setShowSaveLocationPrompt}
+        locationName={emergencyLocation?.name || battleLocation}
+        locationDescription={emergencyLocation?.description}
+        isEmergency={!!emergencyLocation}
+        hazardDescription={emergencyLocation?.hazards}
+        initialTags={emergencyLocation?.tags || []}
+      />
       {/* Battle Onboarding Modal */}
       {showOnboarding && (
         <BattleOnboarding
@@ -3111,7 +3170,22 @@ export default function MockBattle() {
                   </div>
                 )}
 
-                {/* Environment Effects Toggle */}
+                {/* AI Emergency Location Generator */}
+                <EmergencyLocationGenerator
+                  character1Name={selectedCharacter?.name}
+                  character2Name={currentOpponent?.name}
+                  battleType="PvE"
+                  onLocationGenerated={(loc) => {
+                    setEmergencyLocation(loc);
+                    setBattleLocation(loc.name);
+                  }}
+                  onSaveLocation={(loc) => {
+                    setEmergencyLocation(loc);
+                    setShowSaveLocationPrompt(true);
+                  }}
+                />
+
+
                 <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border">
                   <div className="flex items-center gap-3">
                     <Zap className="w-5 h-5 text-amber-500" />

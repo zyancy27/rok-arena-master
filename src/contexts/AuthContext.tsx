@@ -119,6 +119,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await supabase.auth.signOut();
     setProfile(null);
     setRoles([]);
+    // Clear session-only flag on logout
+    sessionStorage.removeItem('rok-session-only');
   };
 
   const isAdmin = roles.some(r => r.role === 'admin');
