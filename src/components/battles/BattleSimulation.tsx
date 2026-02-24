@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Loader2, Play, Swords, Sparkles } from 'lucide-react';
+import EmergencyLocationGenerator from '@/components/battles/EmergencyLocationGenerator';
+import SaveLocationPrompt from '@/components/battles/SaveLocationPrompt';
 
 interface Character {
   id: string;
@@ -47,6 +49,8 @@ export default function BattleSimulation({ characters }: BattleSimulationProps) 
   const [currentTurn, setCurrentTurn] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [emergencyLocation, setEmergencyLocation] = useState<any>(null);
+  const [showSaveLocationPrompt, setShowSaveLocationPrompt] = useState(false);
 
   const character1 = characters.find(c => c.id === character1Id);
   const character2 = characters.find(c => c.id === character2Id);
@@ -234,6 +238,20 @@ export default function BattleSimulation({ characters }: BattleSimulationProps) 
             </div>
           </div>
 
+          {/* AI Emergency Location Generator */}
+          <EmergencyLocationGenerator
+            character1Name={character1?.name}
+            character2Name={character2?.name}
+            battleType="EvE"
+            onLocationGenerated={(loc) => {
+              setEmergencyLocation(loc);
+            }}
+            onSaveLocation={(loc) => {
+              setEmergencyLocation(loc);
+              setShowSaveLocationPrompt(true);
+            }}
+          />
+
           {/* Action Buttons */}
           <div className="flex gap-2">
             <Button 
@@ -328,6 +346,18 @@ export default function BattleSimulation({ characters }: BattleSimulationProps) 
           )}
         </div>
       </DialogContent>
+
+      {/* Save Location Prompt */}
+      <SaveLocationPrompt
+        open={showSaveLocationPrompt}
+        onOpenChange={setShowSaveLocationPrompt}
+        locationName={emergencyLocation?.name || ''}
+        locationDescription={emergencyLocation?.description}
+        isEmergency={!!emergencyLocation}
+        hazardDescription={emergencyLocation?.hazards}
+        countdownSeconds={emergencyLocation?.countdownTurns ? emergencyLocation.countdownTurns * 60 : undefined}
+        initialTags={emergencyLocation?.tags || []}
+      />
     </Dialog>
   );
 }

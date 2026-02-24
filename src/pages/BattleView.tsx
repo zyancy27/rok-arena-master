@@ -84,6 +84,8 @@ import { useBattlefieldEffects } from '@/components/battles/useBattlefieldEffect
 import { useCharacterStatusEffects } from '@/hooks/use-character-status-effects';
 import { detectCharacterStatusEffects } from '@/lib/character-status-effects';
 import { shouldSuppressStatus } from '@/lib/battlefield-effects';
+import EmergencyLocationGenerator from '@/components/battles/EmergencyLocationGenerator';
+import SaveLocationPrompt from '@/components/battles/SaveLocationPrompt';
 import {
   ArrowLeft,
   Send,
@@ -295,6 +297,10 @@ export default function BattleView() {
     enabled: battle?.status === 'active',
   });
   
+  // Emergency location state
+  const [emergencyLocation, setEmergencyLocation] = useState<any>(null);
+  const [showSaveLocationPrompt, setShowSaveLocationPrompt] = useState(false);
+
   // Battle narrator state
   const [narratorFrequency, setNarratorFrequency] = useState<NarratorFrequency>('key_moments');
   const [narratorMessages, setNarratorMessages] = useState<Array<{ id: string; content: string; timestamp: Date }>>([]);
@@ -1760,6 +1766,21 @@ export default function BattleView() {
               </div>
             )}
 
+            {/* AI Emergency Location Generator */}
+            <EmergencyLocationGenerator
+              character1Name={participants[0]?.character?.name}
+              character2Name={participants[1]?.character?.name}
+              battleType="PvP"
+              onLocationGenerated={(loc) => {
+                setEmergencyLocation(loc);
+                setLocationInput(loc.name);
+              }}
+              onSaveLocation={(loc) => {
+                setEmergencyLocation(loc);
+                setShowSaveLocationPrompt(true);
+              }}
+            />
+
             {/* Coin flip when both locations are set */}
             {battle.location_1 && battle.location_2 && !battle.chosen_location && (
               <div className="text-center space-y-4 py-4">
@@ -2485,6 +2506,17 @@ export default function BattleView() {
           </AlertDialog>
         </div>
       )}
+      {/* Save Location Prompt */}
+      <SaveLocationPrompt
+        open={showSaveLocationPrompt}
+        onOpenChange={setShowSaveLocationPrompt}
+        locationName={emergencyLocation?.name || battle?.chosen_location || ''}
+        locationDescription={emergencyLocation?.description}
+        isEmergency={!!emergencyLocation}
+        hazardDescription={emergencyLocation?.hazards}
+        countdownSeconds={emergencyLocation?.countdownTurns ? emergencyLocation.countdownTurns * 60 : undefined}
+        initialTags={emergencyLocation?.tags || []}
+      />
     </div>
   );
 }
