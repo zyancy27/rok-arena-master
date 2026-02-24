@@ -21,6 +21,10 @@ export type EnvironmentTheme =
   | 'timerift'
   | 'toxic'
   | 'inferno'
+  | 'underwatervolcano'
+  | 'floatingislands'
+  | 'mirrordimension'
+  | 'bloodmoon'
   | 'neutral';
 
 interface EnvironmentChatBackgroundProps {
@@ -56,6 +60,10 @@ export function detectEnvironmentTheme(location: string | null | undefined): Env
   if (/time.*rift|temporal|chrono|warp.*zone|dimension.*shift|paradox|flux/.test(l)) return 'timerift';
   if (/toxic|chem|acid|sewer|waste.*dump|pollut|contamin|biohazard|sludge/.test(l)) return 'toxic';
   if (/inferno|hell|flame|purg|burn.*world|fire.*realm|scorch|blaze|furnace/.test(l)) return 'inferno';
+  if (/underwat.*volcan|hydrothermal|deep.*vent|submar.*volcan|ocean.*erupt/.test(l)) return 'underwatervolcano';
+  if (/float.*island|sky.*island|drift.*land|levitat.*rock|air.*island|cloud.*island/.test(l)) return 'floatingislands';
+  if (/mirror.*dim|reflect.*realm|looking.*glass|mirror.*world|shatter.*reality|kaleidoscope/.test(l)) return 'mirrordimension';
+  if (/blood.*moon|crimson.*moon|red.*moon|lunar.*eclipse|harvest.*moon/.test(l)) return 'bloodmoon';
 
   return 'neutral';
 }
@@ -126,6 +134,14 @@ function ThemeRenderer({ theme }: { theme: EnvironmentTheme }) {
       return <ToxicTheme />;
     case 'inferno':
       return <InfernoTheme />;
+    case 'underwatervolcano':
+      return <UnderwaterVolcanoTheme />;
+    case 'floatingislands':
+      return <FloatingIslandsTheme />;
+    case 'mirrordimension':
+      return <MirrorDimensionTheme />;
+    case 'bloodmoon':
+      return <BloodMoonTheme />;
     default:
       return null;
   }
@@ -467,6 +483,96 @@ function InfernoTheme() {
         style={{
           boxShadow:
             'inset 0 -50px 80px -20px hsl(10 100% 45% / 0.25), inset 0 0 30px hsl(0 80% 30% / 0.15)',
+        }}
+      />
+    </>
+  );
+}
+
+function UnderwaterVolcanoTheme() {
+  return (
+    <>
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'linear-gradient(to top, hsl(15 80% 25% / 0.35) 0%, hsl(200 50% 25% / 0.3) 40%, hsl(210 60% 20% / 0.35) 100%)',
+        }}
+      />
+      <div className="absolute inset-0 env-underwater-caustics" />
+      <div className="absolute inset-0 env-deep-vent-glow" />
+      <div
+        className="absolute inset-0"
+        style={{
+          boxShadow:
+            'inset 0 -50px 70px -20px hsl(15 100% 40% / 0.25), inset 0 0 60px hsl(200 60% 40% / 0.12)',
+        }}
+      />
+    </>
+  );
+}
+
+function FloatingIslandsTheme() {
+  return (
+    <>
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'linear-gradient(to top, hsl(200 50% 70% / 0.08) 0%, hsl(210 60% 75% / 0.15) 30%, hsl(190 40% 80% / 0.1) 60%, hsl(260 30% 60% / 0.08) 100%)',
+        }}
+      />
+      <div className="absolute inset-0 env-floating-drift" />
+      <div className="absolute inset-0 env-wind-streaks" />
+      <div
+        className="absolute inset-0"
+        style={{
+          boxShadow: 'inset 0 40px 80px -30px hsl(210 50% 80% / 0.15)',
+        }}
+      />
+    </>
+  );
+}
+
+function MirrorDimensionTheme() {
+  return (
+    <>
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'conic-gradient(from 45deg at 50% 50%, hsl(200 30% 30% / 0.15) 0%, hsl(280 25% 35% / 0.12) 25%, hsl(0 0% 40% / 0.1) 50%, hsl(180 30% 30% / 0.12) 75%, hsl(200 30% 30% / 0.15) 100%)',
+        }}
+      />
+      <div className="absolute inset-0 env-mirror-fracture" />
+      <div className="absolute inset-0 env-mirror-reflect" />
+      <div
+        className="absolute inset-0"
+        style={{
+          boxShadow: 'inset 0 0 60px hsl(0 0% 80% / 0.08)',
+        }}
+      />
+    </>
+  );
+}
+
+function BloodMoonTheme() {
+  return (
+    <>
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse at 70% 20%, hsl(0 70% 35% / 0.25) 0%, transparent 45%), radial-gradient(ellipse at center, hsl(0 30% 8% / 0.5) 0%, hsl(350 20% 5% / 0.6) 100%)',
+        }}
+      />
+      <div className="absolute inset-0 env-blood-pulse" />
+      <div className="absolute inset-0 env-stars" />
+      <div
+        className="absolute inset-0"
+        style={{
+          boxShadow:
+            'inset 0 0 80px hsl(0 60% 25% / 0.15), inset 0 -30px 60px -10px hsl(350 50% 15% / 0.2)',
         }}
       />
     </>
