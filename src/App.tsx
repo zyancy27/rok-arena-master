@@ -19,6 +19,7 @@ import CharacterList from "@/pages/CharacterList";
 import Battles from "@/pages/Battles";
 import BattleView from "@/pages/BattleView";
 import MockBattle from "@/pages/MockBattle";
+import EvEBattle from "@/pages/EvEBattle";
 import Rules from "@/pages/Rules";
 import Profile from "@/pages/Profile";
 import UserProfile from "@/pages/UserProfile";
@@ -57,6 +58,7 @@ const App = () => (
               <Route path="/characters/:id/edit" element={<EditCharacter />} />
               <Route path="/battles" element={<Battles />} />
               <Route path="/battles/practice" element={<MockBattle />} />
+              <Route path="/battles/simulation" element={<EvEBattle />} />
               <Route path="/battles/:id" element={<BattleView />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/profile/:username" element={<UserProfile />} />

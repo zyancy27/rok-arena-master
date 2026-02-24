@@ -1771,6 +1771,8 @@ export default function BattleView() {
             <EmergencyLocationGenerator
               character1Name={participants[0]?.character?.name}
               character2Name={participants[1]?.character?.name}
+              character1Level={participants[0]?.character?.level}
+              character2Level={participants[1]?.character?.level}
               battleType="PvP"
               onLocationGenerated={(loc) => {
                 setEmergencyLocation(loc);

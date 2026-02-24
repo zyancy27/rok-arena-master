@@ -20,6 +20,8 @@ interface EmergencyLocation {
 interface Props {
   character1Name?: string;
   character2Name?: string;
+  character1Level?: number;
+  character2Level?: number;
   battleType: 'PvE' | 'PvP' | 'EvE';
   onLocationGenerated: (location: EmergencyLocation) => void;
   onSaveLocation?: (location: EmergencyLocation) => void;
@@ -28,6 +30,8 @@ interface Props {
 export default function EmergencyLocationGenerator({
   character1Name,
   character2Name,
+  character1Level,
+  character2Level,
   battleType,
   onLocationGenerated,
   onSaveLocation,
@@ -40,7 +44,7 @@ export default function EmergencyLocationGenerator({
     setIsGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-emergency-location', {
-        body: { character1Name, character2Name, battleType },
+        body: { character1Name, character2Name, battleType, character1Level, character2Level },
       });
 
       if (error) throw error;
