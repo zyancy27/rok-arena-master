@@ -865,6 +865,59 @@
   .env-inferno-embers::before { bottom: 5%; left: 30%; width: 3px; height: 3px; }
   .env-inferno-embers::after { bottom: 10%; left: 70%; width: 2px; height: 2px; animation-delay: 1.2s; animation-duration: 2.5s; }
 
+  /* Underwater Volcano – deep vent glow */
+  @keyframes env-vent-pulse {
+    0%, 100% { opacity: 0.15; transform: scaleY(1); }
+    50% { opacity: 0.35; transform: scaleY(1.15); }
+  }
+  .env-deep-vent-glow {
+    background: radial-gradient(ellipse at 40% 90%, hsl(15 100% 45% / 0.3) 0%, transparent 40%),
+                radial-gradient(ellipse at 65% 85%, hsl(25 90% 40% / 0.2) 0%, transparent 35%);
+    animation: env-vent-pulse 3s ease-in-out infinite;
+  }
+
+  /* Floating Islands – gentle levitation drift */
+  @keyframes env-island-drift {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  .env-floating-drift {
+    background: radial-gradient(ellipse at 25% 55%, hsl(30 20% 40% / 0.08) 0%, transparent 30%),
+                radial-gradient(ellipse at 70% 40%, hsl(30 15% 35% / 0.06) 0%, transparent 25%);
+    animation: env-island-drift 6s ease-in-out infinite;
+  }
+
+  /* Mirror Dimension – fracture lines */
+  @keyframes env-fracture-shift {
+    0% { clip-path: polygon(0% 0%, 45% 0%, 50% 100%, 0% 100%); opacity: 0.06; }
+    33% { clip-path: polygon(20% 0%, 60% 0%, 55% 100%, 15% 100%); opacity: 0.1; }
+    66% { clip-path: polygon(40% 0%, 80% 0%, 75% 100%, 35% 100%); opacity: 0.06; }
+    100% { clip-path: polygon(0% 0%, 45% 0%, 50% 100%, 0% 100%); opacity: 0.06; }
+  }
+  .env-mirror-fracture {
+    background: linear-gradient(135deg, hsl(0 0% 90% / 0.12) 0%, transparent 2%, transparent 48%, hsl(0 0% 90% / 0.08) 50%, transparent 52%);
+    animation: env-fracture-shift 8s ease-in-out infinite;
+  }
+  @keyframes env-reflect-sweep {
+    0% { transform: translateX(-100%) skewX(-15deg); }
+    100% { transform: translateX(200%) skewX(-15deg); }
+  }
+  .env-mirror-reflect {
+    background: linear-gradient(90deg, transparent 0%, hsl(0 0% 100% / 0.06) 50%, transparent 100%);
+    width: 30%;
+    animation: env-reflect-sweep 6s ease-in-out infinite;
+  }
+
+  /* Blood Moon – crimson pulse */
+  @keyframes env-blood-throb {
+    0%, 100% { opacity: 0.12; }
+    50% { opacity: 0.25; }
+  }
+  .env-blood-pulse {
+    background: radial-gradient(ellipse at 70% 20%, hsl(0 80% 40% / 0.2) 0%, transparent 50%);
+    animation: env-blood-throb 4s ease-in-out infinite;
+  }
+
   /* === PREFERS REDUCED MOTION === */
   @media (prefers-reduced-motion: reduce) {
     .battlefield-fire-particles,
@@ -898,7 +951,12 @@
     .env-toxic-bubbles::before,
     .env-toxic-bubbles::after,
     .env-inferno-embers::before,
-    .env-inferno-embers::after {
+    .env-inferno-embers::after,
+    .env-deep-vent-glow,
+    .env-floating-drift,
+    .env-mirror-fracture,
+    .env-mirror-reflect,
+    .env-blood-pulse {
       animation: none !important;
     }
 
