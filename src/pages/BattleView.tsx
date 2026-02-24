@@ -86,6 +86,7 @@ import { detectCharacterStatusEffects } from '@/lib/character-status-effects';
 import { shouldSuppressStatus } from '@/lib/battlefield-effects';
 import EmergencyLocationGenerator from '@/components/battles/EmergencyLocationGenerator';
 import SaveLocationPrompt from '@/components/battles/SaveLocationPrompt';
+import EnvironmentChatBackground from '@/components/battles/EnvironmentChatBackground';
 import {
   ArrowLeft,
   Send,
@@ -1982,7 +1983,10 @@ export default function BattleView() {
                 opponentColor="#EF4444"
               >
                 <div className="relative">
-                  {/* Battlefield Effects Overlay */}
+                  {/* Persistent Environment Background tied to battle location */}
+                  <EnvironmentChatBackground location={battle.chosen_location} />
+                  
+                  {/* Battlefield Effects Overlay (temporary message-triggered) */}
                   {battlefieldEffects.length > 0 && (
                     <BattlefieldEffectsOverlay effects={battlefieldEffects} className="rounded-b-lg" />
                   )}

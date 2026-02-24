@@ -612,6 +612,150 @@
     100% { opacity: 0; transform: scaleY(0.5); }
   }
 
+  /* === PERSISTENT ENVIRONMENT CHAT BACKGROUNDS === */
+
+  /* Lava glow - slow pulsing heat from below */
+  @keyframes env-lava-pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.7; }
+  }
+  .env-lava-glow {
+    background: linear-gradient(to top,
+      hsl(15 100% 40% / 0.2) 0%,
+      hsl(30 90% 45% / 0.08) 40%,
+      transparent 80%);
+    animation: env-lava-pulse 4s ease-in-out infinite;
+  }
+
+  /* Underwater caustics - slow drifting light patterns */
+  @keyframes env-caustic-drift {
+    0% { background-position: 0% 0%; }
+    100% { background-position: 100% 100%; }
+  }
+  .env-underwater-caustics {
+    background-image:
+      radial-gradient(ellipse 40px 30px at 25% 35%, hsl(200 80% 65% / 0.12), transparent),
+      radial-gradient(ellipse 50px 25px at 60% 55%, hsl(190 70% 60% / 0.1), transparent),
+      radial-gradient(ellipse 35px 40px at 80% 25%, hsl(210 60% 70% / 0.08), transparent);
+    background-size: 200% 200%;
+    animation: env-caustic-drift 12s linear infinite;
+  }
+
+  /* Sky / free-fall wind streaks */
+  @keyframes env-wind-streak {
+    0% { transform: translateY(-100%) translateX(-30px); opacity: 0; }
+    20% { opacity: 0.3; }
+    80% { opacity: 0.3; }
+    100% { transform: translateY(100%) translateX(30px); opacity: 0; }
+  }
+  .env-wind-streaks {
+    overflow: hidden;
+  }
+  .env-wind-streaks::before,
+  .env-wind-streaks::after {
+    content: '';
+    position: absolute;
+    width: 1px;
+    height: 60px;
+    background: linear-gradient(to bottom, transparent, hsl(200 40% 70% / 0.3), transparent);
+    animation: env-wind-streak 2s linear infinite;
+  }
+  .env-wind-streaks::before { left: 25%; animation-delay: 0s; }
+  .env-wind-streaks::after { left: 70%; animation-delay: 0.8s; }
+
+  /* Nuclear radiation flicker */
+  @keyframes env-radiation-flicker {
+    0%, 95%, 100% { opacity: 0.15; }
+    96% { opacity: 0.35; }
+    97% { opacity: 0.1; }
+    98% { opacity: 0.4; }
+  }
+  .env-radiation-flicker {
+    background: radial-gradient(ellipse at center, hsl(80 100% 50% / 0.06) 0%, transparent 70%);
+    animation: env-radiation-flicker 3s ease-in-out infinite;
+  }
+
+  /* Space stars - static twinkling dots */
+  .env-stars {
+    background-image:
+      radial-gradient(1px 1px at 10% 15%, hsl(0 0% 100% / 0.5), transparent),
+      radial-gradient(1px 1px at 30% 50%, hsl(0 0% 100% / 0.4), transparent),
+      radial-gradient(1px 1px at 55% 20%, hsl(0 0% 100% / 0.6), transparent),
+      radial-gradient(1px 1px at 70% 70%, hsl(0 0% 100% / 0.3), transparent),
+      radial-gradient(1px 1px at 85% 40%, hsl(0 0% 100% / 0.5), transparent),
+      radial-gradient(1px 1px at 45% 80%, hsl(200 60% 80% / 0.4), transparent),
+      radial-gradient(1.5px 1.5px at 20% 65%, hsl(40 80% 80% / 0.5), transparent),
+      radial-gradient(1px 1px at 90% 10%, hsl(0 0% 100% / 0.4), transparent);
+  }
+
+  /* Blizzard frost overlay */
+  .env-frost-overlay {
+    box-shadow: inset 0 0 30px hsl(200 60% 85% / 0.15);
+  }
+
+  /* Blizzard snow particles */
+  @keyframes env-snow-fall {
+    0% { transform: translateY(-20px) translateX(0); opacity: 0; }
+    10% { opacity: 0.6; }
+    90% { opacity: 0.6; }
+    100% { transform: translateY(calc(100vh)) translateX(20px); opacity: 0; }
+  }
+  .env-snow-particles {
+    overflow: hidden;
+  }
+  .env-snow-particles::before,
+  .env-snow-particles::after {
+    content: '';
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: hsl(200 30% 90% / 0.5);
+    animation: env-snow-fall 5s linear infinite;
+  }
+  .env-snow-particles::before { left: 20%; animation-delay: 0s; animation-duration: 6s; }
+  .env-snow-particles::after { left: 65%; animation-delay: 2s; animation-duration: 4.5s; }
+
+  /* Desert heat shimmer */
+  @keyframes env-shimmer {
+    0%, 100% { transform: scaleY(1); }
+    50% { transform: scaleY(1.01); }
+  }
+  .env-heat-shimmer {
+    backdrop-filter: blur(0.3px);
+    animation: env-shimmer 3s ease-in-out infinite;
+  }
+
+  /* Crystal glint */
+  @keyframes env-glint {
+    0%, 100% { opacity: 0; }
+    50% { opacity: 1; }
+  }
+  .env-crystal-glint {
+    background-image:
+      radial-gradient(2px 2px at 25% 30%, hsl(280 60% 75% / 0.4), transparent),
+      radial-gradient(2px 2px at 65% 55%, hsl(200 70% 80% / 0.3), transparent),
+      radial-gradient(1.5px 1.5px at 45% 75%, hsl(320 50% 70% / 0.35), transparent);
+    animation: env-glint 4s ease-in-out infinite alternate;
+  }
+
+  /* Void distortion */
+  @keyframes env-void-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.02); opacity: 0.8; }
+  }
+  .env-void-distortion {
+    background: radial-gradient(circle at center, hsl(270 40% 15% / 0.3) 0%, transparent 60%);
+    animation: env-void-pulse 6s ease-in-out infinite;
+  }
+
+  /* Storm rain */
+  .env-storm-rain {
+    background-image:
+      linear-gradient(180deg, hsl(220 40% 60% / 0.15) 0%, transparent 40%),
+      linear-gradient(180deg, transparent 60%, hsl(220 30% 50% / 0.1) 100%);
+  }
+
   /* === PREFERS REDUCED MOTION === */
   @media (prefers-reduced-motion: reduce) {
     .battlefield-fire-particles,
@@ -627,7 +771,17 @@
     .battlefield-electric-arcs,
     .battlefield-sand-drift,
     .battlefield-sand-particles,
-    .battlefield-water-caustics {
+    .battlefield-water-caustics,
+    .env-lava-glow,
+    .env-underwater-caustics,
+    .env-wind-streaks::before,
+    .env-wind-streaks::after,
+    .env-radiation-flicker,
+    .env-snow-particles::before,
+    .env-snow-particles::after,
+    .env-heat-shimmer,
+    .env-crystal-glint,
+    .env-void-distortion {
       animation: none !important;
     }
 
