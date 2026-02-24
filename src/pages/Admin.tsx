@@ -150,7 +150,7 @@ export default function Admin() {
     }
   };
 
-  if (!isModerator) {
+  if (!isAdmin) {
     return (
       <div className="text-center py-12">
         <Shield className="w-16 h-16 mx-auto text-muted-foreground mb-4" />

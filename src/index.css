@@ -756,6 +756,115 @@
       linear-gradient(180deg, transparent 60%, hsl(220 30% 50% / 0.1) 100%);
   }
 
+  /* Cyberpunk neon flicker */
+  @keyframes env-neon-flicker {
+    0%, 92%, 100% { opacity: 0.3; }
+    93% { opacity: 0.6; }
+    94% { opacity: 0.2; }
+    95% { opacity: 0.7; }
+    96% { opacity: 0.25; }
+  }
+  .env-neon-flicker {
+    background:
+      linear-gradient(90deg, hsl(300 100% 60% / 0.04) 0%, transparent 30%),
+      linear-gradient(-90deg, hsl(180 100% 55% / 0.04) 0%, transparent 30%);
+    animation: env-neon-flicker 2.5s ease-in-out infinite;
+  }
+
+  /* Cyberpunk scan lines */
+  .env-scan-lines {
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 3px,
+      hsl(0 0% 100% / 0.02) 3px,
+      hsl(0 0% 100% / 0.02) 4px
+    );
+  }
+
+  /* Haunted ghost fog */
+  @keyframes env-ghost-drift {
+    0% { transform: translateX(-5%) translateY(0); opacity: 0.15; }
+    50% { transform: translateX(5%) translateY(-3%); opacity: 0.25; }
+    100% { transform: translateX(-5%) translateY(0); opacity: 0.15; }
+  }
+  .env-ghost-fog {
+    background:
+      radial-gradient(ellipse 120px 60px at 20% 70%, hsl(260 30% 60% / 0.15), transparent),
+      radial-gradient(ellipse 100px 50px at 75% 80%, hsl(240 20% 55% / 0.12), transparent);
+    animation: env-ghost-drift 8s ease-in-out infinite;
+  }
+
+  /* Celestial divine rays */
+  @keyframes env-divine-ray {
+    0%, 100% { opacity: 0.08; }
+    50% { opacity: 0.2; }
+  }
+  .env-divine-rays {
+    background:
+      linear-gradient(160deg, transparent 30%, hsl(45 80% 70% / 0.08) 45%, transparent 60%),
+      linear-gradient(200deg, transparent 40%, hsl(35 70% 65% / 0.06) 55%, transparent 70%);
+    animation: env-divine-ray 6s ease-in-out infinite;
+  }
+
+  /* Time rift glitch */
+  @keyframes env-time-glitch {
+    0%, 90%, 100% { transform: translateX(0); opacity: 0.15; }
+    91% { transform: translateX(2px); opacity: 0.4; }
+    92% { transform: translateX(-3px); opacity: 0.1; }
+    93% { transform: translateX(1px); opacity: 0.35; }
+    94% { transform: translateX(0); opacity: 0.15; }
+  }
+  .env-time-glitch {
+    background:
+      linear-gradient(0deg,
+        hsl(180 50% 50% / 0.04) 0%,
+        transparent 20%,
+        hsl(50 50% 50% / 0.03) 50%,
+        transparent 80%,
+        hsl(300 40% 50% / 0.04) 100%);
+    animation: env-time-glitch 4s ease-in-out infinite;
+  }
+
+  /* Toxic bubbles */
+  @keyframes env-toxic-bubble {
+    0% { transform: translateY(0) scale(1); opacity: 0.4; }
+    100% { transform: translateY(-40px) scale(0.6); opacity: 0; }
+  }
+  .env-toxic-bubbles {
+    overflow: hidden;
+  }
+  .env-toxic-bubbles::before,
+  .env-toxic-bubbles::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, hsl(90 80% 45% / 0.3) 0%, transparent 70%);
+    animation: env-toxic-bubble 3.5s ease-out infinite;
+  }
+  .env-toxic-bubbles::before { bottom: 10%; left: 25%; width: 6px; height: 6px; }
+  .env-toxic-bubbles::after { bottom: 5%; left: 60%; width: 4px; height: 4px; animation-delay: 1.5s; }
+
+  /* Inferno rising embers */
+  @keyframes env-ember-rise {
+    0% { transform: translateY(0) scale(1); opacity: 0.6; }
+    50% { opacity: 0.8; }
+    100% { transform: translateY(-60px) scale(0.3); opacity: 0; }
+  }
+  .env-inferno-embers {
+    overflow: hidden;
+  }
+  .env-inferno-embers::before,
+  .env-inferno-embers::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: hsl(25 100% 55% / 0.6);
+    animation: env-ember-rise 3s ease-out infinite;
+  }
+  .env-inferno-embers::before { bottom: 5%; left: 30%; width: 3px; height: 3px; }
+  .env-inferno-embers::after { bottom: 10%; left: 70%; width: 2px; height: 2px; animation-delay: 1.2s; animation-duration: 2.5s; }
+
   /* === PREFERS REDUCED MOTION === */
   @media (prefers-reduced-motion: reduce) {
     .battlefield-fire-particles,
@@ -781,7 +890,15 @@
     .env-snow-particles::after,
     .env-heat-shimmer,
     .env-crystal-glint,
-    .env-void-distortion {
+    .env-void-distortion,
+    .env-neon-flicker,
+    .env-ghost-fog,
+    .env-divine-rays,
+    .env-time-glitch,
+    .env-toxic-bubbles::before,
+    .env-toxic-bubbles::after,
+    .env-inferno-embers::before,
+    .env-inferno-embers::after {
       animation: none !important;
     }
 

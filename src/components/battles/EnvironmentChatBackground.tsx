@@ -15,6 +15,12 @@ export type EnvironmentTheme =
   | 'void'
   | 'storm'
   | 'ruins'
+  | 'cyberpunk'
+  | 'haunted'
+  | 'celestial'
+  | 'timerift'
+  | 'toxic'
+  | 'inferno'
   | 'neutral';
 
 interface EnvironmentChatBackgroundProps {
@@ -44,6 +50,12 @@ export function detectEnvironmentTheme(location: string | null | undefined): Env
   if (/void|dimension.*tear|collaps|rift|dark.*realm|shadow.*realm|nether/.test(l)) return 'void';
   if (/storm|thunder|lightning|hurricane|tornado|cyclone|tempest/.test(l)) return 'storm';
   if (/ruin|temple|ancient|colosseum|arena|fortress|castle|citadel/.test(l)) return 'ruins';
+  if (/cyber|neon|city|urban|street|downtown|metro|punk|hacker|digital/.test(l)) return 'cyberpunk';
+  if (/haunt|ghost|spirit|phantom|graveyard|cemetery|crypt|spectral|wraith/.test(l)) return 'haunted';
+  if (/celest|heaven|divine|holy|ethereal|angel|paradise|sacred|empyrean/.test(l)) return 'celestial';
+  if (/time.*rift|temporal|chrono|warp.*zone|dimension.*shift|paradox|flux/.test(l)) return 'timerift';
+  if (/toxic|chem|acid|sewer|waste.*dump|pollut|contamin|biohazard|sludge/.test(l)) return 'toxic';
+  if (/inferno|hell|flame|purg|burn.*world|fire.*realm|scorch|blaze|furnace/.test(l)) return 'inferno';
 
   return 'neutral';
 }
@@ -102,6 +114,18 @@ function ThemeRenderer({ theme }: { theme: EnvironmentTheme }) {
       return <StormTheme />;
     case 'ruins':
       return <RuinsTheme />;
+    case 'cyberpunk':
+      return <CyberpunkTheme />;
+    case 'haunted':
+      return <HauntedTheme />;
+    case 'celestial':
+      return <CelestialTheme />;
+    case 'timerift':
+      return <TimeRiftTheme />;
+    case 'toxic':
+      return <ToxicTheme />;
+    case 'inferno':
+      return <InfernoTheme />;
     default:
       return null;
   }
@@ -312,6 +336,137 @@ function RuinsTheme() {
         className="absolute inset-0"
         style={{
           boxShadow: 'inset 0 0 60px hsl(30 20% 10% / 0.2)',
+        }}
+      />
+    </>
+  );
+}
+
+function CyberpunkTheme() {
+  return (
+    <>
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'linear-gradient(to bottom, hsl(260 40% 10% / 0.4) 0%, hsl(300 30% 8% / 0.3) 50%, hsl(180 50% 10% / 0.35) 100%)',
+        }}
+      />
+      <div className="absolute inset-0 env-neon-flicker" />
+      <div className="absolute inset-0 env-scan-lines" />
+      <div
+        className="absolute inset-0"
+        style={{
+          boxShadow:
+            'inset 0 0 40px hsl(300 80% 50% / 0.1), inset 0 0 80px hsl(180 80% 50% / 0.08)',
+        }}
+      />
+    </>
+  );
+}
+
+function HauntedTheme() {
+  return (
+    <>
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse at 50% 80%, hsl(260 20% 15% / 0.4) 0%, hsl(240 15% 5% / 0.5) 60%, hsl(0 0% 0% / 0.6) 100%)',
+        }}
+      />
+      <div className="absolute inset-0 env-ghost-fog" />
+      <div
+        className="absolute inset-0"
+        style={{
+          boxShadow: 'inset 0 0 60px hsl(260 30% 30% / 0.15)',
+        }}
+      />
+    </>
+  );
+}
+
+function CelestialTheme() {
+  return (
+    <>
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse at center, hsl(45 60% 70% / 0.1) 0%, hsl(30 40% 50% / 0.06) 40%, hsl(220 20% 10% / 0.15) 100%)',
+        }}
+      />
+      <div className="absolute inset-0 env-divine-rays" />
+      <div className="absolute inset-0 env-stars" />
+      <div
+        className="absolute inset-0"
+        style={{
+          boxShadow: 'inset 0 -30px 60px -10px hsl(45 70% 65% / 0.1)',
+        }}
+      />
+    </>
+  );
+}
+
+function TimeRiftTheme() {
+  return (
+    <>
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'conic-gradient(from 0deg at 50% 50%, hsl(270 50% 20% / 0.2) 0%, hsl(180 40% 25% / 0.15) 25%, hsl(50 40% 20% / 0.1) 50%, hsl(330 40% 20% / 0.15) 75%, hsl(270 50% 20% / 0.2) 100%)',
+        }}
+      />
+      <div className="absolute inset-0 env-time-glitch" />
+      <div
+        className="absolute inset-0"
+        style={{
+          boxShadow: 'inset 0 0 50px hsl(270 60% 50% / 0.1)',
+        }}
+      />
+    </>
+  );
+}
+
+function ToxicTheme() {
+  return (
+    <>
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'linear-gradient(to top, hsl(90 60% 20% / 0.35) 0%, hsl(100 40% 15% / 0.2) 40%, hsl(80 30% 10% / 0.1) 100%)',
+        }}
+      />
+      <div className="absolute inset-0 env-toxic-bubbles" />
+      <div
+        className="absolute inset-0"
+        style={{
+          boxShadow: 'inset 0 -30px 50px -10px hsl(90 70% 35% / 0.2)',
+        }}
+      />
+    </>
+  );
+}
+
+function InfernoTheme() {
+  return (
+    <>
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse at 50% 100%, hsl(10 90% 30% / 0.4) 0%, hsl(20 80% 25% / 0.25) 30%, hsl(0 70% 15% / 0.15) 60%, hsl(350 50% 8% / 0.3) 100%)',
+        }}
+      />
+      <div className="absolute inset-0 env-lava-glow" />
+      <div className="absolute inset-0 env-inferno-embers" />
+      <div
+        className="absolute inset-0"
+        style={{
+          boxShadow:
+            'inset 0 -50px 80px -20px hsl(10 100% 45% / 0.25), inset 0 0 30px hsl(0 80% 30% / 0.15)',
         }}
       />
     </>
