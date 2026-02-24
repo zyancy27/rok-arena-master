@@ -6,9 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Swords, Plus, Clock, CheckCircle, Users, Bot } from 'lucide-react';
+import { Swords, Plus, Clock, CheckCircle, Users, Bot, Sparkles } from 'lucide-react';
 import OpponentFinder from '@/components/battles/OpponentFinder';
-import BattleSimulation from '@/components/battles/BattleSimulation';
 
 interface PveBattle {
   id: string;
@@ -282,7 +281,12 @@ export default function Battles() {
           </p>
         </div>
         <div className="flex gap-2">
-          <BattleSimulation characters={characters} />
+          <Button asChild variant="outline">
+            <Link to="/battles/simulation">
+              <Sparkles className="w-4 h-4 mr-2" />
+              EvE Battle
+            </Link>
+          </Button>
           <Button asChild>
             <Link to="/characters/new">
               <Plus className="w-4 h-4 mr-2" />

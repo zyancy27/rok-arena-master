@@ -3175,6 +3175,8 @@ export default function MockBattle() {
                 <EmergencyLocationGenerator
                   character1Name={selectedCharacter?.name}
                   character2Name={currentOpponent?.name}
+                  character1Level={selectedCharacter?.level}
+                  character2Level={currentOpponent?.level}
                   battleType="PvE"
                   onLocationGenerated={(loc) => {
                     setEmergencyLocation(loc);

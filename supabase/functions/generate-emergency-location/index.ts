@@ -35,7 +35,38 @@ serve(async (req) => {
       );
     }
 
-    const { character1Name, character2Name, battleType } = await req.json();
+    const { character1Name, character2Name, battleType, character1Level, character2Level } = await req.json();
+
+    // Determine average combatant level for survivability scaling
+    const lvl1 = typeof character1Level === 'number' ? character1Level : 3;
+    const lvl2 = typeof character2Level === 'number' ? character2Level : 3;
+    const avgLevel = Math.round((lvl1 + lvl2) / 2);
+
+    // Build survivability guidance based on average level
+    let survivabilityGuidance: string;
+    if (avgLevel <= 1) {
+      survivabilityGuidance = `SURVIVABILITY LEVEL: VERY LOW (Tier 1 — Common Humans)
+The fighters are ordinary humans with NO supernatural abilities. The emergency must be survivable by normal humans with skill and resourcefulness.
+DO NOT generate: exploding suns, nuclear cores, deep space vacuum, planet-cracking events, dimensional rifts, or anything requiring superhuman durability.
+GOOD examples: collapsing building, sinking ship, wildfire spreading, avalanche zone, flooding subway, crumbling bridge over a gorge.`;
+    } else if (avgLevel <= 2) {
+      survivabilityGuidance = `SURVIVABILITY LEVEL: LOW (Tier 2 — Enhanced Humans)
+The fighters are peak humans (like Batman or Captain America). They can survive extreme but physically possible scenarios.
+DO NOT generate: stellar explosions, black holes, dimensional tears, nuclear detonations at ground zero.
+GOOD examples: crashing helicopter, collapsing skyscraper, speeding runaway train, military base self-destruct, sinking submarine at moderate depth.`;
+    } else if (avgLevel <= 3) {
+      survivabilityGuidance = `SURVIVABILITY LEVEL: MODERATE (Tier 3 — Super Humans)
+The fighters have superhuman abilities. They can survive scenarios that would kill normal humans — extreme heat, pressure, toxins.
+GOOD examples: submarine imploding at depth, volcanic eruption, inside a charging energy cannon, crashing space station entering atmosphere, nuclear plant meltdown.`;
+    } else if (avgLevel <= 4) {
+      survivabilityGuidance = `SURVIVABILITY LEVEL: HIGH (Tier 4 — Legends)
+The fighters control mass and energy intrinsically. They can survive planet-scale threats.
+GOOD examples: sun about to go supernova, inside a collapsing star, dimensional rift tearing reality, core of a dying planet, asteroid impact zone.`;
+    } else {
+      survivabilityGuidance = `SURVIVABILITY LEVEL: EXTREME (Tier 5+ — Reality Warpers)
+The fighters can warp reality itself. Almost nothing is unsurvivable. Go ALL OUT with cosmic-scale threats.
+GOOD examples: inside a black hole's event horizon, colliding dimensions, big bang singularity recreation, void between realities collapsing, multiverse tear.`;
+    }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
@@ -44,15 +75,12 @@ serve(async (req) => {
 
 Generate a HIGH-INTENSITY, TIME-SENSITIVE battle environment that requires immediate action. These are not calm arenas — they are CRISIS SCENARIOS.
 
-Examples of emergency locations:
-- Nuclear power plant core about to melt down
-- Inside a massive ship's energy cannon barrel charging to fire
-- Falling from 30,000 ft after jumping out of a plane
-- Crashing space station entering atmosphere
-- Collapsing dimension tear between realities
-- Volcanic eruption mid-fight on unstable lava fields
-- Deep ocean trench hull breach flooding rapidly
-- Planetary orbital re-entry burn through atmosphere
+CRITICAL — SCALE DANGER TO COMBATANT POWER LEVEL:
+The fighters are Tier ${lvl1} and Tier ${lvl2} (average Tier ${avgLevel}).
+
+${survivabilityGuidance}
+
+The location MUST be something the fighters could realistically survive and fight in given their power level. A Tier 1 human should never be placed inside an exploding sun. A Tier 5 reality warper should never be challenged by a mere house fire.
 
 REQUIREMENTS:
 1. Location must be URGENT — there's a ticking clock or escalating danger
@@ -60,6 +88,7 @@ REQUIREMENTS:
 3. Include a countdown or trigger mechanic (e.g., "30 turns before meltdown")
 4. The location should force fighters to adapt their strategies
 5. Be creative and cinematic — this should feel like an action movie climax
+6. MATCH the intensity to the power tier of the combatants
 
 OUTPUT FORMAT — Return a JSON object:
 {
@@ -83,7 +112,7 @@ Return ONLY valid JSON.`;
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `Generate an emergency battle location for a ${battleType || 'PvE'} fight${character1Name ? ` between ${character1Name}` : ''}${character2Name ? ` and ${character2Name}` : ''}. Make it unique and intense. Return only valid JSON.` },
+          { role: "user", content: `Generate an emergency battle location for a ${battleType || 'PvE'} fight${character1Name ? ` between ${character1Name} (Tier ${lvl1})` : ''}${character2Name ? ` and ${character2Name} (Tier ${lvl2})` : ''}. The location must be survivable for Tier ${avgLevel} fighters. Make it unique and intense. Return only valid JSON.` },
         ],
         max_tokens: 600,
       }),
