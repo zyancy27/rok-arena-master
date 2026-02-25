@@ -3526,58 +3526,84 @@ export default function MockBattle() {
                 </TabsContent>
               </Tabs>
 
-              {/* Dice Combat Status */}
-              {diceEnabled && battleStarted && selectedCharacter && currentOpponent && (
-                <div className="grid grid-cols-2 gap-2 p-2 rounded-lg bg-muted/30 border text-xs">
-                  {/* Player Status */}
-                  <div className="flex flex-col gap-1 p-2 rounded bg-primary/10 border border-primary/30">
-                    <div className="flex items-center gap-2">
-                      <User className="w-3 h-3 text-primary" />
-                      <span className="font-medium text-primary truncate">{selectedCharacter.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline" className="text-xs bg-amber-500/10 border-amber-500/30 text-amber-600">
-                        D5: {concentrationUses[selectedCharacter.id] ?? 3}/3
-                      </Badge>
-                      {(statPenalties[selectedCharacter.id] || 0) > 0 && (
-                        <Badge variant="destructive" className="text-xs">
-                          -{statPenalties[selectedCharacter.id]}%
-                        </Badge>
-                      )}
-                      {userConstructs.length > 0 && (
-                        <Badge variant="outline" className="text-xs bg-purple-500/10 border-purple-500/30 text-purple-400">
-                          {userConstructs.length} 🛡️
-                        </Badge>
-                      )}
-                      <PsychCueIndicator cue={getDominantPsychCue(userPsych)} characterName={selectedCharacter.name} variant="user" />
-                    </div>
-                    <MomentumMeter momentum={userMomentum} characterName={selectedCharacter.name} variant="user" />
-                    {userChargeState.isCharging && (
-                      <ChargeIndicator chargeState={userChargeState} characterName={selectedCharacter.name} />
-                    )}
-                  </div>
+              {/* Dice Combat Status — Progressive Disclosure: only show when state is meaningful */}
+              {diceEnabled && battleStarted && selectedCharacter && currentOpponent && (() => {
+                const userConc = concentrationUses[selectedCharacter.id] ?? 3;
+                const userPenalty = statPenalties[selectedCharacter.id] || 0;
+                const hasUserActivity = userConc < 3 || userPenalty > 0 || userConstructs.length > 0 || userMomentum.value > 0 || userChargeState.isCharging || getDominantPsychCue(userPsych) !== null;
+                const hasOppActivity = aiConcentrationUses < 3 || aiStatPenalty > 0 || opponentMomentum.value > 0 || getDominantPsychCue(opponentPsych) !== null;
+                const hasAnyActivity = hasUserActivity || hasOppActivity;
 
-                  {/* AI Opponent Status */}
-                  <div className="flex flex-col gap-1 p-2 rounded bg-red-500/10 border border-red-500/30">
-                    <div className="flex items-center gap-2">
-                      <Bot className="w-3 h-3 text-red-400" />
-                      <span className="font-medium text-red-400 truncate">{currentOpponent.name}</span>
+                // Show compact summary when nothing has happened yet
+                if (!hasAnyActivity) {
+                  return (
+                    <div className="flex items-center justify-center gap-2 p-2 rounded-lg bg-muted/20 border border-border/50 text-xs text-muted-foreground">
+                      <Dices className="w-3.5 h-3.5" />
+                      <span>Dice combat active — status appears as the battle progresses</span>
                     </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline" className="text-xs bg-amber-500/10 border-amber-500/30 text-amber-600">
-                        D5: {aiConcentrationUses}/3
-                      </Badge>
-                      {aiStatPenalty > 0 && (
-                        <Badge variant="destructive" className="text-xs">
-                          -{aiStatPenalty}%
+                  );
+                }
+
+                return (
+                  <div className="grid grid-cols-2 gap-2 p-2 rounded-lg bg-muted/30 border text-xs animate-fade-in">
+                    {/* Player Status */}
+                    <div className="flex flex-col gap-1 p-2 rounded bg-primary/10 border border-primary/30">
+                      <div className="flex items-center gap-2">
+                        <User className="w-3 h-3 text-primary" />
+                        <span className="font-medium text-primary truncate">{selectedCharacter.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="outline" className="text-xs bg-amber-500/10 border-amber-500/30 text-amber-600">
+                          D5: {userConc}/3
                         </Badge>
+                        {userPenalty > 0 && (
+                          <Badge variant="destructive" className="text-xs">
+                            -{userPenalty}%
+                          </Badge>
+                        )}
+                        {userConstructs.length > 0 && (
+                          <Badge variant="outline" className="text-xs bg-purple-500/10 border-purple-500/30 text-purple-400">
+                            {userConstructs.length} 🛡️
+                          </Badge>
+                        )}
+                        {getDominantPsychCue(userPsych) !== null && (
+                          <PsychCueIndicator cue={getDominantPsychCue(userPsych)} characterName={selectedCharacter.name} variant="user" />
+                        )}
+                      </div>
+                      {userMomentum.value > 0 && (
+                        <MomentumMeter momentum={userMomentum} characterName={selectedCharacter.name} variant="user" />
                       )}
-                      <PsychCueIndicator cue={getDominantPsychCue(opponentPsych)} characterName={currentOpponent.name} variant="opponent" />
+                      {userChargeState.isCharging && (
+                        <ChargeIndicator chargeState={userChargeState} characterName={selectedCharacter.name} />
+                      )}
                     </div>
-                    <MomentumMeter momentum={opponentMomentum} characterName={currentOpponent.name} variant="opponent" />
+
+                    {/* AI Opponent Status */}
+                    <div className="flex flex-col gap-1 p-2 rounded bg-red-500/10 border border-red-500/30">
+                      <div className="flex items-center gap-2">
+                        <Bot className="w-3 h-3 text-red-400" />
+                        <span className="font-medium text-red-400 truncate">{currentOpponent.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="outline" className="text-xs bg-amber-500/10 border-amber-500/30 text-amber-600">
+                          D5: {aiConcentrationUses}/3
+                        </Badge>
+                        {aiStatPenalty > 0 && (
+                          <Badge variant="destructive" className="text-xs">
+                            -{aiStatPenalty}%
+                          </Badge>
+                        )}
+                        {getDominantPsychCue(opponentPsych) !== null && (
+                          <PsychCueIndicator cue={getDominantPsychCue(opponentPsych)} characterName={currentOpponent.name} variant="opponent" />
+                        )}
+                      </div>
+                      {opponentMomentum.value > 0 && (
+                        <MomentumMeter momentum={opponentMomentum} characterName={currentOpponent.name} variant="opponent" />
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Construct Panel - above input for visibility */}
               {diceEnabled && battleStarted && selectedCharacter && userConstructs.length > 0 && (

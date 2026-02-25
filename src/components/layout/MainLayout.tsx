@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import OwnershipNotice from '@/components/legal/OwnershipNotice';
+import PageBreadcrumb from '@/components/layout/PageBreadcrumb';
+import PageTransition from '@/components/layout/PageTransition';
 import { Swords, Users, BookOpen, Shield, LogOut, User, Home, Dna, Heart, ChevronDown, FileText, Plus, Globe, FolderOpen, Settings } from 'lucide-react';
 
 interface UserCharacter {
@@ -209,8 +211,11 @@ export default function MainLayout() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <Outlet />
+      <main className="container mx-auto px-4 py-6">
+        <PageBreadcrumb />
+        <PageTransition>
+          <Outlet />
+        </PageTransition>
       </main>
 
       {/* Footer */}
