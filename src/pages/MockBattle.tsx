@@ -3192,6 +3192,9 @@ export default function MockBattle() {
                   character1Level={selectedCharacter?.level}
                   character2Level={currentOpponent?.level}
                   battleType="PvE"
+                  planetName={selectedPlanetData?.display_name || selectedPlanetData?.planet_name}
+                  planetDescription={selectedPlanetData?.description || undefined}
+                  planetGravity={selectedPlanetData?.gravity}
                   onLocationGenerated={(loc) => {
                     setEmergencyLocation(loc);
                     setBattleLocation(loc.name);
