@@ -58,6 +58,7 @@ export interface BattlePreferences {
   narratorFrequency: 'always' | 'key_moments' | 'off';
   diceEnabled: boolean;
   arenaModifiersEnabled: boolean;
+  pvpIntroMode: 'player' | 'ai' | 'off';
 }
 
 export interface ImmersionSettings {
@@ -152,6 +153,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
     narratorFrequency: 'key_moments',
     diceEnabled: true,
     arenaModifiersEnabled: false,
+    pvpIntroMode: 'ai',
   },
   immersion: {
     hideOOC: false,

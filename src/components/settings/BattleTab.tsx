@@ -23,6 +23,7 @@ export function BattleTab({ settings, onChange, onReset }: Props) {
       <SettingsToggle label="Enable Detailed Combat Logs" description="Show expanded dice rolls and calculations" checked={settings.detailedLogs} onCheckedChange={v => onChange({ detailedLogs: v })} />
       <SettingsToggle label="Turn Countdown Timer" description="Show remaining time for each turn" checked={settings.turnTimer} onCheckedChange={v => onChange({ turnTimer: v })} />
       <SettingsToggle label="Show Opponent Charge Meter" description="Display the opponent's charge state" checked={settings.showOpponentCharge} onCheckedChange={v => onChange({ showOpponentCharge: v })} />
+      <SettingsSelect label="PvP Battle Intro Mode" description="How character entrances are handled in PvP battles" value={settings.pvpIntroMode ?? 'ai'} options={[{ value: 'player', label: 'Player-Written' }, { value: 'ai', label: 'AI-Generated' }, { value: 'off', label: 'Off' }]} onValueChange={v => onChange({ pvpIntroMode: v as BattlePreferences['pvpIntroMode'] })} />
     </SettingsSection>
   );
 }

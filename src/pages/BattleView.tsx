@@ -253,6 +253,7 @@ export default function BattleView() {
   // Entrance state
   const [entrancesGenerated, setEntrancesGenerated] = useState(false);
   const [isGeneratingEntrances, setIsGeneratingEntrances] = useState(false);
+  const entranceAttemptedRef = useRef(false);
   
   // Area damage warning state
   const [areaDamageWarning, setAreaDamageWarning] = useState<AreaDamageWarning | null>(null);
@@ -329,10 +330,14 @@ export default function BattleView() {
         participants.length === 2 && 
         !entrancesGenerated && 
         !isGeneratingEntrances &&
+        !entranceAttemptedRef.current &&
         userCharacter
       ) {
+        // Mark attempted immediately to prevent re-runs on remount
+        entranceAttemptedRef.current = true;
+        
         // Check if entrances were already sent (look for entrance markers in messages)
-        const hasEntrances = messages.some(m => m.content.includes('⚔️ **') && m.content.includes('enters the arena'));
+        const hasEntrances = messages.some(m => m.content.includes('⚔️ **') && (m.content.includes('enters the arena') || m.content.includes('arrives') || m.content.includes('walks in') || m.content.includes('is already')));
         if (hasEntrances) {
           setEntrancesGenerated(true);
           return;
@@ -368,25 +373,26 @@ export default function BattleView() {
           if (response.data) {
             const { entrance1, entrance2 } = response.data;
             
-            // Only insert if no entrance messages exist yet
-            const existingEntrances = messages.filter(m => 
-              m.content.includes('enters the arena') || 
-              m.content.includes('⚔️ **')
-            );
+            // Double-check no entrance messages exist (race condition guard)
+            const { data: existingMsgs } = await supabase
+              .from('battle_messages')
+              .select('id')
+              .eq('battle_id', id)
+              .like('content', '⚔️ **%')
+              .limit(1);
             
-            if (existingEntrances.length === 0) {
-              // Send entrance messages to in-universe chat
+            if (!existingMsgs || existingMsgs.length === 0) {
               await supabase.from('battle_messages').insert([
                 {
                   battle_id: id,
                   character_id: participants[0].character_id,
-                  content: `⚔️ **${char1.name} enters the arena:**\n${entrance1}`,
+                  content: `⚔️ **${char1.name}:**\n${entrance1}`,
                   channel: 'in_universe',
                 },
                 {
                   battle_id: id,
                   character_id: participants[1].character_id,
-                  content: `⚔️ **${char2.name} enters the arena:**\n${entrance2}`,
+                  content: `⚔️ **${char2.name}:**\n${entrance2}`,
                   channel: 'in_universe',
                 },
               ]);
@@ -402,7 +408,7 @@ export default function BattleView() {
     };
     
     generateEntrances();
-  }, [battle?.status, battle?.chosen_location, participants, entrancesGenerated, isGeneratingEntrances, messages, userCharacter, id]);
+  }, [battle?.status, battle?.chosen_location, participants, entrancesGenerated, isGeneratingEntrances, userCharacter, id]);
 
   useEffect(() => {
     if (id && user) {
@@ -1535,7 +1541,7 @@ export default function BattleView() {
   if (!battle) return null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-w-full overflow-x-hidden">
       {/* Header */}
       <div className="flex items-center justify-between">
         <Button variant="ghost" onClick={() => navigate('/battles')}>
@@ -1993,7 +1999,7 @@ export default function BattleView() {
                     <BattlefieldEffectsOverlay effects={battlefieldEffects} className="rounded-b-lg" />
                   )}
                   
-                  <ScrollArea className="h-[400px] p-4 relative z-10">
+                  <ScrollArea className="min-h-[300px] h-[50vh] max-h-[60vh] p-4 relative z-10 flex-1">
                     {inUniverseMessages.length === 0 ? (
                       <div className="flex items-center justify-center h-full">
                         <div className="text-center text-muted-foreground">
@@ -2107,7 +2113,7 @@ export default function BattleView() {
                                     </TooltipProvider>
                                   )}
                                 </div>
-                                <p className="whitespace-pre-wrap relative z-10">{msg.content}</p>
+                                <p className="whitespace-pre-wrap break-words relative z-10">{msg.content}</p>
                               </div>
                             </div>
                           );
@@ -2169,7 +2175,15 @@ export default function BattleView() {
                   
                   {/* In-Universe Input */}
                   {battle.status === 'active' && userCharacter && (
-                    <div className="p-4 border-t border-border space-y-3 relative z-10">
+                    <div className="p-4 border-t border-border space-y-3 relative z-10 shrink-0">
+                      {/* Turn lock indicator */}
+                      {!isUserTurn && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>Waiting for your turn…</span>
+                        </div>
+                      )}
+                      
                       {/* Area Damage Warning - Flavor Only */}
                       {areaDamageWarning && areaDamageWarning.isSevere && (
                         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300 bg-gradient-to-r from-destructive/20 via-orange-500/20 to-destructive/20 border border-destructive/50 rounded-lg p-3 space-y-1">
@@ -2202,6 +2216,8 @@ export default function BattleView() {
                             onChange={(e) => handleInputChange(e.target.value, 'in_universe')}
                             placeholder={isSending
                               ? 'Sending...'
+                              : !isUserTurn
+                              ? 'Waiting for your turn…'
                               : pendingHit 
                               ? 'Resolve the incoming attack first...'
                               : 'Describe your action or attack...'}
@@ -2209,7 +2225,7 @@ export default function BattleView() {
                             className="relative z-20"
                           />
                         </div>
-                        <Button type="submit" size="icon" disabled={!!pendingHit || !messageInput.trim() || isSending}>
+                        <Button type="submit" size="icon" disabled={!!pendingHit || !messageInput.trim() || isSending || !isUserTurn} className="min-h-[44px] min-w-[44px]">
                           {isSending ? (
                             <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                           ) : (
@@ -2418,7 +2434,7 @@ export default function BattleView() {
                 )}
               </div>
 
-              <ScrollArea className="h-[400px] p-4">
+              <ScrollArea className="min-h-[300px] h-[50vh] max-h-[60vh] p-4">
                 {outOfUniverseMessages.length === 0 ? (
                   <div className="flex items-center justify-center h-full">
                     <div className="text-center text-muted-foreground">
@@ -2472,7 +2488,7 @@ export default function BattleView() {
                       onChange={(e) => handleInputChange(e.target.value, 'out_of_universe')}
                       disabled={isSending}
                     />
-                    <Button type="submit" size="icon" variant="secondary" disabled={isSending || !messageInput.trim()}>
+                    <Button type="submit" size="icon" variant="secondary" disabled={isSending || !messageInput.trim()} className="min-h-[44px] min-w-[44px]">
                       {isSending ? (
                         <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                       ) : (
