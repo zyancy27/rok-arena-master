@@ -15,7 +15,7 @@ interface EmergencyLocation {
   urgency: string;
   countdownTurns: number;
   tags: string[];
-  rarityTier?: 'grounded' | 'advanced' | 'mythic';
+  rarityTier?: 'grounded' | 'advanced' | 'extreme' | 'mythic';
 }
 
 interface Props {
@@ -34,6 +34,7 @@ interface Props {
 const RARITY_STYLES: Record<string, { label: string; color: string }> = {
   grounded: { label: 'Grounded', color: 'bg-green-500/20 text-green-400 border-green-500/40' },
   advanced: { label: 'Advanced Sci-Fi', color: 'bg-blue-500/20 text-blue-400 border-blue-500/40' },
+  extreme: { label: 'Extreme', color: 'bg-orange-500/20 text-orange-400 border-orange-500/40' },
   mythic: { label: 'Mythic', color: 'bg-purple-500/20 text-purple-400 border-purple-500/40' },
 };
 
