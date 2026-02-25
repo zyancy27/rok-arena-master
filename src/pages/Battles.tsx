@@ -289,20 +289,14 @@ export default function Battles() {
       </div>
 
       {/* Battle Mode Selector */}
-      <div className="grid grid-cols-3 gap-3 max-w-lg">
-        <Button asChild variant="default" className="h-auto py-3 flex flex-col gap-1">
-          <Link to="/battles" className="text-center">
-            <Users className="w-5 h-5" />
-            <span className="text-xs font-medium">PvP</span>
-          </Link>
-        </Button>
-        <Button asChild variant="outline" className="h-auto py-3 flex flex-col gap-1">
+      <div className="flex gap-3">
+        <Button asChild variant="outline" className="h-auto py-3 px-5 flex flex-col gap-1">
           <Link to="/battles/practice" className="text-center">
             <Bot className="w-5 h-5" />
             <span className="text-xs font-medium">PvE</span>
           </Link>
         </Button>
-        <Button asChild variant="outline" className="h-auto py-3 flex flex-col gap-1">
+        <Button asChild variant="outline" className="h-auto py-3 px-5 flex flex-col gap-1">
           <Link to="/battles/simulation" className="text-center">
             <Sparkles className="w-5 h-5" />
             <span className="text-xs font-medium">EvE</span>
