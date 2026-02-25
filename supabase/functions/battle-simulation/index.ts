@@ -30,6 +30,8 @@ interface SimulationRequest {
   character2: Character;
   battleLocation?: string;
   turnCount?: number;
+  character1AINotes?: string;
+  character2AINotes?: string;
 }
 
 function validateCharacter(char: Character | undefined, fieldName: string): string | null {
@@ -89,7 +91,7 @@ serve(async (req) => {
       );
     }
 
-    const { character1, character2, battleLocation, turnCount = 10 } = requestData;
+    const { character1, character2, battleLocation, turnCount = 10, character1AINotes, character2AINotes } = requestData;
 
     // Validate characters
     const char1Error = validateCharacter(character1, 'character1');
@@ -150,6 +152,8 @@ CHARACTER 2:
 ${buildProfile(character2)}
 
 ${battleLocation ? `BATTLE LOCATION: ${battleLocation}\nIncorporate environmental elements naturally.` : ''}
+${character1AINotes ? `\nCHARACTER 1 CREATOR NOTES (MUST OBEY):${character1AINotes.slice(0, 1000)}` : ''}
+${character2AINotes ? `\nCHARACTER 2 CREATOR NOTES (MUST OBEY):${character2AINotes.slice(0, 1000)}` : ''}
 
 SIMULATION RULES:
 1. Alternate turns - Character 1 attacks first, then Character 2 responds with defense + counter, then Character 1 responds, etc.

@@ -232,6 +232,57 @@ export type Database = {
           },
         ]
       }
+      character_ai_notes: {
+        Row: {
+          battle_id: string | null
+          category: string
+          character_id: string
+          created_at: string
+          id: string
+          note: string
+          scope: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          battle_id?: string | null
+          category: string
+          character_id: string
+          created_at?: string
+          id?: string
+          note: string
+          scope?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          battle_id?: string | null
+          category?: string
+          character_id?: string
+          created_at?: string
+          id?: string
+          note?: string
+          scope?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_ai_notes_battle_id_fkey"
+            columns: ["battle_id"]
+            isOneToOne: false
+            referencedRelation: "battles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_ai_notes_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       character_group_members: {
         Row: {
           character_id: string

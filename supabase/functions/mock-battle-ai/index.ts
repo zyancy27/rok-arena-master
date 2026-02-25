@@ -52,6 +52,7 @@ interface BattleRequest {
     urgency: string;
     countdownTurns: number;
   };
+  characterAINotes?: string;
 }
 
 serve(async (req) => {
@@ -110,6 +111,7 @@ serve(async (req) => {
       characterStoryLore,
       occCorrections,
       emergencyLocation,
+      characterAINotes,
     } = requestData;
 
     // Input validation
@@ -234,6 +236,12 @@ Countdown: ${emergencyLocation.countdownTurns} turns remain before catastrophic 
 The environment is actively trying to kill both fighters. Weave environmental danger into every action. The crisis escalates each turn.`;
     }
 
+    // Character AI Notes — creator-defined behavior constraints
+    let aiNotesContext = '';
+    if (characterAINotes && typeof characterAINotes === 'string') {
+      aiNotesContext = characterAINotes.slice(0, 2000);
+    }
+
     // AI Hit Verification context
     const hitVerificationContext = `\n\nHIT VERIFICATION — CRITICAL:
 Before describing damage to ${userCharacter.name}, you MUST verify:
@@ -256,7 +264,7 @@ ${opponent.skill ? `- Skill Proficiency: ${opponent.skill}/100` : ''}
 You are in a practice battle against ${userCharacter.name} (Tier ${userCharacter.level}).
 Their powers: ${sanitizedPowers || 'Unknown'}
 Their abilities: ${sanitizedAbilities || 'Unknown'}
-Their skill: ${userCharacter.skill || 50}/100${characterPersonalityContext}${locationContext}${storyLoreContext}${firstMoveContext}${occCorrectionContext}${emergencyLocationContext}${hitVerificationContext}
+Their skill: ${userCharacter.skill || 50}/100${characterPersonalityContext}${locationContext}${storyLoreContext}${firstMoveContext}${occCorrectionContext}${emergencyLocationContext}${aiNotesContext}${hitVerificationContext}
 
 WRITING STYLE - CRITICAL:
 - Write naturally and organically. No over-the-top theatrics.
