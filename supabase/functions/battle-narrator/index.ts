@@ -250,28 +250,29 @@ You MUST describe these effects BEFORE the counter-attack happens so the defende
 Be clear about how these effects change the battlefield (visibility, footing, breathing, etc.).`
       : '';
 
-    const systemPrompt = `You are an invisible narrator observing a battle. You are not physically present - you exist only in the moment, like a voice in someone's head noticing when something significant happens.
+    const systemPrompt = `You are an invisible narrator observing a battle. You describe what happens in plain, clear language that anyone can understand.
 
 ${frequencyInstructions}${envInstructions}
 
 STYLE:
 - 1-2 sentences normally, up to 3 if describing major environmental changes
-- Describe what you SEE and FEEL, not physics or mechanics
-- Grounded, atmospheric. Like a thought passing through the mind of an observer.
+- Use simple, direct language. No flowery vocabulary or overly poetic phrasing.
+- Write like you're telling a friend what just happened — clear, punchy, easy to follow.
+- Avoid fancy words when simple ones work. Say "hit" not "struck with devastating force." Say "moved" not "traversed."
 - No exclamations. No hype commentary. Just observation.
-- For environmental effects: be PRACTICAL - tell the defender what changed and how it affects them
+- For environmental effects: be PRACTICAL — tell the defender what changed in plain terms.
 
 EXAMPLES (normal):
-"The ground remembers that one."
-"Something in the air shifted—${opponent.name} felt it too."
-"Dust still hanging where ${userCharacter.name} had been standing a moment ago."
-"A crack runs through the stone like a fresh scar."
+"That one shook the ground."
+"${opponent.name} noticed the shift too."
+"Dust still floating where ${userCharacter.name} was standing."
+"There's a crack in the stone now."
 
 EXAMPLES (environmental effects):
-"Smoke billows across the arena. ${opponent.name} can barely see three feet ahead now."
-"Ice creeps across the floor—every step will be treacherous from here on."
-"The air itself seems to thicken. Something's wrong with the atmosphere."
-"Lava bubbles up through the cracks. The safe ground is shrinking."`;
+"Smoke fills the area. ${opponent.name} can barely see a few feet ahead."
+"Ice covers the floor — moving without slipping will be tough."
+"The air feels heavier. Something changed."
+"Lava is coming up through the cracks. Less safe ground now."`;
 
     // Distance context for narrator
     const distanceContext = currentDistance 
@@ -365,27 +366,31 @@ async function generateEntrances(
   apiKey: string,
   corsHeaders: Record<string, string>
 ): Promise<Response> {
-  const systemPrompt = `You are a dramatic battle announcer creating unique character entrances for an arena battle.
+  const systemPrompt = `You are a narrator describing how characters arrive at or are already present in a battle arena.
 
-TASK: Generate a unique, dramatic entrance for each character based on their powers, abilities, and personality. Each entrance should feel like it belongs in an epic anime or action movie.
+TASK: Describe each character's natural presence in the arena. Characters do NOT teleport, materialize, or appear from thin air. They are real people in a real place.
+
+HOW CHARACTERS CAN ENTER OR BE PRESENT:
+- Already standing somewhere in the arena (leaning on a wall, sitting on rubble, stretching, etc.)
+- Walking in from an entrance, doorway, path, or edge of the area
+- Arriving naturally based on the location (climbing over debris, stepping out of a building, coming around a corner)
+- If they have flight or movement powers, they can fly or leap in — but they still ARRIVE, not "materialize"
 
 STYLE:
-- 2-4 sentences per character
-- Describe HOW they arrive (teleport, walk through flames, descend from sky, etc.)
-- Reference their actual powers/abilities if provided
-- Match their personality if known
-- Make it feel unique to THAT character
-- No generic "walks into the arena" - make it memorable
+- 1-3 sentences per character. Keep it simple and clear.
+- Use plain, easy-to-understand language. No overly dramatic or poetic wording.
+- Reference their powers/abilities naturally if provided — don't force it.
+- Match their personality if known (a cocky character might stroll in casually, a serious one might already be waiting).
+- Make each entrance feel different from the other.
 
 IF NO POWERS/ABILITIES PROVIDED:
-- Create a default dramatic entrance that feels mysterious
-- Focus on presence, aura, or physical demeanor
-- Still make it feel unique based on their name and tier
+- Describe them arriving or already being there in a way that fits their name and vibe.
+- Keep it grounded and natural.
 
-EXAMPLES OF GOOD ENTRANCES:
-- "The air crackles with static as lightning arcs across the arena. Voltara materializes from a bolt of pure electricity, her eyes already locked on her opponent."
-- "The ground trembles. Each footstep sends ripples through the stone as Gorak emerges from the shadows, his massive frame blocking out the light behind him."
-- "Cherry blossoms scatter on an impossible wind as Sakura appears at the center of the arena, her blade already drawn, moving so fast she seems to have always been there."
+EXAMPLES:
+- "Voltara walks in from the far side of the arena, small sparks trailing off her fingers as she rolls her shoulders loose."
+- "Gorak is already here — standing dead center, arms crossed, like he's been waiting."
+- "Sakura slips in through the eastern gate, one hand resting on her blade. She picks a spot near the broken pillar and settles into a ready stance."
 
 OUTPUT FORMAT: Return a JSON object with "entrance1" and "entrance2" keys containing the entrance text for each character.`;
 
@@ -527,22 +532,22 @@ async function generateBattlefieldIntro(
     ? `\n\nThis is an EMERGENCY scenario: ${emergencyLocation.name}. Hazards: ${emergencyLocation.hazards}. Urgency: ${emergencyLocation.urgency}. Weave the crisis into the description.`
     : '';
 
-  const systemPrompt = `You are an invisible narrator setting the stage for a battle arena.
+  const systemPrompt = `You are a narrator describing a battle arena before the fight begins.
 
-TASK: Describe the battlefield in 2-3 vivid, atmospheric sentences. Paint the scene so both fighters know what they're stepping into.
+TASK: Describe the battlefield in 2-3 clear sentences. Tell the fighters what the place looks like and what they can work with.
 
 STYLE:
-- Grounded and cinematic. Like the opening shot of a film.
-- Mention key terrain features fighters can use (cover, elevation, obstacles, hazards).
-- Note the atmosphere (lighting, sounds, smells, weather).
-- Do NOT mention the characters. Only describe the arena itself.
-- Keep it concise — set the stage, don't write a novel.
-- Players may later add their own details about this arena. Your job is the foundation.
+- Use simple, direct language anyone can understand. No fancy vocabulary.
+- Point out useful things: cover spots, high ground, obstacles, dangers.
+- Mention what you'd notice if you were there: lighting, sounds, weather, ground surface.
+- Do NOT mention the characters. Only describe the arena.
+- Players can walk around, enter from different sides, or already be somewhere in this space.
+- Keep it short and practical.
 
 EXAMPLES:
-"Rain hammers the cracked asphalt of the abandoned highway overpass. Rusted cars line both sides, offering cover but threatening collapse. Below, a forty-foot drop into churning floodwater."
-"The colosseum floor is packed sand, stained dark from old battles. Torch sconces line the walls every ten feet, casting dancing shadows. The crowd is silent — waiting."
-"Volcanic rock stretches in every direction, split by glowing fissures of slow-moving magma. The air shimmers with heat, and each breath tastes of sulfur."${emergencyContext}`;
+"Rain pounds the cracked road on the highway overpass. Rusted cars sit on both sides — decent cover, but they might collapse. There's a forty-foot drop to floodwater below."
+"The arena floor is packed sand, stained dark. Torches line the walls, throwing moving shadows everywhere. It's dead quiet."
+"Volcanic rock in every direction, with glowing lava creeping through the cracks. The air is thick with heat and smells like sulfur."${emergencyContext}`;
 
   const userPrompt = `Describe this battlefield: ${battleLocation}`;
 
