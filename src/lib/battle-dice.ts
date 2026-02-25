@@ -44,14 +44,32 @@ export interface TravelTimeResult {
   speedTier: 'slow' | 'normal' | 'fast' | 'superhuman' | 'instant';
 }
 
+// Construct classification categories
+export type ConstructCategory = 'person' | 'animal' | 'object' | 'barrier' | 'environmental' | 'energy';
+
+// Construct persistence
+export type ConstructPersistence = 'one-off' | 'recurring';
+
+// Construct rules metadata
+export interface ConstructRules {
+  persistence: ConstructPersistence;
+  durabilityLevel: 'low' | 'medium' | 'high';
+  behaviorSummary: string;
+  limitations?: string;
+}
+
 // Construct (skill-created objects like barriers, summoned entities, etc.)
 export interface Construct {
   id: string;
   name: string;
   creatorId: string;
-  maxDurability: number; // Based on creator's Power + Skill
+  maxDurability: number;
   currentDurability: number;
-  type: 'barrier' | 'summon' | 'weapon' | 'trap' | 'other';
+  type: ConstructCategory;
+  /** Legacy compat — maps to ConstructCategory */
+  legacyType?: 'barrier' | 'summon' | 'weapon' | 'trap' | 'other';
+  rules?: ConstructRules;
+  savedConstructId?: string; // Links to character_constructs table for recurring
 }
 
 export interface ConstructDefenseResult {
@@ -409,11 +427,19 @@ export function createConstruct(
   creatorStats: CharacterStats,
   creatorId: string,
   constructName: string,
-  constructType: Construct['type'] = 'other'
+  constructType: ConstructCategory = 'object',
+  rules?: ConstructRules
 ): Construct {
-  // Durability based on Power + Skill, scaled to reasonable range
-  const baseDurability = Math.floor((creatorStats.stat_power + creatorStats.stat_skill) / 2);
-  const maxDurability = Math.max(10, baseDurability); // Minimum 10 durability
+  // Durability based on Power + Skill, or rules override
+  let maxDurability: number;
+  if (rules?.durabilityLevel === 'low') {
+    maxDurability = Math.max(5, Math.floor((creatorStats.stat_power + creatorStats.stat_skill) / 4));
+  } else if (rules?.durabilityLevel === 'high') {
+    maxDurability = Math.max(15, Math.floor((creatorStats.stat_power + creatorStats.stat_skill) * 0.75));
+  } else {
+    const baseDurability = Math.floor((creatorStats.stat_power + creatorStats.stat_skill) / 2);
+    maxDurability = Math.max(10, baseDurability);
+  }
   
   return {
     id: crypto.randomUUID(),
@@ -422,6 +448,7 @@ export function createConstruct(
     maxDurability,
     currentDurability: maxDurability,
     type: constructType,
+    rules,
   };
 }
 
@@ -580,37 +607,51 @@ export function getCharacterConstructs(
  */
 export function detectConstructCreation(actionText: string): {
   isCreating: boolean;
-  constructType: Construct['type'];
+  constructType: ConstructCategory;
   suggestedName: string;
 } {
   const text = actionText.toLowerCase();
   
   const barrierKeywords = ['barrier', 'shield', 'wall', 'forcefield', 'dome', 'bubble', 'block'];
-  const summonKeywords = ['summon', 'conjure', 'create creature', 'manifest', 'call forth', 'bring forth'];
-  const weaponKeywords = ['construct weapon', 'create sword', 'create blade', 'form weapon', 'manifest blade'];
+  const personKeywords = ['summon person', 'create clone', 'shadow clone', 'manifest soldier', 'conjure warrior', 'create golem'];
+  const animalKeywords = ['summon creature', 'summon beast', 'conjure animal', 'manifest wolf', 'call hawk', 'summon dragon'];
+  const objectKeywords = ['construct weapon', 'create sword', 'create blade', 'form weapon', 'manifest blade', 'create platform', 'conjure cage'];
+  const envKeywords = ['create terrain', 'raise earth', 'form pit', 'create fog', 'summon storm', 'create quicksand'];
   const trapKeywords = ['trap', 'snare', 'mine', 'tripwire', 'ambush construct'];
   
   if (barrierKeywords.some(kw => text.includes(kw))) {
     return { isCreating: true, constructType: 'barrier', suggestedName: 'Energy Barrier' };
   }
-  if (summonKeywords.some(kw => text.includes(kw))) {
-    return { isCreating: true, constructType: 'summon', suggestedName: 'Summoned Entity' };
+  if (personKeywords.some(kw => text.includes(kw))) {
+    return { isCreating: true, constructType: 'person', suggestedName: 'Summoned Entity' };
   }
-  if (weaponKeywords.some(kw => text.includes(kw))) {
-    return { isCreating: true, constructType: 'weapon', suggestedName: 'Construct Weapon' };
+  if (animalKeywords.some(kw => text.includes(kw))) {
+    return { isCreating: true, constructType: 'animal', suggestedName: 'Summoned Creature' };
+  }
+  if (objectKeywords.some(kw => text.includes(kw))) {
+    return { isCreating: true, constructType: 'object', suggestedName: 'Construct Weapon' };
+  }
+  if (envKeywords.some(kw => text.includes(kw))) {
+    return { isCreating: true, constructType: 'environmental', suggestedName: 'Terrain Construct' };
   }
   if (trapKeywords.some(kw => text.includes(kw))) {
-    return { isCreating: true, constructType: 'trap', suggestedName: 'Tactical Trap' };
+    return { isCreating: true, constructType: 'object', suggestedName: 'Tactical Trap' };
   }
   
-  // Generic construct keywords
-  const genericKeywords = ['construct', 'create', 'form', 'materialize', 'generate'];
-  if (genericKeywords.some(kw => text.includes(kw)) && 
-      (text.includes('energy') || text.includes('power') || text.includes('ki') || text.includes('chakra'))) {
-    return { isCreating: true, constructType: 'other', suggestedName: 'Energy Construct' };
+  // Generic — only if persistent entity language is used
+  const persistentKeywords = ['construct', 'materialize', 'manifest', 'conjure', 'summon'];
+  const energyKeywords = ['energy', 'power', 'ki', 'chakra', 'aura'];
+  if (persistentKeywords.some(kw => text.includes(kw))) {
+    if (energyKeywords.some(kw => text.includes(kw))) {
+      return { isCreating: true, constructType: 'energy', suggestedName: 'Energy Construct' };
+    }
+    // Check for "create" + noun patterns that imply a persistent entity
+    if (text.includes('create') || text.includes('form')) {
+      return { isCreating: true, constructType: 'object', suggestedName: 'Construct' };
+    }
   }
   
-  return { isCreating: false, constructType: 'other', suggestedName: '' };
+  return { isCreating: false, constructType: 'object', suggestedName: '' };
 }
 
 /**

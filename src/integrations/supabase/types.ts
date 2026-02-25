@@ -283,6 +283,59 @@ export type Database = {
           },
         ]
       }
+      character_constructs: {
+        Row: {
+          behavior_summary: string | null
+          character_id: string
+          construct_type: string
+          created_at: string
+          durability_level: string
+          durability_numeric: number | null
+          id: string
+          limitations: string | null
+          name: string
+          persistence: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          behavior_summary?: string | null
+          character_id: string
+          construct_type?: string
+          created_at?: string
+          durability_level?: string
+          durability_numeric?: number | null
+          id?: string
+          limitations?: string | null
+          name: string
+          persistence?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          behavior_summary?: string | null
+          character_id?: string
+          construct_type?: string
+          created_at?: string
+          durability_level?: string
+          durability_numeric?: number | null
+          id?: string
+          limitations?: string | null
+          name?: string
+          persistence?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_constructs_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       character_group_members: {
         Row: {
           character_id: string
