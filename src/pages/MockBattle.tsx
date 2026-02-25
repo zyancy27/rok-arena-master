@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useUserSettings } from '@/hooks/use-user-settings';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -1102,12 +1103,12 @@ export default function MockBattle() {
   const [activeChannel, setActiveChannel] = useState<'in_universe' | 'out_of_universe'>('in_universe');
   const [battleStarted, setBattleStarted] = useState(false);
   const [battleLocation, setBattleLocation] = useState('');
-  const [dynamicEnvironment, setDynamicEnvironment] = useState(true);
+  const { settings: userSettings } = useUserSettings();
+  const dynamicEnvironment = userSettings.battle.dynamicBattlefieldEffects;
+  const narratorFrequency = userSettings.battle.narratorFrequency;
+  const diceEnabled = userSettings.battle.diceEnabled;
+  const arenaModifiersEnabled = userSettings.battle.arenaModifiersEnabled;
   const [availablePlanets, setAvailablePlanets] = useState<PlanetData[]>([]);
-  const [selectedPlanetData, setSelectedPlanetData] = useState<PlanetData | null>(null);
-  const [battleEnvironment, setBattleEnvironment] = useState<BattleEnvironment | null>(null);
-  const [useCustomLocation, setUseCustomLocation] = useState(false);
-  const [narratorFrequency, setNarratorFrequency] = useState<'always' | 'key_moments' | 'off'>('key_moments');
   const [turnNumber, setTurnNumber] = useState(1);
   const [playerArenaDetails, setPlayerArenaDetails] = useState<string[]>([]);
   // New states for turn order and physics
@@ -1122,7 +1123,9 @@ export default function MockBattle() {
   const [diceRollMessages, setDiceRollMessages] = useState<DiceRollMessage[]>([]);
   const [concentrationUses, setConcentrationUses] = useState<Record<string, number>>({});
   const [statPenalties, setStatPenalties] = useState<Record<string, number>>({});
-  const [diceEnabled, setDiceEnabled] = useState(true);
+  const [selectedPlanetData, setSelectedPlanetData] = useState<PlanetData | null>(null);
+  const [battleEnvironment, setBattleEnvironment] = useState<BattleEnvironment | null>(null);
+  const [useCustomLocation, setUseCustomLocation] = useState(false);
   
   // AI opponent concentration tracking
   const [aiConcentrationUses, setAiConcentrationUses] = useState<number>(3);
@@ -1176,7 +1179,6 @@ export default function MockBattle() {
   
   // Arena modifiers (daily/weekly rotating)
   const [arenaModifiers] = useState<ActiveArenaModifiers>(() => getActiveArenaModifiers());
-  const [arenaModifiersEnabled, setArenaModifiersEnabled] = useState(true);
   
   // OCC Chat AI Corrections — user-defined behavior overrides
   const [occCorrections, setOccCorrections] = useState<string[]>([]);
@@ -1237,11 +1239,8 @@ export default function MockBattle() {
       opponentId: currentOpponent.id,
       opponentType,
       battleLocation,
-      dynamicEnvironment,
-      diceEnabled,
       userGoesFirst,
       turnNumber,
-      narratorFrequency,
       messages,
       turnOrderDetermined,
       activeChannel,
@@ -1362,11 +1361,8 @@ export default function MockBattle() {
             // Restore battle state
             setMessages(session.messages);
             setBattleLocation(session.battleLocation || '');
-            setDynamicEnvironment(session.dynamicEnvironment ?? true);
-            setDiceEnabled(session.diceEnabled ?? true);
             setUserGoesFirst(session.userGoesFirst ?? true);
             setTurnNumber(session.turnNumber || 1);
-            setNarratorFrequency(session.narratorFrequency || 'key_moments');
             setTurnOrderDetermined(true);
             setBattleStarted(true);
             setActiveChannel(session.activeChannel || 'in_universe');
@@ -3252,73 +3248,6 @@ export default function MockBattle() {
                 />
 
 
-                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border">
-                  <div className="flex items-center gap-3">
-                    <Zap className="w-5 h-5 text-amber-500" />
-                    <div>
-                      <Label htmlFor="dynamic-env" className="text-sm font-medium cursor-pointer">
-                        Dynamic Battlefield Effects
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        AI describes how gravity, terrain, and atmosphere affect combat moves
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    id="dynamic-env"
-                    checked={dynamicEnvironment}
-                    onCheckedChange={setDynamicEnvironment}
-                  />
-                </div>
-
-                {/* Battle Narrator Frequency */}
-                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border">
-                  <div className="flex items-center gap-3">
-                    <Mic className="w-5 h-5 text-purple-500" />
-                    <div>
-                      <Label className="text-sm font-medium">
-                        Battle Narrator
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        Invisible observer commenting on the fight
-                      </p>
-                    </div>
-                  </div>
-                  <Select 
-                    value={narratorFrequency} 
-                    onValueChange={(v) => setNarratorFrequency(v as 'always' | 'key_moments' | 'off')}
-                  >
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="always">Always</SelectItem>
-                      <SelectItem value="key_moments">Key Moments</SelectItem>
-                      <SelectItem value="off">Off</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Dice Roll Combat System Toggle */}
-                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border">
-                  <div className="flex items-center gap-3">
-                    <Dices className="w-5 h-5 text-amber-500" />
-                    <div>
-                      <Label htmlFor="dice-combat" className="text-sm font-medium">
-                        Dice Combat System
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        Attack/defense rolls with concentration mechanics
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    id="dice-combat"
-                    checked={diceEnabled}
-                    onCheckedChange={setDiceEnabled}
-                  />
-                </div>
-
                 {/* Turn Color Customization */}
                 <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border">
                   <div className="flex items-center gap-3">
@@ -3364,36 +3293,18 @@ export default function MockBattle() {
                   </div>
                 )}
 
-                {/* Arena Modifiers Preview */}
-                <div className="p-3 rounded-lg border bg-gradient-to-r from-purple-500/5 to-indigo-500/5 border-purple-500/20 space-y-2">
-                  <div className="flex items-center justify-between">
+                {/* Arena Modifiers Preview (read-only, configured in Settings) */}
+                {arenaModifiersEnabled && (
+                  <div className="p-3 rounded-lg border bg-gradient-to-r from-purple-500/5 to-indigo-500/5 border-purple-500/20 space-y-2">
                     <div className="flex items-center gap-2 text-sm font-medium">
                       🌐 Today's Arena Modifiers
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="arena-mod-toggle" className="text-xs text-muted-foreground">
-                        {arenaModifiersEnabled ? 'On' : 'Off'}
-                      </Label>
-                      <Switch
-                        id="arena-mod-toggle"
-                        checked={arenaModifiersEnabled}
-                        onCheckedChange={setArenaModifiersEnabled}
-                      />
-                    </div>
-                  </div>
-                  {arenaModifiersEnabled ? (
-                    <>
-                      <ArenaModifierBadge modifiers={arenaModifiers} />
-                      <p className="text-[10px] text-muted-foreground">
-                        Same modifiers for all players globally. Affects stats, momentum, and risk chances.
-                      </p>
-                    </>
-                  ) : (
+                    <ArenaModifierBadge modifiers={arenaModifiers} />
                     <p className="text-[10px] text-muted-foreground">
-                      Arena modifiers are disabled for this battle.
+                      Same modifiers for all players globally. Affects stats, momentum, and risk chances.
                     </p>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
 
               {/* Turn Order Roll */}
