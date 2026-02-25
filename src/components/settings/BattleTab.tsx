@@ -1,6 +1,7 @@
 import { BattlePreferences } from '@/lib/settings-defaults';
 import { SettingsSection } from './SettingsSection';
 import { SettingsToggle } from './SettingsToggle';
+import { SettingsSelect } from './SettingsSelect';
 
 interface Props {
   settings: BattlePreferences;
@@ -11,6 +12,10 @@ interface Props {
 export function BattleTab({ settings, onChange, onReset }: Props) {
   return (
     <SettingsSection title="Battle Preferences" description="Customize your combat experience" onReset={onReset}>
+      <SettingsToggle label="Dynamic Battlefield Effects" description="AI describes how gravity, terrain, and atmosphere affect combat moves" checked={settings.dynamicBattlefieldEffects} onCheckedChange={v => onChange({ dynamicBattlefieldEffects: v })} />
+      <SettingsSelect label="Battle Narrator" description="Invisible observer commenting on the fight" value={settings.narratorFrequency} options={[{ value: 'always', label: 'Always' }, { value: 'key_moments', label: 'Key Moments' }, { value: 'off', label: 'Off' }]} onValueChange={v => onChange({ narratorFrequency: v as BattlePreferences['narratorFrequency'] })} />
+      <SettingsToggle label="Dice Combat System" description="Attack/defense rolls with concentration mechanics" checked={settings.diceEnabled} onCheckedChange={v => onChange({ diceEnabled: v })} />
+      <SettingsToggle label="Arena Modifiers" description="Daily/weekly rotating modifiers that affect stats, momentum, and risk chances" checked={settings.arenaModifiersEnabled} onCheckedChange={v => onChange({ arenaModifiersEnabled: v })} />
       <SettingsToggle label="Auto Overcharge Confirmation" description="Require confirmation before overcharging" checked={settings.confirmOvercharge} onCheckedChange={v => onChange({ confirmOvercharge: v })} />
       <SettingsToggle label="Show Dodge Probability %" description="Display dodge chance during combat" checked={settings.showDodgeChance} onCheckedChange={v => onChange({ showDodgeChance: v })} />
       <SettingsToggle label="Show Momentum Meter" description="Display the momentum gauge in battle" checked={settings.showMomentum} onCheckedChange={v => onChange({ showMomentum: v })} />

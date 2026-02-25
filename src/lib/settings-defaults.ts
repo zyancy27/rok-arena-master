@@ -54,6 +54,10 @@ export interface BattlePreferences {
   detailedLogs: boolean;
   turnTimer: boolean;
   showOpponentCharge: boolean;
+  dynamicBattlefieldEffects: boolean;
+  narratorFrequency: 'always' | 'key_moments' | 'off';
+  diceEnabled: boolean;
+  arenaModifiersEnabled: boolean;
 }
 
 export interface ImmersionSettings {
@@ -144,6 +148,10 @@ export const DEFAULT_SETTINGS: UserSettings = {
     detailedLogs: true,
     turnTimer: true,
     showOpponentCharge: false,
+    dynamicBattlefieldEffects: true,
+    narratorFrequency: 'key_moments',
+    diceEnabled: true,
+    arenaModifiersEnabled: false,
   },
   immersion: {
     hideOOC: false,

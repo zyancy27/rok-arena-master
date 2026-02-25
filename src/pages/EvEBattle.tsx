@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { useUserSettings } from '@/hooks/use-user-settings';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -85,9 +86,10 @@ export default function EvEBattle() {
   const [availablePlanets, setAvailablePlanets] = useState<PlanetData[]>([]);
   const [selectedPlanetData, setSelectedPlanetData] = useState<PlanetData | null>(null);
   const [useCustomLocation, setUseCustomLocation] = useState(false);
-  const [dynamicEnvironment, setDynamicEnvironment] = useState(true);
+  const { settings: userSettings } = useUserSettings();
+  const dynamicEnvironment = userSettings.battle.dynamicBattlefieldEffects;
+  const narratorFrequency = userSettings.battle.narratorFrequency;
   const [battleEnvironment, setBattleEnvironment] = useState<BattleEnvironment | null>(null);
-  const [narratorFrequency, setNarratorFrequency] = useState<'always' | 'key_moments' | 'off'>('key_moments');
 
   // Emergency location
   const [emergencyLocation, setEmergencyLocation] = useState<any>(null);
@@ -485,51 +487,15 @@ export default function EvEBattle() {
                   }}
                 />
 
-                {/* Dynamic Environment Toggle */}
-                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border">
-                  <div className="flex items-center gap-3">
-                    <Zap className="w-5 h-5 text-amber-500" />
-                    <div>
-                      <Label htmlFor="dynamic-env-eve" className="text-sm font-medium cursor-pointer">
-                        Dynamic Battlefield Effects
-                      </Label>
-                      <p className="text-xs text-muted-foreground">
-                        AI describes how gravity, terrain, and atmosphere affect combat moves
-                      </p>
-                    </div>
-                  </div>
-                  <Switch
-                    id="dynamic-env-eve"
-                    checked={dynamicEnvironment}
-                    onCheckedChange={setDynamicEnvironment}
-                  />
-                </div>
 
-                {/* Narrator Frequency */}
-                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border">
-                  <div className="flex items-center gap-3">
-                    <Mic className="w-5 h-5 text-purple-500" />
-                    <div>
-                      <Label className="text-sm font-medium">Battle Narrator</Label>
-                      <p className="text-xs text-muted-foreground">
-                        Invisible observer commenting on the fight
-                      </p>
+                {battleEnvironment && dynamicEnvironment && (
+                  <div className="p-3 rounded-lg border bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-amber-500/30 space-y-2">
+                    <div className="flex items-center gap-2 text-sm font-medium">
+                      <Globe className="w-4 h-4 text-amber-500" />
+                      Environment: {battleEnvironment.shortSummary}
                     </div>
                   </div>
-                  <Select
-                    value={narratorFrequency}
-                    onValueChange={(v) => setNarratorFrequency(v as 'always' | 'key_moments' | 'off')}
-                  >
-                    <SelectTrigger className="w-[140px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="always">Every Turn</SelectItem>
-                      <SelectItem value="key_moments">Key Moments</SelectItem>
-                      <SelectItem value="off">Off</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                )}
               </div>
 
               {/* Start Button */}
