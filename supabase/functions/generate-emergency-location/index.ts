@@ -52,25 +52,92 @@ serve(async (req) => {
     const avgLevel = Math.round((lvl1 + lvl2) / 2);
 
     // === RARITY DISTRIBUTION ===
-    // 75% grounded/planet-based, 20% advanced sci-fi, 5% mythic/cosmic
+    // 70% grounded realistic, 20% advanced sci-fi, 8% extreme planetary, 2% mythic/cosmic
     const rarityRoll = Math.random();
     let rarityTier: string;
     let rarityInstruction: string;
-    if (rarityRoll < 0.75) {
+    if (rarityRoll < 0.70) {
       rarityTier = "GROUNDED";
-      rarityInstruction = `RARITY: GROUNDED (75% chance)
-Generate a realistic, planet-based emergency scenario. Think real-world disasters adapted to the setting: collapsing structures, natural disasters, industrial accidents, vehicle crashes, military facility meltdowns, cave-ins, floods, fires, chemical spills.
-DO NOT generate: off-planet scenarios, cosmic events, dimensional rifts, mythic phenomena.
-Keep it visceral, immediate, and believable.`;
-    } else if (rarityRoll < 0.95) {
+      rarityInstruction = `RARITY: GROUNDED REALISTIC EMERGENCY (70% chance — DOMINANT TIER)
+Generate a HIGH-INTENSITY, CINEMATIC, REALISTIC emergency scenario. This is the most common tier and must work for ALL character levels.
+
+You MUST assemble the emergency from these GROUNDED BUILDING BLOCKS — pick one or two from each category and combine them into a unique crisis:
+
+CIVILIAN DENSITY MODIFIER (pick one):
+- Rush hour traffic gridlock
+- Packed subway station
+- Airport terminal mid-evacuation
+- Stadium crowd panic
+- Downtown pedestrian crush
+- School dismissal zone
+- Industrial workforce shift change
+- Hospital at full capacity
+- Shopping mall during holiday rush
+
+STRUCTURAL INSTABILITY TRIGGER (pick one):
+- Building about to collapse
+- Suspension bridge cables snapping
+- Skyscraper windows shattering outward
+- Parking garage cave-in
+- Oil rig structural failure
+- Dam cracking under pressure
+- Power plant overload cascade
+- Construction crane falling
+- Highway overpass buckling
+- Subway tunnel ceiling crumbling
+
+NATURAL DISASTER LAYER (pick one):
+- Earthquake tremors intensifying
+- Tsunami wave incoming
+- Flash flood surging through streets
+- Tornado touching down
+- Hurricane landfall with debris
+- Volcano erupting nearby
+- Wildfire spreading rapidly
+- Avalanche cascading downhill
+- Landslide burying infrastructure
+- Sinkhole opening
+
+MECHANICAL / INFRASTRUCTURE CRISIS (pick one):
+- Train derailment mid-city
+- Plane losing altitude over populated area
+- Ship capsizing in harbor
+- Nuclear reactor approaching meltdown
+- Chemical plant explosion imminent
+- Highway tanker spill with ignition risk
+- Power grid cascading failure / citywide blackout
+- Elevator freefall in skyscraper
+- Gas main rupture chain
+- Water treatment plant toxic leak
+
+TIME PRESSURE MECHANIC (pick one):
+- 30-second structural collapse window
+- Countdown to detonation
+- Aftershock timer before next quake
+- Cable snapping sequence (one by one)
+- Reactor temperature climbing past safe limits
+- Structural integrity percentage visibly dropping
+- Floodwater rising toward electrical systems
+- Fire spreading room by room
+
+COMBINE these blocks into one cohesive, cinematic crisis. The result must feel like a disaster movie scene — intense, grounded, plausible.
+Even for high-level characters, grounded emergencies create tactical and moral tension (civilians, infrastructure, collateral damage).
+DO NOT generate: off-planet scenarios, cosmic events, dimensional rifts, mythic phenomena, or abstract sci-fi.
+If a non-Earth planet is selected, ADAPT grounded logic to that planet's infrastructure (e.g., desert mining collapse, alien city bridge failure, terraforming station meltdown).`;
+    } else if (rarityRoll < 0.90) {
       rarityTier = "ADVANCED";
-      rarityInstruction = `RARITY: ADVANCED SCI-FI (20% chance)
-Generate a plausible sci-fi emergency: space station failures, reactor overloads, warp drive malfunctions, orbital decay, terraforming gone wrong, AI facility lockdown.
+      rarityInstruction = `RARITY: ADVANCED SCI-FI INDUSTRIAL (20% chance)
+Generate a plausible sci-fi emergency: space station failures, reactor overloads, warp drive malfunctions, orbital decay, terraforming gone wrong, AI facility lockdown, orbital elevator collapse, antimatter containment breach.
 Keep it grounded in sci-fi logic — no pure fantasy or cosmic horror. It should feel technologically plausible.`;
+    } else if (rarityRoll < 0.98) {
+      rarityTier = "EXTREME";
+      rarityInstruction = `RARITY: EXTREME PLANETARY SCALE (8% chance)
+Generate a planet-scale emergency: supervolcano chain eruption, global tectonic shift, planetary core destabilization, continent-splitting earthquake, planet-wide electromagnetic storm, ocean boiling event.
+Massive scale but still physically grounded — no magic or cosmic entities.`;
     } else {
       rarityTier = "MYTHIC";
-      rarityInstruction = `RARITY: MYTHIC / COSMIC (5% chance — EXTREMELY RARE)
-This is a legendary-tier scenario. Go all out: collapsing stars, dimensional tears, ancient sealed entities awakening, reality fractures.
+      rarityInstruction = `RARITY: MYTHIC / COSMIC (2% chance — EXTREMELY RARE)
+This is a legendary-tier scenario. Go all out: collapsing stars, dimensional tears, ancient sealed entities awakening, reality fractures, black hole proximity event.
 This should feel momentous and awe-inspiring — once-in-a-lifetime crisis.`;
     }
 
@@ -136,12 +203,13 @@ ${planetConstraint}
 ${dedupConstraint}
 
 MODULAR CONSTRUCTION — Build the emergency from these components:
-1. BASE LOCATION TYPE: facility, vehicle, structure, terrain zone, natural formation
-2. IMMEDIATE THREAT TRIGGER: countdown, collapse, overload, breach, eruption
-3. ENVIRONMENTAL HAZARD LAYER: fire, radiation, flooding, vacuum, debris, toxins, ice
-4. TIME PRESSURE MECHANIC: what happens if fighters don't act fast
-5. MOVEMENT CONSTRAINT: how terrain limits or changes movement options
-6. OPTIONAL DYNAMIC FACTOR: aftershock, power failure, terrain shifting, secondary explosion
+1. BASE LOCATION TYPE: facility, vehicle, structure, terrain zone, natural formation, urban center, industrial complex
+2. IMMEDIATE THREAT TRIGGER: countdown, collapse, overload, breach, eruption, derailment, rupture, meltdown
+3. ENVIRONMENTAL HAZARD LAYER: fire, radiation, flooding, vacuum, debris, toxins, ice, smoke, shrapnel, electrical arcing
+4. TIME PRESSURE MECHANIC: what happens if fighters don't act fast — structural integrity dropping, floodwater rising, fire spreading, countdown ticking
+5. MOVEMENT CONSTRAINT: how terrain limits or changes movement — rubble blocking paths, flooded corridors, crumbling floors, falling debris zones, crowd obstruction
+6. CIVILIAN/COLLATERAL FACTOR: civilian presence, infrastructure at risk, collateral damage potential, moral tension
+7. OPTIONAL DYNAMIC FACTOR: aftershock, power failure, terrain shifting, secondary explosion, gas ignition, cascade failure
 
 Each emergency must:
 - Influence movement options
