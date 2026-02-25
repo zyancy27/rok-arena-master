@@ -108,6 +108,10 @@ import EmergencyLocationGenerator from '@/components/battles/EmergencyLocationGe
 import SaveLocationPrompt from '@/components/battles/SaveLocationPrompt';
 import AICharacterNotePanel from '@/components/battles/AICharacterNotePanel';
 import { useCharacterAINotes } from '@/hooks/use-character-ai-notes';
+import { evaluateThreat, isPerceptionNotable, type PerceptionResult } from '@/lib/battle-perception';
+import { detectDirectInteraction, getHitDetectionContext, type HitDetectionResult } from '@/lib/battle-hit-detection';
+import PerceptionIndicator from '@/components/battles/PerceptionIndicator';
+import HitDetectionBadge from '@/components/battles/HitDetectionBadge';
 import {
   createChargeState,
   detectChargeInitiation,
@@ -198,6 +202,8 @@ interface Message {
   channel: 'in_universe' | 'out_of_universe';
   characterName?: string;
   statusEffectsSnapshot?: StatusEffectsSnapshot;
+  perceptionResult?: PerceptionResult;
+  hitDetectionResult?: HitDetectionResult;
 }
 
 interface AIOpponent {
@@ -2135,6 +2141,11 @@ export default function MockBattle() {
       }
     }
 
+    // Detect direct interaction for hit check
+    const hitDetection = diceEnabled && activeChannel === 'in_universe'
+      ? detectDirectInteraction(input)
+      : undefined;
+
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: 'user',
@@ -2142,6 +2153,7 @@ export default function MockBattle() {
       channel: activeChannel,
       characterName: selectedCharacter.name,
       statusEffectsSnapshot: Object.keys(snapshot).length > 0 ? snapshot : undefined,
+      hitDetectionResult: hitDetection?.detected ? hitDetection : undefined,
     };
     
     setMessages(prev => [...prev, userMessage]);
@@ -2500,6 +2512,31 @@ export default function MockBattle() {
       psychAIContext = getPsychologyContext(selectedCharacter.name, userPsych, currentOpponent.name, opponentPsych);
     }
 
+    // === Perception + Hit Detection context ===
+    let perceptionContext = '';
+    let hitDetectionContext = '';
+    if (diceEnabled && activeChannel === 'in_universe' && currentOpponent) {
+      // Hit detection on user's action
+      if (hitDetection?.shouldTriggerHitCheck) {
+        hitDetectionContext = '\n\n' + getHitDetectionContext(hitDetection);
+      }
+
+      // Perception evaluation for user defending against AI's last action
+      if (lastOpponentAction) {
+        const defenderStats = getCharacterStats(selectedCharacter);
+        const perceptionEval = evaluateThreat(
+          defenderStats,
+          selectedCharacter.level,
+          lastOpponentAction,
+          1.0,
+          0
+        );
+        if (isPerceptionNotable(perceptionEval)) {
+          perceptionContext = '\n\n' + perceptionEval.narratorContext;
+        }
+      }
+    }
+
     try {
       const response = await supabase.functions.invoke('mock-battle-ai', {
         body: {
@@ -2516,7 +2553,7 @@ export default function MockBattle() {
             ...currentOpponent,
             skill: opponentSkill,
           },
-          userMessage: input + skillEventNote + playerAttackContext + defenseEnforcementPrompt + overchargeAIContext + momentumAIContext + psychAIContext + adaptiveAIContext + chargeReleaseContext + chargeActiveContext + (arenaModifiersEnabled ? arenaModifiers.combinedPrompt : '') + (playerArenaDetails.length > 0 ? `\n\n[ARENA DETAILS established by the player (treat as canon): ${playerArenaDetails.slice(-4).join('; ')}]` : ''),
+          userMessage: input + skillEventNote + playerAttackContext + defenseEnforcementPrompt + overchargeAIContext + momentumAIContext + psychAIContext + adaptiveAIContext + chargeReleaseContext + chargeActiveContext + perceptionContext + hitDetectionContext + (arenaModifiersEnabled ? arenaModifiers.combinedPrompt : '') + (playerArenaDetails.length > 0 ? `\n\n[ARENA DETAILS established by the player (treat as canon): ${playerArenaDetails.slice(-4).join('; ')}]` : ''),
           channel: activeChannel,
           messageHistory: messages.slice(-10),
           battleLocation,
@@ -2539,12 +2576,33 @@ export default function MockBattle() {
 
       if (response.error) throw response.error;
 
+      // Evaluate perception of AI's response (their attack against user)
+      let aiPerceptionResult: PerceptionResult | undefined;
+      if (diceEnabled && activeChannel === 'in_universe') {
+        const defenderStats = getCharacterStats(selectedCharacter);
+        const aiHitCheck = detectDirectInteraction(response.data.response);
+        if (aiHitCheck.shouldTriggerHitCheck) {
+          aiPerceptionResult = evaluateThreat(
+            defenderStats,
+            selectedCharacter.level,
+            response.data.response,
+            1.0,
+            0
+          );
+          // Only attach if notable
+          if (!isPerceptionNotable(aiPerceptionResult)) {
+            aiPerceptionResult = undefined;
+          }
+        }
+      }
+
       const aiMessage: Message = {
         id: crypto.randomUUID(),
         role: 'ai',
         content: response.data.response,
         channel: activeChannel,
         characterName: currentOpponent?.name || 'Unknown',
+        perceptionResult: aiPerceptionResult,
       };
       
       setMessages(prev => [...prev, aiMessage]);
@@ -3801,6 +3859,13 @@ function MessageArea({
                         : 'text-muted-foreground'
                     }`}>
                       {message.characterName}
+                      {/* Perception + Hit Detection indicators */}
+                      {message.perceptionResult && (
+                        <PerceptionIndicator result={message.perceptionResult} />
+                      )}
+                      {message.hitDetectionResult?.shouldTriggerHitCheck && (
+                        <HitDetectionBadge result={message.hitDetectionResult} />
+                      )}
                     </p>
                     <p className="whitespace-pre-wrap relative z-10">{message.content}</p>
                   </div>
