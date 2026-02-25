@@ -301,7 +301,7 @@ export default function CharacterDetail() {
 
         <CardContent className="space-y-6">
           <Tabs defaultValue="profile" className="w-full">
-            <TabsList className={`grid w-full mb-4 ${isOwner ? 'grid-cols-4' : 'grid-cols-3'}`}>
+            <TabsList className={`grid w-full mb-4 ${isOwner ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-3'}`}>
               <TabsTrigger value="profile" className="flex items-center gap-2">
                 <User className="w-4 h-4" />
                 Profile

@@ -365,20 +365,20 @@ export default function Battles() {
                     {pveBattles.map((pve) => (
                       <Link key={pve.id} to="/battles/practice">
                         <Card className="bg-card-gradient border-border hover:glow-accent transition-all cursor-pointer">
-                          <CardContent className="p-4 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/50 flex items-center gap-1">
+                          <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex flex-wrap items-center gap-2 min-w-0">
+                              <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/50 flex items-center gap-1 shrink-0">
                                 <Bot className="w-3 h-3" />
                                 PvE
                               </Badge>
-                              <span className="font-medium">
+                              <span className="font-medium break-words">
                                 {pve.characterName} vs {pve.opponentName}
                               </span>
                               <span className="text-muted-foreground text-sm">
                                 Started {new Date(pve.startedAt).toLocaleDateString()}
                               </span>
                             </div>
-                            <Button variant="outline" size="sm">
+                            <Button variant="outline" size="sm" className="shrink-0 min-h-[44px] self-end sm:self-auto">
                               Continue Battle
                             </Button>
                           </CardContent>
@@ -392,20 +392,20 @@ export default function Battles() {
                       return (
                         <Link key={battle.id} to={`/battles/${battle.id}`}>
                           <Card className="bg-card-gradient border-border hover:glow-accent transition-all cursor-pointer">
-                            <CardContent className="p-4 flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <Badge className={`${getStatusColor(battle.status)} flex items-center gap-1`}>
+                            <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              <div className="flex flex-wrap items-center gap-2 min-w-0">
+                                <Badge className={`${getStatusColor(battle.status)} flex items-center gap-1 shrink-0`}>
                                   {getStatusIcon(battle.status)}
                                   {battle.status}
                                 </Badge>
-                                <span className="font-medium">
+                                <span className="font-medium break-words">
                                   {p1?.character?.name || 'Unknown'} vs {p2?.character?.name || 'Unknown'}
                                 </span>
                                 <span className="text-muted-foreground text-sm">
                                   Started {new Date(battle.created_at).toLocaleDateString()}
                                 </span>
                               </div>
-                              <Button variant="outline" size="sm">
+                              <Button variant="outline" size="sm" className="shrink-0 min-h-[44px] self-end sm:self-auto">
                                 Continue Battle
                               </Button>
                             </CardContent>
@@ -433,13 +433,13 @@ export default function Battles() {
                       return (
                         <Link key={battle.id} to={`/battles/${battle.id}`}>
                           <Card className="bg-card-gradient border-border hover:glow-primary transition-all cursor-pointer">
-                            <CardContent className="p-4 flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <Badge className={`${getStatusColor(battle.status)} flex items-center gap-1`}>
+                            <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              <div className="flex flex-wrap items-center gap-2 min-w-0">
+                                <Badge className={`${getStatusColor(battle.status)} flex items-center gap-1 shrink-0`}>
                                   {getStatusIcon(battle.status)}
                                   {battle.status}
                                 </Badge>
-                                <span className="font-medium">
+                                <span className="font-medium break-words">
                                   {isUserChallenged ? (
                                     <>⚔️ <span className="text-primary">{battle.challenger_username || 'Someone'}</span> challenged you!</>
                                   ) : iAmChallenger ? (
@@ -452,7 +452,7 @@ export default function Battles() {
                                   {new Date(battle.created_at).toLocaleDateString()}
                                 </span>
                               </div>
-                              <Button variant="outline" size="sm">
+                              <Button variant="outline" size="sm" className="shrink-0 min-h-[44px] self-end sm:self-auto">
                                 {isUserChallenged ? 'Respond' : 'View'}
                               </Button>
                             </CardContent>
@@ -478,20 +478,20 @@ export default function Battles() {
                       return (
                         <Link key={battle.id} to={`/battles/${battle.id}`}>
                           <Card className="bg-card-gradient border-border hover:border-border/80 transition-all cursor-pointer opacity-75">
-                            <CardContent className="p-4 flex items-center justify-between">
-                              <div className="flex items-center gap-3">
-                                <Badge className={`${getStatusColor(battle.status)} flex items-center gap-1`}>
+                            <CardContent className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              <div className="flex flex-wrap items-center gap-2 min-w-0">
+                                <Badge className={`${getStatusColor(battle.status)} flex items-center gap-1 shrink-0`}>
                                   {getStatusIcon(battle.status)}
                                   {battle.status}
                                 </Badge>
-                                <span className="font-medium">
+                                <span className="font-medium break-words">
                                   {p1?.character?.name || 'Unknown'} vs {p2?.character?.name || 'Unknown'}
                                 </span>
                                 <span className="text-muted-foreground text-sm">
                                   Ended {new Date(battle.created_at).toLocaleDateString()}
                                 </span>
                               </div>
-                              <Button variant="ghost" size="sm">
+                              <Button variant="ghost" size="sm" className="shrink-0 min-h-[44px] self-end sm:self-auto">
                                 View Transcript
                               </Button>
                             </CardContent>

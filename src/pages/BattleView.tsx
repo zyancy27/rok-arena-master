@@ -1543,12 +1543,12 @@ export default function BattleView() {
   return (
     <div className="space-y-4 max-w-full overflow-x-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={() => navigate('/battles')}>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <Button variant="ghost" onClick={() => navigate('/battles')} className="min-h-[44px]">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Battles
         </Button>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Badge
             className={
               battle.status === 'active'
@@ -1722,7 +1722,7 @@ export default function BattleView() {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Show submitted locations */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground">
                   {participants[0]?.character?.name || 'Challenger'}'s Location
