@@ -19,6 +19,8 @@ import SaveLocationPrompt from '@/components/battles/SaveLocationPrompt';
 import EnvironmentChatBackground from '@/components/battles/EnvironmentChatBackground';
 import BattlefieldEffectsOverlay from '@/components/battles/BattlefieldEffectsOverlay';
 import { useBattlefieldEffects } from '@/components/battles/useBattlefieldEffects';
+import AICharacterNotePanel from '@/components/battles/AICharacterNotePanel';
+import { useCharacterAINotes } from '@/hooks/use-character-ai-notes';
 import {
   ArrowLeft,
   Swords,
@@ -30,6 +32,7 @@ import {
   Globe,
   Zap,
   Mic,
+  Brain,
 } from 'lucide-react';
 
 interface UserCharacter {
@@ -89,6 +92,11 @@ export default function EvEBattle() {
   // Emergency location
   const [emergencyLocation, setEmergencyLocation] = useState<any>(null);
   const [showSaveLocationPrompt, setShowSaveLocationPrompt] = useState(false);
+
+  // AI Character Notes
+  const [showAINotePanel, setShowAINotePanel] = useState<'char1' | 'char2' | null>(null);
+  const { getNotesForBattle: getChar1Notes } = useCharacterAINotes(character1?.id || null);
+  const { getNotesForBattle: getChar2Notes } = useCharacterAINotes(character2?.id || null);
 
   // Battlefield effects
   const { activeEffects: battlefieldEffects, processMessage: processBattlefieldEffect } = useBattlefieldEffects();
@@ -178,6 +186,8 @@ export default function EvEBattle() {
           },
           battleLocation,
           turnCount: 10,
+          character1AINotes: getChar1Notes(),
+          character2AINotes: getChar2Notes(),
         },
       });
 
@@ -556,23 +566,33 @@ export default function EvEBattle() {
             <div className="space-y-4">
               {/* Battle Header */}
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
+                <div
+                  className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => setShowAINotePanel('char1')}
+                  title="Click to add AI character notes"
+                >
+                  <Avatar className="h-10 w-10 ring-2 ring-primary/30">
                     <AvatarImage src={character1?.image_url || undefined} />
                     <AvatarFallback>{character1?.name[0]}</AvatarFallback>
                   </Avatar>
                   <div>
                     <p className="font-medium">{character1?.name}</p>
                     <Badge variant="outline" className="text-xs">{getTierName(character1?.level || 1)}</Badge>
+                    <p className="text-[10px] text-primary mt-0.5">📝 AI notes</p>
                   </div>
                 </div>
                 <Swords className="w-6 h-6 text-primary" />
-                <div className="flex items-center gap-3">
+                <div
+                  className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => setShowAINotePanel('char2')}
+                  title="Click to add AI character notes"
+                >
                   <div className="text-right">
                     <p className="font-medium">{character2?.name}</p>
                     <Badge variant="outline" className="text-xs">{getTierName(character2?.level || 1)}</Badge>
+                    <p className="text-[10px] text-primary mt-0.5">📝 AI notes</p>
                   </div>
-                  <Avatar className="h-10 w-10">
+                  <Avatar className="h-10 w-10 ring-2 ring-primary/30">
                     <AvatarImage src={character2?.image_url || undefined} />
                     <AvatarFallback>{character2?.name[0]}</AvatarFallback>
                   </Avatar>
@@ -660,6 +680,24 @@ export default function EvEBattle() {
           )}
         </CardContent>
       </Card>
+
+      {/* AI Character Note Panels */}
+      {character1 && (
+        <AICharacterNotePanel
+          open={showAINotePanel === 'char1'}
+          onOpenChange={(open) => setShowAINotePanel(open ? 'char1' : null)}
+          characterId={character1.id}
+          characterName={character1.name}
+        />
+      )}
+      {character2 && (
+        <AICharacterNotePanel
+          open={showAINotePanel === 'char2'}
+          onOpenChange={(open) => setShowAINotePanel(open ? 'char2' : null)}
+          characterId={character2.id}
+          characterName={character2.name}
+        />
+      )}
     </div>
   );
 }

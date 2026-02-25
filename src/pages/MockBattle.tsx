@@ -105,6 +105,8 @@ import {
 import BattleOnboarding, { isOnboardingComplete, resetOnboarding } from '@/components/battles/BattleOnboarding';
 import EmergencyLocationGenerator from '@/components/battles/EmergencyLocationGenerator';
 import SaveLocationPrompt from '@/components/battles/SaveLocationPrompt';
+import AICharacterNotePanel from '@/components/battles/AICharacterNotePanel';
+import { useCharacterAINotes } from '@/hooks/use-character-ai-notes';
 import {
   createChargeState,
   detectChargeInitiation,
@@ -1192,6 +1194,13 @@ export default function MockBattle() {
   // Save location prompt
   const [showSaveLocationPrompt, setShowSaveLocationPrompt] = useState(false);
   
+  // AI Character Notes panel
+  const [showAINotePanel, setShowAINotePanel] = useState(false);
+  
+  // Get opponent character ID for AI notes (only for user-owned characters)
+  const opponentCharacterId = opponentType === 'own' && selectedOwnCharacter ? selectedOwnCharacter.id : null;
+  const { getNotesForBattle: getOpponentNotes } = useCharacterAINotes(opponentCharacterId);
+  
   // Battle SFX engine
   const { muted: sfxMuted, toggleMute: toggleSfxMute, processText: processSfxText, playEvent: playSfxEvent } = useBattleSfx({ enabled: battleStarted });
   
@@ -1527,6 +1536,7 @@ export default function MockBattle() {
             userGoesFirst: false,
             isFirstMove: true,
             characterStoryLore: characterStoryLore || undefined,
+            characterAINotes: opponentType === 'own' ? getOpponentNotes() : undefined,
           },
         });
 
@@ -1738,6 +1748,7 @@ export default function MockBattle() {
           userGoesFirst,
           isFirstMove: false,
           characterStoryLore: characterStoryLore || undefined,
+          characterAINotes: opponentType === 'own' ? getOpponentNotes() : undefined,
         },
       });
 
@@ -1805,6 +1816,7 @@ export default function MockBattle() {
           userGoesFirst,
           isFirstMove: false,
           characterStoryLore: characterStoryLore || undefined,
+          characterAINotes: opponentType === 'own' ? getOpponentNotes() : undefined,
         },
       });
 
@@ -2033,6 +2045,7 @@ export default function MockBattle() {
           userGoesFirst,
           isFirstMove: false,
           characterStoryLore: characterStoryLore || undefined,
+          characterAINotes: opponentType === 'own' ? getOpponentNotes() : undefined,
         },
       });
 
@@ -2478,6 +2491,7 @@ export default function MockBattle() {
             urgency: emergencyLocation.urgency,
             countdownTurns: emergencyLocation.countdownTurns,
           } : undefined,
+          characterAINotes: opponentType === 'own' ? getOpponentNotes() : undefined,
         },
       });
 
@@ -3433,13 +3447,24 @@ export default function MockBattle() {
                   </div>
                 </div>
                 <Swords className="w-6 h-6 text-primary" />
-                <div className="flex items-center gap-3">
+                <div
+                  className={`flex items-center gap-3 ${opponentType === 'own' ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+                  onClick={() => {
+                    if (opponentType === 'own' && selectedOwnCharacter) {
+                      setShowAINotePanel(true);
+                    }
+                  }}
+                  title={opponentType === 'own' ? 'Click to add AI character notes' : undefined}
+                >
                   <div className="text-right">
                     <p className="font-medium">{currentOpponent?.name}</p>
                     <Badge variant="outline" className="text-xs">{getTierName(currentOpponent?.level || 1)}</Badge>
+                    {opponentType === 'own' && (
+                      <p className="text-[10px] text-primary mt-0.5">📝 Click for AI notes</p>
+                    )}
                   </div>
                   {opponentType === 'own' && selectedOwnCharacter ? (
-                    <Avatar className="h-10 w-10">
+                    <Avatar className="h-10 w-10 ring-2 ring-primary/30">
                       <AvatarImage src={selectedOwnCharacter.image_url || undefined} />
                       <AvatarFallback>{selectedOwnCharacter.name[0]}</AvatarFallback>
                     </Avatar>
@@ -3641,6 +3666,17 @@ export default function MockBattle() {
           )}
         </CardContent>
       </Card>
+
+      {/* AI Character Note Panel - only for own characters */}
+      {opponentType === 'own' && selectedOwnCharacter && (
+        <AICharacterNotePanel
+          open={showAINotePanel}
+          onOpenChange={setShowAINotePanel}
+          characterId={selectedOwnCharacter.id}
+          characterName={selectedOwnCharacter.name}
+          battleId={undefined}
+        />
+      )}
     </div>
   );
 }
