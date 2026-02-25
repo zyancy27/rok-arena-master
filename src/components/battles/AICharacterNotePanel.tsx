@@ -6,8 +6,10 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Brain, Swords, Target, Plus, Trash2, Pencil, Check, X, Save } from 'lucide-react';
+import { Brain, Swords, Target, Plus, Trash2, Pencil, Check, X } from 'lucide-react';
 import { useCharacterAINotes, type CharacterAINote } from '@/hooks/use-character-ai-notes';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface AICharacterNotePanelProps {
   open: boolean;
@@ -17,45 +19,34 @@ interface AICharacterNotePanelProps {
   battleId?: string;
 }
 
+// Maps AI note categories to character DB fields for auto-storage
+const CATEGORY_TO_FIELD: Record<string, string> = {
+  move_clarification: 'powers',
+  personality: 'personality',
+  tactical_behavior: 'mentality',
+};
+
 const CATEGORY_CONFIG = {
   move_clarification: {
     label: 'Moves & Abilities',
     icon: Target,
     color: 'text-amber-400',
     bgColor: 'bg-amber-500/10 border-amber-500/30',
-    prompts: [
-      'This character cannot teleport.',
-      'This move requires an external energy source.',
-      'This character would not attack directly.',
-      'That was movement, not an attack.',
-      'This character cannot survive that damage type.',
-    ],
+    fieldLabel: 'powers',
   },
   personality: {
     label: 'Personality',
     icon: Brain,
     color: 'text-purple-400',
     bgColor: 'bg-purple-500/10 border-purple-500/30',
-    prompts: [
-      'They respond defensively under pressure.',
-      'They escalate emotionally when insulted.',
-      'They avoid lethal force.',
-      'They prefer strategy over brute force.',
-      'They stay calm in all situations.',
-    ],
+    fieldLabel: 'personality',
   },
   tactical_behavior: {
     label: 'Tactical Behavior',
     icon: Swords,
     color: 'text-cyan-400',
     bgColor: 'bg-cyan-500/10 border-cyan-500/30',
-    prompts: [
-      'They would dodge, not block.',
-      'They would retreat instead of charge.',
-      'They analyze before acting.',
-      'They would not waste energy this early.',
-      'They exploit environmental advantages.',
-    ],
+    fieldLabel: 'mentality',
   },
 } as const;
 
@@ -64,6 +55,51 @@ const SCOPE_OPTIONS = [
   { value: 'future_battles', label: 'Future Battles' },
   { value: 'global', label: 'Apply Globally' },
 ] as const;
+
+/**
+ * Appends note text to the character's corresponding field if scope is global/future,
+ * checking for duplication first.
+ */
+async function syncNoteToCharacterField(
+  characterId: string,
+  category: string,
+  noteText: string,
+  scope: string
+) {
+  // Only sync global & future_battles notes to character fields
+  if (scope === 'current_battle') return;
+
+  const field = CATEGORY_TO_FIELD[category];
+  if (!field) return;
+
+  try {
+    const { data: char } = await supabase
+      .from('characters')
+      .select('powers, personality, mentality, lore, abilities')
+      .eq('id', characterId)
+      .single();
+
+    if (!char) return;
+
+    const existingValue = ((char as any)[field] as string) || '';
+
+    // Check for duplicate (case-insensitive substring match)
+    if (existingValue.toLowerCase().includes(noteText.toLowerCase().trim())) {
+      return; // Already exists
+    }
+
+    const timestamp = new Date().toLocaleDateString();
+    const separator = existingValue.trim() ? '\n\n' : '';
+    const updatedValue = `${existingValue}${separator}[AI Note ${timestamp}] ${noteText.trim()}`;
+
+    await supabase
+      .from('characters')
+      .update({ [field]: updatedValue })
+      .eq('id', characterId);
+  } catch (err) {
+    console.error('Failed to sync note to character field:', err);
+  }
+}
 
 export default function AICharacterNotePanel({
   open,
@@ -83,18 +119,18 @@ export default function AICharacterNotePanel({
   const handleSubmit = async () => {
     if (!newNote.trim()) return;
     setIsSubmitting(true);
-    await addNote(
+    const result = await addNote(
       activeTab as CharacterAINote['category'],
       scope,
       newNote.trim(),
       battleId
     );
+    if (result) {
+      // Auto-sync to character field
+      await syncNoteToCharacterField(characterId, activeTab, newNote.trim(), scope);
+    }
     setNewNote('');
     setIsSubmitting(false);
-  };
-
-  const handlePromptClick = (prompt: string) => {
-    setNewNote(prompt);
   };
 
   const handleEdit = (note: CharacterAINote) => {
@@ -120,7 +156,7 @@ export default function AICharacterNotePanel({
             AI Notes — {characterName}
           </DialogTitle>
           <DialogDescription className="text-xs">
-            Train the AI on how this character thinks, fights, and behaves. Notes are applied to future AI decisions.
+            Train the AI on how this character thinks, fights, and behaves. Global/future notes are automatically saved to the character's profile.
           </DialogDescription>
         </DialogHeader>
 
@@ -136,24 +172,10 @@ export default function AICharacterNotePanel({
 
           {Object.entries(CATEGORY_CONFIG).map(([key, cfg]) => (
             <TabsContent key={key} value={key} className="space-y-3 mt-3">
-              {/* Quick prompts */}
-              <div className="flex flex-wrap gap-1.5">
-                {cfg.prompts.map((prompt, i) => (
-                  <Badge
-                    key={i}
-                    variant="outline"
-                    className={`cursor-pointer text-xs hover:opacity-80 transition-opacity ${cfg.bgColor}`}
-                    onClick={() => handlePromptClick(prompt)}
-                  >
-                    {prompt}
-                  </Badge>
-                ))}
-              </div>
-
-              {/* New note input */}
+              {/* New note input — no preselectable prompts */}
               <div className="space-y-2">
                 <Textarea
-                  placeholder={`Add a ${cfg.label.toLowerCase()} note for ${characterName}...`}
+                  placeholder={`Describe ${cfg.label.toLowerCase()} behavior for ${characterName}...`}
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
                   className="min-h-[70px] text-sm"

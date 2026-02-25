@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { AlertTriangle, Loader2, Zap, Timer, Save } from 'lucide-react';
+import { AlertTriangle, Loader2, Zap, Timer, Save, RefreshCw } from 'lucide-react';
 
 interface EmergencyLocation {
   name: string;
@@ -15,6 +15,7 @@ interface EmergencyLocation {
   urgency: string;
   countdownTurns: number;
   tags: string[];
+  rarityTier?: 'grounded' | 'advanced' | 'mythic';
 }
 
 interface Props {
@@ -25,7 +26,16 @@ interface Props {
   battleType: 'PvE' | 'PvP' | 'EvE';
   onLocationGenerated: (location: EmergencyLocation) => void;
   onSaveLocation?: (location: EmergencyLocation) => void;
+  planetName?: string;
+  planetDescription?: string;
+  planetGravity?: number | null;
 }
+
+const RARITY_STYLES: Record<string, { label: string; color: string }> = {
+  grounded: { label: 'Grounded', color: 'bg-green-500/20 text-green-400 border-green-500/40' },
+  advanced: { label: 'Advanced Sci-Fi', color: 'bg-blue-500/20 text-blue-400 border-blue-500/40' },
+  mythic: { label: 'Mythic', color: 'bg-purple-500/20 text-purple-400 border-purple-500/40' },
+};
 
 export default function EmergencyLocationGenerator({
   character1Name,
@@ -35,16 +45,31 @@ export default function EmergencyLocationGenerator({
   battleType,
   onLocationGenerated,
   onSaveLocation,
+  planetName,
+  planetDescription,
+  planetGravity,
 }: Props) {
   const [enabled, setEnabled] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedLocation, setGeneratedLocation] = useState<EmergencyLocation | null>(null);
+  // Session memory: track all generated location names+descriptions to prevent duplication
+  const sessionHistory = useRef<string[]>([]);
 
   const generateLocation = async () => {
     setIsGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-emergency-location', {
-        body: { character1Name, character2Name, battleType, character1Level, character2Level },
+        body: {
+          character1Name,
+          character2Name,
+          battleType,
+          character1Level,
+          character2Level,
+          planetName: planetName || null,
+          planetDescription: planetDescription || null,
+          planetGravity: planetGravity || null,
+          previousLocations: sessionHistory.current,
+        },
       });
 
       if (error) throw error;
@@ -52,7 +77,9 @@ export default function EmergencyLocationGenerator({
       if (data?.name) {
         setGeneratedLocation(data);
         onLocationGenerated(data);
-        toast.success(`Emergency location generated: ${data.name}`);
+        // Track for deduplication
+        sessionHistory.current.push(`${data.name}: ${data.description}`);
+        toast.success(`Emergency generated: ${data.name}`);
       } else {
         throw new Error('Invalid response');
       }
@@ -68,11 +95,31 @@ export default function EmergencyLocationGenerator({
     }
   };
 
+  const handleRegenerate = () => {
+    generateLocation();
+  };
+
   const handleSave = () => {
     if (generatedLocation && onSaveLocation) {
       onSaveLocation(generatedLocation);
     }
   };
+
+  const handleToggle = (checked: boolean) => {
+    setEnabled(checked);
+    if (!checked) {
+      setGeneratedLocation(null);
+    }
+  };
+
+  // Reset session memory (call externally when battle starts)
+  const resetSessionMemory = () => {
+    sessionHistory.current = [];
+  };
+
+  const rarityInfo = generatedLocation?.rarityTier
+    ? RARITY_STYLES[generatedLocation.rarityTier] || RARITY_STYLES.grounded
+    : null;
 
   return (
     <div className="space-y-3">
@@ -84,14 +131,14 @@ export default function EmergencyLocationGenerator({
               AI Emergency Location
             </Label>
             <p className="text-xs text-muted-foreground">
-              Generate a high-intensity crisis scenario as the battle arena
+              Generate a dynamic crisis scenario as the battle arena
             </p>
           </div>
         </div>
         <Switch
           id="emergency-loc"
           checked={enabled}
-          onCheckedChange={setEnabled}
+          onCheckedChange={handleToggle}
         />
       </div>
 
@@ -111,7 +158,7 @@ export default function EmergencyLocationGenerator({
             ) : (
               <>
                 <Zap className="w-4 h-4 mr-2" />
-                Generate Emergency Location
+                {generatedLocation ? 'Generate New Emergency' : 'Generate Emergency Location'}
               </>
             )}
           </Button>
@@ -119,20 +166,27 @@ export default function EmergencyLocationGenerator({
           {generatedLocation && (
             <Card className="bg-gradient-to-br from-red-500/10 to-orange-500/10 border-red-500/30">
               <CardContent className="p-4 space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <h3 className="font-bold text-lg flex items-center gap-2">
-                    <AlertTriangle className="w-5 h-5 text-red-500" />
-                    {generatedLocation.name}
+                    <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
+                    <span className="truncate">{generatedLocation.name}</span>
                   </h3>
-                  <Badge variant="destructive" className="flex items-center gap-1">
-                    <Timer className="w-3 h-3" />
-                    {generatedLocation.countdownTurns} turns
-                  </Badge>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {rarityInfo && (
+                      <Badge variant="outline" className={`text-[10px] ${rarityInfo.color}`}>
+                        {rarityInfo.label}
+                      </Badge>
+                    )}
+                    <Badge variant="destructive" className="flex items-center gap-1">
+                      <Timer className="w-3 h-3" />
+                      {generatedLocation.countdownTurns}T
+                    </Badge>
+                  </div>
                 </div>
                 <p className="text-sm">{generatedLocation.description}</p>
                 <div className="text-xs space-y-1">
-                  <p className="text-red-400 font-medium">⚠️ Hazards: {generatedLocation.hazards}</p>
-                  <p className="text-orange-400 font-medium">⏰ Urgency: {generatedLocation.urgency}</p>
+                  <p className="text-red-400 font-medium">⚠️ {generatedLocation.hazards}</p>
+                  <p className="text-orange-400 font-medium">⏰ {generatedLocation.urgency}</p>
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {generatedLocation.tags?.map((tag, i) => (
@@ -141,12 +195,24 @@ export default function EmergencyLocationGenerator({
                     </Badge>
                   ))}
                 </div>
-                {onSaveLocation && (
-                  <Button variant="outline" size="sm" onClick={handleSave} className="w-full">
-                    <Save className="w-3 h-3 mr-2" />
-                    Save to Location Library
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRegenerate}
+                    disabled={isGenerating}
+                    className="flex-1"
+                  >
+                    <RefreshCw className="w-3 h-3 mr-2" />
+                    Regenerate
                   </Button>
-                )}
+                  {onSaveLocation && (
+                    <Button variant="outline" size="sm" onClick={handleSave} className="flex-1">
+                      <Save className="w-3 h-3 mr-2" />
+                      Save
+                    </Button>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}

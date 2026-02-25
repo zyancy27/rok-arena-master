@@ -472,6 +472,9 @@ export default function EvEBattle() {
                   character1Level={character1?.level}
                   character2Level={character2?.level}
                   battleType="EvE"
+                  planetName={selectedPlanetData?.display_name || selectedPlanetData?.planet_name}
+                  planetDescription={selectedPlanetData?.description || undefined}
+                  planetGravity={selectedPlanetData?.gravity}
                   onLocationGenerated={(loc) => {
                     setEmergencyLocation(loc);
                     setBattleLocation(loc.name);
