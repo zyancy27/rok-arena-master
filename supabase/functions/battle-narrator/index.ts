@@ -26,6 +26,16 @@ interface EntranceRequest {
   battleLocation: string;
 }
 
+interface BattlefieldIntroRequest {
+  type: 'battlefield_intro';
+  battleLocation: string;
+  emergencyLocation?: {
+    name: string;
+    hazards: string;
+    urgency: string;
+  };
+}
+
 interface NarratorRequest {
   type?: 'narration';
   userCharacter: {
@@ -48,6 +58,7 @@ interface NarratorRequest {
     zone: string;
     meters: number;
   };
+  playerArenaDetails?: string[];
 }
 
 interface EnvironmentalEffect {
@@ -115,6 +126,18 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Handle battlefield intro generation
+    if (requestBody.type === 'battlefield_intro') {
+      const { battleLocation, emergencyLocation } = requestBody as BattlefieldIntroRequest;
+      if (!battleLocation || typeof battleLocation !== 'string' || battleLocation.length > MAX_LOCATION_LENGTH) {
+        return new Response(
+          JSON.stringify({ error: `battleLocation is required and must be under ${MAX_LOCATION_LENGTH} characters` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      return await generateBattlefieldIntro(battleLocation, emergencyLocation, LOVABLE_API_KEY, corsHeaders);
+    }
+
     // Handle entrance generation
     if (requestBody.type === 'entrance') {
       const { character1, character2, battleLocation }: EntranceRequest = requestBody;
@@ -157,6 +180,7 @@ serve(async (req) => {
       frequency = 'key_moments',
       detectEnvironmentalEffects = true,
       currentDistance,
+      playerArenaDetails,
     }: NarratorRequest = requestBody;
 
     // Validate required fields
@@ -254,8 +278,13 @@ EXAMPLES (environmental effects):
       ? `\nCurrent Distance: ${currentDistance.zone.toUpperCase()} range (~${currentDistance.meters}m apart)`
       : '';
 
+    // Player-established arena details
+    const arenaDetailsContext = playerArenaDetails && playerArenaDetails.length > 0
+      ? `\nPlayer-established arena details (treat as canon for this battle):\n${playerArenaDetails.slice(-6).map(d => `- ${d}`).join('\n')}`
+      : '';
+
     const userPrompt = `Battle Location: ${battleLocation}
-Turn: ${turnNumber}${distanceContext}
+Turn: ${turnNumber}${distanceContext}${arenaDetailsContext}
 
 ${userCharacter.name} (Tier ${userCharacter.level}) acted:
 "${userAction}"
@@ -483,4 +512,73 @@ function detectEffectsFromAction(actionText: string): EnvironmentalEffect[] {
   }
 
   return effects;
+}
+
+/**
+ * Generate a brief atmospheric battlefield introduction when the battle starts.
+ */
+async function generateBattlefieldIntro(
+  battleLocation: string,
+  emergencyLocation: { name: string; hazards: string; urgency: string } | undefined,
+  apiKey: string,
+  corsHeaders: Record<string, string>
+): Promise<Response> {
+  const emergencyContext = emergencyLocation
+    ? `\n\nThis is an EMERGENCY scenario: ${emergencyLocation.name}. Hazards: ${emergencyLocation.hazards}. Urgency: ${emergencyLocation.urgency}. Weave the crisis into the description.`
+    : '';
+
+  const systemPrompt = `You are an invisible narrator setting the stage for a battle arena.
+
+TASK: Describe the battlefield in 2-3 vivid, atmospheric sentences. Paint the scene so both fighters know what they're stepping into.
+
+STYLE:
+- Grounded and cinematic. Like the opening shot of a film.
+- Mention key terrain features fighters can use (cover, elevation, obstacles, hazards).
+- Note the atmosphere (lighting, sounds, smells, weather).
+- Do NOT mention the characters. Only describe the arena itself.
+- Keep it concise — set the stage, don't write a novel.
+- Players may later add their own details about this arena. Your job is the foundation.
+
+EXAMPLES:
+"Rain hammers the cracked asphalt of the abandoned highway overpass. Rusted cars line both sides, offering cover but threatening collapse. Below, a forty-foot drop into churning floodwater."
+"The colosseum floor is packed sand, stained dark from old battles. Torch sconces line the walls every ten feet, casting dancing shadows. The crowd is silent — waiting."
+"Volcanic rock stretches in every direction, split by glowing fissures of slow-moving magma. The air shimmers with heat, and each breath tastes of sulfur."${emergencyContext}`;
+
+  const userPrompt = `Describe this battlefield: ${battleLocation}`;
+
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-lite",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        max_tokens: 200,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`AI gateway error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const intro = data.choices?.[0]?.message?.content || "";
+
+    return new Response(
+      JSON.stringify({ intro }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error("Battlefield intro error:", error);
+    return new Response(
+      JSON.stringify({ intro: null }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
 }

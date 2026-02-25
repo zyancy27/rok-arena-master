@@ -1109,7 +1109,7 @@ export default function MockBattle() {
   const [useCustomLocation, setUseCustomLocation] = useState(false);
   const [narratorFrequency, setNarratorFrequency] = useState<'always' | 'key_moments' | 'off'>('key_moments');
   const [turnNumber, setTurnNumber] = useState(1);
-  
+  const [playerArenaDetails, setPlayerArenaDetails] = useState<string[]>([]);
   // New states for turn order and physics
   const [turnOrderDetermined, setTurnOrderDetermined] = useState(false);
   const [userGoesFirst, setUserGoesFirst] = useState(true);
@@ -1501,6 +1501,40 @@ export default function MockBattle() {
     });
     
     setMessages(introMessages);
+    
+    // Generate battlefield intro narration asynchronously
+    (async () => {
+      try {
+        const introResponse = await supabase.functions.invoke('battle-narrator', {
+          body: {
+            type: 'battlefield_intro',
+            battleLocation,
+            emergencyLocation: emergencyLocation ? {
+              name: emergencyLocation.name,
+              hazards: emergencyLocation.hazards,
+              urgency: emergencyLocation.urgency,
+            } : undefined,
+          },
+        });
+        if (!introResponse.error && introResponse.data?.intro) {
+          const narratorIntro: Message = {
+            id: crypto.randomUUID(),
+            role: 'narrator',
+            content: introResponse.data.intro,
+            channel: 'in_universe',
+            characterName: '🎙️ Narrator',
+          };
+          setMessages(prev => {
+            // Insert after the arena setup message (index 1)
+            const copy = [...prev];
+            copy.splice(2, 0, narratorIntro);
+            return copy;
+          });
+        }
+      } catch (e) {
+        console.error('Battlefield intro error:', e);
+      }
+    })();
     
     // If opponent goes first, trigger their opening move
     if (!userGoesFirst) {
@@ -2117,6 +2151,16 @@ export default function MockBattle() {
     // Process battlefield effects from user message
     if (activeChannel === 'in_universe') {
       processBattlefieldEffect(input);
+      
+      // Extract arena details from player message (environmental descriptions)
+      const arenaPatterns = /(?:the arena|the ground|the floor|the walls|the ceiling|the sky|nearby|around (?:us|them|here)|there(?:'s| is) a|surrounded by|the (?:air|wind|rain|snow|fog|mist|smoke|light|darkness)|(?:crumbling|burning|frozen|flooded|shattered|cracked|broken) )/i;
+      if (arenaPatterns.test(input) && input.length > 20) {
+        setPlayerArenaDetails(prev => {
+          const detail = input.slice(0, 200);
+          if (prev.some(d => d === detail)) return prev;
+          return [...prev.slice(-5), detail];
+        });
+      }
     }
     
     const currentInput = input;
@@ -2474,7 +2518,7 @@ export default function MockBattle() {
             ...currentOpponent,
             skill: opponentSkill,
           },
-          userMessage: input + skillEventNote + playerAttackContext + defenseEnforcementPrompt + overchargeAIContext + momentumAIContext + psychAIContext + adaptiveAIContext + chargeReleaseContext + chargeActiveContext + (arenaModifiersEnabled ? arenaModifiers.combinedPrompt : ''),
+          userMessage: input + skillEventNote + playerAttackContext + defenseEnforcementPrompt + overchargeAIContext + momentumAIContext + psychAIContext + adaptiveAIContext + chargeReleaseContext + chargeActiveContext + (arenaModifiersEnabled ? arenaModifiers.combinedPrompt : '') + (playerArenaDetails.length > 0 ? `\n\n[ARENA DETAILS established by the player (treat as canon): ${playerArenaDetails.slice(-4).join('; ')}]` : ''),
           channel: activeChannel,
           messageHistory: messages.slice(-10),
           battleLocation,
@@ -2563,6 +2607,7 @@ export default function MockBattle() {
               battleLocation,
               turnNumber,
               frequency: narratorFrequency,
+              playerArenaDetails: playerArenaDetails.length > 0 ? playerArenaDetails : undefined,
             },
           });
 
@@ -2619,6 +2664,7 @@ export default function MockBattle() {
     setBattleEnvironment(null);
     setUseCustomLocation(false);
     setTurnNumber(1);
+    setPlayerArenaDetails([]);
     setTurnOrderDetermined(false);
     setUserGoesFirst(true);
     setIsFirstMove(true);
