@@ -18,7 +18,7 @@ export default function Landing() {
   };
 
   return (
-    <div className="min-h-screen bg-nebula-gradient bg-stars">
+    <div className="min-h-screen bg-nebula-gradient bg-stars overflow-x-hidden">
       <PublicNav />
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-16">

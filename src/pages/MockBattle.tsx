@@ -3731,7 +3731,7 @@ function MessageArea({
           <BattlefieldEffectsOverlay effects={battlefieldEffects} />
         )}
         
-        <ScrollArea className="h-[400px] rounded-lg border border-border p-4 relative z-10" ref={scrollRef}>
+        <ScrollArea className="min-h-[300px] h-[50vh] max-h-[60vh] rounded-lg border border-border p-4 relative z-10" ref={scrollRef}>
           {messages.length === 0 && diceRollMessages.length === 0 && !isLoading ? (
             <div className="flex items-center justify-center h-full text-muted-foreground">
               <p>{isInUniverse ? 'The arena awaits your first move...' : 'No OOC messages yet'}</p>

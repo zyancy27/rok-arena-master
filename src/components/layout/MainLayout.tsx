@@ -54,7 +54,7 @@ export default function MainLayout() {
   };
 
   return (
-    <div className="min-h-screen bg-nebula-gradient bg-stars">
+    <div className="min-h-screen bg-nebula-gradient bg-stars overflow-x-hidden max-w-[100vw]">
       {/* Header/Navigation */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -67,7 +67,7 @@ export default function MainLayout() {
           </Link>
 
           {/* Navigation Links */}
-          <nav className="flex items-center gap-1 sm:gap-2">
+          <nav className="flex items-center gap-1 sm:gap-2 overflow-x-auto flex-shrink min-w-0">
             <Button variant="ghost" size="sm" asChild>
               <Link to="/hub" className="flex items-center gap-2">
                 <Home className="w-4 h-4" />
