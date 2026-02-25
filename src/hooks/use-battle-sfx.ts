@@ -7,11 +7,12 @@ interface UseBattleSfxOptions {
 
 /**
  * Hook that exposes the battle SFX engine for React components.
- * Preloads sounds on mount, processes text, and provides mute control.
+ * Automatically unlocks AudioContext on first user interaction.
  */
 export function useBattleSfx(options: UseBattleSfxOptions = {}) {
   const { enabled = true } = options;
   const engineRef = useRef(getBattleSfxEngine());
+  const unlockAttempted = useRef(false);
   const [muted, setMuted] = useState(() => {
     try {
       return localStorage.getItem('battle-sfx-muted') === 'true';
@@ -20,7 +21,35 @@ export function useBattleSfx(options: UseBattleSfxOptions = {}) {
     }
   });
 
-  // Preload on mount
+  // Unlock AudioContext on any user interaction (click/tap/keydown)
+  useEffect(() => {
+    if (!enabled || unlockAttempted.current) return;
+
+    const handleInteraction = () => {
+      if (!unlockAttempted.current) {
+        unlockAttempted.current = true;
+        engineRef.current.unlock().then(() => {
+          console.log('[SFX Hook] Audio unlocked via user interaction');
+        });
+      }
+      // Remove after first successful unlock
+      document.removeEventListener('click', handleInteraction);
+      document.removeEventListener('touchstart', handleInteraction);
+      document.removeEventListener('keydown', handleInteraction);
+    };
+
+    document.addEventListener('click', handleInteraction);
+    document.addEventListener('touchstart', handleInteraction);
+    document.addEventListener('keydown', handleInteraction);
+
+    return () => {
+      document.removeEventListener('click', handleInteraction);
+      document.removeEventListener('touchstart', handleInteraction);
+      document.removeEventListener('keydown', handleInteraction);
+    };
+  }, [enabled]);
+
+  // Preload on mount when enabled
   useEffect(() => {
     if (enabled) {
       engineRef.current.preload();
@@ -36,6 +65,8 @@ export function useBattleSfx(options: UseBattleSfxOptions = {}) {
   }, [muted, enabled]);
 
   const toggleMute = useCallback(() => {
+    // Also unlock on mute toggle (it's a user gesture)
+    engineRef.current.unlock();
     setMuted(prev => !prev);
   }, []);
 
