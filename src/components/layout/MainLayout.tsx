@@ -17,7 +17,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import OwnershipNotice from '@/components/legal/OwnershipNotice';
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb';
 import PageTransition from '@/components/layout/PageTransition';
-import { Swords, Users, BookOpen, Shield, LogOut, User, Home, Dna, Heart, ChevronDown, FileText, Plus, Globe, FolderOpen, Settings } from 'lucide-react';
+import { Swords, Users, Shield, LogOut, User, Home, Dna, Heart, ChevronDown, FileText, Plus, Globe, FolderOpen, Settings } from 'lucide-react';
 
 interface UserCharacter {
   id: string;
@@ -150,12 +150,6 @@ export default function MainLayout() {
               <Link to="/friends" className="flex items-center gap-2">
                 <Heart className="w-4 h-4" />
                 <span className="hidden sm:inline">Friends</span>
-              </Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/rules" className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4" />
-                <span className="hidden sm:inline">Rules</span>
               </Link>
             </Button>
             {isModerator && (

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Swords, Plus, Clock, CheckCircle, Users, Bot, Sparkles } from 'lucide-react';
+import { Swords, Clock, CheckCircle, Users, Bot, Sparkles, BookOpen } from 'lucide-react';
 import OpponentFinder from '@/components/battles/OpponentFinder';
 
 interface PveBattle {
@@ -280,20 +280,34 @@ export default function Battles() {
             Challenge opponents and manage your battles
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button asChild variant="outline">
-            <Link to="/battles/simulation">
-              <Sparkles className="w-4 h-4 mr-2" />
-              EvE Battle
-            </Link>
-          </Button>
-          <Button asChild>
-            <Link to="/characters/new">
-              <Plus className="w-4 h-4 mr-2" />
-              Create Character
-            </Link>
-          </Button>
-        </div>
+        <Button variant="ghost" size="sm" asChild>
+          <Link to="/rules" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+            <BookOpen className="w-4 h-4" />
+            Rules
+          </Link>
+        </Button>
+      </div>
+
+      {/* Battle Mode Selector */}
+      <div className="grid grid-cols-3 gap-3 max-w-lg">
+        <Button asChild variant="default" className="h-auto py-3 flex flex-col gap-1">
+          <Link to="/battles" className="text-center">
+            <Users className="w-5 h-5" />
+            <span className="text-xs font-medium">PvP</span>
+          </Link>
+        </Button>
+        <Button asChild variant="outline" className="h-auto py-3 flex flex-col gap-1">
+          <Link to="/battles/practice" className="text-center">
+            <Bot className="w-5 h-5" />
+            <span className="text-xs font-medium">PvE</span>
+          </Link>
+        </Button>
+        <Button asChild variant="outline" className="h-auto py-3 flex flex-col gap-1">
+          <Link to="/battles/simulation" className="text-center">
+            <Sparkles className="w-5 h-5" />
+            <span className="text-xs font-medium">EvE</span>
+          </Link>
+        </Button>
       </div>
 
       {/* Tabs for Find Opponents vs My Battles */}

@@ -7,7 +7,7 @@ import CharacterCard from '@/components/characters/CharacterCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Swords, Plus, Users, BookOpen, UserPlus } from 'lucide-react';
+import { Swords, Plus, Users, UserPlus } from 'lucide-react';
 
 interface Character {
   id: string;
@@ -81,12 +81,12 @@ export default function Hub() {
           </Card>
         </Link>
 
-        <Link to="/rules">
+        <Link to="/battles">
           <Card className="bg-card-gradient border-border hover:glow-gold transition-all cursor-pointer h-full">
             <CardHeader className="text-center">
-              <BookOpen className="w-12 h-12 mx-auto text-cosmic-gold mb-2" />
-              <CardTitle>R.O.K. Rules</CardTitle>
-              <CardDescription>Learn the laws of combat</CardDescription>
+              <Swords className="w-12 h-12 mx-auto text-cosmic-gold mb-2" />
+              <CardTitle>Battle Arena</CardTitle>
+              <CardDescription>Challenge opponents in combat</CardDescription>
             </CardHeader>
           </Card>
         </Link>
