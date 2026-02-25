@@ -167,12 +167,12 @@ export default function EmergencyLocationGenerator({
           {generatedLocation && (
             <Card className="bg-gradient-to-br from-red-500/10 to-orange-500/10 border-red-500/30">
               <CardContent className="p-4 space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="font-bold text-lg flex items-center gap-2">
-                    <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
-                    <span className="truncate">{generatedLocation.name}</span>
-                  </h3>
-                  <div className="flex items-center gap-1.5 shrink-0">
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                    <h3 className="font-bold text-base break-words min-w-0">{generatedLocation.name}</h3>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1.5">
                     {rarityInfo && (
                       <Badge variant="outline" className={`text-[10px] ${rarityInfo.color}`}>
                         {rarityInfo.label}
