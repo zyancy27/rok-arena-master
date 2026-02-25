@@ -1498,39 +1498,41 @@ export default function MockBattle() {
     
     setMessages(introMessages);
     
-    // Generate battlefield intro narration asynchronously
-    (async () => {
-      try {
-        const introResponse = await supabase.functions.invoke('battle-narrator', {
-          body: {
-            type: 'battlefield_intro',
-            battleLocation,
-            emergencyLocation: emergencyLocation ? {
-              name: emergencyLocation.name,
-              hazards: emergencyLocation.hazards,
-              urgency: emergencyLocation.urgency,
-            } : undefined,
-          },
-        });
-        if (!introResponse.error && introResponse.data?.intro) {
-          const narratorIntro: Message = {
-            id: crypto.randomUUID(),
-            role: 'narrator',
-            content: introResponse.data.intro,
-            channel: 'in_universe',
-            characterName: '🎙️ Narrator',
-          };
-          setMessages(prev => {
-            // Insert after the arena setup message (index 1)
-            const copy = [...prev];
-            copy.splice(2, 0, narratorIntro);
-            return copy;
+    // Generate battlefield intro narration asynchronously (only when narrator is enabled)
+    if (narratorFrequency !== 'off') {
+      (async () => {
+        try {
+          const introResponse = await supabase.functions.invoke('battle-narrator', {
+            body: {
+              type: 'battlefield_intro',
+              battleLocation,
+              emergencyLocation: emergencyLocation ? {
+                name: emergencyLocation.name,
+                hazards: emergencyLocation.hazards,
+                urgency: emergencyLocation.urgency,
+              } : undefined,
+            },
           });
+          if (!introResponse.error && introResponse.data?.intro) {
+            const narratorIntro: Message = {
+              id: crypto.randomUUID(),
+              role: 'narrator',
+              content: introResponse.data.intro,
+              channel: 'in_universe',
+              characterName: '🎙️ Narrator',
+            };
+            setMessages(prev => {
+              // Insert after the arena setup message (index 1)
+              const copy = [...prev];
+              copy.splice(2, 0, narratorIntro);
+              return copy;
+            });
+          }
+        } catch (e) {
+          console.error('Battlefield intro error:', e);
         }
-      } catch (e) {
-        console.error('Battlefield intro error:', e);
-      }
-    })();
+      })();
+    }
     
     // If opponent goes first, trigger their opening move
     if (!userGoesFirst) {
