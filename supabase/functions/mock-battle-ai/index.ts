@@ -189,26 +189,26 @@ serve(async (req) => {
       hazardContext = (hazardEvent || '').slice(0, 500);
     }
 
-    // Build character personality context for portraying the user's character
+    // Build character personality context — background knowledge ONLY
     let characterPersonalityContext = '';
     if (userCharacter.personality || userCharacter.mentality) {
-      characterPersonalityContext = `\n\nUSER CHARACTER PERSONALITY & MENTALITY (Use this heavily to understand how ${userCharacter.name} acts, thinks, and fights):`;
+      characterPersonalityContext = `\n\nOPPONENT BACKGROUND (for YOUR reference only — do NOT mention or recite this info in dialogue or narration):`;
       if (userCharacter.personality) {
         characterPersonalityContext += `\nPersonality: ${(userCharacter.personality || '').slice(0, 1000)}`;
       }
       if (userCharacter.mentality) {
         characterPersonalityContext += `\nMentality: ${(userCharacter.mentality || '').slice(0, 1000)}`;
       }
-      characterPersonalityContext += `\n\nWhen ${userCharacter.name} takes an action, interpret it through their personality. A cold, calculating character attacks differently than a hot-headed berserker.`;
+      characterPersonalityContext += `\nUse this ONLY to anticipate how ${userCharacter.name} might fight or react. NEVER quote it, reference it directly, or bring up personal details about them unless THEY bring it up first.`;
     }
 
-    // Build character story lore context
+    // Build character story lore context — background knowledge ONLY
     let storyLoreContext = '';
     if (characterStoryLore) {
-      storyLoreContext = `\n\nCHARACTER STORY LORE (Use this to understand ${userCharacter.name}'s history, motivations, and past experiences):
+      storyLoreContext = `\n\nOPPONENT LORE (background knowledge — do NOT bring up unprompted):
 ${(characterStoryLore || '').slice(0, 2000)}
 
-INSTRUCTIONS: Reference this lore when appropriate - mention past events, use established relationships, acknowledge character growth and experiences from their stories. This makes the battle feel connected to the character's larger narrative.`;
+INSTRUCTIONS: You know this about ${userCharacter.name}, but you would NOT randomly mention their past, history, or personal details in a fight. Only reference lore if ${userCharacter.name} brings it up first, or if a specific situation naturally connects to it. A fighter doesn't narrate their opponent's backstory mid-combat.`;
     }
 
     // Handle first move when opponent goes first
@@ -236,10 +236,10 @@ Countdown: ${emergencyLocation.countdownTurns} turns remain before catastrophic 
 The environment is actively trying to kill both fighters. Weave environmental danger into every action. The crisis escalates each turn.`;
     }
 
-    // Character AI Notes — creator-defined behavior constraints
+    // Character AI Notes — creator-defined behavior constraints (background only)
     let aiNotesContext = '';
     if (characterAINotes && typeof characterAINotes === 'string') {
-      aiNotesContext = characterAINotes.slice(0, 2000);
+      aiNotesContext = `\n\nCREATOR NOTES (behavioral constraints — follow these rules but do NOT recite them in dialogue):\n${characterAINotes.slice(0, 2000)}`;
     }
 
     // AI Hit Verification context
@@ -274,6 +274,7 @@ WRITING STYLE - CRITICAL:
 - Only mention the environment if you directly interact with it (grab a rock, kick off a wall).
 - DO NOT be wordy or descriptive about things unrelated to the actual fight unless your personality/mentality explicitly makes you a talkative, philosophical, or dramatic character.
 - Short, tight responses. Act, don't narrate.
+- NEVER dump personal knowledge about your opponent into dialogue. You wouldn't tell someone their own backstory in a fight. Only mention personal details if THEY bring it up or the moment makes it truly natural (e.g., recognizing someone you have history with). Even then, keep it to a brief remark, not a monologue.
 
 COMBAT FLOW - EVERY ATTACK TURN:
 - When the opponent attacks you, your response should include:
