@@ -88,8 +88,9 @@ import SaveLocationPrompt from '@/components/battles/SaveLocationPrompt';
 import EnvironmentChatBackground from '@/components/battles/EnvironmentChatBackground';
 import { usePvPCombatMechanics } from '@/hooks/use-pvp-combat-mechanics';
 import SfxToggle from '@/components/battles/SfxToggle';
-import PrivateNarratorChat from '@/components/battles/PrivateNarratorChat';
+import PrivateNarratorChat, { type MechanicDiscoveryMessage } from '@/components/battles/PrivateNarratorChat';
 import { type StatModification } from '@/components/battles/StatModificationPanel';
+import { discoverMechanic, type MechanicKey } from '@/lib/mechanic-discovery';
 import { useBattleSfx } from '@/hooks/use-battle-sfx';
 import { getDominantPsychCue } from '@/lib/battle-psychology';
 import {
@@ -337,6 +338,23 @@ export default function BattleView() {
     suggestedFix?: string;
   } | null>(null);
   const [narratorGlowing, setNarratorGlowing] = useState(false);
+
+  // Mechanic discovery notifications
+  const [pendingDiscoveries, setPendingDiscoveries] = useState<MechanicDiscoveryMessage[]>([]);
+  
+  const triggerMechanicDiscovery = (key: MechanicKey) => {
+    if (!id) return;
+    const info = discoverMechanic(id, key);
+    if (info) {
+      setPendingDiscoveries(prev => [...prev, { title: info.title, summary: info.summary }]);
+      setNarratorGlowing(true);
+    }
+  };
+
+  const handleDiscoveriesShown = () => {
+    setPendingDiscoveries([]);
+    setNarratorGlowing(false);
+  };
 
   // Stat modifications during battle
   const [statModifications, setStatModifications] = useState<StatModification[]>([]);
@@ -993,6 +1011,7 @@ export default function BattleView() {
           suggestedFix: validation.suggestedFix || undefined,
         });
         setNarratorGlowing(true);
+        triggerMechanicDiscovery('move_validation');
         setPendingMove(messageInput);
         setMoveValidation(validation);
         setMessageInput('');
@@ -1329,6 +1348,9 @@ export default function BattleView() {
     };
     
     setDiceRollMessages(prev => [...prev, rollMessage]);
+    triggerMechanicDiscovery('dice_roll');
+    if (hit.wouldHit && hit.gap >= 5) triggerMechanicDiscovery('hit_detection');
+    if (mental) triggerMechanicDiscovery('mental_attack');
     
     // Track this hit result for opponent's defense validation
     setLastHitResult({ hit: hit.wouldHit, gap: hit.gap });
@@ -1448,6 +1470,8 @@ export default function BattleView() {
     };
     
     setDiceRollMessages(prev => [...prev, rollMessage]);
+    triggerMechanicDiscovery('dice_roll');
+    triggerMechanicDiscovery('hit_detection');
     setLastHitResult({ hit: hit.wouldHit, gap: hit.gap });
 
     // SFX
@@ -1522,7 +1546,7 @@ export default function BattleView() {
   // Handle concentration use
   const handleUseConcentration = async (result: ConcentrationResult) => {
     if (!userCharacter?.character || !pendingHit) return;
-    
+    triggerMechanicDiscovery('concentration');
     const charId = userCharacter.character_id;
     
     // Update concentration uses
@@ -2507,13 +2531,13 @@ export default function BattleView() {
               <TabsTrigger
                 value="private_narrator"
                 className={`flex items-center gap-1.5 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-amber-400 text-xs sm:text-sm transition-all ${
-                  narratorGlowing ? 'animate-pulse bg-amber-500/10 text-amber-400' : ''
+                  narratorGlowing ? 'animate-pulse bg-amber-500/10 text-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.4)]' : ''
                 }`}
               >
                 <BookOpen className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Narrator</span>
                 <span className="sm:hidden">📖</span>
-                {pendingNarratorValidation && (
+                {(pendingNarratorValidation || pendingDiscoveries.length > 0) && (
                   <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
                 )}
               </TabsTrigger>
@@ -2859,6 +2883,8 @@ export default function BattleView() {
                   onMoveRejected={handleNarratorMoveRejected}
                   onAbilityLearned={handleAbilityLearned}
                   glowing={narratorGlowing}
+                  mechanicDiscoveries={pendingDiscoveries}
+                  onDiscoveriesShown={handleDiscoveriesShown}
                 />
               ) : (
                 <div className="flex items-center justify-center h-[300px] text-center text-muted-foreground">

@@ -21,6 +21,11 @@ interface NarratorMessage {
   isValidation?: boolean;
 }
 
+export interface MechanicDiscoveryMessage {
+  title: string;
+  summary: string;
+}
+
 interface PrivateNarratorChatProps {
   battleId: string;
   characterName: string;
@@ -41,6 +46,10 @@ interface PrivateNarratorChatProps {
   /** Callback to add ability to character */
   onAbilityLearned?: (abilityDescription: string) => void;
   glowing?: boolean;
+  /** Queued mechanic discovery explanations */
+  mechanicDiscoveries?: MechanicDiscoveryMessage[];
+  /** Called after discoveries are shown */
+  onDiscoveriesShown?: () => void;
 }
 
 export default function PrivateNarratorChat({
@@ -56,13 +65,27 @@ export default function PrivateNarratorChat({
   onMoveRejected,
   onAbilityLearned,
   glowing = false,
+  mechanicDiscoveries = [],
+  onDiscoveriesShown,
 }: PrivateNarratorChatProps) {
   const [messages, setMessages] = useState<NarratorMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-add validation prompt when pending
+  // Show mechanic discovery messages when the user navigates to this tab
+  useEffect(() => {
+    if (mechanicDiscoveries.length > 0) {
+      const discoveryMsgs: NarratorMessage[] = mechanicDiscoveries.map((d, i) => ({
+        id: `discovery-${Date.now()}-${i}`,
+        role: 'narrator' as const,
+        content: `🆕 **New Mechanic Discovered: ${d.title}**\n\n${d.summary}`,
+        timestamp: new Date(),
+      }));
+      setMessages(prev => [...prev, ...discoveryMsgs]);
+      onDiscoveriesShown?.();
+    }
+  }, [mechanicDiscoveries.length]);
   useEffect(() => {
     if (pendingValidation) {
       const validationMsg: NarratorMessage = {
