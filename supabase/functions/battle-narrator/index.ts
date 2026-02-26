@@ -126,6 +126,11 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // Handle private narrator queries (move validation, battle questions)
+    if (requestBody.type === 'private_query') {
+      return await handlePrivateQuery(requestBody, LOVABLE_API_KEY, corsHeaders);
+    }
+
     // Handle battlefield intro generation
     if (requestBody.type === 'battlefield_intro') {
       const { battleLocation, emergencyLocation } = requestBody as BattlefieldIntroRequest;
@@ -584,6 +589,123 @@ EXAMPLES:
     return new Response(
       JSON.stringify({ intro: null }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+}
+
+/**
+ * Handle private narrator queries — answering player questions about battle state,
+ * validating moves, and enforcing rules.
+ * Only reveals publicly-shared info about opponents.
+ */
+async function handlePrivateQuery(
+  body: any,
+  apiKey: string,
+  corsHeaders: Record<string, string>
+): Promise<Response> {
+  const {
+    query,
+    characterName,
+    characterPowers,
+    characterAbilities,
+    battleLocation,
+    opponentNames,
+    recentPublicActions,
+    isValidationResponse,
+    pendingMove,
+    pendingWarning,
+  } = body;
+
+  if (!query || typeof query !== 'string') {
+    return new Response(
+      JSON.stringify({ error: 'query is required' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const validationContext = isValidationResponse && pendingMove
+    ? `\n\nMOVE VALIDATION MODE:
+The player attempted this move: "${pendingMove}"
+The system flagged it with: "${pendingWarning}"
+The player is now explaining why this move should be allowed.
+
+EVALUATE their explanation:
+- If the explanation logically connects the move to their existing powers/abilities, APPROVE it.
+  Set "moveApproved": true and provide a brief "abilityDescription" that can be added to their character sheet.
+- If the explanation is weak, contradictory, or doesn't connect to their powers, REJECT it kindly.
+  Set "moveApproved": false and explain why.
+- Be fair but firm. Creative interpretations of existing powers are fine. Completely unrelated powers are not.`
+    : '';
+
+  const systemPrompt = `You are a private battle narrator assistant. You answer questions from ${characterName} about the ongoing battle.
+
+RULES:
+1. You can ONLY reveal information about opponents that was publicly shared in the RP chat.
+2. Never reveal hidden stats, private strategies, or information the player hasn't seen.
+3. You CAN discuss: arena conditions, publicly-described moves, general tactical advice, rule clarifications.
+4. Keep answers concise (2-4 sentences).
+5. Stay in character as a knowledgeable but neutral observer.${validationContext}
+
+CHARACTER INFO (private — this is the asking player):
+Name: ${characterName}
+Powers: ${characterPowers || 'Not specified'}
+Abilities: ${characterAbilities || 'Not specified'}
+
+OPPONENTS: ${(opponentNames || []).join(', ')}
+BATTLE LOCATION: ${battleLocation || 'Unknown'}
+
+OUTPUT FORMAT: Return JSON with:
+- "answer": string (your response)
+- "moveApproved": boolean (only if validating a move, otherwise omit)
+- "abilityDescription": string (only if moveApproved is true — a short description to add to character abilities)`;
+
+  const userPrompt = `Recent public actions:\n${recentPublicActions || 'None yet'}\n\nPlayer's question/response: ${query}`;
+
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        max_tokens: 400,
+        response_format: { type: "json_object" },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`AI gateway error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '{}';
+
+    let parsed;
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      parsed = { answer: content };
+    }
+
+    return new Response(
+      JSON.stringify({
+        answer: parsed.answer || 'The narrator considers...',
+        moveApproved: parsed.moveApproved ?? null,
+        abilityDescription: parsed.abilityDescription || null,
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('Private query error:', error);
+    return new Response(
+      JSON.stringify({ answer: 'The narrator is momentarily unavailable.', moveApproved: null }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 }
