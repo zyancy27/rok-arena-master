@@ -134,6 +134,15 @@ interface Battle {
   emergency_enabled?: boolean;
   emergency_payload?: any;
   has_shown_arena_intro?: boolean;
+  location_base?: string | null;
+  location_confirmed_by_host?: boolean;
+}
+
+interface BattleInvitation {
+  id: string;
+  battle_id: string;
+  user_id: string;
+  status: 'pending' | 'accepted' | 'declined';
 }
 
 interface CharacterData {
@@ -307,6 +316,9 @@ export default function BattleView() {
   // Emergency location state
   const [emergencyLocation, setEmergencyLocation] = useState<any>(null);
   const [showSaveLocationPrompt, setShowSaveLocationPrompt] = useState(false);
+
+  // Group battle invitation state
+  const [groupInvitation, setGroupInvitation] = useState<BattleInvitation | null>(null);
 
   // Battle narrator state
   const [narratorFrequency, setNarratorFrequency] = useState<NarratorFrequency>('key_moments');
@@ -570,22 +582,42 @@ export default function BattleView() {
       }
     }
 
-    // If user is the challenged user but not a participant yet, fetch their characters
-    if (battleData.challenged_user_id === user?.id) {
-      const userIsParticipant = participantsData?.some(p => {
-        const charIds = participantsData.map(pd => pd.character_id);
-        // We need to check if any of these chars belong to the user
-        return false; // Will check after chars fetch
-      });
-      
-      // Fetch user's available characters for selection
-      const { data: myChars } = await supabase
+    // Check if user already has a character in this battle
+    let userAlreadyJoined = false;
+    if (participantsData) {
+      const pCharIds = participantsData.map(p => p.character_id);
+      const { data: pCharsCheck } = await supabase
         .from('characters')
-        .select('id, name, level, user_id, powers, abilities, stat_intelligence, stat_battle_iq, stat_strength, stat_power, stat_speed, stat_durability, stat_stamina, stat_skill, stat_luck')
-        .eq('user_id', user.id);
-      
-      if (myChars) {
-        setUserCharacters(myChars);
+        .select('id, user_id')
+        .in('id', pCharIds);
+      userAlreadyJoined = pCharsCheck?.some(c => c.user_id === user?.id) ?? false;
+    }
+
+    // Check for group battle invitation or PvP challenge
+    if (battleData.status === 'pending' && !userAlreadyJoined) {
+      const { data: invitation } = await supabase
+        .from('battle_invitations')
+        .select('id, battle_id, user_id, status')
+        .eq('battle_id', id!)
+        .eq('user_id', user!.id)
+        .maybeSingle();
+
+      if (invitation) {
+        setGroupInvitation(invitation as BattleInvitation);
+      }
+
+      const isChallenged = battleData.challenged_user_id === user?.id;
+      const isInvited = !!invitation;
+
+      if (isChallenged || isInvited) {
+        const { data: myChars } = await supabase
+          .from('characters')
+          .select('id, name, level, user_id, powers, abilities, stat_intelligence, stat_battle_iq, stat_strength, stat_power, stat_speed, stat_durability, stat_stamina, stat_skill, stat_luck')
+          .eq('user_id', user!.id);
+        
+        if (myChars) {
+          setUserCharacters(myChars);
+        }
       }
     }
 
@@ -1381,13 +1413,22 @@ export default function BattleView() {
     setIsAcceptingChallenge(true);
     
     try {
-      // Add user as participant with turn_order 2
+      const isGroup = battle.battle_mode === 'group_pvp';
+      
+      // Determine turn_order: for group battles, assign next available
+      let turnOrder = 2;
+      if (isGroup) {
+        const existingOrders = participants.map(p => p.turn_order);
+        turnOrder = existingOrders.length > 0 ? Math.max(...existingOrders) + 1 : 2;
+      }
+
+      // Add user as participant
       const { error: participantError } = await supabase
         .from('battle_participants')
         .insert({
           battle_id: battle.id,
           character_id: selectedCharacterId,
-          turn_order: 2,
+          turn_order: turnOrder,
         });
 
       if (participantError) {
@@ -1395,7 +1436,59 @@ export default function BattleView() {
         return;
       }
 
-      toast.success('Challenge accepted! Enter your battle location.');
+      // Update invitation status if this is a group battle
+      if (groupInvitation) {
+        await supabase
+          .from('battle_invitations')
+          .update({ status: 'accepted' })
+          .eq('id', groupInvitation.id);
+      }
+
+      // For group battles with host-confirmed location, check if all players joined to auto-start
+      if (isGroup && battle.location_confirmed_by_host) {
+        const expectedPlayers = battle.max_players ?? 3;
+        const currentParticipantCount = participants.length + 1; // +1 for the user just joining
+        
+        if (currentParticipantCount >= expectedPlayers) {
+          // All players joined - snapshot stats and start battle
+          // Fetch fresh participants
+          const { data: allParticipants } = await supabase
+            .from('battle_participants')
+            .select('id, character_id')
+            .eq('battle_id', battle.id);
+          
+          if (allParticipants) {
+            for (const p of allParticipants) {
+              const { data: charData } = await supabase
+                .from('characters')
+                .select('id, name, level, user_id, powers, abilities, stat_intelligence, stat_battle_iq, stat_strength, stat_power, stat_speed, stat_durability, stat_stamina, stat_skill, stat_luck')
+                .eq('id', p.character_id)
+                .maybeSingle();
+              
+              if (charData) {
+                await supabase
+                  .from('battle_participants')
+                  .update({ character_snapshot: JSON.parse(JSON.stringify(charData)) })
+                  .eq('id', p.id);
+              }
+            }
+          }
+
+          await supabase
+            .from('battles')
+            .update({ 
+              status: 'active',
+              dynamic_environment: true,
+            })
+            .eq('id', battle.id);
+
+          toast.success('⚔️ All players joined! Battle has begun!');
+        } else {
+          toast.success(`Challenge accepted! Waiting for ${expectedPlayers - currentParticipantCount} more player(s).`);
+        }
+      } else {
+        toast.success('Challenge accepted! Enter your battle location.');
+      }
       
       // Refetch battle data to get updated participants
       await fetchBattleData();
@@ -1413,9 +1506,27 @@ export default function BattleView() {
     setIsCancelling(true);
     
     try {
+      // If this is a group invitation, just decline the invite (don't delete the battle)
+      if (groupInvitation && battle.battle_mode === 'group_pvp') {
+        await supabase
+          .from('battle_invitations')
+          .update({ status: 'declined' })
+          .eq('id', groupInvitation.id);
+        
+        toast.success('Invitation declined');
+        navigate('/battles');
+        return;
+      }
+
       // Delete all participants first
       await supabase
         .from('battle_participants')
+        .delete()
+        .eq('battle_id', battle.id);
+
+      // Delete invitations
+      await supabase
+        .from('battle_invitations')
         .delete()
         .eq('battle_id', battle.id);
 
@@ -1689,21 +1800,30 @@ export default function BattleView() {
       )}
 
 
-      {/* Challenge Acceptance for Challenged User (not yet a participant) */}
-      {battle.status === 'pending' && !userCharacter && battle.challenged_user_id === user?.id && (
+      {/* Challenge Acceptance for Challenged User OR Group Invitation (not yet a participant) */}
+      {battle.status === 'pending' && !userCharacter && (battle.challenged_user_id === user?.id || groupInvitation?.status === 'pending') && (
         <Card className="bg-card-gradient border-primary/30">
           <CardHeader className="py-3">
             <CardTitle className="text-sm flex items-center gap-2">
               <Swords className="w-4 h-4 text-primary" />
-              You've Been Challenged!
+              {battle.battle_mode === 'group_pvp' ? "You've Been Invited to a Group Battle!" : "You've Been Challenged!"}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="p-4 bg-primary/10 rounded-lg">
-              <p className="text-sm mb-4">
-                <span className="font-medium">{participants[0]?.character?.name || 'An opponent'}</span> has challenged you to battle!
-                Select a character to accept the challenge.
+              <p className="text-sm mb-2">
+                <span className="font-medium">{participants[0]?.character?.name || 'A host'}</span>
+                {battle.battle_mode === 'group_pvp' 
+                  ? ` has invited you to a 3-player group battle!`
+                  : ` has challenged you to battle!`}
               </p>
+              {battle.battle_mode === 'group_pvp' && battle.chosen_location && (
+                <p className="text-xs text-muted-foreground mb-2">
+                  📍 Location: <span className="font-medium text-foreground">{battle.chosen_location}</span>
+                  {battle.emergency_enabled && ' (Emergency scenario active)'}
+                </p>
+              )}
+              <p className="text-sm mb-4">Select a character to accept.</p>
               
               <div className="space-y-3">
                 <Label>Choose Your Fighter</Label>
@@ -1738,7 +1858,7 @@ export default function BattleView() {
                 className="flex-1 glow-primary"
               >
                 <UserPlus className="w-4 h-4 mr-2" />
-                {isAcceptingChallenge ? 'Accepting...' : 'Accept Challenge'}
+                {isAcceptingChallenge ? 'Joining...' : 'Accept & Join'}
               </Button>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -1768,7 +1888,7 @@ export default function BattleView() {
       )}
 
       {/* Location Setup for Pending Battle (when user is already a participant) */}
-      {battle.status === 'pending' && userCharacter && (
+      {battle.status === 'pending' && userCharacter && !isGroupBattle && (
         <Card className="bg-card-gradient border-border">
           <CardHeader className="py-3">
             <CardTitle className="text-sm flex items-center justify-between">
@@ -1857,23 +1977,6 @@ export default function BattleView() {
               </div>
             )}
 
-            {/* AI Emergency Location Generator */}
-            <EmergencyLocationGenerator
-              character1Name={participants[0]?.character?.name}
-              character2Name={participants[1]?.character?.name}
-              character1Level={participants[0]?.character?.level}
-              character2Level={participants[1]?.character?.level}
-              battleType="PvP"
-              onLocationGenerated={(loc) => {
-                setEmergencyLocation(loc);
-                setLocationInput(loc.name);
-              }}
-              onSaveLocation={(loc) => {
-                setEmergencyLocation(loc);
-                setShowSaveLocationPrompt(true);
-              }}
-            />
-
             {/* Coin flip when both locations are set */}
             {battle.location_1 && battle.location_2 && !battle.chosen_location && (
               <div className="text-center space-y-4 py-4">
@@ -1926,6 +2029,65 @@ export default function BattleView() {
                 Waiting for your opponent to submit their location...
               </p>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Group Battle Waiting Room (host sees this after creating) */}
+      {battle.status === 'pending' && userCharacter && isGroupBattle && (
+        <Card className="bg-card-gradient border-border">
+          <CardHeader className="py-3">
+            <CardTitle className="text-sm flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-primary" />
+                Group Battle — Waiting for Players
+              </span>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" disabled={isCancelling}>
+                    <X className="w-4 h-4 mr-1" />
+                    Cancel
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Cancel Group Battle?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will cancel the battle and remove all invitations.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Keep Battle</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeclineChallenge}>Cancel Battle</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">📍 Location: <span className="font-medium text-foreground">{battle.chosen_location || battle.location_1}</span></p>
+              {battle.emergency_enabled && (
+                <p className="text-xs text-muted-foreground">🚨 Emergency scenario active</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Players ({participants.length}/{battle.max_players ?? 3})</p>
+              <div className="flex flex-wrap gap-2">
+                {participants.map(p => (
+                  <Badge key={p.id} variant="outline" className="flex items-center gap-2 py-1.5">
+                    <div className="w-2 h-2 rounded-full bg-green-500" />
+                    {p.character?.name || 'Unknown'} (Tier {p.character?.level})
+                  </Badge>
+                ))}
+                {Array.from({ length: (battle.max_players ?? 3) - participants.length }).map((_, i) => (
+                  <Badge key={`waiting-${i}`} variant="secondary" className="flex items-center gap-2 py-1.5 text-muted-foreground">
+                    <div className="w-2 h-2 rounded-full bg-muted-foreground/30 animate-pulse" />
+                    Waiting...
+                  </Badge>
+                ))}
+              </div>
+            </div>
           </CardContent>
         </Card>
       )}

@@ -207,7 +207,7 @@ export default function GroupBattleCreate() {
         location_base: battleLocation.trim(),
         emergency_enabled: emergencyEnabled,
         location_confirmed_by_host: true,
-        chosen_location: battleLocation.trim(), // Host decides location for group
+        chosen_location: battleLocation.trim(),
       };
 
       if (selectedPlanetData) {
@@ -226,8 +226,6 @@ export default function GroupBattleCreate() {
         };
       }
 
-      // We can't use the RPC for group battles since it only handles 2-player challenges
-      // Instead, create battle directly and add participants
       const { data: battleData, error: battleError } = await supabase
         .from('battles')
         .insert(battlePayload)
@@ -249,12 +247,20 @@ export default function GroupBattleCreate() {
 
       if (p1Error) throw p1Error;
 
-      // We store challenged users. For group battles, we'll store the first invited user 
-      // as challenged_user_id and handle the second via a convention.
-      // Actually, let's update the battle to reference challenged users
-      // For now, we'll create participant placeholders or just navigate and let them join.
-      
-      // Update battle with first challenged user
+      // Create invitations for both opponents
+      const invitationInserts = invitedOpponents.map(o => ({
+        battle_id: battleId,
+        user_id: o.userId,
+        status: 'pending' as const,
+      }));
+
+      const { error: invError } = await supabase
+        .from('battle_invitations')
+        .insert(invitationInserts);
+
+      if (invError) throw invError;
+
+      // Set first challenged user for backwards compat with notification system
       await supabase
         .from('battles')
         .update({ challenged_user_id: invitedOpponents[0].userId })
