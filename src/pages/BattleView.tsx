@@ -84,7 +84,6 @@ import { useBattlefieldEffects } from '@/components/battles/useBattlefieldEffect
 import { useCharacterStatusEffects } from '@/hooks/use-character-status-effects';
 import { detectCharacterStatusEffects } from '@/lib/character-status-effects';
 import { shouldSuppressStatus } from '@/lib/battlefield-effects';
-import EmergencyLocationGenerator from '@/components/battles/EmergencyLocationGenerator';
 import SaveLocationPrompt from '@/components/battles/SaveLocationPrompt';
 import EnvironmentChatBackground from '@/components/battles/EnvironmentChatBackground';
 import {
@@ -792,6 +791,50 @@ export default function BattleView() {
           // Sync battlefield effects from opponent's updates
           if (updatedBattle.environment_effects) {
             hydrateBattlefieldEffects(updatedBattle.environment_effects);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'battle_participants',
+          filter: `battle_id=eq.${id}`,
+        },
+        async (payload) => {
+          // A new player joined — refetch participants for waiting room
+          const newP = payload.new as any;
+          const { data: charData } = await supabase
+            .from('characters')
+            .select('id, name, level, user_id, powers, abilities, stat_intelligence, stat_battle_iq, stat_strength, stat_power, stat_speed, stat_durability, stat_stamina, stat_skill, stat_luck')
+            .eq('id', newP.character_id)
+            .maybeSingle();
+
+          if (charData) {
+            setParticipants(prev => {
+              if (prev.some(p => p.id === newP.id)) return prev;
+              return [...prev, { ...newP, character: charData }];
+            });
+
+            if (charData.user_id !== user?.id) {
+              toast.info(`${charData.name} has joined the battle!`);
+            }
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'battle_invitations',
+          filter: `battle_id=eq.${id}`,
+        },
+        (payload) => {
+          const updated = payload.new as any;
+          if (updated.user_id === user?.id) {
+            setGroupInvitation(prev => prev ? { ...prev, status: updated.status } : null);
           }
         }
       )
