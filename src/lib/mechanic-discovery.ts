@@ -86,32 +86,32 @@ const MECHANIC_EXPLANATIONS: Record<MechanicKey, MechanicInfo> = {
 
 const STORAGE_KEY = 'rok-mechanic-discoveries';
 
-/** Get the set of already-seen mechanics for a battle */
-function getSeenMechanics(battleId: string): Set<MechanicKey> {
+/** Get the set of already-seen mechanics for an account (userId) */
+function getSeenMechanics(userId: string): Set<MechanicKey> {
   try {
-    const raw = localStorage.getItem(`${STORAGE_KEY}-${battleId}`);
+    const raw = localStorage.getItem(`${STORAGE_KEY}-${userId}`);
     if (raw) return new Set(JSON.parse(raw) as MechanicKey[]);
   } catch { /* ignore */ }
   return new Set();
 }
 
-function markSeen(battleId: string, key: MechanicKey) {
-  const seen = getSeenMechanics(battleId);
+function markSeen(userId: string, key: MechanicKey) {
+  const seen = getSeenMechanics(userId);
   seen.add(key);
-  localStorage.setItem(`${STORAGE_KEY}-${battleId}`, JSON.stringify([...seen]));
+  localStorage.setItem(`${STORAGE_KEY}-${userId}`, JSON.stringify([...seen]));
 }
 
 /**
- * Check if a mechanic is being encountered for the first time.
+ * Check if a mechanic is being encountered for the first time per account.
  * If so, marks it as seen and returns the explanation info.
  * Returns null if already seen.
  */
 export function discoverMechanic(
-  battleId: string,
+  userId: string,
   key: MechanicKey,
 ): MechanicInfo | null {
-  const seen = getSeenMechanics(battleId);
+  const seen = getSeenMechanics(userId);
   if (seen.has(key)) return null;
-  markSeen(battleId, key);
+  markSeen(userId, key);
   return MECHANIC_EXPLANATIONS[key];
 }
