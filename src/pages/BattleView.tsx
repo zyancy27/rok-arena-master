@@ -765,6 +765,9 @@ export default function BattleView() {
                       true // Assume hit landed for now, refining later with dice check
                     );
                     
+                    // Generate dice roll for opponent's attack (so receiver sees it inline)
+                    generateOpponentDiceRoll(newMessage.content, charData?.name || 'Opponent', newMessage.character_id);
+                    
                     // Call battle narrator for atmospheric commentary
                     callBattleNarrator(newMessage.content, charData?.name || 'Opponent');
                   }
@@ -1387,6 +1390,77 @@ export default function BattleView() {
         channel: 'out_of_universe',
       });
     }
+  };
+
+  // Generate dice roll for an opponent's incoming attack (so the defender sees it inline)
+  const generateOpponentDiceRoll = (moveText: string, opponentName: string, opponentCharId: string) => {
+    if (!userCharacter?.character) return;
+    
+    const opponentParticipant = participants.find(p => p.character_id === opponentCharId);
+    if (!opponentParticipant?.character) return;
+
+    // Check if this looks like an attack
+    const attackKeywords = ['attack', 'strike', 'hit', 'punch', 'kick', 'slash', 'blast', 'fire', 'throw', 'launch', 'charge', 'swing', 'aim', 'shoot'];
+    const isAttack = attackKeywords.some(kw => moveText.toLowerCase().includes(kw));
+    if (!isAttack) return;
+
+    const attackerChar = opponentParticipant.character;
+    const defenderChar = userCharacter.character;
+
+    const attackerStats: CharacterStats = {
+      stat_intelligence: attackerChar.stat_intelligence ?? 50,
+      stat_battle_iq: attackerChar.stat_battle_iq ?? 50,
+      stat_strength: attackerChar.stat_strength ?? 50,
+      stat_power: attackerChar.stat_power ?? 50,
+      stat_speed: attackerChar.stat_speed ?? 50,
+      stat_durability: attackerChar.stat_durability ?? 50,
+      stat_stamina: attackerChar.stat_stamina ?? 50,
+      stat_skill: attackerChar.stat_skill ?? 50,
+      stat_luck: attackerChar.stat_luck ?? 50,
+    };
+
+    const defenderStats: CharacterStats = {
+      stat_intelligence: defenderChar.stat_intelligence ?? 50,
+      stat_battle_iq: defenderChar.stat_battle_iq ?? 50,
+      stat_strength: defenderChar.stat_strength ?? 50,
+      stat_power: defenderChar.stat_power ?? 50,
+      stat_speed: defenderChar.stat_speed ?? 50,
+      stat_durability: defenderChar.stat_durability ?? 50,
+      stat_stamina: defenderChar.stat_stamina ?? 50,
+      stat_skill: defenderChar.stat_skill ?? 50,
+      stat_luck: defenderChar.stat_luck ?? 50,
+    };
+
+    const defenderPenalty = statPenalties[defenderChar.id] ?? 0;
+    const mental = isMentalAttack(moveText);
+    
+    const hit = mental
+      ? determineMentalHit(attackerStats, attackerChar.level, defenderStats, defenderChar.level, true, defenderPenalty)
+      : determineHit(attackerStats, attackerChar.level, defenderStats, defenderChar.level, true, defenderPenalty);
+
+    const rollMessage = {
+      id: `roll-opp-${Date.now()}`,
+      hitDetermination: hit,
+      attackerName: attackerChar.name,
+      defenderName: defenderChar.name,
+      timestamp: new Date(),
+      isPlayerRoll: false, // Opponent's roll
+    };
+    
+    setDiceRollMessages(prev => [...prev, rollMessage]);
+    setLastHitResult({ hit: hit.wouldHit, gap: hit.gap });
+
+    // SFX
+    if (hit.wouldHit) {
+      playSfxEvent('hit_heavy');
+      // Show concentration option for the defender (current user)
+      setPendingHit(hit);
+    } else {
+      playSfxEvent('hit_light');
+    }
+
+    // Apply combat mechanics from opponent's perspective
+    combatMechanics.applyDiceResults(hit, false);
   };
 
   // Call battle narrator for atmospheric commentary
@@ -2477,13 +2551,15 @@ export default function BattleView() {
                             inUniverseMessages.filter(m => m.character_id === userCharacter?.character_id).pop()?.id === msg.id;
                           const wasRead = isLastUserMessage && opponentLastReadMessageId === msg.id;
                           
-                          // Find dice roll associated with this message (by approximate timestamp)
+                          // Find dice roll associated with this message
                           const msgTime = new Date(msg.created_at).getTime();
                           const associatedRoll = diceRollMessages.find(roll => {
                             const rollTime = roll.timestamp.getTime();
-                            // Match roll within 5 seconds of the message
-                            return Math.abs(rollTime - msgTime) < 5000 && 
-                              (isFromOpponent ? roll.isPlayerRoll !== true : roll.isPlayerRoll === true);
+                            // For user messages: match player rolls within 5s
+                            // For opponent messages: match opponent rolls within 10s (realtime delay)
+                            const timeWindow = isFromOpponent ? 10000 : 5000;
+                            const rollOwnerMatch = isFromOpponent ? roll.isPlayerRoll === false : roll.isPlayerRoll === true;
+                            return Math.abs(rollTime - msgTime) < timeWindow && rollOwnerMatch;
                           });
                           
                           // Build snapshot-based effects for this specific message
