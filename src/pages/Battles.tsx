@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Swords, Clock, CheckCircle, Users, Bot, Sparkles, BookOpen } from 'lucide-react';
+import { Swords, Clock, CheckCircle, Users, Bot, Sparkles, BookOpen, UsersRound } from 'lucide-react';
 import OpponentFinder from '@/components/battles/OpponentFinder';
 
 interface PveBattle {
@@ -289,11 +289,17 @@ export default function Battles() {
       </div>
 
       {/* Battle Mode Selector */}
-      <div className="grid grid-cols-3 gap-3 max-w-lg">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-xl">
         <Button asChild variant="default" className="h-auto py-3 flex flex-col gap-1">
           <Link to="/battles" className="text-center">
             <Users className="w-5 h-5" />
             <span className="text-xs font-medium">PvP</span>
+          </Link>
+        </Button>
+        <Button asChild variant="outline" className="h-auto py-3 flex flex-col gap-1 border-primary/40 hover:bg-primary/10">
+          <Link to="/battles/group" className="text-center">
+            <UsersRound className="w-5 h-5" />
+            <span className="text-xs font-medium">Group PvP</span>
           </Link>
         </Button>
         <Button asChild variant="outline" className="h-auto py-3 flex flex-col gap-1">
@@ -387,8 +393,9 @@ export default function Battles() {
                     ))}
                     {/* PvP Active Battles */}
                     {activeBattles.map((battle) => {
-                      const p1 = battle.participants.find(p => p.turn_order === 1);
-                      const p2 = battle.participants.find(p => p.turn_order === 2);
+                      const allP = battle.participants.sort((a, b) => a.turn_order - b.turn_order);
+                      const names = allP.map(p => p.character?.name || 'Unknown').join(' vs ');
+                      const isGroup = allP.length > 2;
                       return (
                         <Link key={battle.id} to={`/battles/${battle.id}`}>
                           <Card className="bg-card-gradient border-border hover:glow-accent transition-all cursor-pointer">
@@ -398,8 +405,14 @@ export default function Battles() {
                                   {getStatusIcon(battle.status)}
                                   {battle.status}
                                 </Badge>
+                                {isGroup && (
+                                  <Badge variant="outline" className="text-xs shrink-0">
+                                    <UsersRound className="w-3 h-3 mr-1" />
+                                    Group
+                                  </Badge>
+                                )}
                                 <span className="font-medium break-words">
-                                  {p1?.character?.name || 'Unknown'} vs {p2?.character?.name || 'Unknown'}
+                                  {names}
                                 </span>
                                 <span className="text-muted-foreground text-sm">
                                   Started {new Date(battle.created_at).toLocaleDateString()}
@@ -473,8 +486,8 @@ export default function Battles() {
                   </h2>
                   <div className="grid gap-3">
                     {completedBattles.map((battle) => {
-                      const p1 = battle.participants.find(p => p.turn_order === 1);
-                      const p2 = battle.participants.find(p => p.turn_order === 2);
+                      const allP = battle.participants.sort((a, b) => a.turn_order - b.turn_order);
+                      const names = allP.map(p => p.character?.name || 'Unknown').join(' vs ');
                       return (
                         <Link key={battle.id} to={`/battles/${battle.id}`}>
                           <Card className="bg-card-gradient border-border hover:border-border/80 transition-all cursor-pointer opacity-75">
@@ -485,7 +498,7 @@ export default function Battles() {
                                   {battle.status}
                                 </Badge>
                                 <span className="font-medium break-words">
-                                  {p1?.character?.name || 'Unknown'} vs {p2?.character?.name || 'Unknown'}
+                                  {names}
                                 </span>
                                 <span className="text-muted-foreground text-sm">
                                   Ended {new Date(battle.created_at).toLocaleDateString()}
