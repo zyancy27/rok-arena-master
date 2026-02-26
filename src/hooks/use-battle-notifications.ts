@@ -79,6 +79,69 @@ export function useBattleNotifications() {
           } catch {}
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'battle_invitations',
+        },
+        async (payload) => {
+          const invitation = payload.new as {
+            id: string;
+            battle_id: string;
+            user_id: string;
+            status: string;
+          };
+
+          // Only notify if this invitation is for the current user
+          if (invitation.user_id !== user.id) return;
+
+          // Get battle info
+          const { data: battleData } = await supabase
+            .from('battles')
+            .select('id, battle_mode, chosen_location')
+            .eq('id', invitation.battle_id)
+            .maybeSingle();
+
+          if (!battleData) return;
+
+          // Get host character name
+          const { data: hostParticipant } = await supabase
+            .from('battle_participants')
+            .select('character:characters(name, user_id)')
+            .eq('battle_id', invitation.battle_id)
+            .eq('turn_order', 1)
+            .maybeSingle();
+
+          const hostChar = hostParticipant?.character;
+          const hostCharData = Array.isArray(hostChar) ? hostChar[0] : hostChar;
+
+          const { data: hostProfile } = await supabase
+            .from('profiles')
+            .select('username')
+            .eq('id', hostCharData?.user_id)
+            .maybeSingle();
+
+          const hostName = hostProfile?.username || 'Someone';
+          const location = battleData.chosen_location || 'an unknown location';
+
+          toast.info(`⚔️ Group Battle Invite!`, {
+            description: `${hostName} invited you to a group battle at ${location}!`,
+            duration: 10000,
+            action: {
+              label: 'View',
+              onClick: () => navigate(`/battles/${invitation.battle_id}`),
+            },
+          });
+
+          try {
+            const audio = new Audio('/notification.mp3');
+            audio.volume = 0.5;
+            audio.play().catch(() => {});
+          } catch {}
+        }
+      )
       .subscribe();
 
     return () => {
