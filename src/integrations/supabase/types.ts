@@ -112,49 +112,79 @@ export type Database = {
       }
       battles: {
         Row: {
+          battle_mode: string
           challenged_user_id: string | null
           chosen_location: string | null
           coin_flip_winner_id: string | null
           concentration_uses: Json | null
           created_at: string
           dynamic_environment: boolean
+          emergency_enabled: boolean
+          emergency_payload: Json | null
+          emergency_seed: string | null
           environment_effects: string | null
+          has_shown_arena_intro: boolean
           id: string
           location_1: string | null
           location_2: string | null
+          location_base: string | null
+          location_confirmed_by_host: boolean
           loser_id: string | null
+          max_players: number
+          planet_id: string | null
+          planet_name: string | null
           status: Database["public"]["Enums"]["battle_status"]
           updated_at: string
           winner_id: string | null
         }
         Insert: {
+          battle_mode?: string
           challenged_user_id?: string | null
           chosen_location?: string | null
           coin_flip_winner_id?: string | null
           concentration_uses?: Json | null
           created_at?: string
           dynamic_environment?: boolean
+          emergency_enabled?: boolean
+          emergency_payload?: Json | null
+          emergency_seed?: string | null
           environment_effects?: string | null
+          has_shown_arena_intro?: boolean
           id?: string
           location_1?: string | null
           location_2?: string | null
+          location_base?: string | null
+          location_confirmed_by_host?: boolean
           loser_id?: string | null
+          max_players?: number
+          planet_id?: string | null
+          planet_name?: string | null
           status?: Database["public"]["Enums"]["battle_status"]
           updated_at?: string
           winner_id?: string | null
         }
         Update: {
+          battle_mode?: string
           challenged_user_id?: string | null
           chosen_location?: string | null
           coin_flip_winner_id?: string | null
           concentration_uses?: Json | null
           created_at?: string
           dynamic_environment?: boolean
+          emergency_enabled?: boolean
+          emergency_payload?: Json | null
+          emergency_seed?: string | null
           environment_effects?: string | null
+          has_shown_arena_intro?: boolean
           id?: string
           location_1?: string | null
           location_2?: string | null
+          location_base?: string | null
+          location_confirmed_by_host?: boolean
           loser_id?: string | null
+          max_players?: number
+          planet_id?: string | null
+          planet_name?: string | null
           status?: Database["public"]["Enums"]["battle_status"]
           updated_at?: string
           winner_id?: string | null
@@ -165,6 +195,13 @@ export type Database = {
             columns: ["loser_id"]
             isOneToOne: false
             referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "battles_planet_id_fkey"
+            columns: ["planet_id"]
+            isOneToOne: false
+            referencedRelation: "planet_customizations"
             referencedColumns: ["id"]
           },
           {

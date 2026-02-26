@@ -129,6 +129,11 @@ interface Battle {
   dynamic_environment: boolean;
   environment_effects: string | null;
   challenged_user_id: string | null;
+  battle_mode?: string | null;
+  max_players?: number | null;
+  emergency_enabled?: boolean;
+  emergency_payload?: any;
+  has_shown_arena_intro?: boolean;
 }
 
 interface CharacterData {
@@ -327,7 +332,7 @@ export default function BattleView() {
       if (
         battle?.status === 'active' && 
         battle?.chosen_location && 
-        participants.length === 2 && 
+        participants.length >= 2 && 
         !entrancesGenerated && 
         !isGeneratingEntrances &&
         !entranceAttemptedRef.current &&
@@ -335,6 +340,12 @@ export default function BattleView() {
       ) {
         // Mark attempted immediately to prevent re-runs on remount
         entranceAttemptedRef.current = true;
+        
+        // Also check has_shown_arena_intro flag from battle record
+        if (battle?.has_shown_arena_intro) {
+          setEntrancesGenerated(true);
+          return;
+        }
         
         // Check if entrances were already sent (look for entrance markers in messages)
         const hasEntrances = messages.some(m => m.content.includes('⚔️ **') && (m.content.includes('enters the arena') || m.content.includes('arrives') || m.content.includes('walks in') || m.content.includes('is already')));
@@ -366,12 +377,21 @@ export default function BattleView() {
                 powers: char2.powers,
                 abilities: char2.abilities,
               },
+              // Include 3rd character if present
+              ...(participants[2]?.character ? {
+                character3: {
+                  name: participants[2].character.name,
+                  level: participants[2].character.level,
+                  powers: participants[2].character.powers,
+                  abilities: participants[2].character.abilities,
+                },
+              } : {}),
               battleLocation: battle.chosen_location,
             },
           });
           
           if (response.data) {
-            const { entrance1, entrance2 } = response.data;
+            const { entrance1, entrance2, entrance3 } = response.data;
             
             // Double-check no entrance messages exist (race condition guard)
             const { data: existingMsgs } = await supabase
@@ -382,20 +402,35 @@ export default function BattleView() {
               .limit(1);
             
             if (!existingMsgs || existingMsgs.length === 0) {
-              await supabase.from('battle_messages').insert([
+              const entranceInserts = [
                 {
                   battle_id: id,
                   character_id: participants[0].character_id,
                   content: `⚔️ **${char1.name}:**\n${entrance1}`,
-                  channel: 'in_universe',
+                  channel: 'in_universe' as const,
                 },
                 {
                   battle_id: id,
                   character_id: participants[1].character_id,
                   content: `⚔️ **${char2.name}:**\n${entrance2}`,
-                  channel: 'in_universe',
+                  channel: 'in_universe' as const,
                 },
-              ]);
+              ];
+              
+              // Add 3rd entrance if present
+              if (participants[2]?.character && entrance3) {
+                entranceInserts.push({
+                  battle_id: id,
+                  character_id: participants[2].character_id,
+                  content: `⚔️ **${participants[2].character.name}:**\n${entrance3}`,
+                  channel: 'in_universe' as const,
+                });
+              }
+              
+              await supabase.from('battle_messages').insert(entranceInserts);
+              
+              // Mark intro as shown
+              await supabase.from('battles').update({ has_shown_arena_intro: true }).eq('id', id);
             }
           }
         } catch (error) {
@@ -1524,9 +1559,25 @@ export default function BattleView() {
   const inUniverseMessages = messages.filter(m => m.channel === 'in_universe');
   const outOfUniverseMessages = messages.filter(m => m.channel === 'out_of_universe');
   
-  // Determine whose turn it is based on last message sender
+  // Determine whose turn it is based on turn order and message count
+  // For 2-player: alternating turns based on last RP message sender
+  // For 3-player: cycle through turn_order 1→2→3→1→...
+  const isGroupBattle = (battle?.battle_mode === 'group_pvp' || (battle?.max_players ?? 2) > 2);
   const lastInUniverseMessage = inUniverseMessages[inUniverseMessages.length - 1];
-  const isUserTurn = !lastInUniverseMessage || lastInUniverseMessage.character_id !== userCharacter?.character_id;
+  
+  let isUserTurn = false;
+  let currentTurnParticipant: Participant | undefined;
+  
+  if (isGroupBattle && participants.length >= 3) {
+    // Count RP messages to determine whose turn it is
+    const rpMessageCount = inUniverseMessages.length;
+    const currentTurnOrder = (rpMessageCount % participants.length) + 1;
+    currentTurnParticipant = participants.find(p => p.turn_order === currentTurnOrder);
+    isUserTurn = currentTurnParticipant?.character?.user_id === user?.id;
+  } else {
+    // 2-player: simple alternating
+    isUserTurn = !lastInUniverseMessage || lastInUniverseMessage.character_id !== userCharacter?.character_id;
+  }
 
   if (loading) {
     return (
@@ -1595,13 +1646,46 @@ export default function BattleView() {
 
       {/* Turn Indicator - Shows whose turn it is */}
       {battle.status === 'active' && userCharacter?.character && participants.length >= 2 && (
-        <TurnIndicator
-          isUserTurn={isUserTurn}
-          userName={userCharacter.character.name}
-          opponentName={participants.find(p => p.character?.user_id !== user?.id)?.character?.name || 'Opponent'}
-          userColor={userTurnColor}
-          opponentColor="#EF4444"
-        />
+        isGroupBattle && participants.length >= 3 ? (
+          // 3-player compact participant strip
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              {participants.map((p, i) => {
+                const isCurrent = p.turn_order === ((inUniverseMessages.length % participants.length) + 1);
+                const isMe = p.character?.user_id === user?.id;
+                return (
+                  <div
+                    key={p.id}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg border shrink-0 transition-all ${
+                      isCurrent
+                        ? 'border-primary bg-primary/10 ring-1 ring-primary/30'
+                        : 'border-border bg-muted/30'
+                    }`}
+                  >
+                    <div className={`w-2 h-2 rounded-full ${isCurrent ? 'bg-primary animate-pulse' : 'bg-muted-foreground/30'}`} />
+                    <span className={`text-sm font-medium ${isCurrent ? 'text-primary' : 'text-muted-foreground'}`}>
+                      {p.character?.name || 'Unknown'}
+                      {isMe && ' (You)'}
+                    </span>
+                    {isCurrent && (
+                      <Badge variant="outline" className="text-[10px] border-primary/40 text-primary">
+                        Turn
+                      </Badge>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <TurnIndicator
+            isUserTurn={isUserTurn}
+            userName={userCharacter.character.name}
+            opponentName={participants.find(p => p.character?.user_id !== user?.id)?.character?.name || 'Opponent'}
+            userColor={userTurnColor}
+            opponentColor="#EF4444"
+          />
+        )
       )}
 
 
