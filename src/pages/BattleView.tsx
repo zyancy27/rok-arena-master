@@ -95,6 +95,8 @@ import ArenaModifierBadge from '@/components/battles/ArenaModifierBadge';
 import SfxToggle from '@/components/battles/SfxToggle';
 import PerceptionIndicator from '@/components/battles/PerceptionIndicator';
 import HitDetectionBadge from '@/components/battles/HitDetectionBadge';
+import PrivateNarratorChat from '@/components/battles/PrivateNarratorChat';
+import StatModificationPanel, { type StatModification } from '@/components/battles/StatModificationPanel';
 import { useBattleSfx } from '@/hooks/use-battle-sfx';
 import { getDominantPsychCue } from '@/lib/battle-psychology';
 import {
@@ -334,6 +336,17 @@ export default function BattleView() {
   const [narratorFrequency, setNarratorFrequency] = useState<NarratorFrequency>('key_moments');
   const [narratorMessages, setNarratorMessages] = useState<Array<{ id: string; content: string; timestamp: Date }>>([]);
   const [isNarratorLoading, setIsNarratorLoading] = useState(false);
+
+  // Private narrator validation state
+  const [pendingNarratorValidation, setPendingNarratorValidation] = useState<{
+    moveText: string;
+    warningMessage: string;
+    suggestedFix?: string;
+  } | null>(null);
+  const [narratorGlowing, setNarratorGlowing] = useState(false);
+
+  // Stat modifications during battle
+  const [statModifications, setStatModifications] = useState<StatModification[]>([]);
 
   // Advanced combat mechanics (momentum, psychology, overcharge, charge, perception, hit detection, arena modifiers)
   const combatMechanics = usePvPCombatMechanics({
@@ -977,10 +990,19 @@ export default function BattleView() {
       const validation = validateMove(messageInput, characterAbilities);
       
       if (!validation.isValid) {
-        // Store the pending move and show warning
+        // Route to private narrator for validation instead of inline warning
+        setPendingNarratorValidation({
+          moveText: messageInput,
+          warningMessage: validation.warningMessage || 'Move may not match your character abilities.',
+          suggestedFix: validation.suggestedFix || undefined,
+        });
+        setNarratorGlowing(true);
         setPendingMove(messageInput);
         setMoveValidation(validation);
         setMessageInput('');
+        // Auto-clear glow after 5 seconds
+        setTimeout(() => setNarratorGlowing(false), 5000);
+        toast.warning('⚠️ Check the Private Narrator tab to validate your move', { duration: 4000 });
         return;
       }
       
@@ -1257,8 +1279,18 @@ export default function BattleView() {
     const attackerChar = userCharacter.character;
     const defenderChar = opponent.character;
 
-    // Build stats objects with defaults
-    const attackerStats: CharacterStats = {
+    // Build stats objects with defaults, applying any active stat modifications
+    const applyMods = (base: CharacterStats): CharacterStats => {
+      const modified = { ...base };
+      for (const mod of statModifications) {
+        if (mod.stat in modified) {
+          (modified as any)[mod.stat] = Math.max(0, Math.min(100, ((modified as any)[mod.stat] ?? 50) + mod.delta));
+        }
+      }
+      return modified;
+    };
+
+    const attackerStatsBase: CharacterStats = {
       stat_intelligence: attackerChar.stat_intelligence ?? 50,
       stat_battle_iq: attackerChar.stat_battle_iq ?? 50,
       stat_strength: attackerChar.stat_strength ?? 50,
@@ -1269,6 +1301,7 @@ export default function BattleView() {
       stat_skill: attackerChar.stat_skill ?? 50,
       stat_luck: attackerChar.stat_luck ?? 50,
     };
+    const attackerStats = applyMods(attackerStatsBase);
 
     const defenderStats: CharacterStats = {
       stat_intelligence: defenderChar.stat_intelligence ?? 50,
@@ -1493,6 +1526,64 @@ export default function BattleView() {
     setMessageInput(pendingMove || '');
     setPendingMove(null);
     setMoveValidation(null);
+    setPendingNarratorValidation(null);
+    setNarratorGlowing(false);
+  };
+
+  // Handle narrator-approved move
+  const handleNarratorMoveApproved = async (moveText: string, explanation: string) => {
+    setPendingNarratorValidation(null);
+    setNarratorGlowing(false);
+    setPendingMove(null);
+    setMoveValidation(null);
+    await sendMessage(moveText);
+    // Post explanation in OOC
+    if (userCharacter) {
+      await supabase.from('battle_messages').insert({
+        battle_id: id,
+        character_id: userCharacter.character_id,
+        content: `📋 **Move Validated by Narrator:** ${explanation}`,
+        channel: 'out_of_universe',
+      });
+    }
+    toast.success('Move approved and sent!');
+  };
+
+  // Handle narrator-rejected move
+  const handleNarratorMoveRejected = () => {
+    setPendingNarratorValidation(null);
+    setNarratorGlowing(false);
+    setMessageInput(pendingMove || '');
+    setPendingMove(null);
+    setMoveValidation(null);
+  };
+
+  // Handle ability learned through narrator validation
+  const handleAbilityLearned = async (abilityDescription: string) => {
+    if (!userCharacter?.character) return;
+    const currentAbilities = userCharacter.character.abilities || '';
+    const updatedAbilities = currentAbilities + `\n\n${abilityDescription}`;
+    await supabase
+      .from('characters')
+      .update({ abilities: updatedAbilities })
+      .eq('id', userCharacter.character.id);
+    setParticipants(prev => prev.map(p =>
+      p.character_id === userCharacter.character_id
+        ? { ...p, character: { ...p.character!, abilities: updatedAbilities } }
+        : p
+    ));
+    toast.success('New ability added to character sheet!');
+  };
+
+  // Stat modification handlers
+  const handleApplyStatMod = (mod: StatModification) => {
+    setStatModifications(prev => [...prev, mod]);
+    toast.info(`${mod.label} applied for this battle`);
+  };
+
+  const handleResetStatMods = () => {
+    setStatModifications([]);
+    toast.info('Stat modifications reset');
   };
 
   // Handle accepting move without explanation (for edge cases)
@@ -1929,20 +2020,19 @@ export default function BattleView() {
                 <SfxToggle muted={sfxMuted} onToggle={toggleSfxMute} />
               </div>
               <MomentumMeter 
-                value={combatMechanics.userMomentum.value} 
-                edgeStateActive={combatMechanics.userMomentum.edgeStateActive}
+                momentum={combatMechanics.userMomentum}
+                characterName={userCharacter?.character?.name ?? ''}
               />
               <div className="flex items-center justify-between pt-1">
                 <OverchargeToggle
                   enabled={combatMechanics.overchargeEnabled}
                   onToggle={combatMechanics.setOverchargeEnabled}
-                  riskChance={0.3} // Base risk
                   disabled={!combatMechanics.userMomentum.edgeStateActive && combatMechanics.userMomentum.value < 50}
                 />
                 {combatMechanics.userPsych && (
                   <PsychCueIndicator 
                     cue={getDominantPsychCue(combatMechanics.userPsych)} 
-                    intensity="medium" 
+                    characterName={userCharacter?.character?.name ?? ''}
                   />
                 )}
               </div>
@@ -1963,10 +2053,10 @@ export default function BattleView() {
                   )}
                 </div>
               </div>
-              <ChargeIndicator state={combatMechanics.chargeState} />
+              <ChargeIndicator chargeState={combatMechanics.chargeState} characterName={userCharacter?.character?.name ?? ''} />
               {combatMechanics.arenaModifiers && (
                 <div className="pt-1">
-                  <ArenaModifierBadge modifiers={combatMechanics.arenaModifiers} compact />
+                  <ArenaModifierBadge modifiers={combatMechanics.arenaModifiers} />
                 </div>
               )}
             </CardContent>
@@ -2393,15 +2483,30 @@ export default function BattleView() {
       {/* Chat Area - Dynamic Tabbed Interface */}
       <Card className="bg-card-gradient border-border">
         <CardContent className="p-0">
-          <Tabs value={activeChannel} onValueChange={(v) => setActiveChannel(v as 'in_universe' | 'out_of_universe')}>
-            <TabsList className="grid w-full grid-cols-2 rounded-none border-b border-border">
-              <TabsTrigger value="in_universe" className="flex items-center gap-2 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
-                <Sparkles className="w-4 h-4" />
-                In-Universe (RP)
+          <Tabs value={activeChannel} onValueChange={(v) => setActiveChannel(v as any)}>
+            <TabsList className="grid w-full grid-cols-3 rounded-none border-b border-border">
+              <TabsTrigger value="in_universe" className="flex items-center gap-1.5 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary text-xs sm:text-sm">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">In-Universe</span>
+                <span className="sm:hidden">RP</span>
               </TabsTrigger>
-              <TabsTrigger value="out_of_universe" className="flex items-center gap-2 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-muted-foreground">
-                <MessageCircle className="w-4 h-4" />
-                Out-of-Universe (OOC)
+              <TabsTrigger value="out_of_universe" className="flex items-center gap-1.5 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-muted-foreground text-xs sm:text-sm">
+                <MessageCircle className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">OOC</span>
+                <span className="sm:hidden">OOC</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="private_narrator"
+                className={`flex items-center gap-1.5 rounded-none data-[state=active]:border-b-2 data-[state=active]:border-amber-400 text-xs sm:text-sm transition-all ${
+                  narratorGlowing ? 'animate-pulse bg-amber-500/10 text-amber-400' : ''
+                }`}
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Narrator</span>
+                <span className="sm:hidden">📖</span>
+                {pendingNarratorValidation && (
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                )}
               </TabsTrigger>
             </TabsList>
 
@@ -2411,7 +2516,7 @@ export default function BattleView() {
                 userColor={userTurnColor}
                 opponentColor="#EF4444"
               >
-                <div className="relative">
+                <div className="relative flex flex-col">
                   {/* Persistent Environment Background tied to battle location */}
                   <EnvironmentChatBackground location={battle.chosen_location} />
                   
@@ -2420,7 +2525,7 @@ export default function BattleView() {
                     <BattlefieldEffectsOverlay effects={battlefieldEffects} className="rounded-b-lg" />
                   )}
                   
-                  <ScrollArea className="min-h-[300px] h-[50vh] max-h-[60vh] p-4 relative z-10 flex-1">
+                  <ScrollArea className="min-h-[300px] h-[calc(50vh-env(safe-area-inset-bottom,0px))] max-h-[60vh] p-4 relative z-10 flex-1">
                     {inUniverseMessages.length === 0 ? (
                       <div className="flex items-center justify-center h-full">
                         <div className="text-center text-muted-foreground">
@@ -2596,7 +2701,7 @@ export default function BattleView() {
                   
                   {/* In-Universe Input */}
                   {battle.status === 'active' && userCharacter && (
-                    <div className="p-4 border-t border-border space-y-3 relative z-10 shrink-0">
+                    <div className="p-3 sm:p-4 border-t border-border space-y-2 sm:space-y-3 relative z-10 shrink-0 pb-[env(safe-area-inset-bottom,8px)]">
                       {/* Turn lock indicator */}
                       {!isUserTurn && (
                         <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
@@ -2654,6 +2759,21 @@ export default function BattleView() {
                           )}
                         </Button>
                       </form>
+                      {/* Stat Modification Panel */}
+                      <div className="flex items-center justify-between">
+                        <StatModificationPanel
+                          skillStat={userCharacter.character?.stat_skill ?? 50}
+                          currentMods={statModifications}
+                          onApplyMod={handleApplyStatMod}
+                          onResetMods={handleResetStatMods}
+                          characterName={userCharacter.character?.name ?? ''}
+                        />
+                        {statModifications.length > 0 && (
+                          <Badge variant="outline" className="text-[10px] text-amber-300 border-amber-500/30">
+                            {statModifications.length} mod(s) active
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -2917,6 +3037,33 @@ export default function BattleView() {
                       )}
                     </Button>
                   </form>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* Private Narrator Tab */}
+            <TabsContent value="private_narrator" className="mt-0">
+              {battle.status === 'active' && userCharacter?.character ? (
+                <PrivateNarratorChat
+                  battleId={battle.id}
+                  characterName={userCharacter.character.name}
+                  characterPowers={userCharacter.character.powers ?? null}
+                  characterAbilities={userCharacter.character.abilities ?? null}
+                  battleLocation={battle.chosen_location ?? null}
+                  opponentNames={participants.filter(p => p.character?.user_id !== user?.id).map(p => p.character?.name || 'Unknown')}
+                  publicMessages={inUniverseMessages}
+                  pendingValidation={pendingNarratorValidation}
+                  onMoveApproved={handleNarratorMoveApproved}
+                  onMoveRejected={handleNarratorMoveRejected}
+                  onAbilityLearned={handleAbilityLearned}
+                  glowing={narratorGlowing}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-[300px] text-center text-muted-foreground">
+                  <div>
+                    <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">The narrator will be available once the battle begins.</p>
+                  </div>
                 </div>
               )}
             </TabsContent>
