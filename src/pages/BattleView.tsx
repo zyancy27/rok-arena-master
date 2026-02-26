@@ -343,8 +343,8 @@ export default function BattleView() {
   const [pendingDiscoveries, setPendingDiscoveries] = useState<MechanicDiscoveryMessage[]>([]);
   
   const triggerMechanicDiscovery = (key: MechanicKey) => {
-    if (!id) return;
-    const info = discoverMechanic(id, key);
+    if (!user?.id) return;
+    const info = discoverMechanic(user.id, key);
     if (info) {
       setPendingDiscoveries(prev => [...prev, { title: info.title, summary: info.summary }]);
       setNarratorGlowing(true);
