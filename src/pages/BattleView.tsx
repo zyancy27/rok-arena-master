@@ -86,6 +86,17 @@ import { detectCharacterStatusEffects } from '@/lib/character-status-effects';
 import { shouldSuppressStatus } from '@/lib/battlefield-effects';
 import SaveLocationPrompt from '@/components/battles/SaveLocationPrompt';
 import EnvironmentChatBackground from '@/components/battles/EnvironmentChatBackground';
+import { usePvPCombatMechanics } from '@/hooks/use-pvp-combat-mechanics';
+import MomentumMeter from '@/components/battles/MomentumMeter';
+import ChargeIndicator from '@/components/battles/ChargeIndicator';
+import OverchargeToggle from '@/components/battles/OverchargeToggle';
+import PsychCueIndicator from '@/components/battles/PsychCueIndicator';
+import ArenaModifierBadge from '@/components/battles/ArenaModifierBadge';
+import SfxToggle from '@/components/battles/SfxToggle';
+import PerceptionIndicator from '@/components/battles/PerceptionIndicator';
+import HitDetectionBadge from '@/components/battles/HitDetectionBadge';
+import { useBattleSfx } from '@/hooks/use-battle-sfx';
+import { getDominantPsychCue } from '@/lib/battle-psychology';
 import {
   ArrowLeft,
   Send,
@@ -324,8 +335,16 @@ export default function BattleView() {
   const [narratorMessages, setNarratorMessages] = useState<Array<{ id: string; content: string; timestamp: Date }>>([]);
   const [isNarratorLoading, setIsNarratorLoading] = useState(false);
 
-  // Generate environment and entrances when battle becomes active with a location
-  // Also hydrate any persisted battlefield effects from the database
+  // Advanced combat mechanics (momentum, psychology, overcharge, charge, perception, hit detection, arena modifiers)
+  const combatMechanics = usePvPCombatMechanics({
+    enabled: battle?.status === 'active' && !!userCharacter,
+    userCharacterLevel: userCharacter?.character?.level ?? 1,
+    userCharacterName: userCharacter?.character?.name ?? '',
+    battleLocation: battle?.chosen_location ?? null,
+  });
+
+  // Battle SFX
+  const { playEvent: playSfxEvent, muted: sfxMuted, toggleMute: toggleSfxMute, processText: processSfxText } = useBattleSfx();
   useEffect(() => {
     if (battle?.chosen_location && battle?.dynamic_environment) {
       const env = generateBattleEnvironment(battle.chosen_location, null, null);
@@ -720,6 +739,25 @@ export default function BattleView() {
                     // Track opponent's last action for defense validation
                     setLastOpponentAction(newMessage.content);
                     setTurnNumber(prev => prev + 1);
+
+                    // Process opponent action through combat mechanics (perception, psych updates)
+                    combatMechanics.processOpponentAction(
+                      newMessage.content,
+                      charData?.name || 'Opponent',
+                      userCharacter?.character ? {
+                        stat_intelligence: userCharacter.character.stat_intelligence ?? 50,
+                        stat_battle_iq: userCharacter.character.stat_battle_iq ?? 50,
+                        stat_strength: userCharacter.character.stat_strength ?? 50,
+                        stat_power: userCharacter.character.stat_power ?? 50,
+                        stat_speed: userCharacter.character.stat_speed ?? 50,
+                        stat_durability: userCharacter.character.stat_durability ?? 50,
+                        stat_stamina: userCharacter.character.stat_stamina ?? 50,
+                        stat_skill: userCharacter.character.stat_skill ?? 50,
+                        stat_luck: userCharacter.character.stat_luck ?? 50,
+                      } : { stat_intelligence: 50, stat_battle_iq: 50, stat_strength: 50, stat_power: 50, stat_speed: 50, stat_durability: 50, stat_stamina: 50, stat_skill: 50, stat_luck: 50 },
+                      userCharacter?.character?.level ?? 1,
+                      true // Assume hit landed for now, refining later with dice check
+                    );
                     
                     // Call battle narrator for atmospheric commentary
                     callBattleNarrator(newMessage.content, charData?.name || 'Opponent');
@@ -1265,6 +1303,44 @@ export default function BattleView() {
     
     // Track this hit result for opponent's defense validation
     setLastHitResult({ hit: hit.wouldHit, gap: hit.gap });
+
+    // Apply combat mechanics (momentum, psychology updates from dice result)
+    combatMechanics.applyDiceResults(hit, true);
+
+    // SFX
+    if (hit.wouldHit) {
+      playSfxEvent('hit_heavy');
+    } else {
+      playSfxEvent('hit_light');
+    }
+    
+    // Process user action through combat mechanics (charge, overcharge, etc.)
+    const mechanicsResult = combatMechanics.processUserAction(
+      moveText,
+      attackerStats,
+      attackerChar.level,
+      attackerChar.stat_skill ?? 50,
+    );
+
+    // Post charge context as OOC if relevant
+    if (mechanicsResult.chargeContext) {
+      supabase.from('battle_messages').insert({
+        battle_id: id,
+        character_id: userCharacter.character_id,
+        content: mechanicsResult.chargeContext,
+        channel: 'out_of_universe',
+      });
+    }
+
+    // Post overcharge result as OOC if relevant
+    if (mechanicsResult.overchargeResult) {
+      supabase.from('battle_messages').insert({
+        battle_id: id,
+        character_id: userCharacter.character_id,
+        content: mechanicsResult.overchargeResult,
+        channel: 'out_of_universe',
+      });
+    }
 
     // If the attack would hit and the defender is the current user's opponent, 
     // we show the concentration button to the opponent (handled through realtime)
@@ -1840,6 +1916,62 @@ export default function BattleView() {
             opponentColor="#EF4444"
           />
         )
+      )}
+
+      {/* Advanced Combat HUD (PvP) */}
+      {battle.status === 'active' && userCharacter?.character && (
+        <div className="grid grid-cols-2 gap-2">
+          {/* Momentum & Overcharge */}
+          <Card className="bg-card-gradient border-border overflow-hidden">
+            <CardContent className="p-2 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-muted-foreground">Momentum</span>
+                <SfxToggle muted={sfxMuted} onToggle={toggleSfxMute} />
+              </div>
+              <MomentumMeter 
+                value={combatMechanics.userMomentum.value} 
+                edgeStateActive={combatMechanics.userMomentum.edgeStateActive}
+              />
+              <div className="flex items-center justify-between pt-1">
+                <OverchargeToggle
+                  enabled={combatMechanics.overchargeEnabled}
+                  onToggle={combatMechanics.setOverchargeEnabled}
+                  riskChance={0.3} // Base risk
+                  disabled={!combatMechanics.userMomentum.edgeStateActive && combatMechanics.userMomentum.value < 50}
+                />
+                {combatMechanics.userPsych && (
+                  <PsychCueIndicator 
+                    cue={getDominantPsychCue(combatMechanics.userPsych)} 
+                    intensity="medium" 
+                  />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Charge & Modifiers */}
+          <Card className="bg-card-gradient border-border overflow-hidden">
+            <CardContent className="p-2 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-muted-foreground">Status</span>
+                <div className="flex gap-1">
+                  {combatMechanics.lastHitDetection?.detected && (
+                    <HitDetectionBadge result={combatMechanics.lastHitDetection} />
+                  )}
+                  {combatMechanics.lastPerception && (
+                    <PerceptionIndicator result={combatMechanics.lastPerception} />
+                  )}
+                </div>
+              </div>
+              <ChargeIndicator state={combatMechanics.chargeState} />
+              {combatMechanics.arenaModifiers && (
+                <div className="pt-1">
+                  <ArenaModifierBadge modifiers={combatMechanics.arenaModifiers} compact />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
 
 
