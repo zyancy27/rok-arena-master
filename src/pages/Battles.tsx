@@ -157,8 +157,17 @@ export default function Battles() {
 
     const challengedBattleIds = challengedBattles?.map(b => b.id) || [];
 
+    // Also get battles where user has a group invitation
+    const { data: groupInvitations } = await supabase
+      .from('battle_invitations')
+      .select('battle_id')
+      .eq('user_id', user.id)
+      .eq('status', 'pending');
+
+    const invitedBattleIds = groupInvitations?.map(i => i.battle_id) || [];
+
     // Combine and dedupe
-    const allBattleIds = [...new Set([...participatedBattleIds, ...challengedBattleIds])];
+    const allBattleIds = [...new Set([...participatedBattleIds, ...challengedBattleIds, ...invitedBattleIds])];
 
     if (allBattleIds.length === 0) {
       setBattles([]);
