@@ -13,7 +13,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
-import { ArrowLeft, BookOpen, Clock, MapPin, Play, Plus, Shield, Users, Compass, Swords, User, Globe, Lock, UserCheck, Shuffle } from 'lucide-react';
+import { ArrowLeft, BookOpen, Clock, MapPin, Play, Plus, Shield, Users, Compass, Swords, User, Globe, Lock, UserCheck, Shuffle, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { generateRandomLocation, generateRandomCampaignName } from '@/lib/random-location-generator';
 import { analyzeLocation } from '@/lib/theme-engine';
 import { Badge as ThemeBadge } from '@/components/ui/badge';
@@ -197,6 +198,25 @@ export default function Campaigns() {
       toast.error(err.message || 'Failed to create campaign');
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleDeleteCampaign = async (e: React.MouseEvent, campaignId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await supabase.from('campaign_messages').delete().eq('campaign_id', campaignId);
+      await supabase.from('campaign_inventory').delete().eq('campaign_id', campaignId);
+      await supabase.from('npc_relationships').delete().eq('campaign_id', campaignId);
+      await supabase.from('campaign_npcs').delete().eq('campaign_id', campaignId);
+      await supabase.from('campaign_logs').delete().eq('campaign_id', campaignId);
+      await supabase.from('campaign_join_requests').delete().eq('campaign_id', campaignId);
+      await supabase.from('campaign_participants').delete().eq('campaign_id', campaignId);
+      await supabase.from('campaigns').delete().eq('id', campaignId);
+      setCampaigns(prev => prev.filter(c => c.id !== campaignId));
+      toast.success('Campaign deleted');
+    } catch {
+      toast.error('Failed to delete campaign');
     }
   };
 
@@ -404,7 +424,7 @@ export default function Campaigns() {
                           </Badge>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 text-sm">
+                      <div className="flex items-center gap-1 text-sm">
                         {campaign.my_participant && (
                           <Badge variant="secondary" className="text-xs">
                             Lv.{(campaign.my_participant as any).campaign_level || 1}
@@ -413,6 +433,37 @@ export default function Campaigns() {
                         <Button variant="outline" size="sm" className="min-h-[44px]">
                           {campaign.status === 'recruiting' ? 'Setup' : 'Continue'}
                         </Button>
+                        {['completed', 'abandoned'].includes(campaign.status) && campaign.creator_id === user?.id && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 text-muted-foreground hover:text-destructive"
+                                onClick={(e) => e.preventDefault()}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Campaign</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will permanently delete this campaign, all messages, inventory, and logs. This cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  onClick={(e) => handleDeleteCampaign(e, campaign.id)}
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
                       </div>
                     </div>
                     {campaign.description && (
