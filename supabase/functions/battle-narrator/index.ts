@@ -877,6 +877,9 @@ async function handleCampaignNarration(
     defenseResult,
   } = body;
 
+  // Extract lore context sent by the client
+  const loreCtx = playerCharacter.loreContext || {};
+
   // Build dice context for combat actions
   let diceInstructions = '';
   if (defenseResult) {
@@ -893,10 +896,40 @@ The player's attack LANDS as described. The enemy takes the hit. Narrate the imp
 The player's attack MISSES. Describe how the enemy dodges, blocks, or the attack goes wide. Do NOT describe the attack landing. Gap of ${Math.abs(diceResult.gap)}: ${Math.abs(diceResult.gap) <= 2 ? 'barely missed' : Math.abs(diceResult.gap) <= 5 ? 'clearly dodged' : 'completely whiffed'}.`;
   }
 
+  // Build lore/fame instructions for NPC behavior
+  let loreInstructions = '';
+  if (loreCtx.lore || loreCtx.knownStories || loreCtx.affiliations || loreCtx.speciesInfo) {
+    loreInstructions = `\n\nCHARACTER BACKGROUND (use subtly — NEVER dump this info):`;
+    if (loreCtx.lore) loreInstructions += `\nBackstory: ${loreCtx.lore}`;
+    if (loreCtx.race) loreInstructions += `\nSpecies: ${loreCtx.race}${loreCtx.subRace ? ` (${loreCtx.subRace})` : ''}`;
+    if (loreCtx.personality) loreInstructions += `\nPersonality: ${loreCtx.personality}`;
+    if (loreCtx.mentality) loreInstructions += `\nMentality: ${loreCtx.mentality}`;
+    if (loreCtx.speciesInfo) {
+      const sp = loreCtx.speciesInfo;
+      loreInstructions += `\nSpecies Details: ${sp.name}${sp.description ? ' — ' + sp.description : ''}${sp.cultural_traits ? '. Culture: ' + sp.cultural_traits : ''}`;
+    }
+    if (loreCtx.knownStories && loreCtx.knownStories.length > 0) {
+      loreInstructions += `\nPublished tales about this character: ${loreCtx.knownStories.map((s: any) => s.title + (s.summary ? ' (' + s.summary + ')' : '')).join('; ')}`;
+    }
+    if (loreCtx.affiliations && loreCtx.affiliations.length > 0) {
+      loreInstructions += `\nAffiliations/Groups: ${loreCtx.affiliations.map((g: any) => g.name + (g.description ? ' — ' + g.description : '')).join('; ')}`;
+    }
+    loreInstructions += `
+
+NPC FAME & RECOGNITION RULES (apply organically):
+- If the character has many published stories or legendary feats in their lore → NPCs in the area MAY have heard rumors or recognize them. Merchants, soldiers, officials might react with deference, suspicion, or excitement.
+- If the character is relatively unknown (no stories, small feats) → NPCs treat them as a stranger. No special recognition.
+- If the character's species is rare or exotic → NPCs who know of that species react accordingly (curiosity, fear, reverence, hostility). Those who don't know simply see an unusual person.
+- If the character belongs to a famous group/faction → NPCs aligned with or opposed to that faction react naturally.
+- NEVER force recognition. A street vendor won't know a legendary warrior from another continent unless there's a reason.
+- Famous characters might be recognized in cities but anonymous in remote areas.
+- Scale recognition by context: a famous fighter is known at fighting rings, not at a bakery.`;
+  }
+
   const systemPrompt = `You are the Campaign Narrator for "Realm of Kings". You narrate a persistent, freedom-focused adventure.
 
 SETTING DEFAULT: Unless the campaign description or player's RP explicitly establishes a fantasy, sci-fi, or historical setting, DEFAULT to MODERN REALISTIC settings. Think present-day Earth — cities, suburbs, highways, offices, parks, warehouses, apartments. Use contemporary language and references. Avoid medieval speech, fantasy creatures, or futuristic tech unless the player has clearly introduced them. The world should feel grounded and relatable.
-
+${loreInstructions}
 CORE RULES:
 1. FREEDOM: Players can do ANYTHING — explore, fight, ignore objectives, goof around, split from group, travel beyond the current zone. NEVER railroad them.
 2. POWER RESET: Characters are at Campaign Level ${playerCharacter.campaignLevel}. Their maximum usable power tier is ${maxAllowedTier}. If the player attempts abilities beyond this tier:

@@ -55,6 +55,11 @@ export interface CampaignParticipant {
     powers: string | null;
     abilities: string | null;
     weapons_items: string | null;
+    lore: string | null;
+    race: string | null;
+    sub_race: string | null;
+    personality: string | null;
+    mentality: string | null;
   };
 }
 
