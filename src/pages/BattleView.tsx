@@ -93,6 +93,8 @@ import { type StatModification } from '@/components/battles/StatModificationPane
 import { discoverMechanic, type MechanicKey } from '@/lib/mechanic-discovery';
 import { useBattleSfx } from '@/hooks/use-battle-sfx';
 import { getDominantPsychCue } from '@/lib/battle-psychology';
+import { interpretMove } from '@/lib/intent-interpreter';
+import { applyHardClamp, generateClampContext, type CharacterProfile, type ClampResult } from '@/lib/hard-clamp';
 import {
   ArrowLeft,
   Send,
@@ -358,6 +360,10 @@ export default function BattleView() {
 
   // Stat modifications during battle
   const [statModifications, setStatModifications] = useState<StatModification[]>([]);
+
+  // Internal fairness tracking (invisible to UI)
+  const [consecutiveHighForceTurns, setConsecutiveHighForceTurns] = useState(0);
+  const lastClampResultRef = useRef<ClampResult | null>(null);
 
   // Advanced combat mechanics (momentum, psychology, overcharge, charge, perception, hit detection, arena modifiers)
   const combatMechanics = usePvPCombatMechanics({
@@ -1118,6 +1124,39 @@ export default function BattleView() {
       return;
     }
 
+    // ── Invisible fairness pipeline (Layer 1 + 2) ──────────────────────────
+    if (activeChannel === 'in_universe' && userCharacter.character) {
+      const char = userCharacter.character;
+      const intent = interpretMove(content);
+      const profile: CharacterProfile = {
+        name: char.name,
+        tier: char.level,
+        stats: {
+          stat_intelligence: char.stat_intelligence ?? 50,
+          stat_battle_iq: char.stat_battle_iq ?? 50,
+          stat_strength: char.stat_strength ?? 50,
+          stat_power: char.stat_power ?? 50,
+          stat_speed: char.stat_speed ?? 50,
+          stat_durability: char.stat_durability ?? 50,
+          stat_stamina: char.stat_stamina ?? 50,
+          stat_skill: char.stat_skill ?? 50,
+          stat_luck: char.stat_luck ?? 50,
+        },
+        powers: char.powers ?? null,
+        abilities: char.abilities ?? null,
+        consecutiveHighForceTurns,
+      };
+      const clamp = applyHardClamp(intent, profile);
+      lastClampResultRef.current = clamp;
+
+      // Track consecutive high-force turns for stamina escalation
+      if (intent.intentCategory === 'HIGH_FORCE' || intent.posture === 'RECKLESS') {
+        setConsecutiveHighForceTurns(prev => prev + 1);
+      } else {
+        setConsecutiveHighForceTurns(0);
+      }
+    }
+
     // Generate dice roll for in-universe attack moves
     if (activeChannel === 'in_universe' && !skipDiceRoll) {
       generateDiceRoll(content);
@@ -1517,6 +1556,10 @@ export default function BattleView() {
             zone: battleDistance.currentZone,
             meters: battleDistance.estimatedMeters,
           },
+          // Invisible fairness context from hard clamp (internal only)
+          fairnessContext: lastClampResultRef.current
+            ? generateClampContext(lastClampResultRef.current)
+            : undefined,
         },
       });
       
