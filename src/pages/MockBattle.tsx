@@ -96,6 +96,7 @@ import ArenaModifierBadge from '@/components/battles/ArenaModifierBadge';
 import SfxToggle from '@/components/battles/SfxToggle';
 import { getActiveArenaModifiers, type ActiveArenaModifiers } from '@/lib/arena-modifiers';
 import { useBattleSfx } from '@/hooks/use-battle-sfx';
+import { useAmbientSound } from '@/hooks/use-ambient-sound';
 import {
   createPlayerPattern,
   recordPlayerAction,
