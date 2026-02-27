@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { buildSceneTags } from '@/lib/build-scene-tags';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -150,6 +151,16 @@ export default function ChallengeModal({
       }
 
       await supabase.from('battles').update(updatePayload).eq('id', battleId);
+
+      // Set scene_tags on the challenger's participant record
+      const sceneTags = buildSceneTags(
+        userLocation.trim(),
+        emergencyEnabled && emergencyLocation ? emergencyLocation.tags : null,
+      );
+      await supabase
+        .from('battle_participants')
+        .update({ scene_location: userLocation.trim(), scene_tags: sceneTags })
+        .eq('battle_id', battleId);
 
       toast.success(`Challenge sent to ${targetUsername}!`);
       onOpenChange(false);
