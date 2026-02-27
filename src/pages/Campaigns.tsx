@@ -12,7 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
-import { ArrowLeft, BookOpen, Clock, MapPin, Play, Plus, Shield, Users, Compass, Swords, User, Globe, Lock, UserCheck } from 'lucide-react';
+import { ArrowLeft, BookOpen, Clock, MapPin, Play, Plus, Shield, Users, Compass, Swords, User, Globe, Lock, UserCheck, Shuffle } from 'lucide-react';
+import { generateRandomLocation, generateRandomCampaignName } from '@/lib/random-location-generator';
+import { analyzeLocation } from '@/lib/theme-engine';
+import { Badge as ThemeBadge } from '@/components/ui/badge';
 import type { Campaign, CampaignParticipant, CampaignStatus, CampaignVisibility } from '@/lib/campaign-types';
 import { getTimeEmoji } from '@/lib/campaign-types';
 
@@ -243,7 +246,19 @@ export default function Campaigns() {
             <div className="space-y-4">
               <div>
                 <Label>Campaign Name</Label>
-                <Input placeholder="e.g., The Lost Citadel" value={newName} onChange={e => setNewName(e.target.value)} />
+                <div className="flex gap-2">
+                  <Input placeholder="e.g., The Lost Citadel" value={newName} onChange={e => setNewName(e.target.value)} />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    type="button"
+                    onClick={() => setNewName(generateRandomCampaignName())}
+                    title="Generate random name"
+                    className="shrink-0"
+                  >
+                    <Shuffle className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
               <div>
                 <Label>Description (optional)</Label>
@@ -262,7 +277,32 @@ export default function Campaigns() {
               </div>
               <div>
                 <Label>Starting Location</Label>
-                <Input placeholder="e.g., Abandoned Outpost, Misty Forest..." value={startingLocation} onChange={e => setStartingLocation(e.target.value)} />
+                <div className="flex gap-2">
+                  <Input placeholder="e.g., Abandoned Outpost, Misty Forest..." value={startingLocation} onChange={e => setStartingLocation(e.target.value)} />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    type="button"
+                    onClick={() => setStartingLocation(generateRandomLocation())}
+                    title="Generate random location"
+                    className="shrink-0"
+                  >
+                    <Shuffle className="w-4 h-4" />
+                  </Button>
+                </div>
+                {/* Theme tag preview */}
+                {startingLocation.trim() && (() => {
+                  const tags = analyzeLocation(startingLocation);
+                  if (tags.length === 0) return null;
+                  return (
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Theme:</span>
+                      {tags.map(tag => (
+                        <ThemeBadge key={tag} variant="outline" className="text-[10px] py-0 h-5">{tag}</ThemeBadge>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
               <div className="flex items-center gap-3">
                 <button

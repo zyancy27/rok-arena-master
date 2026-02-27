@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Coins, Sparkles } from 'lucide-react';
+import { MapPin, Coins, Sparkles, Shuffle } from 'lucide-react';
+import { generateRandomLocation } from '@/lib/random-location-generator';
+import { analyzeLocation, buildThemeFromLocation, type EnvironmentTag } from '@/lib/theme-engine';
 
 interface BattleLocationSetupProps {
   location1: string | null;
@@ -120,10 +122,21 @@ export default function BattleLocationSetup({
                 onChange={(e) => setLocationInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSetLocation()}
               />
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setLocationInput(generateRandomLocation())}
+                title="Generate random location"
+                className="shrink-0"
+              >
+                <Shuffle className="w-4 h-4" />
+              </Button>
               <Button onClick={handleSetLocation} disabled={!locationInput.trim()}>
                 Submit
               </Button>
             </div>
+            {/* Theme tag preview */}
+            <LocationTagPreview location={locationInput} />
           </div>
         )}
 
@@ -162,5 +175,23 @@ export default function BattleLocationSetup({
         )}
       </CardContent>
     </Card>
+  );
+}
+
+/** Inline preview of detected theme tags for a location string */
+function LocationTagPreview({ location }: { location: string }) {
+  const tags = useMemo(() => analyzeLocation(location), [location]);
+
+  if (!location.trim() || tags.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+      <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Theme:</span>
+      {tags.map((tag) => (
+        <Badge key={tag} variant="outline" className="text-[10px] py-0 h-5">
+          {tag}
+        </Badge>
+      ))}
+    </div>
   );
 }
