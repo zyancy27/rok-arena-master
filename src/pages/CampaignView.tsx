@@ -610,6 +610,19 @@ export default function CampaignView() {
         triggerDiscovery('dice_roll' as MechanicKey);
       }
 
+      // Fetch recent conversation history for AI continuity (last 20 messages)
+      const { data: recentMsgs } = await supabase
+        .from('campaign_messages')
+        .select('sender_type, content, character_id')
+        .eq('campaign_id', campaign.id)
+        .eq('channel', 'in_universe')
+        .order('created_at', { ascending: false })
+        .limit(20);
+      const conversationHistory = (recentMsgs || []).reverse().map((m: any) => ({
+        role: m.sender_type === 'player' ? 'player' : 'world',
+        content: m.content,
+      }));
+
       // Call narrator for response — pass dice context
       const activeParticipants = participants.filter(p => p.is_active);
       const partyContext = activeParticipants.map(p =>
@@ -691,6 +704,7 @@ export default function CampaignView() {
           maxAllowedTier: CAMPAIGN_STARTING_ABILITIES.maxPowerTierAtLevel(myParticipant.campaign_level),
           // Pass dice results so narrator knows hit/miss outcomes
           ...(combatResult.narratorDiceContext || {}),
+          conversationHistory,
         },
       });
 

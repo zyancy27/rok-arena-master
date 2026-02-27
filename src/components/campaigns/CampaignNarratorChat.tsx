@@ -145,6 +145,12 @@ export default function CampaignNarratorChat({
     setIsLoading(true);
 
     try {
+      // Build conversation history from local messages for continuity
+      const chatHistory = messages.map(m => ({
+        role: m.role === 'user' ? 'player' : 'world',
+        content: m.content,
+      }));
+
       const response = await supabase.functions.invoke('battle-narrator', {
         body: {
           type: 'private_query',
@@ -155,6 +161,7 @@ export default function CampaignNarratorChat({
           battleLocation: currentZone,
           opponentNames: [],
           recentPublicActions: '',
+          conversationHistory: chatHistory,
           campaignContext: {
             campaignId, currentZone, timeOfDay, dayCount,
             campaignDescription, worldState, storyContext,
