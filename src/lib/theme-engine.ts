@@ -311,6 +311,41 @@ const BACKGROUND_BLOCKS: Partial<Record<EnvironmentTag, BackgroundLayer[]>> = {
   emergency: [
     { type: 'linear', gradient: 'to bottom, hsl(0 70% 30% / 0.12) 0%, transparent 40%' },
   ],
+  // Previously sparse modifier backgrounds
+  electric: [
+    { type: 'radial', gradient: 'ellipse at 50% 50%, hsl(200 100% 60% / 0.08) 0%, hsl(220 80% 40% / 0.05) 50%, transparent 80%' },
+  ],
+  wind: [
+    { type: 'linear', gradient: '135deg, hsl(200 30% 60% / 0.05) 0%, hsl(190 20% 70% / 0.08) 50%, transparent 100%' },
+  ],
+  rain: [
+    { type: 'linear', gradient: 'to bottom, hsl(220 40% 35% / 0.12) 0%, hsl(210 30% 25% / 0.08) 60%, transparent 100%' },
+  ],
+  fog: [
+    { type: 'radial', gradient: 'ellipse at 50% 70%, hsl(220 10% 50% / 0.15) 0%, hsl(0 0% 40% / 0.08) 50%, transparent 80%' },
+  ],
+  neon: [
+    { type: 'linear', gradient: 'to bottom, hsl(300 80% 50% / 0.06) 0%, hsl(180 70% 50% / 0.04) 50%, hsl(60 80% 50% / 0.03) 100%' },
+  ],
+  cosmic: [
+    { type: 'radial', gradient: 'ellipse at 30% 30%, hsl(260 60% 40% / 0.1) 0%, transparent 50%' },
+    { type: 'radial', gradient: 'ellipse at 75% 65%, hsl(200 50% 50% / 0.08) 0%, transparent 40%' },
+  ],
+  acid: [
+    { type: 'linear', gradient: 'to top, hsl(80 80% 30% / 0.3) 0%, hsl(100 60% 20% / 0.15) 40%, transparent 80%' },
+  ],
+  gravity: [
+    { type: 'radial', gradient: 'circle at center, hsl(260 40% 15% / 0.25) 0%, hsl(240 20% 10% / 0.15) 50%, transparent 80%' },
+  ],
+  holy: [
+    { type: 'radial', gradient: 'ellipse at 50% 20%, hsl(45 80% 70% / 0.12) 0%, hsl(40 60% 50% / 0.06) 40%, transparent 80%' },
+  ],
+  digital: [
+    { type: 'linear', gradient: 'to bottom, hsl(160 60% 20% / 0.2) 0%, hsl(180 40% 10% / 0.3) 50%, hsl(200 50% 8% / 0.25) 100%' },
+  ],
+  tremor: [
+    { type: 'linear', gradient: 'to top, hsl(30 20% 15% / 0.2) 0%, hsl(25 15% 10% / 0.1) 40%, transparent 70%' },
+  ],
 };
 
 /** Overlay CSS class modules mapped by tag */
@@ -352,58 +387,123 @@ const OVERLAY_BLOCKS: Partial<Record<EnvironmentTag, OverlayModule[]>> = {
     { className: 'env-mirror-fracture', zOrder: 1 },
     { className: 'env-mirror-reflect', zOrder: 2 },
   ],
-  toxic: [{ className: 'env-toxic-bubbles', zOrder: 1 }],
+  toxic: [
+    { className: 'env-toxic-bubbles', zOrder: 1 },
+    { className: 'env-toxic-haze', zOrder: 2 },
+  ],
   inferno: [
     { className: 'env-lava-glow', zOrder: 1 },
     { className: 'env-inferno-embers', zOrder: 2 },
+    { className: 'env-heat-distortion', zOrder: 3 },
   ],
   forest: [
     { className: 'env-forest-leaves', zOrder: 1 },
     { className: 'env-forest-branches', zOrder: 2 },
     { className: 'env-forest-pollen', zOrder: 3 },
+    { className: 'env-forest-fireflies', zOrder: 4 },
   ],
   ruins: [
     { className: 'env-ruins-dust', zOrder: 1 },
     { className: 'env-ruins-flicker', zOrder: 2 },
+    { className: 'env-ruins-cracks', zOrder: 3 },
   ],
   'underwater-volcano': [
     { className: 'env-underwater-caustics', zOrder: 1 },
     { className: 'env-deep-vent-glow', zOrder: 2 },
+    { className: 'env-underwater-bubbles', zOrder: 3 },
   ],
   'floating-islands': [
     { className: 'env-floating-drift', zOrder: 1 },
     { className: 'env-wind-streaks', zOrder: 2 },
+    { className: 'env-cloud-wisps', zOrder: 3 },
   ],
   bloodmoon: [
     { className: 'env-blood-pulse', zOrder: 1 },
     { className: 'env-stars', zOrder: 2 },
+    { className: 'env-crimson-mist', zOrder: 3 },
   ],
   blackhole: [
     { className: 'env-void-distortion', zOrder: 1 },
     { className: 'env-blackhole-pull', zOrder: 2 },
+    { className: 'env-blackhole-particles', zOrder: 3 },
   ],
   dreamscape: [
     { className: 'env-dream-float', zOrder: 1 },
     { className: 'env-dream-particles', zOrder: 2 },
+    { className: 'env-dream-prismatic', zOrder: 3 },
   ],
-  radiation: [{ className: 'env-radiation-flicker', zOrder: 1 }],
-  fire: [{ className: 'env-inferno-embers', zOrder: 2 }],
-  ice: [{ className: 'env-frost-overlay', zOrder: 1 }],
-  electric: [{ className: 'env-electric-crackle', zOrder: 1 }],
-  fog: [{ className: 'env-ghost-fog', zOrder: 1 }],
-  rain: [{ className: 'env-storm-rain', zOrder: 1 }],
-  wind: [{ className: 'env-wind-streaks', zOrder: 1 }],
-  neon: [{ className: 'env-neon-flicker', zOrder: 1 }],
-  cosmic: [{ className: 'env-stars', zOrder: 1 }],
-  emergency: [{ className: 'env-emergency-pulse', zOrder: 3 }],
+  radiation: [
+    { className: 'env-radiation-flicker', zOrder: 1 },
+    { className: 'env-radiation-particles', zOrder: 2 },
+  ],
+  fire: [
+    { className: 'env-inferno-embers', zOrder: 2 },
+    { className: 'env-fire-flicker', zOrder: 1 },
+  ],
+  ice: [
+    { className: 'env-frost-overlay', zOrder: 1 },
+    { className: 'env-ice-crystals', zOrder: 2 },
+  ],
+  electric: [
+    { className: 'env-electric-crackle', zOrder: 1 },
+    { className: 'env-electric-sparks', zOrder: 2 },
+  ],
+  fog: [
+    { className: 'env-ghost-fog', zOrder: 1 },
+    { className: 'env-fog-tendrils', zOrder: 2 },
+  ],
+  rain: [
+    { className: 'env-storm-rain', zOrder: 1 },
+    { className: 'env-rain-drops', zOrder: 2 },
+  ],
+  wind: [
+    { className: 'env-wind-streaks', zOrder: 1 },
+    { className: 'env-wind-debris', zOrder: 2 },
+  ],
+  neon: [
+    { className: 'env-neon-flicker', zOrder: 1 },
+    { className: 'env-neon-glow-lines', zOrder: 2 },
+  ],
+  cosmic: [
+    { className: 'env-stars', zOrder: 1 },
+    { className: 'env-nebula-drift', zOrder: 2 },
+  ],
+  emergency: [
+    { className: 'env-emergency-pulse', zOrder: 3 },
+    { className: 'env-emergency-strobe', zOrder: 2 },
+  ],
   tremor: [
     { className: 'env-tremor-shake', zOrder: 3 },
     { className: 'env-ruins-dust', zOrder: 2 },
+    { className: 'env-tremor-cracks', zOrder: 1 },
   ],
   underground: [
     { className: 'env-underground-drip', zOrder: 1 },
     { className: 'env-underground-roots', zOrder: 2 },
     { className: 'env-underground-dust', zOrder: 3 },
+    { className: 'env-underground-glow', zOrder: 4 },
+  ],
+  // New full entries for previously overlay-less tags
+  acid: [
+    { className: 'env-acid-drip', zOrder: 1 },
+    { className: 'env-acid-smoke', zOrder: 2 },
+  ],
+  gravity: [
+    { className: 'env-gravity-warp', zOrder: 1 },
+    { className: 'env-gravity-particles', zOrder: 2 },
+  ],
+  holy: [
+    { className: 'env-divine-rays', zOrder: 1 },
+    { className: 'env-holy-sparkle', zOrder: 2 },
+  ],
+  digital: [
+    { className: 'env-scan-lines', zOrder: 1 },
+    { className: 'env-digital-rain', zOrder: 2 },
+    { className: 'env-digital-glitch', zOrder: 3 },
+  ],
+  darkness: [
+    { className: 'env-darkness-vignette', zOrder: 1 },
+    { className: 'env-darkness-wisps', zOrder: 2 },
   ],
 };
 
@@ -429,6 +529,18 @@ const GLOW_BLOCKS: Partial<Record<EnvironmentTag, string>> = {
   fire: 'inset 0 -30px 40px -10px hsl(20 100% 50% / 0.15)',
   emergency: 'inset 0 0 40px hsl(0 80% 40% / 0.15)',
   underground: 'inset 0 0 80px hsl(25 15% 8% / 0.35), inset 0 40px 60px -20px hsl(30 10% 5% / 0.4)',
+  acid: 'inset 0 -30px 50px -10px hsl(80 80% 35% / 0.2)',
+  gravity: 'inset 0 0 60px hsl(260 50% 30% / 0.15)',
+  holy: 'inset 0 -20px 50px -10px hsl(45 80% 60% / 0.12)',
+  digital: 'inset 0 0 40px hsl(160 60% 40% / 0.1), inset 0 0 80px hsl(180 50% 30% / 0.08)',
+  electric: 'inset 0 0 40px hsl(200 100% 60% / 0.12)',
+  fog: 'inset 0 0 60px hsl(0 0% 50% / 0.1)',
+  neon: 'inset 0 0 50px hsl(300 80% 55% / 0.12), inset 0 0 30px hsl(180 70% 50% / 0.08)',
+  cosmic: 'inset 0 0 60px hsl(260 50% 40% / 0.12)',
+  wind: 'inset 0 0 30px hsl(200 30% 60% / 0.08)',
+  rain: 'inset 0 -30px 50px -10px hsl(220 40% 40% / 0.12)',
+  tremor: 'inset 0 0 40px hsl(30 30% 20% / 0.15)',
+  darkness: 'inset 0 0 100px hsl(0 0% 0% / 0.4)',
 };
 
 /** Animation intensity by tag */
@@ -440,7 +552,10 @@ const INTENSITY_MAP: Partial<Record<EnvironmentTag, 'low' | 'medium' | 'high'>> 
   haunted: 'medium', toxic: 'medium', bloodmoon: 'medium',
   space: 'low', underwater: 'low', mirror: 'medium',
   tremor: 'high', fire: 'medium', electric: 'high',
-  underground: 'low',
+  underground: 'low', acid: 'medium', gravity: 'medium',
+  holy: 'low', digital: 'medium', darkness: 'medium',
+  fog: 'low', rain: 'low', wind: 'low', neon: 'medium',
+  cosmic: 'low',
 };
 
 /** Chat box style presets per tag */
@@ -473,6 +588,16 @@ const CHATBOX_BLOCKS: Partial<Record<EnvironmentTag, Partial<ChatBoxStyle>>> = {
   radiation: { borderStyle: 'border-lime-400/30', textGlow: '0 0 5px hsl(80 100% 50% / 0.2)' },
   neon: { textGlow: '0 0 8px hsl(300 100% 60% / 0.3)' },
   electric: { borderStyle: 'border-blue-400/30', urgencyAnimation: 'env-urgency-flicker' },
+  acid: { borderStyle: 'border-lime-500/30', textGlow: '0 0 5px hsl(80 90% 40% / 0.25)', backgroundTexture: 'bg-gradient-to-b from-lime-950/10 to-transparent' },
+  gravity: { borderStyle: 'border-violet-500/25', urgencyAnimation: 'env-urgency-pulse', backgroundTexture: 'bg-gradient-to-b from-violet-950/10 to-transparent' },
+  holy: { borderStyle: 'border-amber-300/30', textGlow: '0 0 8px hsl(45 80% 60% / 0.3)' },
+  digital: { borderStyle: 'border-emerald-400/25', textGlow: '0 0 4px hsl(160 80% 50% / 0.25)', fontHint: 'bold' },
+  fog: { borderStyle: 'border-slate-300/15', backgroundTexture: 'bg-gradient-to-b from-slate-800/10 to-transparent' },
+  rain: { borderStyle: 'border-blue-300/20' },
+  wind: { borderStyle: 'border-sky-300/15' },
+  cosmic: { borderStyle: 'border-purple-400/20', textGlow: '0 0 6px hsl(260 60% 60% / 0.2)' },
+  tremor: { borderStyle: 'border-amber-700/25', urgencyAnimation: 'env-urgency-shake' },
+  darkness: { borderStyle: 'border-gray-900/40', backgroundTexture: 'bg-gradient-to-b from-black/15 to-transparent' },
 };
 
 // ── Theme Composer ──────────────────────────────────────────────
