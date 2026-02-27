@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Compass, Heart, LogOut, MapPin, Play, Send,
   Shield, Swords, Users, Zap, Clock, Sun, Moon, Backpack,
-  Volume2, VolumeX, UserMinus, UserPlus,
+  Volume2, VolumeX,
 } from 'lucide-react';
 import type { Campaign, CampaignParticipant, CampaignMessage } from '@/lib/campaign-types';
 import { getTimeEmoji, CAMPAIGN_STARTING_ABILITIES, XP_REWARDS, advanceTime } from '@/lib/campaign-types';
@@ -248,40 +248,34 @@ export default function CampaignView() {
     fetchCampaign();
   };
 
-  const handleGoSolo = async () => {
-    if (!myParticipant || !campaign) return;
-    await supabase.from('campaign_participants')
-      .update({ is_solo: true } as any)
-      .eq('id', myParticipant.id);
+  // Intent detection patterns for solo/rejoin — checked after narrator responds
+  const SOLO_INTENT_PATTERNS = [
+    /\b(go|head|venture|wander|sneak|slip|step)\b.{0,20}\b(alone|solo|on my own|by myself|away from|off on)\b/i,
+    /\b(leave|split from|separate from|break away|part ways)\b.{0,20}\b(group|party|team|others|companions)\b/i,
+    /\b(i('ll| will)?|let me)\b.{0,15}\b(explore|scout|investigate|check out)\b.{0,15}\b(alone|solo|on my own|by myself)\b/i,
+    /\bstep away\b/i,
+    /\bgo.{0,5}my own way\b/i,
+  ];
 
-    await supabase.from('campaign_messages').insert({
-      campaign_id: campaign.id,
-      character_id: myParticipant.character_id,
-      sender_type: 'system',
-      content: `🚶 **${myParticipant.character?.name || 'An adventurer'}** has stepped away from the group to explore on their own.`,
-      channel: 'in_universe',
-    });
+  const REJOIN_INTENT_PATTERNS = [
+    /\b(rejoin|regroup|find|meet up|catch up|return to|head back to|go back to)\b.{0,20}\b(group|party|team|others|companions)\b/i,
+    /\b(find|look for|search for)\b.{0,20}\b(party|group|companions|team|friends|allies)\b/i,
+    /\b(done|finished)\b.{0,15}\b(solo|alone|exploring|scouting)\b/i,
+    /\bgo\s+back\b/i,
+  ];
 
-    toast.success('You are now exploring solo. You can act freely without waiting for others.');
-    fetchParticipants();
+  const detectSoloIntent = (text: string): 'go_solo' | 'rejoin' | null => {
+    if (!isSoloMode && SOLO_INTENT_PATTERNS.some(p => p.test(text))) return 'go_solo';
+    if (isSoloMode && REJOIN_INTENT_PATTERNS.some(p => p.test(text))) return 'rejoin';
+    return null;
   };
 
-  const handleRejoinGroup = async () => {
-    if (!myParticipant || !campaign) return;
+  const applySoloStatusChange = async (intent: 'go_solo' | 'rejoin') => {
+    if (!myParticipant) return;
+    const newSolo = intent === 'go_solo';
     await supabase.from('campaign_participants')
-      .update({ is_solo: false } as any)
+      .update({ is_solo: newSolo } as any)
       .eq('id', myParticipant.id);
-
-    await supabase.from('campaign_messages').insert({
-      campaign_id: campaign.id,
-      character_id: myParticipant.character_id,
-      sender_type: 'system',
-      content: `🤝 **${myParticipant.character?.name || 'An adventurer'}** has rejoined the group.`,
-      channel: 'in_universe',
-    });
-
-    toast.success('You have rejoined the party!');
-    fetchParticipants();
   };
 
   const handleSendMessage = async () => {
@@ -291,6 +285,9 @@ export default function CampaignView() {
     setSending(true);
 
     try {
+      // Detect solo/rejoin intent from the player's message
+      const soloIntent = detectSoloIntent(messageText);
+
       // Insert player message
       await supabase.from('campaign_messages').insert({
         campaign_id: campaign.id,
@@ -322,6 +319,7 @@ export default function CampaignView() {
             abilities: myParticipant.character?.abilities,
             weaponsItems: (myParticipant.character as any)?.weapons_items,
             isSolo: isSoloMode,
+            soloIntent: soloIntent, // hints narrator to narrate the departure/reunion
             equippedCampaignItems: equippedCampaignItems.map(i => ({
               item_name: i.item_name,
               item_type: i.item_type,
@@ -420,6 +418,11 @@ export default function CampaignView() {
           });
           fetchInventory();
         }
+      }
+
+      // Apply solo status change if intent was detected
+      if (soloIntent) {
+        await applySoloStatusChange(soloIntent);
       }
 
       fetchParticipants();
@@ -564,18 +567,6 @@ export default function CampaignView() {
               </Button>
             )}
 
-            {/* Go Solo / Rejoin */}
-            {isActive && myParticipant?.is_active && !isSoloCampaign && (
-              isSoloMode ? (
-                <Button variant="outline" size="sm" className="w-full gap-1" onClick={handleRejoinGroup}>
-                  <UserPlus className="w-3 h-3" /> Rejoin Group
-                </Button>
-              ) : (
-                <Button variant="outline" size="sm" className="w-full gap-1 text-amber-400 border-amber-500/30 hover:bg-amber-500/10" onClick={handleGoSolo}>
-                  <UserMinus className="w-3 h-3" /> Go Solo
-                </Button>
-              )
-            )}
 
             {/* Leave */}
             {myParticipant?.is_active && (
@@ -637,14 +628,6 @@ export default function CampaignView() {
               <div ref={messagesEndRef} />
             </div>
           </ScrollArea>
-
-          {/* Solo mode banner */}
-          {isActive && isSoloMode && myParticipant?.is_active && (
-            <div className="px-4 py-2 border-t border-amber-500/20 bg-amber-500/5 flex items-center gap-2 text-xs text-amber-400">
-              <UserMinus className="w-3 h-3 shrink-0" />
-              <span>You're exploring solo — act freely without waiting for the group.</span>
-            </div>
-          )}
 
           {/* Input */}
           {isActive && myParticipant?.is_active && (
