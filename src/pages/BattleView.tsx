@@ -96,6 +96,7 @@ import { useBattleSfx } from '@/hooks/use-battle-sfx';
 import { getDominantPsychCue } from '@/lib/battle-psychology';
 import { interpretMove } from '@/lib/intent-interpreter';
 import { applyHardClamp, generateClampContext, type CharacterProfile, type ClampResult } from '@/lib/hard-clamp';
+import { detectDirectInteraction } from '@/lib/battle-hit-detection';
 import {
   ArrowLeft,
   Send,
@@ -794,10 +795,11 @@ export default function BattleView() {
                     );
                     
                     // Generate dice roll for opponent's attack (so receiver sees it inline)
-                    generateOpponentDiceRoll(newMessage.content, charData?.name || 'Opponent', newMessage.character_id);
+                    // Dice resolves FIRST, then narrator describes the actual outcome
+                    const opponentDiceResult = generateOpponentDiceRoll(newMessage.content, charData?.name || 'Opponent', newMessage.character_id);
                     
-                    // Call battle narrator for atmospheric commentary
-                    callBattleNarrator(newMessage.content, charData?.name || 'Opponent');
+                    // Call battle narrator with dice result so it describes what actually happened
+                    callBattleNarrator(newMessage.content, charData?.name || 'Opponent', opponentDiceResult ?? undefined);
                   }
                 }
 
@@ -1340,10 +1342,9 @@ export default function BattleView() {
       });
     }
 
-    // Check if this looks like an attack (simple heuristic)
-    const attackKeywords = ['attack', 'strike', 'hit', 'punch', 'kick', 'slash', 'blast', 'fire', 'throw', 'launch', 'charge', 'swing', 'aim', 'shoot'];
-    const isAttack = attackKeywords.some(kw => moveText.toLowerCase().includes(kw));
-    if (!isAttack) return;
+    // Use the adaptive hit detection parser to determine if this is an offensive action
+    const hitDetection = detectDirectInteraction(moveText);
+    if (!hitDetection.shouldTriggerHitCheck) return;
 
     const attackerChar = userCharacter.character;
     const defenderChar = opponent.character;
@@ -1469,16 +1470,15 @@ export default function BattleView() {
   };
 
   // Generate dice roll for an opponent's incoming attack (so the defender sees it inline)
-  const generateOpponentDiceRoll = (moveText: string, opponentName: string, opponentCharId: string) => {
-    if (!userCharacter?.character) return;
+  const generateOpponentDiceRoll = (moveText: string, opponentName: string, opponentCharId: string): { hit: boolean; attackTotal: number; defenseTotal: number; gap: number; isMental: boolean } | null => {
+    if (!userCharacter?.character) return null;
     
     const opponentParticipant = participants.find(p => p.character_id === opponentCharId);
-    if (!opponentParticipant?.character) return;
+    if (!opponentParticipant?.character) return null;
 
-    // Check if this looks like an attack
-    const attackKeywords = ['attack', 'strike', 'hit', 'punch', 'kick', 'slash', 'blast', 'fire', 'throw', 'launch', 'charge', 'swing', 'aim', 'shoot'];
-    const isAttack = attackKeywords.some(kw => moveText.toLowerCase().includes(kw));
-    if (!isAttack) return;
+    // Use the adaptive hit detection parser
+    const hitDetection = detectDirectInteraction(moveText);
+    if (!hitDetection.shouldTriggerHitCheck) return null;
 
     const attackerChar = opponentParticipant.character;
     const defenderChar = userCharacter.character;
@@ -1539,10 +1539,23 @@ export default function BattleView() {
 
     // Apply combat mechanics from opponent's perspective
     combatMechanics.applyDiceResults(hit, false);
+
+    // Return dice result for narrator
+    return {
+      hit: hit.wouldHit,
+      attackTotal: hit.attackRoll.total,
+      defenseTotal: hit.defenseRoll.total,
+      gap: hit.gap,
+      isMental: mental,
+    };
   };
 
   // Call battle narrator for atmospheric commentary
-  const callBattleNarrator = async (opponentAction: string, opponentName: string) => {
+  const callBattleNarrator = async (
+    opponentAction: string,
+    opponentName: string,
+    diceResult?: { hit: boolean; attackTotal: number; defenseTotal: number; gap: number; isMental: boolean },
+  ) => {
     if (narratorFrequency === 'off' || !battle?.chosen_location || !userCharacter?.character) return;
     
     setIsNarratorLoading(true);
@@ -1571,6 +1584,8 @@ export default function BattleView() {
             zone: battleDistance.currentZone,
             meters: battleDistance.estimatedMeters,
           },
+          // Dice result so narrator can describe actual outcome
+          diceResult: diceResult ?? undefined,
           // Invisible fairness context from hard clamp (internal only)
           fairnessContext: lastClampResultRef.current
             ? generateClampContext(lastClampResultRef.current)
