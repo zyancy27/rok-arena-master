@@ -20,7 +20,8 @@ export type CharacterStatusType =
   | 'bleeding'     // bleeding/hemorrhaging
   | 'electrified'  // coursing with electricity
   | 'magnetized'   // static/glitch interference
-  | 'cosmicVacuum'; // being pulled into a void
+  | 'cosmicVacuum' // being pulled into a void
+  | 'buried';      // underground/buried/trapped below
 
 export interface CharacterStatusEffect {
   type: CharacterStatusType;
@@ -385,6 +386,30 @@ const STATUS_PATTERNS: StatusPattern[] = [
     intensity: 'severe',
     duration: 18000,
   },
+
+  // Buried / Underground – trapped beneath rubble or earth
+  {
+    type: 'buried',
+    patterns: [
+      /\b(buried|bury|buries)\w*/i,
+      /\b(trapped|caught|stuck).{0,15}(underground|rubble|debris|earth|rock|dirt)/i,
+      /\b(ground|floor|earth).{0,15}(swallows?|collapses?|caves?\s+in|opens?\s+up)/i,
+      /\b(dragged?|pulled?|sunk?|sinking).{0,15}(underground|below|beneath|down\s+into)/i,
+      /\b(cave.?in|caved?\s+in|collapsed?\s+on)\b/i,
+      /\b(underground|subterranean|tunnel).{0,15}(traps?|seals?|collapses?)/i,
+    ],
+    intensity: 'moderate',
+    duration: 14000,
+  },
+  {
+    type: 'buried',
+    patterns: [
+      /\b(completely|fully|totally).{0,10}buried\b/i,
+      /\b(entombed|sealed).{0,10}(underground|beneath|below)/i,
+    ],
+    intensity: 'severe',
+    duration: 20000,
+  },
 ];
 
 /**
@@ -505,6 +530,7 @@ export function getStatusEffectDescription(effect: CharacterStatusEffect): strin
     electrified: 'Electrified - crackling with energy',
     magnetized: 'Magnetized - static interference',
     cosmicVacuum: 'Cosmic Vacuum - spatial distortion',
+    buried: 'Buried - trapped underground',
   };
   
   return `${descriptions[effect.type]} (${effect.intensity})`;
@@ -531,4 +557,5 @@ export const EFFECT_PRIORITY: Record<CharacterStatusType, number> = {
   smokescreen: 20,
   slowed: 15,
   exhausted: 10,
+  buried: 45,
 };

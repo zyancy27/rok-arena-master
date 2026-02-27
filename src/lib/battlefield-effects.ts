@@ -17,7 +17,8 @@ export type BattlefieldEffectType =
   | 'inferno'   // full battlefield fire with heat distortion
   | 'flooded'   // water at borders/edges
   | 'gravity'   // gravity distortion pulling inward
-  | 'blackhole'; // spatial distortion / black hole
+  | 'blackhole' // spatial distortion / black hole
+  | 'underground'; // cavern collapse, tunnels, subterranean
 
 export interface ActiveBattlefieldEffect {
   type: BattlefieldEffectType;
@@ -296,6 +297,27 @@ const EFFECT_PATTERNS: EffectPattern[] = [
     intensity: 'high',
     duration: 18000,
   },
+
+  // Underground / Cavern collapse
+  {
+    type: 'underground',
+    patterns: [
+      /\b(cave|tunnel|cavern|ground).{0,15}(collapses?|caves?\s+in|crumbles?)\b/i,
+      /\b(underground|subterranean|beneath).{0,10}(battle|fight|arena)\b/i,
+      /\b(fight|battle|arena).{0,10}(underground|subterranean|below)\b/i,
+      /\b(rocks?|rubble|debris|ceiling).{0,15}(falls?|falling|crumbl|rain)\b/i,
+    ],
+    intensity: 'high',
+    duration: 15000,
+  },
+  {
+    type: 'underground',
+    patterns: [
+      /\b(cave|cavern|tunnel|underground|dungeon|catacomb|sewer)\b/i,
+    ],
+    intensity: 'medium',
+    duration: 10000,
+  },
 ];
 
 /**
@@ -312,6 +334,7 @@ export const FIELD_EFFECT_PRIORITY: Record<BattlefieldEffectType, number> = {
   fire: 50,
   ice: 50,
   electric: 45,
+  underground: 42,
   smoke: 40,
   poison: 35,
   sand: 30,
@@ -325,6 +348,7 @@ export const SUPPRESSION_MAP: Partial<Record<BattlefieldEffectType, string[]>> =
   inferno: ['burning'], // Global inferno suppresses individual burning status
   flooded: ['submerged'], // Global flood suppresses individual submerged
   darkness: ['blinded'], // Global darkness makes individual blinding redundant
+  underground: ['buried'], // Global underground suppresses individual buried
 };
 
 /**

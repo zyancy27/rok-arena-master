@@ -100,6 +100,7 @@ export type EnvironmentTag =
   // Biomes
   | 'lava' | 'underwater' | 'sky' | 'space' | 'blizzard' | 'forest'
   | 'desert' | 'crystal' | 'void' | 'storm' | 'ruins' | 'toxic'
+  | 'underground'
   // Urbane / Tech
   | 'cyberpunk' | 'mech' | 'digital'
   // Supernatural
@@ -133,6 +134,7 @@ const STATUS_EFFECT_TAG_MAP: Record<string, EnvironmentTag> = {
   gravityCrushed: 'gravity',
   windSwept: 'wind',
   fogBlinded: 'fog',
+  buried: 'underground',
 };
 
 /**
@@ -164,8 +166,8 @@ const TAG_RULES: Array<{ pattern: RegExp; tag: EnvironmentTag }> = [
   { pattern: /blizzard|snow|ice.*storm|arctic|frozen.*waste|tundra|frost|glacier|polar/, tag: 'blizzard' },
   { pattern: /forest|jungle|swamp|marsh|grove|canopy|woodland/, tag: 'forest' },
   { pattern: /desert|sand\b|dune|oasis|arid|sahara|wasteland/, tag: 'desert' },
-  { pattern: /crystal|cave|cavern|gem|mine\b|underground|grotto/, tag: 'crystal' },
-  { pattern: /void|dimension.*tear|collaps|rift(?!.*time)|dark.*realm|shadow.*realm|nether/, tag: 'void' },
+  { pattern: /crystal|gem|mine\b|grotto|geode/, tag: 'crystal' },
+  { pattern: /underground|cave|cavern|tunnel|burrow|subterranean|catacomb|dungeon|sewer|bunker|basement|cellar|pit|chasm|below.*ground|depth/, tag: 'underground' },
   { pattern: /storm|thunder|lightning|hurricane|tornado|cyclone|tempest/, tag: 'storm' },
   { pattern: /ruin|temple|ancient|colosseum|arena|fortress|castle|citadel/, tag: 'ruins' },
   { pattern: /toxic|chem|acid|sewer|waste.*dump|pollut|contamin|biohazard|sludge/, tag: 'toxic' },
@@ -290,6 +292,9 @@ const BACKGROUND_BLOCKS: Partial<Record<EnvironmentTag, BackgroundLayer[]>> = {
     { type: 'radial', gradient: 'ellipse at 40% 50%, hsl(280 50% 40% / 0.15) 0%, transparent 50%' },
     { type: 'radial', gradient: 'ellipse at 70% 40%, hsl(200 60% 50% / 0.1) 0%, transparent 40%' },
   ],
+  underground: [
+    { type: 'linear', gradient: 'to bottom, hsl(30 10% 8% / 0.5) 0%, hsl(25 15% 12% / 0.4) 40%, hsl(20 10% 6% / 0.55) 100%' },
+  ],
   // Modifiers contribute additional layers
   fire: [
     { type: 'linear', gradient: 'to top, hsl(20 90% 35% / 0.15) 0%, transparent 50%' },
@@ -395,6 +400,11 @@ const OVERLAY_BLOCKS: Partial<Record<EnvironmentTag, OverlayModule[]>> = {
     { className: 'env-tremor-shake', zOrder: 3 },
     { className: 'env-ruins-dust', zOrder: 2 },
   ],
+  underground: [
+    { className: 'env-underground-drip', zOrder: 1 },
+    { className: 'env-underground-roots', zOrder: 2 },
+    { className: 'env-underground-dust', zOrder: 3 },
+  ],
 };
 
 /** Ambient glow (box-shadow) per tag */
@@ -418,6 +428,7 @@ const GLOW_BLOCKS: Partial<Record<EnvironmentTag, string>> = {
   ruins: 'inset 0 0 60px hsl(30 20% 10% / 0.2)',
   fire: 'inset 0 -30px 40px -10px hsl(20 100% 50% / 0.15)',
   emergency: 'inset 0 0 40px hsl(0 80% 40% / 0.15)',
+  underground: 'inset 0 0 80px hsl(25 15% 8% / 0.35), inset 0 40px 60px -20px hsl(30 10% 5% / 0.4)',
 };
 
 /** Animation intensity by tag */
@@ -429,6 +440,7 @@ const INTENSITY_MAP: Partial<Record<EnvironmentTag, 'low' | 'medium' | 'high'>> 
   haunted: 'medium', toxic: 'medium', bloodmoon: 'medium',
   space: 'low', underwater: 'low', mirror: 'medium',
   tremor: 'high', fire: 'medium', electric: 'high',
+  underground: 'low',
 };
 
 /** Chat box style presets per tag */
@@ -455,6 +467,7 @@ const CHATBOX_BLOCKS: Partial<Record<EnvironmentTag, Partial<ChatBoxStyle>>> = {
   desert: { borderStyle: 'border-amber-600/20' },
   crystal: { borderStyle: 'border-violet-300/20', textGlow: '0 0 4px hsl(280 60% 70% / 0.2)' },
   ruins: { borderStyle: 'border-stone-500/20' },
+  underground: { borderStyle: 'border-amber-900/25', backgroundTexture: 'bg-gradient-to-b from-stone-900/15 to-transparent' },
   fire: { borderStyle: 'border-orange-400/25' },
   ice: { borderStyle: 'border-cyan-300/20' },
   radiation: { borderStyle: 'border-lime-400/30', textGlow: '0 0 5px hsl(80 100% 50% / 0.2)' },
