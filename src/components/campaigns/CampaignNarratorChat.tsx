@@ -2,6 +2,7 @@
  * Private Narrator Chat for Campaigns
  * Players can privately ask the narrator about the world, story,
  * their surroundings, NPCs, and get guidance — without the group seeing.
+ * Auto-delivers a world-building briefing on first entry.
  */
 
 import { useState, useRef, useEffect } from 'react';
@@ -10,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { BookOpen, Send, Sparkles, Lock } from 'lucide-react';
+import { BookOpen, Send, Sparkles, Lock, Globe, User, Map, Swords } from 'lucide-react';
 
 interface NarratorMessage {
   id: string;
@@ -29,29 +30,48 @@ interface CampaignNarratorChatProps {
   characterName: string;
   characterPowers: string | null;
   characterAbilities: string | null;
+  characterWeapons?: string | null;
+  characterLevel?: number;
+  campaignLevel?: number;
+  campaignHp?: number;
+  campaignHpMax?: number;
   currentZone: string;
   timeOfDay: string;
   dayCount: number;
   campaignDescription: string | null;
   worldState: Record<string, unknown>;
   storyContext: Record<string, unknown>;
+  environmentTags?: string[];
   partyMembers: string[];
   isSolo: boolean;
   mechanicDiscoveries?: CampaignMechanicDiscovery[];
   onDiscoveriesShown?: () => void;
 }
 
+const QUICK_ASKS = [
+  { label: 'World Info', icon: Globe, prompt: 'Give me a detailed briefing about the current world, setting, and lore of this campaign — where we are, what this place is like, and what I should know about the world around me.' },
+  { label: 'My Character', icon: User, prompt: 'Summarize my character\'s current state in this campaign — my powers, abilities, weapons, HP, campaign level, and what I have available to me right now.' },
+  { label: 'Surroundings', icon: Map, prompt: 'Describe my immediate surroundings in detail — what do I see, hear, smell? What notable features, paths, or points of interest are nearby?' },
+  { label: 'Threats', icon: Swords, prompt: 'What potential threats or dangers should I be aware of in the current area? Any hostile creatures, environmental hazards, or suspicious activity?' },
+];
+
 export default function CampaignNarratorChat({
   campaignId,
   characterName,
   characterPowers,
   characterAbilities,
+  characterWeapons,
+  characterLevel,
+  campaignLevel,
+  campaignHp,
+  campaignHpMax,
   currentZone,
   timeOfDay,
   dayCount,
   campaignDescription,
   worldState,
   storyContext,
+  environmentTags = [],
   partyMembers,
   isSolo,
   mechanicDiscoveries = [],
@@ -60,7 +80,19 @@ export default function CampaignNarratorChat({
   const [messages, setMessages] = useState<NarratorMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [introSent, setIntroSent] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Auto-send world-building intro on first open
+  useEffect(() => {
+    if (!introSent && messages.length === 0) {
+      setIntroSent(true);
+      sendNarratorQuery(
+        `I just entered the campaign. Give me a vivid briefing of the world I'm in: describe the current location (${currentZone}), the time of day (${timeOfDay}, Day ${dayCount}), the atmosphere, any visible landmarks or notable features, who else is with me (${partyMembers.join(', ') || 'I am alone'}), and what my immediate options are. Set the scene so I understand where I am and what I can do. Keep it immersive and in-character.`,
+        true
+      );
+    }
+  }, []);
 
   // Show mechanic discovery messages when queued
   useEffect(() => {
@@ -75,6 +107,7 @@ export default function CampaignNarratorChat({
       onDiscoveriesShown?.();
     }
   }, [mechanicDiscoveries.length]);
+
   const scrollToBottom = () => {
     setTimeout(() => {
       scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -85,32 +118,32 @@ export default function CampaignNarratorChat({
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const sendNarratorQuery = async (queryText: string, isAutoIntro = false) => {
+    if (isLoading) return;
 
-    const userMsg: NarratorMessage = {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content: input.trim(),
-      timestamp: new Date(),
-    };
-    setMessages(prev => [...prev, userMsg]);
-    const userInput = input.trim();
-    setInput('');
+    if (!isAutoIntro) {
+      const userMsg: NarratorMessage = {
+        id: `user-${Date.now()}`,
+        role: 'user',
+        content: queryText,
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, userMsg]);
+    }
+
     setIsLoading(true);
 
     try {
       const response = await supabase.functions.invoke('battle-narrator', {
         body: {
           type: 'private_query',
-          query: userInput,
+          query: queryText,
           characterName,
           characterPowers,
           characterAbilities,
           battleLocation: currentZone,
           opponentNames: [],
           recentPublicActions: '',
-          // Campaign-specific context
           campaignContext: {
             campaignId,
             currentZone,
@@ -119,9 +152,15 @@ export default function CampaignNarratorChat({
             campaignDescription,
             worldState,
             storyContext,
+            environmentTags,
             partyMembers,
             isSolo,
             isCampaign: true,
+            characterWeapons,
+            characterLevel,
+            campaignLevel,
+            campaignHp,
+            campaignHpMax,
           },
         },
       });
@@ -148,6 +187,17 @@ export default function CampaignNarratorChat({
     }
   };
 
+  const handleSend = async () => {
+    if (!input.trim() || isLoading) return;
+    const userInput = input.trim();
+    setInput('');
+    await sendNarratorQuery(userInput);
+  };
+
+  const handleQuickAsk = (prompt: string) => {
+    sendNarratorQuery(prompt);
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -160,16 +210,30 @@ export default function CampaignNarratorChat({
         </Badge>
       </div>
 
+      {/* Quick Ask Buttons */}
+      <div className="flex flex-wrap gap-1.5 px-3 pt-2 pb-1">
+        {QUICK_ASKS.map((qa) => (
+          <Button
+            key={qa.label}
+            variant="outline"
+            size="sm"
+            className="h-7 text-[11px] gap-1 border-amber-500/20 text-amber-300/80 hover:text-amber-300 hover:bg-amber-500/10 hover:border-amber-500/40"
+            onClick={() => handleQuickAsk(qa.prompt)}
+            disabled={isLoading}
+          >
+            <qa.icon className="w-3 h-3" />
+            {qa.label}
+          </Button>
+        ))}
+      </div>
+
       {/* Messages */}
       <ScrollArea className="flex-1 min-h-[180px] max-h-[35vh] p-3">
-        {messages.length === 0 ? (
+        {messages.length === 0 && !isLoading ? (
           <div className="flex flex-col items-center justify-center h-full gap-2 text-center py-6">
             <Sparkles className="w-6 h-6 text-amber-400/50" />
             <p className="text-xs text-muted-foreground">
-              Ask the narrator about the world, your surroundings, NPCs, or get hints about the story.
-            </p>
-            <p className="text-[10px] text-muted-foreground/60">
-              This conversation is private — only you can see it.
+              The narrator is preparing your world briefing...
             </p>
           </div>
         ) : (
@@ -199,6 +263,19 @@ export default function CampaignNarratorChat({
                 <p className="whitespace-pre-wrap break-words text-foreground/90">{msg.content}</p>
               </div>
             ))}
+            {isLoading && (
+              <div className="p-2.5 rounded-lg text-sm bg-muted/30 border-l-2 border-amber-500/50 mr-4">
+                <div className="flex items-center gap-1.5">
+                  <BookOpen className="w-3 h-3 text-amber-400" />
+                  <span className="text-[10px] font-medium text-amber-400">Narrator</span>
+                </div>
+                <div className="flex items-center gap-1 mt-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              </div>
+            )}
             <div ref={scrollRef} />
           </div>
         )}
