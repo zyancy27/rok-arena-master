@@ -274,28 +274,30 @@ Be clear about how these effects change the battlefield (visibility, footing, br
 
     // Dice result context — tells narrator the actual outcome
     const diceInstructions = diceResult
-      ? `\n\nCRITICAL — DICE RESULT (determines what ACTUALLY happens):
-The player's move is INTENT, not guaranteed outcome. The dice have already been rolled:
-- Attack Roll: ${diceResult.attackTotal} vs Defense Roll: ${diceResult.defenseTotal}
-- Result: ${diceResult.hit ? 'HIT' : 'MISS'} (Gap: ${diceResult.gap})
-- Type: ${diceResult.isMental ? 'Mental/psychic attack' : 'Physical attack'}
+      ? diceResult.hit
+        ? `\n\nDICE RESULT: HIT (Attack ${diceResult.attackTotal} vs Defense ${diceResult.defenseTotal}, Gap: ${diceResult.gap})
+The attack landed as the player described. You do NOT need to alter or reinterpret their action.
+Continue your normal narrator role based on the user's frequency setting — observe the battle, note environmental changes, comment on noteworthy moments. Do not re-describe what the player already wrote unless adding environmental or atmospheric context.`
+        : `\n\nCRITICAL — DICE RESULT: MISS (Attack ${diceResult.attackTotal} vs Defense ${diceResult.defenseTotal}, Gap: ${Math.abs(diceResult.gap)})
+Type: ${diceResult.isMental ? 'Mental/psychic attack' : 'Physical attack'}
 
-${diceResult.hit 
-  ? `The attack CONNECTS. Describe the impact landing as the attacker intended. The gap of ${diceResult.gap} indicates how clean the hit was — higher gap = more decisive hit.`
-  : `The attack MISSES. The defender avoids it. Describe HOW the attack fails — a dodge, a near-miss, the attacker overextending, the strike going wide. Do NOT describe the attack landing. The gap of ${Math.abs(diceResult.gap)} indicates how narrowly it missed — small gap = very close call.`
-}
-Even if the player wrote "I punch you" as if it landed, the dice say otherwise. Narrate accordingly.`
+The player INTENDED to hit, but the dice say the attack MISSES. You MUST describe how the attack fails — a dodge, a near-miss, the attacker overextending, the strike going wide. Do NOT describe the attack landing.
+The gap of ${Math.abs(diceResult.gap)} indicates how narrowly it missed — small gap = very close call, large gap = clearly dodged.
+Even if the player wrote "I punch you in the face" as if it landed, the dice say otherwise. Narrate the miss.`
       : '';
 
     const systemPrompt = `You are an invisible narrator observing a battle. You describe what happens in plain, clear language that anyone can understand.
 
 IMPORTANT — INTENT vs OUTCOME:
-Player messages describe what they INTEND to do, not what actually happens. If a dice roll result is provided, that determines the real outcome. The player may write "I slash him across the chest" but if the dice say MISS, you describe the slash missing — the opponent ducking, the blade catching air, etc.
+Player messages describe what they INTEND to do, not what actually happens. The dice system determines whether attacks land.
+- If the dice say HIT: the player's described action plays out as written. You continue your normal narrator role — observe, comment on the atmosphere, note environmental changes. Do NOT re-describe the hit.
+- If the dice say MISS: you MUST describe how the attack fails. This is the one time you override what the player wrote.
+- If there is no dice result: this was not a direct offensive action. Narrate normally per your frequency setting.
 
 ${frequencyInstructions}${envInstructions}${fairnessInstructions}${diceInstructions}
 
 STYLE:
-- 1-2 sentences normally, up to 3 if describing major environmental changes or a dramatic hit/miss
+- 1-2 sentences normally, up to 3 if describing a dramatic miss or major environmental changes
 - Use simple, direct language. No flowery vocabulary or overly poetic phrasing.
 - Write like you're telling a friend what just happened — clear, punchy, easy to follow.
 - Avoid fancy words when simple ones work. Say "hit" not "struck with devastating force." Say "moved" not "traversed."
@@ -303,18 +305,15 @@ STYLE:
 - For environmental effects: be PRACTICAL — tell the defender what changed in plain terms.
 - When a dice result says MISS, focus on describing the miss creatively — don't just say "it missed."
 
-EXAMPLES (hit):
-"That one connected. ${opponent.name} felt it."
-"Clean hit. ${opponent.name} stumbled back a step."
-
 EXAMPLES (miss):
 "${opponent.name} moved just in time. Close one."
 "The strike went wide — ${userCharacter.name} overcommitted."
 "${opponent.name} slipped under it. Barely."
 
-EXAMPLES (no dice — non-combat):
+EXAMPLES (no dice — normal observation):
 "Dust still floating where ${userCharacter.name} was standing."
-"There's a crack in the stone now."`;
+"There's a crack in the stone now."
+"Smoke fills the area. ${opponent.name} can barely see a few feet ahead."`;
 
     // Distance context for narrator
     const distanceContext = currentDistance 
@@ -328,18 +327,18 @@ EXAMPLES (no dice — non-combat):
 
     const diceContext = diceResult
       ? `\nDice Result: ${diceResult.hit ? 'HIT' : 'MISS'} (Attack ${diceResult.attackTotal} vs Defense ${diceResult.defenseTotal}, Gap: ${diceResult.gap})`
-      : '\nNo dice roll — this was not a direct offensive action.';
+      : '';
 
     const userPrompt = `Battle Location: ${battleLocation}
 Turn: ${turnNumber}${distanceContext}${arenaDetailsContext}${diceContext}
 
-${userCharacter.name} (Tier ${userCharacter.level}) INTENDED to do:
+${userCharacter.name} (Tier ${userCharacter.level}) ${diceResult ? 'INTENDED to' : ''} ${diceResult ? '' : 'acted:'}${diceResult ? ':' : ''}
 "${userAction}"
 
-${diceResult ? `The dice determined: ${diceResult.hit ? 'The attack LANDS.' : 'The attack MISSES.'}` : ''}
+${diceResult ? (diceResult.hit ? 'The dice say HIT — the action plays out as described. Continue your normal narrator role.' : 'The dice say MISS — describe how the attack fails.') : ''}
 ${opponent.name} (Tier ${opponent.level}) is about to respond.
 
-Provide your narrator observation describing what ACTUALLY happened (based on the dice result if provided)${environmentalEffects.length > 0 ? ', making sure to clearly describe the environmental hazards the defender must now contend with' : ''}${currentDistance ? `. If the fighters\' distance changed significantly, note it briefly.` : ''}.`;
+${diceResult?.hit === false ? 'Describe how the attack misses.' : `Provide your narrator observation`}${environmentalEffects.length > 0 ? ', making sure to clearly describe the environmental hazards the defender must now contend with' : ''}${currentDistance ? `. If the fighters\' distance changed significantly, note it briefly.` : ''}.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
