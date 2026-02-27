@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Swords, Clock, CheckCircle, Users, Bot, Sparkles, BookOpen, UsersRound } from 'lucide-react';
+import { Swords, Clock, CheckCircle, Users, Bot, Sparkles, BookOpen, UsersRound, Compass } from 'lucide-react';
 import OpponentFinder from '@/components/battles/OpponentFinder';
 
 interface PveBattle {
@@ -298,7 +298,7 @@ export default function Battles() {
       </div>
 
       {/* Battle Mode Selector */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-xl">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 max-w-2xl">
         <Button asChild variant="default" className="h-auto py-3 flex flex-col gap-1">
           <Link to="/battles" className="text-center">
             <Users className="w-5 h-5" />
@@ -321,6 +321,12 @@ export default function Battles() {
           <Link to="/battles/simulation" className="text-center">
             <Sparkles className="w-5 h-5" />
             <span className="text-xs font-medium">EvE</span>
+          </Link>
+        </Button>
+        <Button asChild variant="outline" className="h-auto py-3 flex flex-col gap-1 border-primary/40 hover:bg-primary/10">
+          <Link to="/campaigns" className="text-center">
+            <Compass className="w-5 h-5" />
+            <span className="text-xs font-medium">Campaign</span>
           </Link>
         </Button>
       </div>

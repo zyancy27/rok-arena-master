@@ -149,6 +149,16 @@ serve(async (req) => {
       return await handlePrivateQuery(requestBody, LOVABLE_API_KEY, corsHeaders);
     }
 
+    // Handle campaign intro
+    if (requestBody.type === 'campaign_intro') {
+      return await handleCampaignIntro(requestBody, LOVABLE_API_KEY, corsHeaders);
+    }
+
+    // Handle campaign narration
+    if (requestBody.type === 'campaign_narration') {
+      return await handleCampaignNarration(requestBody, LOVABLE_API_KEY, corsHeaders);
+    }
+
     // Handle battlefield intro generation
     if (requestBody.type === 'battlefield_intro') {
       const { battleLocation, emergencyLocation } = requestBody as BattlefieldIntroRequest;
@@ -768,6 +778,168 @@ OUTPUT FORMAT: Return JSON with:
     return new Response(
       JSON.stringify({ answer: 'The narrator is momentarily unavailable.', moveApproved: null }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════
+// Campaign Adventure Mode Handlers
+// ═══════════════════════════════════════════════
+
+async function handleCampaignIntro(
+  body: any,
+  apiKey: string,
+  cors: Record<string, string>,
+): Promise<Response> {
+  const { campaignName, campaignDescription, location, timeOfDay, partyMembers } = body;
+
+  const systemPrompt = `You are the Campaign Narrator for "Realm of Kings" — a persistent, freedom-focused narrative adventure mode.
+
+Your role:
+- Set the scene for the opening of a new campaign
+- Describe the environment, atmosphere, and mood based on the location and time of day
+- Introduce the setting dramatically but briefly (3-5 paragraphs max)
+- Hint at possibilities without railroading — the players decide what to do
+- Mention the party members naturally within the scene
+- IMPORTANT: Characters start with their powers RESET. They are at Campaign Level 1 with only basic foundational abilities. Advanced powers do NOT work yet.
+- Describe this subtly — perhaps the characters feel "diminished" or "unfamiliar with their usual strength"
+- The tone should invite exploration and player agency
+
+Campaign: ${campaignName}
+Description: ${campaignDescription || 'An adventure awaits.'}
+Location: ${location}
+Time: ${timeOfDay}
+Party: ${partyMembers}`;
+
+  try {
+    const response = await fetch("https://api.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: "Generate the campaign opening narration." },
+        ],
+        max_tokens: 1000,
+        temperature: 0.85,
+      }),
+    });
+
+    const data = await response.json();
+    const narration = data.choices?.[0]?.message?.content || "The adventure begins...";
+
+    return new Response(
+      JSON.stringify({ narration }),
+      { headers: { ...cors, "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error("Campaign intro error:", error);
+    return new Response(
+      JSON.stringify({ narration: "The world stirs as your party arrives..." }),
+      { status: 500, headers: { ...cors, "Content-Type": "application/json" } }
+    );
+  }
+}
+
+async function handleCampaignNarration(
+  body: any,
+  apiKey: string,
+  cors: Record<string, string>,
+): Promise<Response> {
+  const {
+    playerCharacter,
+    playerAction,
+    currentZone,
+    timeOfDay,
+    dayCount,
+    partyContext,
+    worldState,
+    storyContext,
+    campaignDescription,
+    maxAllowedTier,
+  } = body;
+
+  const systemPrompt = `You are the Campaign Narrator for "Realm of Kings". You narrate a persistent, freedom-focused adventure.
+
+CORE RULES:
+1. FREEDOM: Players can do ANYTHING — explore, fight, ignore objectives, goof around, split from group, travel beyond the current zone. NEVER railroad them.
+2. POWER RESET: Characters are at Campaign Level ${playerCharacter.campaignLevel}. Their maximum usable power tier is ${maxAllowedTier}. If the player attempts abilities beyond this tier:
+   - The ability fails harmlessly, OR
+   - It causes minor backlash damage, OR  
+   - The character feels their power "slip away" or "fizzle"
+   Describe this naturally without breaking immersion.
+3. DYNAMIC WORLD: React to player actions. If they start a fight, create an encounter. If they explore, describe discoveries. If they're creative, reward it narratively.
+4. SCALING: Scale encounters based on party level and size. Create a mix of easy, moderate, and overwhelming encounters as the story demands.
+5. TIME: Current time is ${timeOfDay}, Day ${dayCount}. Reflect this in descriptions (lighting, NPC availability, creature behavior).
+6. You MUST respond with valid JSON (no markdown fences).
+
+OUTPUT FORMAT (JSON):
+{
+  "narration": "Your narrative response (2-4 paragraphs)",
+  "xpGained": <number 0-50 based on action significance>,
+  "hpChange": <number, negative for damage, positive for healing, 0 for none>,
+  "advanceTime": <number 0-2, how many time periods to advance>,
+  "newZone": <string or null if zone changes>,
+  "encounterType": <"combat"|"social"|"exploration"|"rest"|null>
+}
+
+CONTEXT:
+Zone: ${currentZone}
+Party: ${partyContext}
+Campaign: ${campaignDescription || 'An ongoing adventure'}
+World State: ${JSON.stringify(worldState || {})}
+Story Context: ${JSON.stringify(storyContext || {})}`;
+
+  const userMessage = `${playerCharacter.name} (Campaign Lv.${playerCharacter.campaignLevel}, HP: ${playerCharacter.hp}/${playerCharacter.hpMax}, Original Tier: ${playerCharacter.originalLevel}) acts:
+
+"${playerAction}"
+
+Narrate the world's response. Remember: freedom-first, no railroading, scale appropriately.`;
+
+  try {
+    const response = await fetch("https://api.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userMessage },
+        ],
+        max_tokens: 1500,
+        temperature: 0.8,
+      }),
+    });
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '{}';
+
+    let parsed;
+    try {
+      // Strip markdown fences if present
+      const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      parsed = JSON.parse(cleaned);
+    } catch {
+      parsed = { narration: content, xpGained: 5, hpChange: 0, advanceTime: 0, newZone: null };
+    }
+
+    return new Response(
+      JSON.stringify({
+        narration: parsed.narration || content,
+        xpGained: typeof parsed.xpGained === 'number' ? Math.max(0, Math.min(50, parsed.xpGained)) : 5,
+        hpChange: typeof parsed.hpChange === 'number' ? Math.max(-50, Math.min(30, parsed.hpChange)) : 0,
+        advanceTime: typeof parsed.advanceTime === 'number' ? Math.max(0, Math.min(2, Math.floor(parsed.advanceTime))) : 0,
+        newZone: typeof parsed.newZone === 'string' ? parsed.newZone : null,
+        encounterType: parsed.encounterType || null,
+      }),
+      { headers: { ...cors, "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error("Campaign narration error:", error);
+    return new Response(
+      JSON.stringify({ narration: "The world responds to your actions...", xpGained: 5, hpChange: 0 }),
+      { status: 500, headers: { ...cors, "Content-Type": "application/json" } }
     );
   }
 }
