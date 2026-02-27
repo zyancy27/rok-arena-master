@@ -686,6 +686,7 @@ async function handlePrivateQuery(
     isValidationResponse,
     pendingMove,
     pendingWarning,
+    conversationHistory,
   } = body;
 
   if (!query || typeof query !== 'string') {
@@ -733,6 +734,17 @@ OUTPUT FORMAT: Return JSON with:
 
   const userPrompt = `Recent public actions:\n${recentPublicActions || 'None yet'}\n\nPlayer's question/response: ${query}`;
 
+  // Build conversation history for private chat continuity
+  const privateHistory: { role: string; content: string }[] = [];
+  if (Array.isArray(conversationHistory) && conversationHistory.length > 0) {
+    for (const msg of conversationHistory) {
+      privateHistory.push({
+        role: msg.role === 'player' ? 'user' : 'assistant',
+        content: msg.content,
+      });
+    }
+  }
+
   try {
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -744,6 +756,7 @@ OUTPUT FORMAT: Return JSON with:
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
+          ...privateHistory,
           { role: "user", content: userPrompt },
         ],
         max_tokens: 400,
@@ -875,7 +888,19 @@ async function handleCampaignNarration(
     maxAllowedTier,
     diceResult,
     defenseResult,
+    conversationHistory,
   } = body;
+
+  // Build conversation history as multi-turn messages for AI continuity
+  const historyMessages: { role: string; content: string }[] = [];
+  if (Array.isArray(conversationHistory) && conversationHistory.length > 0) {
+    for (const msg of conversationHistory) {
+      historyMessages.push({
+        role: msg.role === 'player' ? 'user' : 'assistant',
+        content: msg.content,
+      });
+    }
+  }
 
   // Extract lore context sent by the client
   const loreCtx = playerCharacter.loreContext || {};
@@ -1027,6 +1052,7 @@ Respond as the WORLD — let NPCs speak, environments react, and consequences un
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
+          ...historyMessages,
           { role: "user", content: userMessage },
         ],
         max_tokens: 1500,
