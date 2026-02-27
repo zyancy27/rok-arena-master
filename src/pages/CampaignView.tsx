@@ -254,14 +254,46 @@ export default function CampaignView() {
       const newChar = characters.find(c => c.id === swapCharacter);
       const returning = !!existing;
 
-      await supabase.from('campaign_messages').insert({
-        campaign_id: campaign.id,
-        sender_type: 'system',
-        content: returning
-          ? `🔄 **${oldName}** steps back as **${newChar?.name}** returns to the adventure.`
-          : `🔄 **${oldName}** steps back. **${newChar?.name}** enters the campaign for the first time.`,
-        channel: 'in_universe',
-      });
+      // Ask narrator to write an organic in-fiction transition
+      try {
+        const { data: narratorData, error: narratorErr } = await supabase.functions.invoke('battle-narrator', {
+          body: {
+            type: 'campaign_narration',
+            campaignId: campaign.id,
+            playerAction: `[CHARACTER SWAP] ${oldName} is leaving the scene and ${newChar?.name} is ${returning ? 'returning to' : 'arriving in'} the adventure. Write a brief, organic narrative transition that fits the current scenario — describe ${oldName} departing and ${newChar?.name} appearing in a way that feels natural to the location and story.`,
+            currentZone: campaign.current_zone,
+            timeOfDay: campaign.time_of_day,
+            dayCount: campaign.day_count,
+            worldState: campaign.world_state,
+            storyContext: campaign.story_context,
+            campaignDescription: campaign.description,
+            playerCharacter: {
+              name: oldName,
+              swapTarget: newChar?.name,
+              isReturning: returning,
+            },
+            partyContext: participants.filter(p => p.is_active).map(p =>
+              `${p.character?.name} (Campaign Lv.${p.campaign_level})`
+            ).join(', '),
+          },
+        });
+
+        const narration = narratorData?.narration;
+        await supabase.from('campaign_messages').insert({
+          campaign_id: campaign.id,
+          sender_type: 'narrator',
+          content: narration || `${oldName} fades from view as ${newChar?.name} ${returning ? 'returns' : 'arrives'}.`,
+          channel: 'in_universe',
+        });
+      } catch {
+        // Fallback if narrator fails
+        await supabase.from('campaign_messages').insert({
+          campaign_id: campaign.id,
+          sender_type: 'narrator',
+          content: `${oldName} slips away as ${newChar?.name} ${returning ? 'rejoins the group' : 'steps into the scene for the first time'}.`,
+          channel: 'in_universe',
+        });
+      }
 
       setSwapCharacter('');
       toast.success(`Swapped to ${newChar?.name}`);
