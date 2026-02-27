@@ -875,7 +875,17 @@ Party: ${partyMembers}`;
       throw new Error("Failed to parse AI response");
     }
 
-    const narration = data.choices?.[0]?.message?.content || "The adventure begins...";
+    let narrationContent = data.choices?.[0]?.message?.content || "The adventure begins...";
+    // Strip thinking/reasoning tags if present
+    narrationContent = narrationContent
+      .replace(/<think>[\s\S]*?<\/think>/gi, '')
+      .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
+      .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
+      .replace(/<reflection>[\s\S]*?<\/reflection>/gi, '')
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim();
+    const narration = narrationContent || "The adventure begins...";
 
     return new Response(
       JSON.stringify({ narration }),
@@ -1133,6 +1143,7 @@ Respond as the WORLD — let NPCs speak, environments react, and consequences un
         ],
         max_tokens: 1500,
         temperature: 0.8,
+        response_format: { type: "json_object" },
       }),
     });
 
@@ -1154,11 +1165,33 @@ Respond as the WORLD — let NPCs speak, environments react, and consequences un
 
     let parsed;
     try {
-      // Strip markdown fences if present
-      const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      // Strip thinking/reasoning tags the model may emit
+      let cleaned = content
+        .replace(/<think>[\s\S]*?<\/think>/gi, '')
+        .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
+        .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
+        .replace(/<reflection>[\s\S]*?<\/reflection>/gi, '')
+        .replace(/```json\n?/g, '')
+        .replace(/```\n?/g, '')
+        .trim();
       parsed = JSON.parse(cleaned);
     } catch {
-      parsed = { narration: content, xpGained: 5, hpChange: 0, advanceTime: 0, newZone: null };
+      // Last resort: try to extract JSON object from the noisy content
+      const jsonMatch = content.match(/\{[\s\S]*"narration"\s*:\s*"[\s\S]*?\}/);
+      if (jsonMatch) {
+        try { parsed = JSON.parse(jsonMatch[0]); } catch { /* fall through */ }
+      }
+      if (!parsed) {
+        // Strip all tags and use whatever text remains as narration
+        const stripped = content
+          .replace(/<[^>]+>[\s\S]*?<\/[^>]+>/gi, '')
+          .replace(/<[^>]+>/gi, '')
+          .replace(/```json\n?/g, '')
+          .replace(/```\n?/g, '')
+          .replace(/^\s*\{[\s\S]*$/, '') // drop malformed JSON
+          .trim();
+        parsed = { narration: stripped || 'The world responds...', xpGained: 5, hpChange: 0, advanceTime: 0, newZone: null };
+      }
     }
 
     return new Response(
