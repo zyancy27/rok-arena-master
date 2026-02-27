@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { buildSceneTags } from '@/lib/build-scene-tags';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -1885,6 +1886,10 @@ export default function BattleView() {
         turnOrder = existingOrders.length > 0 ? Math.max(...existingOrders) + 1 : 2;
       }
 
+      // Build scene tags from battle location + emergency payload
+      const emergencyTags = battle.emergency_payload?.tags ?? null;
+      const sceneTags = buildSceneTags(battle.chosen_location || battle.location_1, emergencyTags);
+
       // Add user as participant
       const { error: participantError } = await supabase
         .from('battle_participants')
@@ -1892,6 +1897,8 @@ export default function BattleView() {
           battle_id: battle.id,
           character_id: selectedCharacterId,
           turn_order: turnOrder,
+          scene_location: battle.chosen_location || battle.location_1,
+          scene_tags: sceneTags,
         });
 
       if (participantError) {

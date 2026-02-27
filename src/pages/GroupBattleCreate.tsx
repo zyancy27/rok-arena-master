@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { buildSceneTags } from '@/lib/build-scene-tags';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -236,6 +237,12 @@ export default function GroupBattleCreate() {
 
       const battleId = battleData.id;
 
+      // Build scene tags from location + emergency tags
+      const sceneTags = buildSceneTags(
+        battleLocation.trim(),
+        emergencyEnabled && emergencyLocation ? emergencyLocation.tags : null,
+      );
+
       // Add host as participant 1
       const { error: p1Error } = await supabase
         .from('battle_participants')
@@ -243,6 +250,8 @@ export default function GroupBattleCreate() {
           battle_id: battleId,
           character_id: selectedCharacter,
           turn_order: 1,
+          scene_location: battleLocation.trim(),
+          scene_tags: sceneTags,
         });
 
       if (p1Error) throw p1Error;
