@@ -871,7 +871,25 @@ async function handleCampaignNarration(
     storyContext,
     campaignDescription,
     maxAllowedTier,
+    diceResult,
+    defenseResult,
   } = body;
+
+  // Build dice context for combat actions
+  let diceInstructions = '';
+  if (defenseResult) {
+    diceInstructions = defenseResult.success
+      ? `\n\nDICE RESULT: DEFENSE SUCCESS (${defenseResult.defenseType === 'dodge' ? 'Dodge' : 'Block'} ${defenseResult.defenseTotal} vs Incoming ${defenseResult.incomingTotal})
+The player's ${defenseResult.defenseType} works as described. The enemy's attack is stopped.`
+      : `\n\nDICE RESULT: DEFENSE FAILED (${defenseResult.defenseType === 'dodge' ? 'Dodge' : 'Block'} ${defenseResult.defenseTotal} vs Incoming ${defenseResult.incomingTotal})
+The player tried to ${defenseResult.defenseType} but FAILED. Describe the hit landing despite the attempt. Apply damage accordingly via hpChange.`;
+  } else if (diceResult) {
+    diceInstructions = diceResult.hit
+      ? `\n\nDICE RESULT: HIT (Attack ${diceResult.attackTotal} vs Defense ${diceResult.defenseTotal})
+The player's attack LANDS as described. The enemy takes the hit. Narrate the impact and apply XP for successful combat.`
+      : `\n\nDICE RESULT: MISS (Attack ${diceResult.attackTotal} vs Defense ${diceResult.defenseTotal}, Gap: ${Math.abs(diceResult.gap)})
+The player's attack MISSES. Describe how the enemy dodges, blocks, or the attack goes wide. Do NOT describe the attack landing. Gap of ${Math.abs(diceResult.gap)}: ${Math.abs(diceResult.gap) <= 2 ? 'barely missed' : Math.abs(diceResult.gap) <= 5 ? 'clearly dodged' : 'completely whiffed'}.`;
+  }
 
   const systemPrompt = `You are the Campaign Narrator for "Realm of Kings". You narrate a persistent, freedom-focused adventure.
 
@@ -886,6 +904,7 @@ CORE RULES:
 4. SCALING: Scale encounters based on party level and size. Create a mix of easy, moderate, and overwhelming encounters as the story demands.
 5. TIME: Current time is ${timeOfDay}, Day ${dayCount}. Reflect this in descriptions (lighting, NPC availability, creature behavior).
 6. You MUST respond with valid JSON (no markdown fences).
+7. COMBAT INTENT vs OUTCOME: Player messages describe what they INTEND to do. If dice results are provided, they determine whether the action succeeds. Respect the dice outcome in your narration.${diceInstructions}
 
 OUTPUT FORMAT (JSON):
 {
@@ -917,11 +936,17 @@ Story Context: ${JSON.stringify(storyContext || {})}`;
     ? `\nCurrently Equipped Campaign Items: ${playerCharacter.equippedCampaignItems.map((i: any) => `${i.item_name} (${i.item_rarity} ${i.item_type}${i.description ? ' — ' + i.description : ''})`).join(', ')}`
     : '';
 
+  const diceContext = diceResult
+    ? `\n\n[DICE ROLL: ${diceResult.hit ? 'HIT' : 'MISS'} — Attack ${diceResult.attackTotal} vs Defense ${diceResult.defenseTotal}]`
+    : defenseResult
+    ? `\n\n[DEFENSE ROLL: ${defenseResult.success ? 'SUCCESS' : 'FAILED'} — Defense ${defenseResult.defenseTotal} vs Incoming ${defenseResult.incomingTotal}]`
+    : '';
+
   const userMessage = `${playerCharacter.name} (Campaign Lv.${playerCharacter.campaignLevel}, HP: ${playerCharacter.hp}/${playerCharacter.hpMax}, Original Tier: ${playerCharacter.originalLevel}) acts:${itemsInfo}${equippedCampaignItems}
 
-"${playerAction}"
+"${playerAction}"${diceContext}
 
-Narrate the world's response. Remember: freedom-first, no railroading, scale appropriately. If the character uses an equipped item, reference it naturally in the narration. You may reward items if the action warrants it.`;
+Narrate the world's response. Remember: freedom-first, no railroading, scale appropriately. If the character uses an equipped item, reference it naturally in the narration. You may reward items if the action warrants it.${diceResult ? (diceResult.hit ? ' The attack HIT — describe the impact.' : ' The attack MISSED — describe the failure.') : ''}${defenseResult ? (defenseResult.success ? ' The defense SUCCEEDED.' : ' The defense FAILED — the player takes the hit.') : ''}`;
 
   try {
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
