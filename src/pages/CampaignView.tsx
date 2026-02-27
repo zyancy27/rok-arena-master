@@ -14,10 +14,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Compass, Heart, LogOut, MapPin, Play, Send,
-  Shield, Swords, Users, Zap, Clock, Sun, Moon,
+  Shield, Swords, Users, Zap, Clock, Sun, Moon, Backpack,
 } from 'lucide-react';
 import type { Campaign, CampaignParticipant, CampaignMessage } from '@/lib/campaign-types';
 import { getTimeEmoji, CAMPAIGN_STARTING_ABILITIES, XP_REWARDS, advanceTime } from '@/lib/campaign-types';
+import CampaignInventoryPanel, { type InventoryItem } from '@/components/campaigns/CampaignInventoryPanel';
 
 export default function CampaignView() {
   const { id: campaignId } = useParams<{ id: string }>();
@@ -32,6 +33,7 @@ export default function CampaignView() {
   const [inputMessage, setInputMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
 
   // Join dialog
   const [characters, setCharacters] = useState<{ id: string; name: string; level: number; image_url: string | null }[]>([]);
@@ -76,11 +78,14 @@ export default function CampaignView() {
           } : null);
         }
       )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_inventory', filter: `campaign_id=eq.${campaignId}` },
+        () => fetchInventory()
+      )
       .subscribe();
   };
 
   const fetchAll = async () => {
-    await Promise.all([fetchCampaign(), fetchParticipants(), fetchMessages()]);
+    await Promise.all([fetchCampaign(), fetchParticipants(), fetchMessages(), fetchInventory()]);
     setLoading(false);
   };
 
@@ -136,6 +141,20 @@ export default function CampaignView() {
       .eq('user_id', user!.id)
       .order('name');
     if (data) setCharacters(data);
+  };
+
+  const fetchInventory = async () => {
+    if (!campaignId) return;
+    const { data } = await supabase
+      .from('campaign_inventory')
+      .select('*')
+      .eq('campaign_id', campaignId)
+      .eq('user_id', user!.id)
+      .order('created_at', { ascending: false });
+    if (data) setInventory(data.map(i => ({
+      ...i,
+      stat_bonus: (i.stat_bonus || {}) as Record<string, number>,
+    })) as InventoryItem[]);
   };
 
   const handleJoin = async () => {
@@ -242,6 +261,8 @@ export default function CampaignView() {
         `${p.character?.name} (Campaign Lv.${p.campaign_level}, HP: ${p.campaign_hp}/${p.campaign_hp_max})`
       ).join(', ');
 
+      const equippedCampaignItems = inventory.filter(i => i.is_equipped);
+
       const { data, error } = await supabase.functions.invoke('battle-narrator', {
         body: {
           type: 'campaign_narration',
@@ -255,6 +276,12 @@ export default function CampaignView() {
             powers: myParticipant.character?.powers,
             abilities: myParticipant.character?.abilities,
             weaponsItems: (myParticipant.character as any)?.weapons_items,
+            equippedCampaignItems: equippedCampaignItems.map(i => ({
+              item_name: i.item_name,
+              item_type: i.item_type,
+              item_rarity: i.item_rarity,
+              description: i.description,
+            })),
           },
           playerAction: messageText,
           currentZone: campaign.current_zone,
@@ -321,6 +348,31 @@ export default function CampaignView() {
           await supabase.from('campaigns').update({
             current_zone: data.newZone,
           }).eq('id', campaign.id);
+        }
+        // Items found
+        if (data.itemsFound && Array.isArray(data.itemsFound) && data.itemsFound.length > 0 && myParticipant) {
+          for (const item of data.itemsFound) {
+            await supabase.from('campaign_inventory').insert({
+              campaign_id: campaign.id,
+              participant_id: myParticipant.id,
+              user_id: user!.id,
+              item_name: item.name || 'Unknown Item',
+              item_type: item.type || 'misc',
+              item_rarity: item.rarity || 'common',
+              description: item.description || null,
+              stat_bonus: item.statBonus || {},
+              found_at_zone: campaign.current_zone,
+              found_at_day: campaign.day_count,
+            });
+          }
+          const itemNames = data.itemsFound.map((i: any) => i.name).join(', ');
+          await supabase.from('campaign_messages').insert({
+            campaign_id: campaign.id,
+            sender_type: 'system',
+            content: `🎒 **${myParticipant.character?.name}** found: ${itemNames}`,
+            channel: 'in_universe',
+          });
+          fetchInventory();
         }
       }
 
@@ -418,6 +470,18 @@ export default function CampaignView() {
                 <Badge variant="outline" className="text-[10px] ml-auto">Left</Badge>
               </div>
             ))}
+
+            {/* Inventory */}
+            {myParticipant && (
+              <>
+                <Separator />
+                <CampaignInventoryPanel
+                  items={inventory}
+                  onUpdate={fetchInventory}
+                  isActive={isActive && myParticipant.is_active}
+                />
+              </>
+            )}
 
             <Separator />
 

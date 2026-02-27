@@ -260,6 +260,72 @@ export type Database = {
           },
         ]
       }
+      campaign_inventory: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          description: string | null
+          found_at_day: number | null
+          found_at_zone: string | null
+          id: string
+          is_equipped: boolean
+          item_name: string
+          item_rarity: string
+          item_type: string
+          participant_id: string
+          stat_bonus: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          description?: string | null
+          found_at_day?: number | null
+          found_at_zone?: string | null
+          id?: string
+          is_equipped?: boolean
+          item_name: string
+          item_rarity?: string
+          item_type?: string
+          participant_id: string
+          stat_bonus?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          description?: string | null
+          found_at_day?: number | null
+          found_at_zone?: string | null
+          id?: string
+          is_equipped?: boolean
+          item_name?: string
+          item_rarity?: string
+          item_type?: string
+          participant_id?: string
+          stat_bonus?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_inventory_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_inventory_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_logs: {
         Row: {
           campaign_id: string
