@@ -12,8 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
-import { ArrowLeft, BookOpen, Clock, MapPin, Play, Plus, Shield, Users, Compass, Swords, User } from 'lucide-react';
-import type { Campaign, CampaignParticipant, CampaignStatus } from '@/lib/campaign-types';
+import { ArrowLeft, BookOpen, Clock, MapPin, Play, Plus, Shield, Users, Compass, Swords, User, Globe, Lock, UserCheck } from 'lucide-react';
+import type { Campaign, CampaignParticipant, CampaignStatus, CampaignVisibility } from '@/lib/campaign-types';
 import { getTimeEmoji } from '@/lib/campaign-types';
 
 interface CharacterOption {
@@ -38,6 +38,7 @@ export default function Campaigns() {
   const [isSolo, setIsSolo] = useState(false);
   const [selectedCharacter, setSelectedCharacter] = useState('');
   const [startingLocation, setStartingLocation] = useState('');
+  const [visibility, setVisibility] = useState<CampaignVisibility>('public');
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -65,11 +66,12 @@ export default function Campaigns() {
 
     const myCampaignIds = myParticipations?.map(p => p.campaign_id) || [];
 
-    // Also get recruiting campaigns
-    const { data: recruitingCampaigns } = await supabase
+    // Get recruiting campaigns that are public or friends-only
+    const { data: recruitingCampaigns } = await (supabase
       .from('campaigns')
       .select('id')
-      .eq('status', 'recruiting');
+      .eq('status', 'recruiting') as any)
+      .in('visibility', ['public', 'friends']);
 
     const recruitingIds = recruitingCampaigns?.map(c => c.id) || [];
     const allIds = [...new Set([...myCampaignIds, ...recruitingIds])];
@@ -105,6 +107,7 @@ export default function Campaigns() {
       environment_tags: Array.isArray(c.environment_tags) ? c.environment_tags as string[] : [],
       story_context: (c.story_context || {}) as Record<string, unknown>,
       world_state: (c.world_state || {}) as Record<string, unknown>,
+      visibility: ((c as any).visibility || 'public') as Campaign['visibility'],
       participant_count: countMap.get(c.id) || 0,
       my_participant: myParticipationMap.get(c.id) as CampaignParticipant | undefined,
     }));
@@ -130,7 +133,8 @@ export default function Campaigns() {
           current_zone: startingLocation.trim(),
           chosen_location: startingLocation.trim(),
           status: isSolo ? 'active' : 'recruiting',
-        })
+          visibility: isSolo ? 'private' : visibility,
+        } as any)
         .select('id')
         .single();
 
@@ -285,10 +289,37 @@ export default function Campaigns() {
                 </button>
               </div>
               {!isSolo && (
+              <>
+              <div>
+                <Label>Visibility</Label>
+                <div className="grid grid-cols-3 gap-2 mt-1.5">
+                  {([
+                    { value: 'public' as const, icon: Globe, label: 'Public', desc: 'Anyone can request' },
+                    { value: 'friends' as const, icon: UserCheck, label: 'Friends', desc: 'Friends only' },
+                    { value: 'private' as const, icon: Lock, label: 'Private', desc: 'Invite only' },
+                  ]).map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setVisibility(opt.value)}
+                      className={`flex flex-col items-center gap-1 p-2.5 rounded-lg border text-center transition-all ${
+                        visibility === opt.value
+                          ? 'border-primary bg-primary/10 ring-2 ring-primary/50'
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                    >
+                      <opt.icon className="w-4 h-4" />
+                      <span className="text-xs font-medium">{opt.label}</span>
+                      <span className="text-[10px] text-muted-foreground leading-tight">{opt.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div>
                 <Label>Max Players: {newMaxPlayers}</Label>
                 <Slider min={2} max={6} step={1} value={[newMaxPlayers]} onValueChange={([v]) => setNewMaxPlayers(v)} />
               </div>
+              </>
               )}
             </div>
             <DialogFooter>
@@ -323,6 +354,12 @@ export default function Campaigns() {
                           <Users className="w-3 h-3 mr-1" />
                           {campaign.participant_count}/{campaign.max_players}
                         </Badge>
+                        {campaign.visibility !== 'public' && (
+                          <Badge variant="outline" className="text-xs">
+                            {campaign.visibility === 'private' ? <Lock className="w-3 h-3 mr-1" /> : <UserCheck className="w-3 h-3 mr-1" />}
+                            {campaign.visibility === 'private' ? 'Private' : 'Friends'}
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 text-sm">
                         {campaign.my_participant && (
@@ -367,7 +404,7 @@ export default function Campaigns() {
                       </Badge>
                     </div>
                     <Button variant="outline" size="sm" onClick={() => navigate(`/campaigns/${campaign.id}`)} className="min-h-[44px]">
-                      View & Join
+                      {campaign.visibility === 'public' ? 'View & Request' : 'View & Request'}
                     </Button>
                   </div>
                 </CardContent>

@@ -326,6 +326,51 @@ export type Database = {
           },
         ]
       }
+      campaign_join_requests: {
+        Row: {
+          campaign_id: string
+          character_id: string
+          created_at: string
+          id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          campaign_id: string
+          character_id: string
+          created_at?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          campaign_id?: string
+          character_id?: string
+          created_at?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_join_requests_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_join_requests_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_logs: {
         Row: {
           campaign_id: string
@@ -568,6 +613,7 @@ export type Database = {
           story_context: Json | null
           time_of_day: Database["public"]["Enums"]["campaign_time"]
           updated_at: string
+          visibility: string
           world_state: Json | null
         }
         Insert: {
@@ -588,6 +634,7 @@ export type Database = {
           story_context?: Json | null
           time_of_day?: Database["public"]["Enums"]["campaign_time"]
           updated_at?: string
+          visibility?: string
           world_state?: Json | null
         }
         Update: {
@@ -608,6 +655,7 @@ export type Database = {
           story_context?: Json | null
           time_of_day?: Database["public"]["Enums"]["campaign_time"]
           updated_at?: string
+          visibility?: string
           world_state?: Json | null
         }
         Relationships: []

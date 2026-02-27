@@ -4,6 +4,7 @@
  */
 
 export type CampaignStatus = 'recruiting' | 'active' | 'paused' | 'completed' | 'abandoned';
+export type CampaignVisibility = 'public' | 'friends' | 'private';
 export type CampaignTime = 'dawn' | 'morning' | 'midday' | 'afternoon' | 'dusk' | 'evening' | 'night' | 'midnight';
 
 export interface Campaign {
@@ -23,6 +24,7 @@ export interface Campaign {
   world_state: Record<string, unknown>;
   chosen_location: string | null;
   environment_tags: string[];
+  visibility: CampaignVisibility;
   created_at: string;
   updated_at: string;
 }
