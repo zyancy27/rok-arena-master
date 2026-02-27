@@ -412,7 +412,12 @@ export default function CampaignView() {
           campaignDescription: campaign.description,
           location: campaign.current_zone,
           timeOfDay: campaign.time_of_day,
+          dayCount: campaign.day_count,
           partyMembers: partyInfo,
+          worldState: campaign.world_state,
+          storyContext: campaign.story_context,
+          environmentTags: campaign.environment_tags,
+          chosenLocation: campaign.chosen_location,
         },
       });
 

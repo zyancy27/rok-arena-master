@@ -83,16 +83,7 @@ export default function CampaignNarratorChat({
   const [introSent, setIntroSent] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-send world-building intro on first open
-  useEffect(() => {
-    if (!introSent && messages.length === 0) {
-      setIntroSent(true);
-      sendNarratorQuery(
-        `I just entered the campaign. Give me a vivid briefing of the world I'm in: describe the current location (${currentZone}), the time of day (${timeOfDay}, Day ${dayCount}), the atmosphere, any visible landmarks or notable features, who else is with me (${partyMembers.join(', ') || 'I am alone'}), and what my immediate options are. Set the scene so I understand where I am and what I can do. Keep it immersive and in-character.`,
-        true
-      );
-    }
-  }, []);
+  // No auto-intro here — world briefing is posted to the public adventure log on campaign start
 
   // Show mechanic discovery messages when queued
   useEffect(() => {
