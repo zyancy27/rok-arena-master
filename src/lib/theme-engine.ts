@@ -112,7 +112,10 @@ export type EnvironmentTag =
   // Modifiers
   | 'emergency' | 'fire' | 'ice' | 'electric' | 'radiation'
   | 'wind' | 'rain' | 'fog' | 'darkness' | 'holy' | 'neon'
-  | 'cosmic' | 'acid' | 'gravity' | 'tremor';
+  | 'cosmic' | 'acid' | 'gravity' | 'tremor'
+  // New building-block tags
+  | 'smoke' | 'earth' | 'metal' | 'rock' | 'cloud'
+  | 'rubble' | 'sick' | 'drunk' | 'plant' | 'insect';
 
 /** Status effect type → EnvironmentTag mapping for visual theming */
 const STATUS_EFFECT_TAG_MAP: Record<string, EnvironmentTag> = {
@@ -135,6 +138,15 @@ const STATUS_EFFECT_TAG_MAP: Record<string, EnvironmentTag> = {
   windSwept: 'wind',
   fogBlinded: 'fog',
   buried: 'underground',
+  nauseated: 'sick',
+  diseased: 'sick',
+  intoxicated: 'drunk',
+  entangled: 'plant',
+  infested: 'insect',
+  corroding: 'metal',
+  stoned: 'rock',
+  smoked: 'smoke',
+  dirtied: 'earth',
 };
 
 /**
@@ -194,6 +206,17 @@ const TAG_RULES: Array<{ pattern: RegExp; tag: EnvironmentTag }> = [
   { pattern: /gravity|g-force|crush|compress/, tag: 'gravity' },
   { pattern: /tremor|earthquake|quake|seismic/, tag: 'tremor' },
   { pattern: /emergency|alarm|critical|meltdown|evacuate|countdown/, tag: 'emergency' },
+  // New tags
+  { pattern: /smoke|smog|fume|exhaust|chimney|haze.*thick/, tag: 'smoke' },
+  { pattern: /earth|soil|mud|clay|dirt|loam|bog|muddy|swamp.*mud/, tag: 'earth' },
+  { pattern: /metal|iron|steel|bronze|copper|alloy|forge|foundry|anvil|rust/, tag: 'metal' },
+  { pattern: /rock|stone|boulder|cliff|mountain|crag|gorge|canyon|quarry|rocky/, tag: 'rock' },
+  { pattern: /cloud|cumulus|nimbus|overcast|skyline|stratocumulus|cirrus/, tag: 'cloud' },
+  { pattern: /rubble|debris|wreckage|collapse|demolit|crumbl|ruin.*pile|fallen.*build/, tag: 'rubble' },
+  { pattern: /sick|disease|plague|illness|infect|fever|pandemic|blight|pesti|rot|decay/, tag: 'sick' },
+  { pattern: /drunk|intoxicat|dizzy|tipsy|tavern|bar\b|alehouse|wasted|inebriat/, tag: 'drunk' },
+  { pattern: /plant|vine|flower|bloom|overgrown|thorn|root|botanical|garden|petal|moss|fungi|mushroom/, tag: 'plant' },
+  { pattern: /insect|bug|swarm|spider|hive|wasp|beetle|ant\b|cockroach|centipede|moth|larvae|locust|flea/, tag: 'insect' },
 ];
 
 /**
@@ -345,6 +368,39 @@ const BACKGROUND_BLOCKS: Partial<Record<EnvironmentTag, BackgroundLayer[]>> = {
   ],
   tremor: [
     { type: 'linear', gradient: 'to top, hsl(30 20% 15% / 0.2) 0%, hsl(25 15% 10% / 0.1) 40%, transparent 70%' },
+  ],
+  // New tags
+  smoke: [
+    { type: 'linear', gradient: 'to top, hsl(0 0% 20% / 0.35) 0%, hsl(0 0% 30% / 0.2) 50%, transparent 90%' },
+  ],
+  earth: [
+    { type: 'linear', gradient: 'to top, hsl(30 40% 18% / 0.35) 0%, hsl(25 30% 22% / 0.2) 40%, hsl(20 20% 12% / 0.1) 80%' },
+  ],
+  metal: [
+    { type: 'linear', gradient: 'to bottom, hsl(220 8% 25% / 0.3) 0%, hsl(200 5% 18% / 0.25) 50%, hsl(210 10% 12% / 0.35) 100%' },
+  ],
+  rock: [
+    { type: 'linear', gradient: 'to top, hsl(25 10% 20% / 0.3) 0%, hsl(20 8% 30% / 0.15) 50%, transparent 85%' },
+  ],
+  cloud: [
+    { type: 'radial', gradient: 'ellipse at 50% 30%, hsl(210 20% 80% / 0.12) 0%, hsl(220 15% 70% / 0.06) 40%, transparent 70%' },
+    { type: 'linear', gradient: 'to bottom, hsl(215 25% 75% / 0.08) 0%, transparent 50%' },
+  ],
+  rubble: [
+    { type: 'linear', gradient: 'to top, hsl(25 15% 15% / 0.35) 0%, hsl(30 10% 20% / 0.2) 30%, transparent 70%' },
+  ],
+  sick: [
+    { type: 'radial', gradient: 'ellipse at 50% 60%, hsl(80 40% 25% / 0.2) 0%, hsl(60 30% 15% / 0.15) 40%, transparent 70%' },
+  ],
+  drunk: [
+    { type: 'radial', gradient: 'ellipse at 60% 50%, hsl(30 50% 35% / 0.15) 0%, hsl(20 40% 25% / 0.1) 40%, transparent 70%' },
+    { type: 'radial', gradient: 'ellipse at 35% 55%, hsl(40 45% 30% / 0.1) 0%, transparent 50%' },
+  ],
+  plant: [
+    { type: 'linear', gradient: 'to top, hsl(130 40% 15% / 0.3) 0%, hsl(110 35% 20% / 0.2) 40%, hsl(100 25% 25% / 0.08) 80%' },
+  ],
+  insect: [
+    { type: 'radial', gradient: 'ellipse at 50% 70%, hsl(45 30% 15% / 0.25) 0%, hsl(40 20% 10% / 0.15) 40%, transparent 70%' },
   ],
 };
 
@@ -505,6 +561,49 @@ const OVERLAY_BLOCKS: Partial<Record<EnvironmentTag, OverlayModule[]>> = {
     { className: 'env-darkness-vignette', zOrder: 1 },
     { className: 'env-darkness-wisps', zOrder: 2 },
   ],
+  // New tags
+  smoke: [
+    { className: 'env-smoke-drift', zOrder: 1 },
+    { className: 'env-smoke-wisps', zOrder: 2 },
+  ],
+  earth: [
+    { className: 'env-earth-crumble', zOrder: 1 },
+    { className: 'env-earth-roots', zOrder: 2 },
+  ],
+  metal: [
+    { className: 'env-metal-gleam', zOrder: 1 },
+    { className: 'env-metal-sparks', zOrder: 2 },
+  ],
+  rock: [
+    { className: 'env-rock-texture', zOrder: 1 },
+    { className: 'env-rock-dust', zOrder: 2 },
+  ],
+  cloud: [
+    { className: 'env-cloud-wisps', zOrder: 1 },
+    { className: 'env-cloud-drift', zOrder: 2 },
+  ],
+  rubble: [
+    { className: 'env-rubble-dust', zOrder: 1 },
+    { className: 'env-rubble-debris', zOrder: 2 },
+    { className: 'env-rubble-cracks', zOrder: 3 },
+  ],
+  sick: [
+    { className: 'env-sick-miasma', zOrder: 1 },
+    { className: 'env-sick-flies', zOrder: 2 },
+  ],
+  drunk: [
+    { className: 'env-drunk-sway', zOrder: 1 },
+    { className: 'env-drunk-blur', zOrder: 2 },
+  ],
+  plant: [
+    { className: 'env-plant-vines', zOrder: 1 },
+    { className: 'env-plant-spores', zOrder: 2 },
+    { className: 'env-plant-petals', zOrder: 3 },
+  ],
+  insect: [
+    { className: 'env-insect-swarm', zOrder: 1 },
+    { className: 'env-insect-crawl', zOrder: 2 },
+  ],
 };
 
 /** Ambient glow (box-shadow) per tag */
@@ -541,6 +640,16 @@ const GLOW_BLOCKS: Partial<Record<EnvironmentTag, string>> = {
   rain: 'inset 0 -30px 50px -10px hsl(220 40% 40% / 0.12)',
   tremor: 'inset 0 0 40px hsl(30 30% 20% / 0.15)',
   darkness: 'inset 0 0 100px hsl(0 0% 0% / 0.4)',
+  smoke: 'inset 0 -40px 60px -10px hsl(0 0% 25% / 0.25)',
+  earth: 'inset 0 40px 60px -20px hsl(30 30% 12% / 0.3)',
+  metal: 'inset 0 0 50px hsl(220 10% 30% / 0.2)',
+  rock: 'inset 0 0 50px hsl(25 10% 18% / 0.2)',
+  cloud: 'inset 0 -30px 60px -10px hsl(210 20% 80% / 0.1)',
+  rubble: 'inset 0 0 60px hsl(25 15% 12% / 0.25)',
+  sick: 'inset 0 0 50px hsl(80 40% 30% / 0.15)',
+  drunk: 'inset 0 0 60px hsl(30 50% 40% / 0.12)',
+  plant: 'inset 0 40px 60px -20px hsl(130 30% 15% / 0.25)',
+  insect: 'inset 0 0 50px hsl(45 25% 15% / 0.2)',
 };
 
 /** Animation intensity by tag */
@@ -556,6 +665,9 @@ const INTENSITY_MAP: Partial<Record<EnvironmentTag, 'low' | 'medium' | 'high'>> 
   holy: 'low', digital: 'medium', darkness: 'medium',
   fog: 'low', rain: 'low', wind: 'low', neon: 'medium',
   cosmic: 'low',
+  smoke: 'low', earth: 'low', metal: 'low', rock: 'low',
+  cloud: 'low', rubble: 'medium', sick: 'medium', drunk: 'medium',
+  plant: 'low', insect: 'medium',
 };
 
 /** Chat box style presets per tag */
@@ -598,6 +710,16 @@ const CHATBOX_BLOCKS: Partial<Record<EnvironmentTag, Partial<ChatBoxStyle>>> = {
   cosmic: { borderStyle: 'border-purple-400/20', textGlow: '0 0 6px hsl(260 60% 60% / 0.2)' },
   tremor: { borderStyle: 'border-amber-700/25', urgencyAnimation: 'env-urgency-shake' },
   darkness: { borderStyle: 'border-gray-900/40', backgroundTexture: 'bg-gradient-to-b from-black/15 to-transparent' },
+  smoke: { borderStyle: 'border-gray-500/20', backgroundTexture: 'bg-gradient-to-b from-gray-800/10 to-transparent' },
+  earth: { borderStyle: 'border-amber-800/25', backgroundTexture: 'bg-gradient-to-b from-amber-950/10 to-transparent' },
+  metal: { borderStyle: 'border-slate-400/25', textGlow: '0 0 3px hsl(220 10% 60% / 0.15)', fontHint: 'bold' },
+  rock: { borderStyle: 'border-stone-600/25' },
+  cloud: { borderStyle: 'border-sky-200/15' },
+  rubble: { borderStyle: 'border-stone-500/25', urgencyAnimation: 'env-urgency-shake' },
+  sick: { borderStyle: 'border-lime-700/25', textGlow: '0 0 5px hsl(80 50% 35% / 0.2)', fontHint: 'italic' },
+  drunk: { borderStyle: 'border-amber-500/20', urgencyAnimation: 'env-urgency-sway' },
+  plant: { borderStyle: 'border-green-600/25', textGlow: '0 0 4px hsl(130 50% 40% / 0.15)' },
+  insect: { borderStyle: 'border-yellow-800/20', backgroundTexture: 'bg-gradient-to-b from-yellow-950/8 to-transparent' },
 };
 
 // ── Theme Composer ──────────────────────────────────────────────

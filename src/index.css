@@ -1868,6 +1868,318 @@
     animation: env-shadow-wisp 10s ease-in-out infinite;
   }
 
+  /* ── SMOKE ── */
+  @keyframes env-smoke-float {
+    0% { transform: translateY(10%) scaleX(1); opacity: 0; }
+    30% { opacity: 0.2; }
+    70% { opacity: 0.15; }
+    100% { transform: translateY(-40%) scaleX(1.4); opacity: 0; }
+  }
+  .env-smoke-drift {
+    overflow: hidden;
+  }
+  .env-smoke-drift::before,
+  .env-smoke-drift::after {
+    content: '';
+    position: absolute;
+    width: 60%;
+    height: 40%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, hsl(0 0% 30% / 0.2) 0%, transparent 70%);
+    animation: env-smoke-float 12s ease-in-out infinite;
+  }
+  .env-smoke-drift::before { left: 10%; bottom: 0; }
+  .env-smoke-drift::after { left: 40%; bottom: 5%; animation-delay: 4s; opacity: 0.6; }
+
+  .env-smoke-wisps {
+    background:
+      radial-gradient(ellipse 120px 50px at 20% 70%, hsl(0 0% 35% / 0.12), transparent),
+      radial-gradient(ellipse 100px 40px at 75% 80%, hsl(0 0% 28% / 0.1), transparent);
+    animation: env-shadow-wisp 14s ease-in-out infinite;
+  }
+
+  /* ── EARTH / DIRT ── */
+  @keyframes env-earth-fall {
+    0% { transform: translateY(-5px) rotate(0deg); opacity: 0; }
+    20% { opacity: 0.4; }
+    100% { transform: translateY(calc(100% + 10px)) rotate(60deg); opacity: 0; }
+  }
+  .env-earth-crumble {
+    overflow: hidden;
+  }
+  .env-earth-crumble::before,
+  .env-earth-crumble::after {
+    content: '';
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    border-radius: 1px;
+    background: hsl(30 30% 25% / 0.4);
+    animation: env-earth-fall 5s linear infinite;
+  }
+  .env-earth-crumble::before { left: 30%; top: 0; }
+  .env-earth-crumble::after { left: 65%; top: 0; animation-delay: 2.5s; width: 4px; height: 4px; background: hsl(25 25% 20% / 0.35); }
+
+  .env-earth-roots {
+    background:
+      linear-gradient(0deg, hsl(30 35% 12% / 0.15) 0%, transparent 20%),
+      linear-gradient(175deg, transparent 85%, hsl(25 30% 15% / 0.1) 95%);
+  }
+
+  /* ── METAL ── */
+  @keyframes env-metal-flash {
+    0%, 85%, 100% { opacity: 0; }
+    87% { opacity: 0.4; }
+    89% { opacity: 0; }
+    91% { opacity: 0.25; }
+    93% { opacity: 0; }
+  }
+  .env-metal-gleam {
+    background:
+      linear-gradient(135deg, transparent 40%, hsl(220 10% 60% / 0.06) 50%, transparent 60%),
+      linear-gradient(225deg, transparent 45%, hsl(200 8% 55% / 0.04) 55%, transparent 65%);
+    animation: env-metal-flash 6s ease-in-out infinite;
+  }
+
+  @keyframes env-spark-fly {
+    0% { transform: translate(0, 0) scale(1); opacity: 0.6; }
+    100% { transform: translate(15px, -20px) scale(0); opacity: 0; }
+  }
+  .env-metal-sparks {
+    overflow: hidden;
+  }
+  .env-metal-sparks::before,
+  .env-metal-sparks::after {
+    content: '';
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    background: hsl(40 80% 60% / 0.5);
+    animation: env-spark-fly 2s ease-out infinite;
+  }
+  .env-metal-sparks::before { bottom: 20%; left: 45%; }
+  .env-metal-sparks::after { bottom: 35%; left: 60%; animation-delay: 1s; }
+
+  /* ── ROCK ── */
+  .env-rock-texture {
+    background:
+      radial-gradient(circle 2px at 20% 40%, hsl(25 8% 25% / 0.12) 0%, transparent 100%),
+      radial-gradient(circle 3px at 60% 30%, hsl(20 10% 20% / 0.1) 0%, transparent 100%),
+      radial-gradient(circle 2px at 80% 70%, hsl(30 8% 22% / 0.08) 0%, transparent 100%);
+  }
+  .env-rock-dust {
+    overflow: hidden;
+  }
+  .env-rock-dust::before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(ellipse 80px 30px at 50% 90%, hsl(25 12% 30% / 0.12), transparent);
+    animation: env-smoke-float 18s ease-in-out infinite;
+  }
+
+  /* ── CLOUD ── */
+  @keyframes env-cloud-float {
+    0% { transform: translateX(-20%) scale(1); opacity: 0.12; }
+    50% { transform: translateX(10%) scale(1.1); opacity: 0.18; }
+    100% { transform: translateX(-20%) scale(1); opacity: 0.12; }
+  }
+  .env-cloud-drift {
+    overflow: hidden;
+  }
+  .env-cloud-drift::before,
+  .env-cloud-drift::after {
+    content: '';
+    position: absolute;
+    width: 50%;
+    height: 30%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, hsl(210 15% 85% / 0.15) 0%, transparent 70%);
+    animation: env-cloud-float 20s ease-in-out infinite;
+  }
+  .env-cloud-drift::before { top: 15%; left: 5%; }
+  .env-cloud-drift::after { top: 50%; left: 45%; animation-delay: 8s; }
+
+  /* ── RUBBLE ── */
+  .env-rubble-dust {
+    overflow: hidden;
+  }
+  .env-rubble-dust::before,
+  .env-rubble-dust::after {
+    content: '';
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 1px;
+    background: hsl(25 12% 30% / 0.3);
+    animation: env-earth-fall 4s linear infinite;
+  }
+  .env-rubble-dust::before { left: 25%; top: 0; }
+  .env-rubble-dust::after { left: 70%; top: 0; animation-delay: 1.8s; width: 5px; height: 3px; }
+
+  .env-rubble-debris {
+    background:
+      radial-gradient(circle 4px at 15% 85%, hsl(30 10% 22% / 0.15) 0%, transparent 100%),
+      radial-gradient(circle 6px at 50% 90%, hsl(25 8% 18% / 0.12) 0%, transparent 100%),
+      radial-gradient(circle 3px at 78% 88%, hsl(20 12% 25% / 0.1) 0%, transparent 100%);
+  }
+
+  .env-rubble-cracks {
+    background:
+      linear-gradient(45deg, transparent 48%, hsl(0 0% 15% / 0.08) 49%, hsl(0 0% 15% / 0.08) 50%, transparent 51%),
+      linear-gradient(135deg, transparent 70%, hsl(0 0% 10% / 0.06) 71%, hsl(0 0% 10% / 0.06) 72%, transparent 73%);
+  }
+
+  /* ── SICK ── */
+  @keyframes env-miasma-pulse {
+    0% { opacity: 0.1; transform: scale(1); }
+    50% { opacity: 0.2; transform: scale(1.05); }
+    100% { opacity: 0.1; transform: scale(1); }
+  }
+  .env-sick-miasma {
+    background: radial-gradient(ellipse at 50% 60%, hsl(80 40% 30% / 0.15) 0%, hsl(100 30% 20% / 0.08) 40%, transparent 70%);
+    animation: env-miasma-pulse 6s ease-in-out infinite;
+  }
+
+  @keyframes env-fly-buzz {
+    0% { transform: translate(0, 0); }
+    25% { transform: translate(8px, -5px); }
+    50% { transform: translate(-3px, 4px); }
+    75% { transform: translate(5px, 2px); }
+    100% { transform: translate(0, 0); }
+  }
+  .env-sick-flies {
+    overflow: hidden;
+  }
+  .env-sick-flies::before,
+  .env-sick-flies::after {
+    content: '';
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    background: hsl(0 0% 15% / 0.4);
+    animation: env-fly-buzz 2s ease-in-out infinite;
+  }
+  .env-sick-flies::before { top: 30%; left: 40%; }
+  .env-sick-flies::after { top: 55%; left: 65%; animation-delay: 0.7s; }
+
+  /* ── DRUNK ── */
+  @keyframes env-sway {
+    0% { transform: rotate(0deg) translateX(0); }
+    25% { transform: rotate(0.5deg) translateX(2px); }
+    50% { transform: rotate(-0.3deg) translateX(-1px); }
+    75% { transform: rotate(0.4deg) translateX(1px); }
+    100% { transform: rotate(0deg) translateX(0); }
+  }
+  .env-drunk-sway {
+    animation: env-sway 4s ease-in-out infinite;
+  }
+  .env-drunk-blur {
+    backdrop-filter: blur(0.3px);
+    background: radial-gradient(ellipse at 50% 50%, hsl(30 40% 40% / 0.06) 0%, transparent 60%);
+  }
+
+  /* ── PLANT ── */
+  @keyframes env-vine-grow {
+    0% { transform: scaleY(0.8) translateY(5%); opacity: 0.1; }
+    50% { transform: scaleY(1) translateY(0); opacity: 0.2; }
+    100% { transform: scaleY(0.8) translateY(5%); opacity: 0.1; }
+  }
+  .env-plant-vines {
+    background:
+      linear-gradient(0deg, hsl(130 35% 18% / 0.12) 0%, transparent 15%),
+      linear-gradient(180deg, transparent 90%, hsl(120 30% 15% / 0.1) 100%);
+    animation: env-vine-grow 10s ease-in-out infinite;
+  }
+
+  @keyframes env-spore-float {
+    0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+    20% { opacity: 0.35; }
+    80% { opacity: 0.2; }
+    100% { transform: translateY(-40px) rotate(180deg); opacity: 0; }
+  }
+  .env-plant-spores {
+    overflow: hidden;
+  }
+  .env-plant-spores::before,
+  .env-plant-spores::after {
+    content: '';
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: hsl(100 50% 50% / 0.3);
+    animation: env-spore-float 6s ease-in-out infinite;
+  }
+  .env-plant-spores::before { bottom: 10%; left: 35%; }
+  .env-plant-spores::after { bottom: 15%; left: 60%; animation-delay: 3s; background: hsl(120 40% 55% / 0.25); }
+
+  @keyframes env-petal-drift {
+    0% { transform: translateY(-10px) rotate(0deg) translateX(0); opacity: 0; }
+    20% { opacity: 0.4; }
+    100% { transform: translateY(calc(100% + 10px)) rotate(120deg) translateX(20px); opacity: 0; }
+  }
+  .env-plant-petals {
+    overflow: hidden;
+  }
+  .env-plant-petals::before,
+  .env-plant-petals::after {
+    content: '🌿';
+    position: absolute;
+    font-size: 6px;
+    opacity: 0.3;
+    animation: env-petal-drift 8s linear infinite;
+  }
+  .env-plant-petals::before { left: 20%; top: 0; }
+  .env-plant-petals::after { left: 70%; top: 0; animation-delay: 4s; content: '🍃'; }
+
+  /* ── INSECT ── */
+  @keyframes env-crawl {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    25% { transform: translate(10px, -3px) rotate(15deg); }
+    50% { transform: translate(-5px, 6px) rotate(-10deg); }
+    75% { transform: translate(8px, -2px) rotate(5deg); }
+    100% { transform: translate(0, 0) rotate(0deg); }
+  }
+  .env-insect-swarm {
+    overflow: hidden;
+  }
+  .env-insect-swarm::before,
+  .env-insect-swarm::after {
+    content: '';
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    background: hsl(0 0% 10% / 0.35);
+    animation: env-crawl 3s ease-in-out infinite;
+  }
+  .env-insect-swarm::before { top: 25%; left: 35%; }
+  .env-insect-swarm::after { top: 60%; left: 55%; animation-delay: 1.2s; }
+
+  .env-insect-crawl {
+    overflow: hidden;
+  }
+  .env-insect-crawl::before {
+    content: '';
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    background: hsl(30 20% 15% / 0.3);
+    bottom: 10%;
+    left: 70%;
+    animation: env-crawl 4s ease-in-out infinite 2s;
+  }
+
+  /* Drunk urgency sway animation */
+  .env-urgency-sway {
+    animation: env-sway 3s ease-in-out infinite;
+  }
+
   /* === PREFERS REDUCED MOTION === */
   @media (prefers-reduced-motion: reduce) {
     .battlefield-fire-particles,
@@ -1921,6 +2233,7 @@
     .env-urgency-shake,
     .env-urgency-flicker,
     .env-urgency-glitch,
+    .env-urgency-sway,
     .env-forest-leaves::before,
     .env-forest-leaves::after,
     .env-forest-branches,
@@ -1971,7 +2284,33 @@
     .env-digital-rain::before,
     .env-digital-rain::after,
     .env-digital-glitch,
-    .env-darkness-wisps {
+    .env-darkness-wisps,
+    /* Smoke, earth, metal, rock, cloud, rubble, sick, drunk, plant, insect */
+    .env-smoke-drift::before,
+    .env-smoke-drift::after,
+    .env-smoke-wisps,
+    .env-earth-crumble::before,
+    .env-earth-crumble::after,
+    .env-metal-gleam,
+    .env-metal-sparks::before,
+    .env-metal-sparks::after,
+    .env-rock-dust::before,
+    .env-cloud-drift::before,
+    .env-cloud-drift::after,
+    .env-rubble-dust::before,
+    .env-rubble-dust::after,
+    .env-sick-miasma,
+    .env-sick-flies::before,
+    .env-sick-flies::after,
+    .env-drunk-sway,
+    .env-plant-vines,
+    .env-plant-spores::before,
+    .env-plant-spores::after,
+    .env-plant-petals::before,
+    .env-plant-petals::after,
+    .env-insect-swarm::before,
+    .env-insect-swarm::after,
+    .env-insect-crawl::before {
       animation: none !important;
     }
 
