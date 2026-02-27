@@ -2180,6 +2180,227 @@
     animation: env-sway 3s ease-in-out infinite;
   }
 
+  /* ── Office & Structure Effects ─────────────────────────── */
+
+  /* Office — fluorescent flicker + floating dust */
+  @keyframes env-office-buzz {
+    0%, 92%, 100% { opacity: 0.03; }
+    93% { opacity: 0.08; }
+    95% { opacity: 0.02; }
+    97% { opacity: 0.07; }
+  }
+  .env-office-flicker {
+    background: hsl(200 10% 80% / 0.03);
+    animation: env-office-buzz 6s steps(1) infinite;
+  }
+  .env-office-dust { overflow: hidden; }
+  .env-office-dust::before,
+  .env-office-dust::after {
+    content: '';
+    position: absolute;
+    width: 1px; height: 1px;
+    border-radius: 50%;
+    background: hsl(40 20% 60% / 0.2);
+    animation: env-float-mote 10s ease-in-out infinite;
+  }
+  .env-office-dust::before { top: 30%; left: 20%; }
+  .env-office-dust::after { top: 50%; left: 65%; animation-delay: 4s; }
+  @keyframes env-float-mote {
+    0%, 100% { transform: translateY(0) translateX(0); opacity: 0.15; }
+    50% { transform: translateY(-20px) translateX(8px); opacity: 0.3; }
+  }
+
+  /* Library — dusty warmth + fluttering pages */
+  .env-library-dust { overflow: hidden; }
+  .env-library-dust::before,
+  .env-library-dust::after {
+    content: '';
+    position: absolute;
+    width: 2px; height: 2px;
+    border-radius: 50%;
+    background: hsl(30 30% 50% / 0.2);
+    animation: env-float-mote 14s ease-in-out infinite;
+  }
+  .env-library-dust::before { top: 25%; left: 15%; }
+  .env-library-dust::after { top: 60%; left: 75%; animation-delay: 6s; }
+
+  @keyframes env-page-flutter {
+    0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0; }
+    10% { opacity: 0.2; }
+    50% { transform: translateY(-30px) rotate(15deg); opacity: 0.15; }
+    90% { opacity: 0; }
+  }
+  .env-library-pages { overflow: hidden; }
+  .env-library-pages::before,
+  .env-library-pages::after {
+    content: '';
+    position: absolute;
+    width: 6px; height: 4px;
+    background: hsl(35 25% 70% / 0.15);
+    border-radius: 1px;
+    animation: env-page-flutter 12s ease-in-out infinite;
+  }
+  .env-library-pages::before { bottom: 20%; left: 30%; }
+  .env-library-pages::after { bottom: 40%; left: 60%; animation-delay: 5s; }
+
+  /* Prison — bar shadow overlay + harsh flicker */
+  .env-prison-bars {
+    background: repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 18px,
+      hsl(0 0% 0% / 0.08) 18px,
+      hsl(0 0% 0% / 0.08) 20px
+    );
+  }
+  @keyframes env-harsh-flicker {
+    0%, 90%, 100% { opacity: 0; }
+    91% { opacity: 0.06; }
+    93% { opacity: 0; }
+    95% { opacity: 0.08; }
+  }
+  .env-prison-flicker {
+    background: hsl(40 30% 50% / 0.03);
+    animation: env-harsh-flicker 8s steps(1) infinite;
+  }
+
+  /* Hospital — EKG pulse line + sterile wash */
+  @keyframes env-ekg-pulse {
+    0%, 100% { opacity: 0.02; }
+    15% { opacity: 0.06; }
+    18% { opacity: 0.02; }
+    20% { opacity: 0.08; }
+    25% { opacity: 0.02; }
+  }
+  .env-hospital-pulse {
+    border-top: 1px solid hsl(160 40% 50% / 0.08);
+    animation: env-ekg-pulse 3s ease-in-out infinite;
+  }
+  .env-hospital-sterile {
+    background: linear-gradient(to bottom, hsl(180 10% 95% / 0.03) 0%, transparent 50%);
+    animation: env-ekg-pulse 5s ease-in-out infinite 1.5s;
+  }
+
+  /* Laboratory — bubbling + eerie glow */
+  @keyframes env-lab-bubble {
+    0% { transform: translateY(0) scale(1); opacity: 0.2; }
+    100% { transform: translateY(-60px) scale(0.4); opacity: 0; }
+  }
+  .env-lab-bubbles { overflow: hidden; }
+  .env-lab-bubbles::before,
+  .env-lab-bubbles::after {
+    content: '';
+    position: absolute;
+    width: 3px; height: 3px;
+    border-radius: 50%;
+    background: hsl(120 50% 50% / 0.2);
+    bottom: 10%;
+    animation: env-lab-bubble 4s ease-out infinite;
+  }
+  .env-lab-bubbles::before { left: 25%; }
+  .env-lab-bubbles::after { left: 65%; animation-delay: 1.8s; }
+  @keyframes env-lab-glow-pulse {
+    0%, 100% { opacity: 0.03; }
+    50% { opacity: 0.08; }
+  }
+  .env-lab-glow {
+    background: radial-gradient(ellipse at 50% 80%, hsl(160 60% 40% / 0.06) 0%, transparent 60%);
+    animation: env-lab-glow-pulse 6s ease-in-out infinite;
+  }
+
+  /* Tower — wind + vertigo scroll */
+  .env-tower-wind { overflow: hidden; }
+  .env-tower-wind::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(170deg, transparent 40%, hsl(210 30% 60% / 0.04) 60%, transparent 70%);
+    animation: env-wind-sweep 8s ease-in-out infinite;
+  }
+  @keyframes env-wind-sweep {
+    0%, 100% { transform: translateX(-20%); opacity: 0; }
+    50% { transform: translateX(20%); opacity: 1; }
+  }
+  @keyframes env-vertigo-pull {
+    0%, 100% { background-position: 50% 0%; }
+    50% { background-position: 50% 10%; }
+  }
+  .env-tower-vertigo {
+    background: linear-gradient(to bottom, transparent 60%, hsl(220 10% 20% / 0.06) 100%);
+    background-size: 100% 200%;
+    animation: env-vertigo-pull 10s ease-in-out infinite;
+  }
+
+  /* Corridor — flickering light + long shadows */
+  @keyframes env-corridor-light {
+    0%, 85%, 100% { opacity: 0.02; }
+    87% { opacity: 0.06; }
+    89% { opacity: 0.01; }
+    91% { opacity: 0.05; }
+  }
+  .env-corridor-flicker {
+    background: linear-gradient(to bottom, hsl(40 20% 50% / 0.04) 0%, transparent 30%, transparent 70%, hsl(40 20% 50% / 0.04) 100%);
+    animation: env-corridor-light 7s steps(1) infinite;
+  }
+  .env-corridor-shadow {
+    background: linear-gradient(90deg, hsl(0 0% 0% / 0.08) 0%, transparent 15%, transparent 85%, hsl(0 0% 0% / 0.08) 100%);
+  }
+
+  /* Rooftop — city glow from below */
+  @keyframes env-city-glow {
+    0%, 100% { opacity: 0.04; }
+    50% { opacity: 0.08; }
+  }
+  .env-rooftop-glow {
+    background: linear-gradient(to top, hsl(30 40% 50% / 0.06) 0%, hsl(200 30% 40% / 0.03) 30%, transparent 60%);
+    animation: env-city-glow 8s ease-in-out infinite;
+  }
+
+  /* Lobby — marble echo + chandelier gleam */
+  @keyframes env-echo-fade {
+    0%, 100% { opacity: 0.02; }
+    50% { opacity: 0.05; }
+  }
+  .env-lobby-echo {
+    background: linear-gradient(to top, hsl(0 0% 60% / 0.02) 0%, transparent 40%);
+    animation: env-echo-fade 10s ease-in-out infinite;
+  }
+  @keyframes env-gleam-shift {
+    0%, 100% { background-position: 30% 10%; }
+    50% { background-position: 70% 10%; }
+  }
+  .env-lobby-gleam {
+    background: radial-gradient(ellipse at 50% 10%, hsl(40 30% 70% / 0.06) 0%, transparent 40%);
+    background-size: 200% 200%;
+    animation: env-gleam-shift 12s ease-in-out infinite;
+  }
+
+  /* Ship — rocking sway + sea spray */
+  @keyframes env-ship-sway {
+    0%, 100% { transform: rotate(-0.3deg); }
+    50% { transform: rotate(0.3deg); }
+  }
+  .env-ship-rock {
+    animation: env-ship-sway 5s ease-in-out infinite;
+  }
+  @keyframes env-spray-rise {
+    0% { transform: translateY(0) scale(1); opacity: 0.15; }
+    100% { transform: translateY(-40px) scale(1.5); opacity: 0; }
+  }
+  .env-ship-spray { overflow: hidden; }
+  .env-ship-spray::before,
+  .env-ship-spray::after {
+    content: '';
+    position: absolute;
+    width: 4px; height: 2px;
+    border-radius: 50%;
+    background: hsl(200 40% 70% / 0.15);
+    bottom: 5%;
+    animation: env-spray-rise 3s ease-out infinite;
+  }
+  .env-ship-spray::before { left: 20%; }
+  .env-ship-spray::after { left: 70%; animation-delay: 1.5s; }
+
   /* === PREFERS REDUCED MOTION === */
   @media (prefers-reduced-motion: reduce) {
     .battlefield-fire-particles,
@@ -2310,7 +2531,32 @@
     .env-plant-petals::after,
     .env-insect-swarm::before,
     .env-insect-swarm::after,
-    .env-insect-crawl::before {
+    .env-insect-crawl::before,
+    /* Office & structure */
+    .env-office-flicker,
+    .env-office-dust::before,
+    .env-office-dust::after,
+    .env-library-dust::before,
+    .env-library-dust::after,
+    .env-library-pages::before,
+    .env-library-pages::after,
+    .env-prison-bars,
+    .env-prison-flicker,
+    .env-hospital-pulse,
+    .env-hospital-sterile,
+    .env-lab-bubbles::before,
+    .env-lab-bubbles::after,
+    .env-lab-glow,
+    .env-tower-wind::before,
+    .env-tower-vertigo,
+    .env-corridor-flicker,
+    .env-corridor-shadow,
+    .env-rooftop-glow,
+    .env-lobby-echo,
+    .env-lobby-gleam,
+    .env-ship-rock,
+    .env-ship-spray::before,
+    .env-ship-spray::after {
       animation: none !important;
     }
 
