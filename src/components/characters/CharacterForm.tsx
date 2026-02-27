@@ -9,7 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { POWER_TIERS } from '@/lib/game-constants';
 import { CHARACTER_STATS, DEFAULT_STATS, getTierBaseStats, type CharacterStats } from '@/lib/character-stats';
@@ -19,7 +20,11 @@ import StatSlider from './StatSlider';
 import OwnershipNotice from '@/components/legal/OwnershipNotice';
 import { useAutoSave } from '@/hooks/use-auto-save';
 import { AutoSaveIndicator } from '@/components/ui/auto-save-indicator';
-import { ArrowLeft, Save, Sparkles, Camera, Brain, Crosshair, Dumbbell, Flame, Zap, Shield, Heart, Target, Wand2, Smile, Lightbulb, Globe, Mountain, Thermometer, FileText, Loader2 } from 'lucide-react';
+import {
+  ArrowLeft, Save, Sparkles, Camera, Brain, Crosshair, Dumbbell, Flame, Zap, Shield, Heart, Target,
+  Wand2, Smile, Lightbulb, Globe, Mountain, Thermometer, FileText, Loader2, ChevronDown, Check,
+  Swords, User, BookOpen,
+} from 'lucide-react';
 
 const iconMap = {
   Brain: <Brain className="w-4 h-4" />,
@@ -55,6 +60,45 @@ interface CharacterFormProps {
   mode: 'create' | 'edit';
 }
 
+/* ─── Section Header ─── */
+function SectionHeader({
+  icon,
+  title,
+  subtitle,
+  badge,
+  open,
+  onToggle,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  subtitle: string;
+  badge?: string;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="w-full flex items-center gap-3 p-4 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors text-left group"
+    >
+      <div className="p-2 rounded-md bg-primary/10 text-primary shrink-0">{icon}</div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold">{title}</span>
+          {badge && (
+            <Badge variant="outline" className="text-[10px] border-primary/30 text-primary">
+              {badge}
+            </Badge>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
+      </div>
+      <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
+    </button>
+  );
+}
+
 export default function CharacterForm({ initialData, mode }: CharacterFormProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -74,7 +118,17 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
   const [useCustomPlanet, setUseCustomPlanet] = useState(false);
   const [useCustomMoon, setUseCustomMoon] = useState(false);
   const [useCustomRace, setUseCustomRace] = useState(false);
-  
+
+  // Section open states — essentials always visible, rest collapsed on create
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    identity: mode === 'edit',
+    powers: mode === 'edit',
+    personality: mode === 'edit',
+    stats: false,
+  });
+
+  const toggleSection = (key: string) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
+
   const [formData, setFormData] = useState<CharacterFormData>({
     name: initialData?.name || '',
     level: initialData?.level || 1,
@@ -108,93 +162,43 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
   useEffect(() => {
     const fetchData = async () => {
       if (!user) return;
-      
-      // Fetch planets
-      const { data: planets } = await supabase
-        .from('planet_customizations')
-        .select('planet_name, display_name, moon_count')
-        .eq('user_id', user.id)
-        .order('planet_name');
-
+      const { data: planets } = await supabase.from('planet_customizations').select('planet_name, display_name, moon_count').eq('user_id', user.id).order('planet_name');
       if (planets) {
         setAvailablePlanets(planets.map(p => ({ name: p.planet_name, display_name: p.display_name, moon_count: p.moon_count })));
-        
-        // If editing and planet is not in list, enable custom mode
-        if (initialData?.home_planet && !planets.some(p => p.planet_name === initialData.home_planet)) {
-          setUseCustomPlanet(true);
-        }
+        if (initialData?.home_planet && !planets.some(p => p.planet_name === initialData.home_planet)) setUseCustomPlanet(true);
       }
-
-      // Fetch moons
-      const { data: moons } = await supabase
-        .from('moon_customizations')
-        .select('moon_name, display_name, planet_name')
-        .eq('user_id', user.id)
-        .order('moon_name');
-
+      const { data: moons } = await supabase.from('moon_customizations').select('moon_name, display_name, planet_name').eq('user_id', user.id).order('moon_name');
       if (moons) {
         setAvailableMoons(moons.map(m => ({ name: m.moon_name, display_name: m.display_name, planet_name: m.planet_name })));
-        
-        // If editing and moon is not in list, enable custom mode
-        if ((initialData as any)?.home_moon && !moons.some(m => m.moon_name === (initialData as any)?.home_moon)) {
-          setUseCustomMoon(true);
-        }
+        if ((initialData as any)?.home_moon && !moons.some(m => m.moon_name === (initialData as any)?.home_moon)) setUseCustomMoon(true);
       }
-
-      // Fetch races
-      const { data: races } = await supabase
-        .from('races')
-        .select('id, name, typical_physiology, typical_abilities')
-        .eq('user_id', user.id)
-        .order('name');
-
+      const { data: races } = await supabase.from('races').select('id, name, typical_physiology, typical_abilities').eq('user_id', user.id).order('name');
       if (races) {
         setAvailableRaces(races);
-        
-        // If editing and race is not in list, enable custom mode
-        if (initialData?.race && !races.some(r => r.name === initialData.race)) {
-          setUseCustomRace(true);
-        }
+        if (initialData?.race && !races.some(r => r.name === initialData.race)) setUseCustomRace(true);
       }
     };
-
     fetchData();
   }, [user, initialData?.home_planet, initialData?.race]);
 
   // Fetch planet data when home_planet changes
   useEffect(() => {
     const fetchPlanetData = async () => {
-      if (!formData.home_planet.trim() || !user) {
-        setPlanetGravity(null);
-        setPlanetData(null);
-        return;
-      }
-
-      const { data } = await supabase
-        .from('planet_customizations')
-        .select('gravity, description, orbital_distance')
-        .eq('planet_name', formData.home_planet.trim())
-        .eq('user_id', user.id)
-        .maybeSingle();
-
+      if (!formData.home_planet.trim() || !user) { setPlanetGravity(null); setPlanetData(null); return; }
+      const { data } = await supabase.from('planet_customizations').select('gravity, description, orbital_distance').eq('planet_name', formData.home_planet.trim()).eq('user_id', user.id).maybeSingle();
       setPlanetGravity(data?.gravity ?? null);
       setPlanetData(data);
     };
-
     fetchPlanetData();
   }, [formData.home_planet, user]);
 
   const gravityClass = planetGravity ? getGravityClass(planetGravity) : null;
   const gravityModifiers = planetGravity ? calculateGravityStatModifiers(planetGravity) : null;
-  
-  // Parse terrain from planet description
   const terrainFeatures = planetData?.description ? parseTerrainFromLore(planetData.description) : null;
   const terrainVisuals = terrainFeatures ? generateTerrainVisuals(terrainFeatures, '#3B82F6') : null;
   const terrainSummary = terrainFeatures ? getTerrainSummary(terrainFeatures) : null;
 
-  const handleStatChange = (key: keyof CharacterStats, value: number) => {
-    setStats(prev => ({ ...prev, [key]: value }));
-  };
+  const handleStatChange = (key: keyof CharacterStats, value: number) => setStats(prev => ({ ...prev, [key]: value }));
 
   const applyTierBaseStats = () => {
     const tierStats = getTierBaseStats(formData.level);
@@ -205,73 +209,41 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image must be less than 5MB');
-        return;
-      }
+      if (file.size > 5 * 1024 * 1024) { toast.error('Image must be less than 5MB'); return; }
       setImageFile(file);
     }
   };
 
-  const handleChange = (field: keyof CharacterFormData, value: string | number) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  const handleChange = (field: keyof CharacterFormData, value: string | number) => setFormData(prev => ({ ...prev, [field]: value }));
 
   // AI Auto-fill from notes
   const handleAutoFillFromNotes = async () => {
-    if (!characterNotes.trim()) {
-      toast.error('Please enter your character notes first');
-      return;
-    }
-
+    if (!characterNotes.trim()) { toast.error('Please enter your character notes first'); return; }
     setIsParsingNotes(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
-
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-character-notes`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ notes: characterNotes }),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to parse notes');
-      }
-
+      if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.error || 'Failed to parse notes'); }
       const result = await response.json();
-      
       if (result.success && result.data) {
         const parsed = result.data;
-        
-        // Update form data with parsed values (only if they exist)
         setFormData(prev => ({
           ...prev,
-          name: parsed.name || prev.name,
-          race: parsed.race || prev.race,
-          sub_race: parsed.sub_race || prev.sub_race,
-          age: parsed.age?.toString() || prev.age,
-          home_planet: parsed.home_planet || prev.home_planet,
-          powers: parsed.powers || prev.powers,
-          abilities: parsed.abilities || prev.abilities,
-          personality: parsed.personality || prev.personality,
-          mentality: parsed.mentality || prev.mentality,
-          lore: parsed.lore || prev.lore,
-          level: parsed.level || prev.level,
+          name: parsed.name || prev.name, race: parsed.race || prev.race, sub_race: parsed.sub_race || prev.sub_race,
+          age: parsed.age?.toString() || prev.age, home_planet: parsed.home_planet || prev.home_planet,
+          powers: parsed.powers || prev.powers, abilities: parsed.abilities || prev.abilities,
+          personality: parsed.personality || prev.personality, mentality: parsed.mentality || prev.mentality,
+          lore: parsed.lore || prev.lore, level: parsed.level || prev.level,
         }));
-
-        // Enable custom inputs if parsed values don't match existing options
-        if (parsed.race && !availableRaces.find(r => r.name === parsed.race)) {
-          setUseCustomRace(true);
-        }
-        if (parsed.home_planet && !availablePlanets.find(p => p.name === parsed.home_planet)) {
-          setUseCustomPlanet(true);
-        }
-
+        if (parsed.race && !availableRaces.find(r => r.name === parsed.race)) setUseCustomRace(true);
+        if (parsed.home_planet && !availablePlanets.find(p => p.name === parsed.home_planet)) setUseCustomPlanet(true);
+        // Auto-open relevant sections
+        setOpenSections({ identity: true, powers: true, personality: true, stats: false });
         toast.success('Character information extracted! Review and adjust as needed.');
       }
     } catch (error: any) {
@@ -282,218 +254,98 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
     }
   };
 
-  // Memoize data for auto-save (edit mode only)
-  const autoSaveData = useMemo(() => ({
-    formData,
-    stats,
-  }), [formData, stats]);
-
-  // Auto-save callback for edit mode
+  // Auto-save for edit mode
+  const autoSaveData = useMemo(() => ({ formData, stats }), [formData, stats]);
   const handleAutoSave = useCallback(async (data: { formData: CharacterFormData; stats: CharacterStats }) => {
     if (!initialData?.id || !user || !data.formData.name.trim()) return;
-    
     const characterData = {
-      name: data.formData.name.trim(),
-      level: data.formData.level,
-      lore: data.formData.lore.trim() || null,
-      powers: data.formData.powers.trim() || null,
-      abilities: data.formData.abilities.trim() || null,
-      home_planet: data.formData.home_planet.trim() || null,
-      race: data.formData.race.trim() || null,
-      sub_race: data.formData.sub_race.trim() || null,
+      name: data.formData.name.trim(), level: data.formData.level,
+      lore: data.formData.lore.trim() || null, powers: data.formData.powers.trim() || null,
+      abilities: data.formData.abilities.trim() || null, home_planet: data.formData.home_planet.trim() || null,
+      race: data.formData.race.trim() || null, sub_race: data.formData.sub_race.trim() || null,
       age: data.formData.age ? parseInt(data.formData.age) : null,
-      personality: data.formData.personality.trim() || null,
-      mentality: data.formData.mentality.trim() || null,
+      personality: data.formData.personality.trim() || null, mentality: data.formData.mentality.trim() || null,
       ...data.stats,
     };
-
-    const { error } = await supabase
-      .from('characters')
-      .update(characterData)
-      .eq('id', initialData.id);
-
+    const { error } = await supabase.from('characters').update(characterData).eq('id', initialData.id);
     if (error) throw error;
   }, [initialData?.id, user]);
 
-  // Auto-save hook (only enabled in edit mode)
   const { isSaving: autoSaving, lastSaved, canUndo, undo } = useAutoSave({
-    data: autoSaveData,
-    onSave: handleAutoSave,
-    debounceMs: 2000,
+    data: autoSaveData, onSave: handleAutoSave, debounceMs: 2000,
     enabled: mode === 'edit' && !!initialData?.id && !!formData.name.trim(),
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!user) {
-      toast.error('You must be logged in');
-      return;
-    }
-
-    if (!formData.name.trim()) {
-      toast.error('Character name is required');
-      return;
-    }
-
+    if (!user) { toast.error('You must be logged in'); return; }
+    if (!formData.name.trim()) { toast.error('Character name is required'); return; }
     setIsLoading(true);
-
     try {
       let imageUrl = formData.image_url;
-
-      // Upload image if changed
       if (imageFile) {
         const fileExt = imageFile.name.split('.').pop();
         const filePath = `${user.id}/${Date.now()}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('character-images')
-          .upload(filePath, imageFile);
-
+        const { error: uploadError } = await supabase.storage.from('character-images').upload(filePath, imageFile);
         if (uploadError) throw uploadError;
-
-        const { data: urlData } = supabase.storage
-          .from('character-images')
-          .getPublicUrl(filePath);
-
+        const { data: urlData } = supabase.storage.from('character-images').getPublicUrl(filePath);
         imageUrl = urlData.publicUrl;
       }
 
-      // Auto-create planet if it doesn't exist
+      // Auto-create planet if needed
       const planetName = formData.home_planet.trim();
       if (planetName) {
-        const existingPlanet = availablePlanets.find(
-          p => p.name.toLowerCase() === planetName.toLowerCase()
-        );
-
+        const existingPlanet = availablePlanets.find(p => p.name.toLowerCase() === planetName.toLowerCase());
         if (!existingPlanet) {
-          // Get or create the user's default solar system
           let solarSystemId: string | null = null;
-          
-          const { data: existingSystems } = await supabase
-            .from('solar_systems')
-            .select('id')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: true })
-            .limit(1);
-
+          const { data: existingSystems } = await supabase.from('solar_systems').select('id').eq('user_id', user.id).order('created_at', { ascending: true }).limit(1);
           if (existingSystems && existingSystems.length > 0) {
             solarSystemId = existingSystems[0].id;
           } else {
-            // Create a default solar system
-            const { data: newSystem, error: systemError } = await supabase
-              .from('solar_systems')
-              .insert({
-                user_id: user.id,
-                name: 'My Galaxy',
-                description: 'Auto-created galaxy',
-              })
-              .select('id')
-              .single();
-
-            if (systemError) {
-              console.error('Failed to create solar system:', systemError);
-            } else {
-              solarSystemId = newSystem.id;
-            }
+            const { data: newSystem, error: systemError } = await supabase.from('solar_systems').insert({ user_id: user.id, name: 'My Galaxy', description: 'Auto-created galaxy' }).select('id').single();
+            if (!systemError) solarSystemId = newSystem.id;
           }
-
-          // Create the planet with basic info
           if (solarSystemId) {
-            const { error: planetError } = await supabase
-              .from('planet_customizations')
-              .insert({
-                user_id: user.id,
-                planet_name: planetName,
-                display_name: planetName,
-                solar_system_id: solarSystemId,
-                gravity: 1.0,
-                radius: 1.0,
-                orbital_distance: 1.0,
-              });
-
-            if (planetError) {
-              console.error('Failed to auto-create planet:', planetError);
-            } else {
-              toast.info(`Planet "${planetName}" added to your Solar System Map!`);
-            }
+            const { error: planetError } = await supabase.from('planet_customizations').insert({ user_id: user.id, planet_name: planetName, display_name: planetName, solar_system_id: solarSystemId, gravity: 1.0, radius: 1.0, orbital_distance: 1.0 });
+            if (!planetError) toast.info(`Planet "${planetName}" added to your Solar System Map!`);
           }
         }
       }
 
-      const moonName = formData.home_moon.trim();
-      
       // Auto-create moon if needed
+      const moonName = formData.home_moon.trim();
       if (moonName && planetName) {
-        const existingMoon = availableMoons.find(
-          m => m.name.toLowerCase() === moonName.toLowerCase() && m.planet_name.toLowerCase() === planetName.toLowerCase()
-        );
-        
+        const existingMoon = availableMoons.find(m => m.name.toLowerCase() === moonName.toLowerCase() && m.planet_name.toLowerCase() === planetName.toLowerCase());
         if (!existingMoon) {
-          // Get solar system id
-          const { data: existingSystems } = await supabase
-            .from('solar_systems')
-            .select('id')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: true })
-            .limit(1);
-
+          const { data: existingSystems } = await supabase.from('solar_systems').select('id').eq('user_id', user.id).order('created_at', { ascending: true }).limit(1);
           const solarSystemId = existingSystems?.[0]?.id;
-          
           if (solarSystemId) {
-            const { error: moonError } = await supabase
-              .from('moon_customizations')
-              .insert({
-                user_id: user.id,
-                planet_name: planetName,
-                moon_name: moonName,
-                display_name: moonName,
-                solar_system_id: solarSystemId,
-              });
-
-            if (!moonError) {
-              toast.info(`Moon "${moonName}" added to ${planetName}!`);
-            }
+            const { error: moonError } = await supabase.from('moon_customizations').insert({ user_id: user.id, planet_name: planetName, moon_name: moonName, display_name: moonName, solar_system_id: solarSystemId });
+            if (!moonError) toast.info(`Moon "${moonName}" added to ${planetName}!`);
           }
         }
       }
 
       const characterData = {
-        name: formData.name.trim(),
-        level: formData.level,
-        lore: formData.lore.trim() || null,
-        powers: formData.powers.trim() || null,
-        abilities: formData.abilities.trim() || null,
-        weapons_items: formData.weapons_items.trim() || null,
-        home_planet: planetName || null,
-        home_moon: moonName || null,
-        race: formData.race.trim() || null,
-        sub_race: formData.sub_race.trim() || null,
-        age: formData.age ? parseInt(formData.age) : null,
-        image_url: imageUrl || null,
-        personality: formData.personality.trim() || null,
-        mentality: formData.mentality.trim() || null,
-        user_id: user.id,
-        ...stats,
+        name: formData.name.trim(), level: formData.level,
+        lore: formData.lore.trim() || null, powers: formData.powers.trim() || null,
+        abilities: formData.abilities.trim() || null, weapons_items: formData.weapons_items.trim() || null,
+        home_planet: planetName || null, home_moon: moonName || null,
+        race: formData.race.trim() || null, sub_race: formData.sub_race.trim() || null,
+        age: formData.age ? parseInt(formData.age) : null, image_url: imageUrl || null,
+        personality: formData.personality.trim() || null, mentality: formData.mentality.trim() || null,
+        user_id: user.id, ...stats,
       };
 
       if (mode === 'create') {
-        const { error } = await supabase
-          .from('characters')
-          .insert(characterData);
-
+        const { error } = await supabase.from('characters').insert(characterData);
         if (error) throw error;
         toast.success('Character created successfully!');
       } else if (initialData?.id) {
-        const { error } = await supabase
-          .from('characters')
-          .update(characterData)
-          .eq('id', initialData.id);
-
+        const { error } = await supabase.from('characters').update(characterData).eq('id', initialData.id);
         if (error) throw error;
         toast.success('Character updated successfully!');
       }
-
       navigate('/hub');
     } catch (error: any) {
       toast.error(error.message || 'Failed to save character');
@@ -502,774 +354,519 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
     }
   };
 
+  // Section completion indicators
+  const hasIdentity = !!(formData.race || formData.home_planet || formData.lore);
+  const hasPowers = !!(formData.powers || formData.abilities || formData.weapons_items);
+  const hasPersonality = !!(formData.personality || formData.mentality);
+  const hasStats = Object.values(stats).some(v => v !== 50);
+
   return (
-    <div className="max-w-2xl mx-auto">
-      <Button
-        variant="ghost"
-        onClick={() => navigate(-1)}
-        className="mb-6"
-      >
-        <ArrowLeft className="w-4 h-4 mr-2" />
-        Back
+    <div className="max-w-2xl mx-auto pb-8">
+      <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
+        <ArrowLeft className="w-4 h-4 mr-2" /> Back
       </Button>
 
-      <Card className="bg-card-gradient border-border">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="w-6 h-6 text-primary" />
-                {mode === 'create' ? 'Create New Character' : 'Edit Character'}
-              </CardTitle>
-              <CardDescription>
-                Define your character's identity and powers according to R.O.K. rules.
-                Remember: one base power only!
-              </CardDescription>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* ═══════════════════════════════════════════
+            ESSENTIALS — Always visible
+            ═══════════════════════════════════════════ */}
+        <Card className="bg-card-gradient border-border">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                  {mode === 'create' ? 'New Character' : 'Edit Character'}
+                </CardTitle>
+                <CardDescription className="text-xs mt-1">
+                  Only a name and tier are required. Add more details anytime.
+                </CardDescription>
+              </div>
+              {mode === 'edit' && (
+                <AutoSaveIndicator isSaving={autoSaving} lastSaved={lastSaved} canUndo={canUndo} onUndo={undo} />
+              )}
             </div>
-            {mode === 'edit' && (
-              <AutoSaveIndicator
-                isSaving={autoSaving}
-                lastSaved={lastSaved}
-                canUndo={canUndo}
-                onUndo={undo}
-              />
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Character Image */}
-            <div className="flex items-center gap-6">
-              <div className="relative">
-                <Avatar className="h-24 w-24 border-4 border-primary/30">
-                  <AvatarImage 
-                    src={imageFile ? URL.createObjectURL(imageFile) : (formData.image_url || undefined)} 
-                  />
-                  <AvatarFallback className="bg-primary/20 text-primary text-2xl">
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Image + Name + Tier row */}
+            <div className="flex gap-4">
+              <div className="relative shrink-0">
+                <Avatar className="h-20 w-20 border-2 border-primary/30">
+                  <AvatarImage src={imageFile ? URL.createObjectURL(imageFile) : (formData.image_url || undefined)} />
+                  <AvatarFallback className="bg-primary/20 text-primary text-xl">
                     {formData.name?.charAt(0)?.toUpperCase() || '?'}
                   </AvatarFallback>
                 </Avatar>
                 <label
                   htmlFor="image-upload"
-                  className="absolute bottom-0 right-0 p-2 rounded-full bg-primary text-primary-foreground cursor-pointer hover:bg-primary/80 transition-colors"
+                  className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-primary text-primary-foreground cursor-pointer hover:bg-primary/80 transition-colors"
                 >
-                  <Camera className="w-4 h-4" />
-                  <input
-                    id="image-upload"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleImageChange}
-                  />
+                  <Camera className="w-3.5 h-3.5" />
+                  <input id="image-upload" type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
                 </label>
               </div>
-              <div className="text-sm text-muted-foreground">
-                <p>Upload a character portrait</p>
-                <p className="text-xs">Max 5MB, JPG/PNG recommended</p>
-              </div>
-            </div>
-
-            {/* AI Auto-fill from Notes */}
-            {mode === 'create' && (
-              <div className="p-4 rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 space-y-3">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-primary" />
-                  <Label className="text-base font-semibold">Quick Fill from Notes</Label>
+              <div className="flex-1 space-y-3">
+                <div className="space-y-1">
+                  <Label htmlFor="name" className="text-xs">Character Name *</Label>
+                  <Input
+                    id="name"
+                    placeholder="Enter name..."
+                    value={formData.name}
+                    onChange={(e) => handleChange('name', e.target.value)}
+                    required
+                    className="h-9"
+                  />
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  Paste your character notes, descriptions, or ideas below and let AI extract the information to auto-fill the form.
-                </p>
-                <Textarea
-                  placeholder="Paste your character notes here... e.g., 'My character is named Kira, a 500-year-old celestial being from Planet Aethoria. She has the power of light manipulation and can create solid constructs from pure energy...'"
-                  value={characterNotes}
-                  onChange={(e) => setCharacterNotes(e.target.value)}
-                  rows={5}
-                  className="bg-background"
-                />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={handleAutoFillFromNotes}
-                  disabled={isParsingNotes || !characterNotes.trim()}
-                  className="w-full"
-                >
-                  {isParsingNotes ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Extracting Character Info...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Auto-Fill from Notes
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
-
-            {/* Basic Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Character Name *</Label>
-                <Input
-                  id="name"
-                  placeholder="Zephyr Stormborn"
-                  value={formData.name}
-                  onChange={(e) => handleChange('name', e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="level">Power Tier *</Label>
-                <Select
-                  value={formData.level.toString()}
-                  onValueChange={(value) => handleChange('level', parseInt(value))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select tier" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {POWER_TIERS.map((tier) => (
-                      <SelectItem key={tier.level} value={tier.level.toString()}>
-                        Tier {tier.level}: {tier.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Race & Origin */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="race">Race</Label>
-                {availableRaces.length > 0 && !useCustomRace ? (
-                  <Select
-                    value={formData.race}
-                    onValueChange={(value) => {
-                      if (value === '__custom__') {
-                        setUseCustomRace(true);
-                        handleChange('race', '');
-                      } else {
-                        handleChange('race', value);
-                        // Auto-fill suggestions from race data
-                        const selectedRace = availableRaces.find(r => r.name === value);
-                        if (selectedRace) {
-                          toast.info(`Race "${value}" selected - check abilities/physiology suggestions below!`);
-                        }
-                      }
-                    }}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a race..." />
+                <div className="space-y-1">
+                  <Label htmlFor="level" className="text-xs">Power Tier *</Label>
+                  <Select value={formData.level.toString()} onValueChange={(value) => handleChange('level', parseInt(value))}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Select tier" />
                     </SelectTrigger>
-                    <SelectContent className="bg-popover z-50">
-                      {availableRaces.map((race) => (
-                        <SelectItem key={race.id} value={race.name}>
-                          {race.name}
+                    <SelectContent>
+                      {POWER_TIERS.map((tier) => (
+                        <SelectItem key={tier.level} value={tier.level.toString()}>
+                          Tier {tier.level}: {tier.name}
                         </SelectItem>
                       ))}
-                      <SelectItem value="__custom__" className="text-muted-foreground border-t mt-1 pt-2">
-                        + Enter custom race...
-                      </SelectItem>
                     </SelectContent>
                   </Select>
-                ) : (
-                  <div className="flex gap-2">
-                    <Input
-                      id="race"
-                      placeholder="Celestial"
-                      value={formData.race}
-                      onChange={(e) => handleChange('race', e.target.value)}
-                      className="flex-1"
-                    />
-                    {availableRaces.length > 0 && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setUseCustomRace(false);
-                          handleChange('race', '');
-                        }}
-                      >
-                        Select
-                      </Button>
-                    )}
-                  </div>
-                )}
-                {availableRaces.length === 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    Tip: Create races in the Races page to select them here
-                  </p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="sub_race">Sub-Race</Label>
-                <Input
-                  id="sub_race"
-                  placeholder="Stormkin"
-                  value={formData.sub_race}
-                  onChange={(e) => handleChange('sub_race', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="age">Age</Label>
-                <Input
-                  id="age"
-                  type="number"
-                  placeholder="500"
-                  value={formData.age}
-                  onChange={(e) => handleChange('age', e.target.value)}
-                />
+                </div>
               </div>
             </div>
 
-            {/* Race Info Panel - shows when a race is selected */}
-            {formData.race && availableRaces.find(r => r.name === formData.race) && (
-              <div className="p-4 rounded-lg border bg-muted/30 space-y-3">
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  Race Traits: {formData.race}
+            {/* AI Quick Fill — create mode only */}
+            {mode === 'create' && (
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <Button type="button" variant="outline" size="sm" className="w-full h-8 text-xs gap-2 border-dashed border-primary/30 text-primary hover:bg-primary/5">
+                    <FileText className="w-3.5 h-3.5" />
+                    Quick Fill from Notes (AI)
+                    <ChevronDown className="w-3 h-3 ml-auto" />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-3 space-y-2">
+                  <Textarea
+                    placeholder="Paste your character notes, descriptions, or ideas here..."
+                    value={characterNotes}
+                    onChange={(e) => setCharacterNotes(e.target.value)}
+                    rows={4}
+                    className="text-sm"
+                  />
+                  <Button type="button" variant="secondary" size="sm" onClick={handleAutoFillFromNotes} disabled={isParsingNotes || !characterNotes.trim()} className="w-full h-8 text-xs">
+                    {isParsingNotes ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Extracting...</> : <><Sparkles className="w-3.5 h-3.5 mr-1.5" /> Auto-Fill</>}
+                  </Button>
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ═══════════════════════════════════════════
+            SECTION 1 — Identity & Origin
+            ═══════════════════════════════════════════ */}
+        <div className="space-y-2">
+          <SectionHeader
+            icon={<User className="w-4 h-4" />}
+            title="Identity & Origin"
+            subtitle={hasIdentity ? [formData.race, formData.home_planet].filter(Boolean).join(' · ') || 'Details added' : 'Race, home planet, backstory'}
+            badge={hasIdentity ? 'Added' : 'Optional'}
+            open={openSections.identity}
+            onToggle={() => toggleSection('identity')}
+          />
+          {openSections.identity && (
+            <Card className="border-border bg-card/50">
+              <CardContent className="pt-4 space-y-4">
+                {/* Race & Age row */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Race</Label>
+                    {availableRaces.length > 0 && !useCustomRace ? (
+                      <Select value={formData.race} onValueChange={(value) => {
+                        if (value === '__custom__') { setUseCustomRace(true); handleChange('race', ''); }
+                        else { handleChange('race', value); }
+                      }}>
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Select..." /></SelectTrigger>
+                        <SelectContent className="bg-popover z-50">
+                          {availableRaces.map((race) => (<SelectItem key={race.id} value={race.name}>{race.name}</SelectItem>))}
+                          <SelectItem value="__custom__" className="text-muted-foreground border-t mt-1 pt-2">+ Custom...</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="flex gap-1.5">
+                        <Input placeholder="Celestial" value={formData.race} onChange={(e) => handleChange('race', e.target.value)} className="h-9 flex-1" />
+                        {availableRaces.length > 0 && (
+                          <Button type="button" variant="outline" size="sm" className="h-9 px-2 text-xs" onClick={() => { setUseCustomRace(false); handleChange('race', ''); }}>List</Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Sub-Race</Label>
+                    <Input placeholder="Stormkin" value={formData.sub_race} onChange={(e) => handleChange('sub_race', e.target.value)} className="h-9" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Age</Label>
+                    <Input type="number" placeholder="500" value={formData.age} onChange={(e) => handleChange('age', e.target.value)} className="h-9" />
+                  </div>
                 </div>
-                {(() => {
+
+                {/* Race Info Panel */}
+                {formData.race && availableRaces.find(r => r.name === formData.race) && (() => {
                   const selectedRace = availableRaces.find(r => r.name === formData.race);
                   if (!selectedRace) return null;
                   return (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                      {selectedRace.typical_physiology && (
-                        <div className="p-2 rounded bg-background/50 border-l-2 border-accent">
-                          <span className="font-medium text-accent">Typical Physiology</span>
-                          <p className="text-muted-foreground mt-1">{selectedRace.typical_physiology}</p>
-                        </div>
-                      )}
-                      {selectedRace.typical_abilities && (
-                        <div className="p-2 rounded bg-background/50 border-l-2 border-primary">
-                          <span className="font-medium text-primary">Typical Abilities</span>
-                          <p className="text-muted-foreground mt-1">{selectedRace.typical_abilities}</p>
-                        </div>
-                      )}
+                    <div className="p-3 rounded-lg border bg-muted/30 space-y-2">
+                      <div className="flex items-center gap-2 text-xs font-semibold"><Sparkles className="w-3.5 h-3.5 text-primary" /> {formData.race} Traits</div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        {selectedRace.typical_physiology && (<div className="p-2 rounded bg-background/50 border-l-2 border-accent"><span className="font-medium text-accent">Physiology</span><p className="text-muted-foreground mt-0.5">{selectedRace.typical_physiology}</p></div>)}
+                        {selectedRace.typical_abilities && (<div className="p-2 rounded bg-background/50 border-l-2 border-primary"><span className="font-medium text-primary">Abilities</span><p className="text-muted-foreground mt-0.5">{selectedRace.typical_abilities}</p></div>)}
+                      </div>
                     </div>
                   );
                 })()}
-                <p className="text-xs text-muted-foreground italic">
-                  Use these as inspiration for your character's powers and lore!
-                </p>
-              </div>
-            )}
 
-            <div className="space-y-2">
-              <Label htmlFor="home_location" className="flex items-center gap-2">
-                <Globe className="w-4 h-4" />
-                Home Location
-              </Label>
-              {(availablePlanets.length > 0 || availableMoons.length > 0) && !useCustomPlanet ? (
-                <div className="space-y-2">
-                  <Select
-                    value={formData.home_moon ? `moon:${formData.home_planet}:${formData.home_moon}` : formData.home_planet}
-                    onValueChange={(value) => {
-                      if (value === '__custom__') {
-                        setUseCustomPlanet(true);
-                        handleChange('home_planet', '');
-                        handleChange('home_moon', '');
-                      } else if (value.startsWith('moon:')) {
-                        // Format: moon:planet_name:moon_name
-                        const parts = value.split(':');
-                        handleChange('home_planet', parts[1]);
-                        handleChange('home_moon', parts[2]);
-                      } else {
-                        handleChange('home_planet', value);
-                        handleChange('home_moon', '');
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="Select planet or moon..." />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover z-50 max-h-[300px]">
-                      {/* Planets with their moons grouped */}
-                      {availablePlanets.map((planet) => {
-                        const planetMoons = availableMoons.filter(m => 
-                          m.planet_name.toLowerCase() === planet.name.toLowerCase()
-                        );
-                        return (
-                          <div key={planet.name}>
-                            <SelectItem value={planet.name} className="font-medium">
-                              🪐 {planet.display_name || planet.name}
-                            </SelectItem>
-                            {planetMoons.map((moon) => (
-                              <SelectItem 
-                                key={`${planet.name}-${moon.name}`} 
-                                value={`moon:${planet.name}:${moon.name}`}
-                                className="pl-6 text-muted-foreground"
-                              >
-                                ↳ 🌙 {moon.display_name || moon.name}
-                              </SelectItem>
-                            ))}
-                          </div>
-                        );
-                      })}
-                      <SelectItem value="__custom__" className="text-muted-foreground border-t mt-1 pt-2">
-                        + Enter custom location...
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {/* Show selected location info */}
-                  {formData.home_planet && (
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      {formData.home_moon ? (
-                        <>🌙 Living on moon <span className="text-primary">{formData.home_moon}</span> orbiting <span className="text-primary">{formData.home_planet}</span></>
-                      ) : (
-                        <>🪐 Living on planet <span className="text-primary">{formData.home_planet}</span></>
-                      )}
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <Input
-                      id="home_planet"
-                      placeholder="Enter planet name..."
-                      value={formData.home_planet}
-                      onChange={(e) => handleChange('home_planet', e.target.value)}
-                      className="flex-1"
-                    />
-                    {(availablePlanets.length > 0 || availableMoons.length > 0) && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setUseCustomPlanet(false);
-                          handleChange('home_planet', '');
-                          handleChange('home_moon', '');
+                {/* Home Location */}
+                <div className="space-y-1">
+                  <Label className="text-xs flex items-center gap-1.5"><Globe className="w-3.5 h-3.5" /> Home Location</Label>
+                  {(availablePlanets.length > 0 || availableMoons.length > 0) && !useCustomPlanet ? (
+                    <div className="space-y-1.5">
+                      <Select
+                        value={formData.home_moon ? `moon:${formData.home_planet}:${formData.home_moon}` : formData.home_planet}
+                        onValueChange={(value) => {
+                          if (value === '__custom__') { setUseCustomPlanet(true); handleChange('home_planet', ''); handleChange('home_moon', ''); }
+                          else if (value.startsWith('moon:')) { const parts = value.split(':'); handleChange('home_planet', parts[1]); handleChange('home_moon', parts[2]); }
+                          else { handleChange('home_planet', value); handleChange('home_moon', ''); }
                         }}
                       >
-                        Select Existing
-                      </Button>
-                    )}
-                  </div>
-                  {formData.home_planet.trim() && (() => {
-                    const homeLower = formData.home_planet.trim().toLowerCase();
-                    const isShip = ['ship', 'vessel', 'cruiser', 'destroyer', 'carrier', 'frigate', 'corvette', 'battleship', 'dreadnought', 'starship', 'spacecraft', 'shuttle', 'station', 'ark', 'flagship', 'warship', 'gunship'].some(k => homeLower.includes(k));
-                    const isFleet = ['fleet', 'armada', 'flotilla', 'squadron', 'navy', 'convoy', 'taskforce', 'task force', 'battle group', 'battlegroup'].some(k => homeLower.includes(k));
-                    const isNewPlanet = !availablePlanets.some(p => p.name.toLowerCase() === homeLower);
-                    
-                    if (isFleet) {
-                      return (
-                        <p className="text-xs text-cyan-400 flex items-center gap-1">
-                          <Sparkles className="w-3 h-3" />
-                          Fleet will appear as ships orbiting in your Solar System Map!
-                        </p>
-                      );
-                    } else if (isShip) {
-                      return (
-                        <p className="text-xs text-cyan-400 flex items-center gap-1">
-                          <Sparkles className="w-3 h-3" />
-                          Ship will appear orbiting in your Solar System Map!
-                        </p>
-                      );
-                    } else if (isNewPlanet) {
-                      return (
-                        <p className="text-xs text-primary flex items-center gap-1">
-                          <Globe className="w-3 h-3" />
-                          New planet will be auto-added to your Solar System Map!
-                        </p>
-                      );
-                    }
-                    return null;
-                  })()}
-                  {/* Moon input when in custom mode and planet is set */}
-                  {formData.home_planet.trim() && (() => {
-                    const homeLower = formData.home_planet.trim().toLowerCase();
-                    const isShip = ['ship', 'vessel', 'cruiser', 'destroyer', 'carrier', 'frigate', 'corvette', 'battleship', 'dreadnought', 'starship', 'spacecraft', 'shuttle', 'station', 'ark', 'flagship', 'warship', 'gunship'].some(k => homeLower.includes(k));
-                    const isFleet = ['fleet', 'armada', 'flotilla', 'squadron', 'navy', 'convoy', 'taskforce', 'task force', 'battle group', 'battlegroup'].some(k => homeLower.includes(k));
-                    
-                    if (isShip || isFleet) return null;
-                    
-                    return (
-                      <div className="pt-2 border-t border-border/50">
-                        <Label htmlFor="home_moon" className="text-xs text-muted-foreground mb-1 block">
-                          Moon (optional)
-                        </Label>
-                        <Input
-                          id="home_moon"
-                          placeholder="Enter moon name if living on a moon..."
-                          value={formData.home_moon}
-                          onChange={(e) => handleChange('home_moon', e.target.value)}
-                          className="text-sm"
-                        />
-                        {formData.home_moon.trim() && (
-                          <p className="text-xs text-amber-400 flex items-center gap-1 mt-1">
-                            <Sparkles className="w-3 h-3" />
-                            Moon will orbit {formData.home_planet} in your Solar System!
-                          </p>
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Select planet or moon..." /></SelectTrigger>
+                        <SelectContent className="bg-popover z-50 max-h-[300px]">
+                          {availablePlanets.map((planet) => {
+                            const planetMoons = availableMoons.filter(m => m.planet_name.toLowerCase() === planet.name.toLowerCase());
+                            return (
+                              <div key={planet.name}>
+                                <SelectItem value={planet.name} className="font-medium">🪐 {planet.display_name || planet.name}</SelectItem>
+                                {planetMoons.map((moon) => (<SelectItem key={`${planet.name}-${moon.name}`} value={`moon:${planet.name}:${moon.name}`} className="pl-6 text-muted-foreground">↳ 🌙 {moon.display_name || moon.name}</SelectItem>))}
+                              </div>
+                            );
+                          })}
+                          <SelectItem value="__custom__" className="text-muted-foreground border-t mt-1 pt-2">+ Custom location...</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {formData.home_planet && (
+                        <p className="text-[11px] text-muted-foreground">{formData.home_moon ? `🌙 ${formData.home_moon} orbiting ${formData.home_planet}` : `🪐 ${formData.home_planet}`}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <div className="flex gap-1.5">
+                        <Input placeholder="Enter planet name..." value={formData.home_planet} onChange={(e) => handleChange('home_planet', e.target.value)} className="h-9 flex-1" />
+                        {(availablePlanets.length > 0 || availableMoons.length > 0) && (
+                          <Button type="button" variant="outline" size="sm" className="h-9 px-2 text-xs" onClick={() => { setUseCustomPlanet(false); handleChange('home_planet', ''); handleChange('home_moon', ''); }}>List</Button>
                         )}
                       </div>
-                    );
-                  })()}
-                  {availablePlanets.length === 0 && availableMoons.length === 0 && !formData.home_planet.trim() && (
-                    <p className="text-xs text-muted-foreground">
-                      Enter a planet name, ship, or fleet - it will appear in your Solar System Map
-                    </p>
+                      {formData.home_planet.trim() && (() => {
+                        const homeLower = formData.home_planet.trim().toLowerCase();
+                        const isShip = ['ship', 'vessel', 'cruiser', 'destroyer', 'carrier', 'frigate', 'corvette', 'battleship', 'dreadnought', 'starship', 'spacecraft', 'shuttle', 'station', 'ark', 'flagship', 'warship', 'gunship'].some(k => homeLower.includes(k));
+                        const isFleet = ['fleet', 'armada', 'flotilla', 'squadron', 'navy', 'convoy', 'taskforce', 'task force', 'battle group', 'battlegroup'].some(k => homeLower.includes(k));
+                        const isNewPlanet = !availablePlanets.some(p => p.name.toLowerCase() === homeLower);
+                        if (isFleet) return <p className="text-[11px] text-cyan-400 flex items-center gap-1"><Sparkles className="w-3 h-3" />Fleet appears in Solar System Map!</p>;
+                        if (isShip) return <p className="text-[11px] text-cyan-400 flex items-center gap-1"><Sparkles className="w-3 h-3" />Ship appears in Solar System Map!</p>;
+                        if (isNewPlanet) return <p className="text-[11px] text-primary flex items-center gap-1"><Globe className="w-3 h-3" />New planet auto-added to Solar System!</p>;
+                        return null;
+                      })()}
+                      {formData.home_planet.trim() && !['ship', 'vessel', 'cruiser', 'destroyer', 'carrier', 'frigate', 'corvette', 'battleship', 'dreadnought', 'starship', 'spacecraft', 'shuttle', 'station', 'ark', 'flagship', 'warship', 'gunship', 'fleet', 'armada', 'flotilla', 'squadron', 'navy', 'convoy', 'taskforce', 'task force', 'battle group', 'battlegroup'].some(k => formData.home_planet.trim().toLowerCase().includes(k)) && (
+                        <div className="pt-1.5 border-t border-border/50">
+                          <Label className="text-[11px] text-muted-foreground mb-1 block">Moon (optional)</Label>
+                          <Input placeholder="Enter moon name..." value={formData.home_moon} onChange={(e) => handleChange('home_moon', e.target.value)} className="h-8 text-sm" />
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-              {/* Planet Info Panel - shows when planet data exists */}
-              {(gravityClass || terrainFeatures) && (
-                <div className="mt-3 p-4 rounded-lg border bg-muted/30 space-y-3">
-                  <div className="flex items-center gap-2 text-sm font-semibold">
-                    <Globe className="w-4 h-4 text-primary" />
-                    Planet Environment
+
+                {/* Planet Info Panel */}
+                {(gravityClass || terrainFeatures) && (
+                  <div className="p-3 rounded-lg border bg-muted/30 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-semibold"><Globe className="w-3.5 h-3.5 text-primary" /> Planet Environment</div>
+                    {gravityClass && gravityModifiers && (
+                      <div className="p-2 rounded border-l-2" style={{ backgroundColor: gravityClass.color + '10', borderColor: gravityClass.color }}>
+                        <div className="flex items-center gap-2 text-xs font-medium" style={{ color: gravityClass.color }}>{gravityClass.name} ({planetGravity?.toFixed(2)}g)</div>
+                        <p className="text-xs text-muted-foreground mt-0.5">{gravityModifiers.description}</p>
+                      </div>
+                    )}
+                    {terrainSummary && (
+                      <div className="p-2 rounded bg-background/50 border-l-2 border-accent">
+                        <div className="flex items-center gap-2 text-xs font-medium text-accent"><Mountain className="w-3 h-3" /> Terrain</div>
+                        <p className="text-xs text-muted-foreground mt-0.5 capitalize">{terrainSummary}</p>
+                      </div>
+                    )}
+                    {terrainVisuals && terrainVisuals.physiologyHints.length > 0 && (
+                      <div className="p-2 rounded bg-background/50 border-l-2 border-primary">
+                        <div className="flex items-center gap-2 text-xs font-medium text-primary mb-1"><Thermometer className="w-3 h-3" /> Physiology Hints</div>
+                        <ul className="text-xs text-muted-foreground space-y-0.5">
+                          {terrainVisuals.physiologyHints.map((hint, i) => (<li key={i} className="flex items-start gap-1"><span className="text-primary/50">•</span>{hint}</li>))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
-                  
-                  {/* Gravity info */}
-                  {gravityClass && gravityModifiers && (
-                    <div 
-                      className="p-2 rounded border-l-2"
-                      style={{ 
-                        backgroundColor: gravityClass.color + '10', 
-                        borderColor: gravityClass.color 
-                      }}
-                    >
-                      <div className="flex items-center gap-2 text-xs font-medium" style={{ color: gravityClass.color }}>
-                        <span>{gravityClass.name} ({planetGravity?.toFixed(2)}g)</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">{gravityModifiers.description}</p>
-                    </div>
-                  )}
-                  
-                  {/* Terrain summary */}
-                  {terrainSummary && (
-                    <div className="p-2 rounded bg-background/50 border-l-2 border-accent">
-                      <div className="flex items-center gap-2 text-xs font-medium text-accent">
-                        <Mountain className="w-3 h-3" />
-                        Terrain
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1 capitalize">{terrainSummary}</p>
-                    </div>
-                  )}
-                  
-                  {/* Physiology hints */}
-                  {terrainVisuals && terrainVisuals.physiologyHints.length > 0 && (
-                    <div className="p-2 rounded bg-background/50 border-l-2 border-primary">
-                      <div className="flex items-center gap-2 text-xs font-medium text-primary mb-1">
-                        <Thermometer className="w-3 h-3" />
-                        Suggested Physiology Adaptations
-                      </div>
-                      <ul className="text-xs text-muted-foreground space-y-1">
-                        {terrainVisuals.physiologyHints.map((hint, i) => (
-                          <li key={i} className="flex items-start gap-1">
-                            <span className="text-primary/50">•</span>
-                            {hint}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+                )}
+
+                {/* Lore */}
+                <div className="space-y-1">
+                  <Label className="text-xs">Lore & Backstory</Label>
+                  <Textarea placeholder="Origins, motivations, journey..." value={formData.lore} onChange={(e) => handleChange('lore', e.target.value)} rows={3} className="text-sm" />
                 </div>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lore">Lore & Backstory</Label>
-              <Textarea
-                id="lore"
-                placeholder="Tell the story of your character's origins, motivations, and journey..."
-                value={formData.lore}
-                onChange={(e) => handleChange('lore', e.target.value)}
-                rows={4}
-              />
-            </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="powers">
-                Base Power
-                <span className="text-xs text-muted-foreground ml-2">
-                  (Remember: ONE base power only per R.O.K. rules)
-                </span>
-              </Label>
-              <Textarea
-                id="powers"
-                placeholder="Describe your character's single base power in detail..."
-                value={formData.powers}
-                onChange={(e) => handleChange('powers', e.target.value)}
-                rows={4}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="abilities">Abilities & Techniques</Label>
-              <Textarea
-                id="abilities"
-                placeholder="List the specific techniques and abilities derived from your base power..."
-                value={formData.abilities}
-                onChange={(e) => handleChange('abilities', e.target.value)}
-                rows={4}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="weapons_items" className="flex items-center gap-2">
-                ⚔️ Weapons & Items
-              </Label>
-              <Textarea
-                id="weapons_items"
-                placeholder="List weapons, tools, artifacts, or consumables your character carries. These will be referenced by the narrator during campaigns and battles."
-                value={formData.weapons_items}
-                onChange={(e) => handleChange('weapons_items', e.target.value)}
-                rows={4}
-              />
-              <p className="text-xs text-muted-foreground">Items can modify stats and affect narrative outcomes in Campaign Mode.</p>
-            </div>
-
-            {/* Alignment & Archetype Section */}
-            <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
-              <div className="flex items-center gap-2 text-sm font-semibold">
-                <Sparkles className="w-4 h-4 text-primary" />
-                Character Alignment & Archetype
-              </div>
-              
-              {/* Alignment Selection */}
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Moral Alignment</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { value: 'good', label: 'Good', emoji: '😇', desc: 'Heroic, protects the innocent' },
-                    { value: 'neutral', label: 'Neutral', emoji: '😐', desc: 'Self-interested, situational morality' },
-                    { value: 'evil', label: 'Evil', emoji: '😈', desc: 'Villainous, pursues dark goals' },
-                  ].map((alignment) => (
-                    <button
-                      key={alignment.value}
-                      type="button"
-                      onClick={() => {
-                        const current = formData.mentality || '';
-                        const alignmentRegex = /\[ALIGNMENT:(good|neutral|evil)\]/i;
-                        const newMentality = alignmentRegex.test(current)
-                          ? current.replace(alignmentRegex, `[ALIGNMENT:${alignment.value}]`)
-                          : `[ALIGNMENT:${alignment.value}] ${current}`.trim();
-                        handleChange('mentality', newMentality);
-                      }}
-                      className={`p-3 rounded-lg border text-center transition-all ${
-                        formData.mentality?.toLowerCase().includes(`[alignment:${alignment.value}]`)
-                          ? alignment.value === 'good' 
-                            ? 'border-green-500 bg-green-500/20 ring-2 ring-green-500/50'
-                            : alignment.value === 'evil'
-                            ? 'border-red-500 bg-red-500/20 ring-2 ring-red-500/50'
-                            : 'border-yellow-500 bg-yellow-500/20 ring-2 ring-yellow-500/50'
-                          : 'border-border hover:border-primary/50 bg-background/50'
-                      }`}
-                    >
-                      <div className="text-2xl mb-1">{alignment.emoji}</div>
-                      <div className="text-sm font-medium">{alignment.label}</div>
-                      <div className="text-xs text-muted-foreground">{alignment.desc}</div>
-                    </button>
-                  ))}
+        {/* ═══════════════════════════════════════════
+            SECTION 2 — Powers & Equipment
+            ═══════════════════════════════════════════ */}
+        <div className="space-y-2">
+          <SectionHeader
+            icon={<Swords className="w-4 h-4" />}
+            title="Powers & Equipment"
+            subtitle={hasPowers ? [formData.powers?.split('\n')[0]?.slice(0, 40)].filter(Boolean).join('') || 'Details added' : 'Base power, abilities, weapons'}
+            badge={hasPowers ? 'Added' : 'Optional'}
+            open={openSections.powers}
+            onToggle={() => toggleSection('powers')}
+          />
+          {openSections.powers && (
+            <Card className="border-border bg-card/50">
+              <CardContent className="pt-4 space-y-4">
+                <div className="space-y-1">
+                  <Label className="text-xs">
+                    Base Power
+                    <span className="text-muted-foreground ml-1.5">(one base power per R.O.K. rules)</span>
+                  </Label>
+                  <Textarea placeholder="Describe your character's single base power..." value={formData.powers} onChange={(e) => handleChange('powers', e.target.value)} rows={3} className="text-sm" />
                 </div>
-              </div>
-
-              {/* Approach Selection */}
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Combat & Moral Approach</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { value: 'traditional', label: 'Traditional', emoji: '⚔️', desc: 'Fights with honor, follows codes' },
-                    { value: 'unconventional', label: 'Unconventional', emoji: '🎭', desc: 'Uses any means necessary' },
-                  ].map((approach) => (
-                    <button
-                      key={approach.value}
-                      type="button"
-                      onClick={() => {
-                        const current = formData.mentality || '';
-                        const approachRegex = /\[APPROACH:(traditional|unconventional)\]/i;
-                        const newMentality = approachRegex.test(current)
-                          ? current.replace(approachRegex, `[APPROACH:${approach.value}]`)
-                          : `${current} [APPROACH:${approach.value}]`.trim();
-                        handleChange('mentality', newMentality);
-                      }}
-                      className={`p-3 rounded-lg border text-center transition-all ${
-                        formData.mentality?.toLowerCase().includes(`[approach:${approach.value}]`)
-                          ? 'border-primary bg-primary/20 ring-2 ring-primary/50'
-                          : 'border-border hover:border-primary/50 bg-background/50'
-                      }`}
-                    >
-                      <div className="text-xl mb-1">{approach.emoji}</div>
-                      <div className="text-sm font-medium">{approach.label}</div>
-                      <div className="text-xs text-muted-foreground">{approach.desc}</div>
-                    </button>
-                  ))}
+                <div className="space-y-1">
+                  <Label className="text-xs">Abilities & Techniques</Label>
+                  <Textarea placeholder="Techniques derived from your base power..." value={formData.abilities} onChange={(e) => handleChange('abilities', e.target.value)} rows={3} className="text-sm" />
                 </div>
-                <p className="text-xs text-muted-foreground italic">
-                  An unconventional hero is still good, but their methods might make people question how good...
-                </p>
-              </div>
-
-              {/* Personality Archetypes */}
-              <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Personality Archetype (Optional)</Label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  {[
-                    { value: 'boy_scout', label: 'Boy Scout', emoji: '🦸', desc: 'Textbook hero, upholds ideals' },
-                    { value: 'anti_hero', label: 'Anti-Hero', emoji: '🖤', desc: 'Does good through questionable means' },
-                    { value: 'noble_villain', label: 'Noble Villain', emoji: '👑', desc: 'Evil with honor and purpose' },
-                    { value: 'extreme_villain', label: 'Extreme Villain', emoji: '💀', desc: 'Chaos incarnate, evil for its own sake' },
-                  ].map((archetype) => (
-                    <button
-                      key={archetype.value}
-                      type="button"
-                      onClick={() => {
-                        const current = formData.personality || '';
-                        const archetypeRegex = /\[ARCHETYPE:[^\]]+\]/i;
-                        const hasArchetype = archetypeRegex.test(current);
-                        const currentArchetype = current.match(archetypeRegex)?.[0];
-                        const isSame = currentArchetype === `[ARCHETYPE:${archetype.value}]`;
-                        
-                        let newPersonality: string;
-                        if (isSame) {
-                          // Deselect
-                          newPersonality = current.replace(archetypeRegex, '').trim();
-                        } else if (hasArchetype) {
-                          // Replace
-                          newPersonality = current.replace(archetypeRegex, `[ARCHETYPE:${archetype.value}]`);
-                        } else {
-                          // Add
-                          newPersonality = `[ARCHETYPE:${archetype.value}] ${current}`.trim();
-                        }
-                        handleChange('personality', newPersonality);
-                      }}
-                      className={`p-2 rounded-lg border text-center transition-all ${
-                        formData.personality?.toLowerCase().includes(`[archetype:${archetype.value}]`)
-                          ? archetype.value === 'boy_scout' 
-                            ? 'border-blue-500 bg-blue-500/20 ring-2 ring-blue-500/50'
-                            : archetype.value === 'anti_hero'
-                            ? 'border-purple-500 bg-purple-500/20 ring-2 ring-purple-500/50'
-                            : archetype.value === 'noble_villain'
-                            ? 'border-amber-500 bg-amber-500/20 ring-2 ring-amber-500/50'
-                            : 'border-red-600 bg-red-600/20 ring-2 ring-red-600/50'
-                          : 'border-border hover:border-primary/50 bg-background/50'
-                      }`}
-                    >
-                      <div className="text-lg">{archetype.emoji}</div>
-                      <div className="text-xs font-medium">{archetype.label}</div>
-                      <div className="text-[10px] text-muted-foreground leading-tight">{archetype.desc}</div>
-                    </button>
-                  ))}
+                <div className="space-y-1">
+                  <Label className="text-xs flex items-center gap-1.5">⚔️ Weapons & Items</Label>
+                  <Textarea placeholder="Weapons, tools, artifacts your character carries..." value={formData.weapons_items} onChange={(e) => handleChange('weapons_items', e.target.value)} rows={3} className="text-sm" />
+                  <p className="text-[11px] text-muted-foreground">Items can modify stats and affect narrative outcomes.</p>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
-            {/* Personality & Mentality */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="personality" className="flex items-center gap-2">
-                  <Smile className="w-4 h-4 text-accent" />
-                  Personality Details
-                </Label>
-                <Textarea
-                  id="personality"
-                  placeholder="Describe your character's personality traits, demeanor, and how they interact with others..."
-                  value={formData.personality?.replace(/\[ARCHETYPE:[^\]]+\]\s*/gi, '') || ''}
-                  onChange={(e) => {
-                    const archetypeMatch = formData.personality?.match(/\[ARCHETYPE:[^\]]+\]/i);
-                    const archetype = archetypeMatch ? archetypeMatch[0] + ' ' : '';
-                    handleChange('personality', archetype + e.target.value);
-                  }}
-                  rows={4}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="mentality" className="flex items-center gap-2">
-                  <Lightbulb className="w-4 h-4 text-cosmic-gold" />
-                  Mentality Details
-                </Label>
-                <Textarea
-                  id="mentality"
-                  placeholder="Describe your character's mindset, beliefs, motivations, and psychological traits..."
-                  value={formData.mentality?.replace(/\[(ALIGNMENT|APPROACH):[^\]]+\]\s*/gi, '') || ''}
-                  onChange={(e) => {
-                    const alignmentMatch = formData.mentality?.match(/\[ALIGNMENT:[^\]]+\]/i);
-                    const approachMatch = formData.mentality?.match(/\[APPROACH:[^\]]+\]/i);
-                    const prefix = [alignmentMatch?.[0], approachMatch?.[0]].filter(Boolean).join(' ');
-                    handleChange('mentality', prefix ? prefix + ' ' + e.target.value : e.target.value);
-                  }}
-                  rows={4}
-                />
-              </div>
-            </div>
-
-            {/* Character Stats */}
-            <Accordion type="single" collapsible defaultValue="stats">
-              <AccordionItem value="stats" className="border-border">
-                <AccordionTrigger className="hover:no-underline">
-                  <span className="flex items-center gap-2">
-                    <Target className="w-4 h-4 text-primary" />
-                    Character Stats (0-100)
-                  </span>
-                </AccordionTrigger>
-                <AccordionContent className="space-y-3 pt-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <p className="text-xs text-muted-foreground">
-                      Set your character's attributes on a scale of 0 (none) to 100 (absolute mastery).
-                    </p>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm"
-                      onClick={applyTierBaseStats}
-                      className="shrink-0"
-                    >
-                      <Wand2 className="w-3 h-3 mr-1" />
-                      Use Tier {formData.level} Defaults
-                    </Button>
+        {/* ═══════════════════════════════════════════
+            SECTION 3 — Personality & Alignment
+            ═══════════════════════════════════════════ */}
+        <div className="space-y-2">
+          <SectionHeader
+            icon={<Smile className="w-4 h-4" />}
+            title="Personality & Alignment"
+            subtitle={hasPersonality ? 'Details added' : 'Alignment, archetype, mentality'}
+            badge={hasPersonality ? 'Added' : 'Optional'}
+            open={openSections.personality}
+            onToggle={() => toggleSection('personality')}
+          />
+          {openSections.personality && (
+            <Card className="border-border bg-card/50">
+              <CardContent className="pt-4 space-y-4">
+                {/* Alignment Selection */}
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Moral Alignment</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { value: 'good', label: 'Good', emoji: '😇', desc: 'Protects the innocent' },
+                      { value: 'neutral', label: 'Neutral', emoji: '😐', desc: 'Situational morality' },
+                      { value: 'evil', label: 'Evil', emoji: '😈', desc: 'Pursues dark goals' },
+                    ].map((alignment) => (
+                      <button key={alignment.value} type="button"
+                        onClick={() => {
+                          const current = formData.mentality || '';
+                          const alignmentRegex = /\[ALIGNMENT:(good|neutral|evil)\]/i;
+                          const newMentality = alignmentRegex.test(current) ? current.replace(alignmentRegex, `[ALIGNMENT:${alignment.value}]`) : `[ALIGNMENT:${alignment.value}] ${current}`.trim();
+                          handleChange('mentality', newMentality);
+                        }}
+                        className={`p-2.5 rounded-lg border text-center transition-all ${
+                          formData.mentality?.toLowerCase().includes(`[alignment:${alignment.value}]`)
+                            ? alignment.value === 'good' ? 'border-green-500 bg-green-500/20 ring-2 ring-green-500/50'
+                              : alignment.value === 'evil' ? 'border-red-500 bg-red-500/20 ring-2 ring-red-500/50'
+                              : 'border-yellow-500 bg-yellow-500/20 ring-2 ring-yellow-500/50'
+                            : 'border-border hover:border-primary/50 bg-background/50'
+                        }`}
+                      >
+                        <div className="text-xl mb-0.5">{alignment.emoji}</div>
+                        <div className="text-xs font-medium">{alignment.label}</div>
+                        <div className="text-[10px] text-muted-foreground">{alignment.desc}</div>
+                      </button>
+                    ))}
                   </div>
-                  <p className="text-xs text-muted-foreground/70 italic mb-4">
-                    Not sure what stats to use? Click the button above to apply balanced stats for your power tier.
-                  </p>
-                  
-                  {/* Character Philosophy Note */}
-                  <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 mb-6">
-                    <div className="flex items-start gap-3">
-                      <Heart className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium text-primary">Create with Heart, Not Strategy</p>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                          You're not making characters to simply beat other characters. Set your stats to match how you truly see your character — it's okay if they aren't the strongest or most intelligent. 
-                        </p>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                          This game is about bringing the characters in your heart and mind to life. Don't inflate stats just to win battles. If winning means that much to you, create a separate character for that purpose.
-                        </p>
-                        <p className="text-xs text-primary/80 italic">
-                          Authenticity creates the best stories.
-                        </p>
-                      </div>
-                    </div>
+                </div>
+
+                {/* Approach */}
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Combat & Moral Approach</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { value: 'traditional', label: 'Traditional', emoji: '⚔️', desc: 'Fights with honor' },
+                      { value: 'unconventional', label: 'Unconventional', emoji: '🎭', desc: 'Any means necessary' },
+                    ].map((approach) => (
+                      <button key={approach.value} type="button"
+                        onClick={() => {
+                          const current = formData.mentality || '';
+                          const approachRegex = /\[APPROACH:(traditional|unconventional)\]/i;
+                          const newMentality = approachRegex.test(current) ? current.replace(approachRegex, `[APPROACH:${approach.value}]`) : `${current} [APPROACH:${approach.value}]`.trim();
+                          handleChange('mentality', newMentality);
+                        }}
+                        className={`p-2.5 rounded-lg border text-center transition-all ${
+                          formData.mentality?.toLowerCase().includes(`[approach:${approach.value}]`)
+                            ? 'border-primary bg-primary/20 ring-2 ring-primary/50'
+                            : 'border-border hover:border-primary/50 bg-background/50'
+                        }`}
+                      >
+                        <div className="text-lg mb-0.5">{approach.emoji}</div>
+                        <div className="text-xs font-medium">{approach.label}</div>
+                        <div className="text-[10px] text-muted-foreground">{approach.desc}</div>
+                      </button>
+                    ))}
                   </div>
-                  {CHARACTER_STATS.map((stat) => (
-                    <StatSlider
-                      key={stat.key}
-                      name={stat.name}
-                      description={stat.description}
-                      value={stats[stat.key as keyof CharacterStats]}
-                      onChange={(v) => handleStatChange(stat.key as keyof CharacterStats, v)}
-                      icon={iconMap[stat.icon as keyof typeof iconMap]}
-                      color={stat.color}
+                </div>
+
+                {/* Archetypes */}
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Personality Archetype</Label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { value: 'boy_scout', label: 'Boy Scout', emoji: '🦸', desc: 'Textbook hero' },
+                      { value: 'anti_hero', label: 'Anti-Hero', emoji: '🖤', desc: 'Good, questionable means' },
+                      { value: 'noble_villain', label: 'Noble Villain', emoji: '👑', desc: 'Evil with honor' },
+                      { value: 'extreme_villain', label: 'Extreme Villain', emoji: '💀', desc: 'Chaos incarnate' },
+                    ].map((archetype) => (
+                      <button key={archetype.value} type="button"
+                        onClick={() => {
+                          const current = formData.personality || '';
+                          const archetypeRegex = /\[ARCHETYPE:[^\]]+\]/i;
+                          const hasArchetype = archetypeRegex.test(current);
+                          const currentArchetype = current.match(archetypeRegex)?.[0];
+                          const isSame = currentArchetype === `[ARCHETYPE:${archetype.value}]`;
+                          let newPersonality: string;
+                          if (isSame) newPersonality = current.replace(archetypeRegex, '').trim();
+                          else if (hasArchetype) newPersonality = current.replace(archetypeRegex, `[ARCHETYPE:${archetype.value}]`);
+                          else newPersonality = `[ARCHETYPE:${archetype.value}] ${current}`.trim();
+                          handleChange('personality', newPersonality);
+                        }}
+                        className={`p-2 rounded-lg border text-center transition-all ${
+                          formData.personality?.toLowerCase().includes(`[archetype:${archetype.value}]`)
+                            ? archetype.value === 'boy_scout' ? 'border-blue-500 bg-blue-500/20 ring-2 ring-blue-500/50'
+                              : archetype.value === 'anti_hero' ? 'border-purple-500 bg-purple-500/20 ring-2 ring-purple-500/50'
+                              : archetype.value === 'noble_villain' ? 'border-amber-500 bg-amber-500/20 ring-2 ring-amber-500/50'
+                              : 'border-red-600 bg-red-600/20 ring-2 ring-red-600/50'
+                            : 'border-border hover:border-primary/50 bg-background/50'
+                        }`}
+                      >
+                        <div className="text-lg">{archetype.emoji}</div>
+                        <div className="text-[11px] font-medium">{archetype.label}</div>
+                        <div className="text-[9px] text-muted-foreground leading-tight">{archetype.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Text fields */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs flex items-center gap-1.5"><Smile className="w-3.5 h-3.5 text-accent" /> Personality</Label>
+                    <Textarea
+                      placeholder="Personality traits, demeanor..."
+                      value={formData.personality?.replace(/\[ARCHETYPE:[^\]]+\]\s*/gi, '') || ''}
+                      onChange={(e) => {
+                        const archetypeMatch = formData.personality?.match(/\[ARCHETYPE:[^\]]+\]/i);
+                        const archetype = archetypeMatch ? archetypeMatch[0] + ' ' : '';
+                        handleChange('personality', archetype + e.target.value);
+                      }}
+                      rows={3} className="text-sm"
                     />
-                  ))}
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs flex items-center gap-1.5"><Lightbulb className="w-3.5 h-3.5 text-cosmic-gold" /> Mentality</Label>
+                    <Textarea
+                      placeholder="Mindset, beliefs, motivations..."
+                      value={formData.mentality?.replace(/\[(ALIGNMENT|APPROACH):[^\]]+\]\s*/gi, '') || ''}
+                      onChange={(e) => {
+                        const alignmentMatch = formData.mentality?.match(/\[ALIGNMENT:[^\]]+\]/i);
+                        const approachMatch = formData.mentality?.match(/\[APPROACH:[^\]]+\]/i);
+                        const prefix = [alignmentMatch?.[0], approachMatch?.[0]].filter(Boolean).join(' ');
+                        handleChange('mentality', prefix ? prefix + ' ' + e.target.value : e.target.value);
+                      }}
+                      rows={3} className="text-sm"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
-            {/* Ownership Notice */}
-            <OwnershipNotice variant="card" />
+        {/* ═══════════════════════════════════════════
+            SECTION 4 — Character Stats
+            ═══════════════════════════════════════════ */}
+        <div className="space-y-2">
+          <SectionHeader
+            icon={<Target className="w-4 h-4" />}
+            title="Character Stats"
+            subtitle={hasStats ? 'Customized' : 'Defaults applied — customize anytime'}
+            badge={hasStats ? 'Customized' : 'Optional'}
+            open={openSections.stats}
+            onToggle={() => toggleSection('stats')}
+          />
+          {openSections.stats && (
+            <Card className="border-border bg-card/50">
+              <CardContent className="pt-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">Scale of 0 (none) to 100 (absolute mastery)</p>
+                  <Button type="button" variant="outline" size="sm" onClick={applyTierBaseStats} className="h-7 text-xs gap-1.5">
+                    <Wand2 className="w-3 h-3" /> Tier {formData.level} Defaults
+                  </Button>
+                </div>
 
-            <Button type="submit" className="w-full glow-primary" disabled={isLoading}>
-              <Save className="w-4 h-4 mr-2" />
-              {isLoading ? 'Saving...' : mode === 'create' ? 'Create Character' : 'Save Changes'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+                {/* Philosophy note — compact */}
+                <div className="p-3 rounded-lg border border-primary/20 bg-primary/5">
+                  <div className="flex items-start gap-2">
+                    <Heart className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-medium text-primary">Create with Heart, Not Strategy</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Set stats to match how you truly see your character. Authenticity creates the best stories.</p>
+                    </div>
+                  </div>
+                </div>
+
+                {CHARACTER_STATS.map((stat) => (
+                  <StatSlider
+                    key={stat.key}
+                    name={stat.name}
+                    description={stat.description}
+                    value={stats[stat.key as keyof CharacterStats]}
+                    onChange={(v) => handleStatChange(stat.key as keyof CharacterStats, v)}
+                    icon={iconMap[stat.icon as keyof typeof iconMap]}
+                    color={stat.color}
+                  />
+                ))}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Ownership Notice */}
+        <OwnershipNotice variant="card" />
+
+        {/* Submit */}
+        <Button type="submit" className="w-full glow-primary h-11" disabled={isLoading}>
+          <Save className="w-4 h-4 mr-2" />
+          {isLoading ? 'Saving...' : mode === 'create' ? 'Create Character' : 'Save Changes'}
+        </Button>
+      </form>
     </div>
   );
 }
