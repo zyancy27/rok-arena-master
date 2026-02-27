@@ -904,11 +904,13 @@ Campaign: ${campaignDescription || 'An ongoing adventure'}
 World State: ${JSON.stringify(worldState || {})}
 Story Context: ${JSON.stringify(storyContext || {})}`;
 
-  const userMessage = `${playerCharacter.name} (Campaign Lv.${playerCharacter.campaignLevel}, HP: ${playerCharacter.hp}/${playerCharacter.hpMax}, Original Tier: ${playerCharacter.originalLevel}) acts:
+  const itemsInfo = playerCharacter.weaponsItems ? `\nEquipped Items: ${playerCharacter.weaponsItems}` : '';
+
+  const userMessage = `${playerCharacter.name} (Campaign Lv.${playerCharacter.campaignLevel}, HP: ${playerCharacter.hp}/${playerCharacter.hpMax}, Original Tier: ${playerCharacter.originalLevel}) acts:${itemsInfo}
 
 "${playerAction}"
 
-Narrate the world's response. Remember: freedom-first, no railroading, scale appropriately.`;
+Narrate the world's response. Remember: freedom-first, no railroading, scale appropriately. If the character uses an equipped item, reference it naturally in the narration.`;
 
   try {
     const response = await fetch("https://api.lovable.dev/v1/chat/completions", {

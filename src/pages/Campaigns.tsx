@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
-import { ArrowLeft, BookOpen, Clock, MapPin, Play, Plus, Shield, Users, Compass, Swords } from 'lucide-react';
+import { ArrowLeft, BookOpen, Clock, MapPin, Play, Plus, Shield, Users, Compass, Swords, User } from 'lucide-react';
 import type { Campaign, CampaignParticipant, CampaignStatus } from '@/lib/campaign-types';
 import { getTimeEmoji } from '@/lib/campaign-types';
 
@@ -35,6 +35,7 @@ export default function Campaigns() {
   const [newName, setNewName] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [newMaxPlayers, setNewMaxPlayers] = useState(4);
+  const [isSolo, setIsSolo] = useState(false);
   const [selectedCharacter, setSelectedCharacter] = useState('');
   const [startingLocation, setStartingLocation] = useState('');
   const [creating, setCreating] = useState(false);
@@ -125,10 +126,10 @@ export default function Campaigns() {
           creator_id: user!.id,
           name: newName.trim(),
           description: newDescription.trim() || null,
-          max_players: newMaxPlayers,
+          max_players: isSolo ? 1 : newMaxPlayers,
           current_zone: startingLocation.trim(),
           chosen_location: startingLocation.trim(),
-          status: 'recruiting',
+          status: isSolo ? 'active' : 'recruiting',
         })
         .select('id')
         .single();
@@ -151,8 +152,35 @@ export default function Campaigns() {
       await supabase.from('campaign_logs').insert({
         campaign_id: campaign.id,
         event_type: 'campaign_created',
-        event_data: { creator: user!.id, name: newName.trim() },
+        event_data: { creator: user!.id, name: newName.trim(), solo: isSolo },
       });
+
+      // For solo campaigns, generate intro narration immediately
+      if (isSolo) {
+        const char = characters.find(c => c.id === selectedCharacter);
+        try {
+          const { data: narData } = await supabase.functions.invoke('battle-narrator', {
+            body: {
+              type: 'campaign_intro',
+              campaignName: newName.trim(),
+              campaignDescription: newDescription.trim() || null,
+              location: startingLocation.trim(),
+              timeOfDay: 'morning',
+              partyMembers: `${char?.name || 'An adventurer'} (Campaign Lv.1, Original Tier ${char?.level || 1})`,
+            },
+          });
+          if (narData?.narration) {
+            await supabase.from('campaign_messages').insert({
+              campaign_id: campaign.id,
+              sender_type: 'narrator',
+              content: narData.narration,
+              channel: 'in_universe',
+            });
+          }
+        } catch (e) {
+          console.error('Solo intro generation failed:', e);
+        }
+      }
 
       toast.success('Campaign created!');
       setCreateOpen(false);
@@ -192,7 +220,7 @@ export default function Campaigns() {
               <Compass className="w-8 h-8 text-primary" />
               Campaign Adventures
             </h1>
-            <p className="text-muted-foreground mt-1">Persistent narrative multiplayer adventures</p>
+            <p className="text-muted-foreground mt-1">Persistent narrative adventures — solo or multiplayer</p>
           </div>
         </div>
 
@@ -232,10 +260,36 @@ export default function Campaigns() {
                 <Label>Starting Location</Label>
                 <Input placeholder="e.g., Abandoned Outpost, Misty Forest..." value={startingLocation} onChange={e => setStartingLocation(e.target.value)} />
               </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => { setIsSolo(false); setNewMaxPlayers(4); }}
+                  className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${!isSolo ? 'border-primary bg-primary/10 ring-2 ring-primary/50' : 'border-border hover:border-primary/50'}`}
+                >
+                  <Users className="w-4 h-4" />
+                  <div className="text-left">
+                    <div className="text-sm font-medium">Multiplayer</div>
+                    <div className="text-xs text-muted-foreground">2-6 players</div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setIsSolo(true); setNewMaxPlayers(1); }}
+                  className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border transition-all ${isSolo ? 'border-primary bg-primary/10 ring-2 ring-primary/50' : 'border-border hover:border-primary/50'}`}
+                >
+                  <User className="w-4 h-4" />
+                  <div className="text-left">
+                    <div className="text-sm font-medium">Solo</div>
+                    <div className="text-xs text-muted-foreground">Just you + narrator</div>
+                  </div>
+                </button>
+              </div>
+              {!isSolo && (
               <div>
                 <Label>Max Players: {newMaxPlayers}</Label>
                 <Slider min={2} max={6} step={1} value={[newMaxPlayers]} onValueChange={([v]) => setNewMaxPlayers(v)} />
               </div>
+              )}
             </div>
             <DialogFooter>
               <Button onClick={handleCreate} disabled={creating}>

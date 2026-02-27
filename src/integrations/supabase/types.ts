@@ -819,6 +819,7 @@ export type Database = {
           sub_race: string | null
           updated_at: string
           user_id: string
+          weapons_items: string | null
         }
         Insert: {
           abilities?: string | null
@@ -849,6 +850,7 @@ export type Database = {
           sub_race?: string | null
           updated_at?: string
           user_id: string
+          weapons_items?: string | null
         }
         Update: {
           abilities?: string | null
@@ -879,6 +881,7 @@ export type Database = {
           sub_race?: string | null
           updated_at?: string
           user_id?: string
+          weapons_items?: string | null
         }
         Relationships: [
           {

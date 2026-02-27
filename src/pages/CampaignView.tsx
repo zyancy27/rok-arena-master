@@ -97,7 +97,7 @@ export default function CampaignView() {
   const fetchParticipants = async () => {
     const { data } = await supabase
       .from('campaign_participants')
-      .select('*, character:characters(name, image_url, level, user_id, powers, abilities)')
+      .select('*, character:characters(name, image_url, level, user_id, powers, abilities, weapons_items)')
       .eq('campaign_id', campaignId!);
     if (data) {
       const parsed = data.map(p => ({
@@ -254,6 +254,7 @@ export default function CampaignView() {
             hpMax: myParticipant.campaign_hp_max,
             powers: myParticipant.character?.powers,
             abilities: myParticipant.character?.abilities,
+            weaponsItems: (myParticipant.character as any)?.weapons_items,
           },
           playerAction: messageText,
           currentZone: campaign.current_zone,
@@ -343,6 +344,7 @@ export default function CampaignView() {
   const isCreator = campaign.creator_id === user?.id;
   const canJoin = !myParticipant && campaign.status === 'recruiting' && participants.filter(p => p.is_active).length < campaign.max_players;
   const isActive = campaign.status === 'active';
+  const isSolo = campaign.max_players === 1;
   const canStart = isCreator && campaign.status === 'recruiting' && participants.filter(p => p.is_active).length >= 1;
 
   return (

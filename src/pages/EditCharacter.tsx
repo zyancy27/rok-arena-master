@@ -13,6 +13,7 @@ interface CharacterData {
   lore: string;
   powers: string;
   abilities: string;
+  weapons_items: string;
   home_planet: string;
   home_moon: string;
   race: string;
@@ -70,6 +71,7 @@ export default function EditCharacter() {
       lore: data.lore || '',
       powers: data.powers || '',
       abilities: data.abilities || '',
+      weapons_items: data.weapons_items || '',
       home_planet: data.home_planet || '',
       home_moon: data.home_moon || '',
       race: data.race || '',
