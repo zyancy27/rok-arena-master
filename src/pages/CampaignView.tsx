@@ -683,8 +683,8 @@ export default function CampaignView() {
 
       <div className="space-y-4">
         {/* Chat + Narrator */}
-        <Card className="bg-card-gradient border-border flex flex-col" style={{ minHeight: '65vh' }}>
-          <Tabs defaultValue="adventure" className="flex flex-col flex-1">
+        <Card className="bg-card-gradient border-border flex flex-col h-[70vh]">
+          <Tabs defaultValue="adventure" className="flex flex-col flex-1 min-h-0">
             <div className="border-b border-border px-4">
               <TabsList className="bg-transparent h-auto p-0 gap-4">
                 <TabsTrigger value="adventure" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-1 pb-2 pt-3 text-sm gap-1.5">
@@ -709,8 +709,8 @@ export default function CampaignView() {
               </TabsList>
             </div>
 
-            <TabsContent value="adventure" className="flex-1 flex flex-col mt-0 data-[state=inactive]:hidden">
-              <ScrollArea className="flex-1 p-4">
+            <TabsContent value="adventure" className="flex-1 flex flex-col mt-0 min-h-0 data-[state=inactive]:hidden">
+              <ScrollArea className="flex-1 p-4" style={{ minHeight: 0 }}>
                 <div className="space-y-3">
                   {messages.map(msg => (
                     <div key={msg.id} className={`flex gap-3 ${msg.sender_type === 'narrator' ? 'bg-primary/5 rounded-lg p-3' : msg.sender_type === 'system' ? 'justify-center' : ''}`}>
