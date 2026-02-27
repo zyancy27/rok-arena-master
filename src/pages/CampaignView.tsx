@@ -17,9 +17,13 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Compass, Heart, LogOut, MapPin, Play, Send,
   Shield, Swords, Users, Zap, Clock, Sun, Moon, Backpack,
-  Volume2, VolumeX, RefreshCw, BookOpen, Sparkles,
+  Volume2, VolumeX, RefreshCw, BookOpen, Sparkles, Dices,
 } from 'lucide-react';
 import EnvironmentChatBackground from '@/components/battles/EnvironmentChatBackground';
+import DiceRollChatMessage from '@/components/battles/DiceRollChatMessage';
+import HitDetectionBadge from '@/components/battles/HitDetectionBadge';
+import { CharacterStatusOverlay } from '@/components/battles/CharacterStatusOverlay';
+import MoveValidationWarning from '@/components/battles/MoveValidationWarning';
 import type { Campaign, CampaignParticipant, CampaignMessage } from '@/lib/campaign-types';
 import { getTimeEmoji, CAMPAIGN_STARTING_ABILITIES, XP_REWARDS, advanceTime } from '@/lib/campaign-types';
 import CampaignInventoryPanel, { type InventoryItem } from '@/components/campaigns/CampaignInventoryPanel';
@@ -27,6 +31,7 @@ import CampaignEndDialog from '@/components/campaigns/CampaignEndDialog';
 import CampaignNarratorChat from '@/components/campaigns/CampaignNarratorChat';
 import { useAmbientSound } from '@/hooks/use-ambient-sound';
 import { discoverMechanic, type MechanicKey } from '@/lib/mechanic-discovery';
+import { useCampaignCombat } from '@/hooks/use-campaign-combat';
 import type { CampaignMechanicDiscovery } from '@/components/campaigns/CampaignNarratorChat';
 
 export default function CampaignView() {
@@ -59,6 +64,18 @@ export default function CampaignView() {
   // Mechanic discoveries
   const [pendingDiscoveries, setPendingDiscoveries] = useState<CampaignMechanicDiscovery[]>([]);
   const [narratorTabGlowing, setNarratorTabGlowing] = useState(false);
+
+  // Combat mechanics integration
+  const campaignCombat = useCampaignCombat(
+    myParticipant?.character ? {
+      characterId: myParticipant.character_id,
+      name: myParticipant.character.name,
+      level: myParticipant.character.level,
+      campaignLevel: myParticipant.campaign_level,
+      powers: myParticipant.character.powers || null,
+      abilities: myParticipant.character.abilities || null,
+    } : null
+  );
 
   const triggerDiscovery = (key: MechanicKey) => {
     if (!user) return;
@@ -488,6 +505,14 @@ export default function CampaignView() {
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !myParticipant || !campaign) return;
     const messageText = inputMessage.trim();
+
+    // Move validation — check before sending
+    const validation = campaignCombat.validateCampaignMove(messageText);
+    if (!validation.isValid) {
+      // Don't clear input — show validation warning instead
+      return;
+    }
+
     setInputMessage('');
     setSending(true);
 
@@ -495,16 +520,30 @@ export default function CampaignView() {
       // Detect solo/rejoin intent from the player's message
       const soloIntent = detectSoloIntent(messageText);
 
-      // Insert player message
+      // Process combat mechanics (hit detection, dice rolls)
+      const combatResult = campaignCombat.processCombatAction(messageText);
+
+      // Build dice metadata for the message
+      const diceResult = combatResult.diceMetadata
+        ? combatResult.diceMetadata as Record<string, unknown>
+        : null;
+
+      // Insert player message with dice result
       await supabase.from('campaign_messages').insert({
         campaign_id: campaign.id,
         character_id: myParticipant.character_id,
         sender_type: 'player',
         content: messageText,
         channel: 'in_universe',
-      });
+        dice_result: diceResult as any,
+      } as any);
 
-      // Call narrator for response
+      // Trigger dice mechanic discovery on first combat action
+      if (combatResult.hitDetection.shouldTriggerHitCheck || combatResult.hitDetection.shouldTriggerDefenseCheck) {
+        triggerDiscovery('dice_roll' as MechanicKey);
+      }
+
+      // Call narrator for response — pass dice context
       const activeParticipants = participants.filter(p => p.is_active);
       const partyContext = activeParticipants.map(p =>
         `${p.character?.name} (Campaign Lv.${p.campaign_level}, HP: ${p.campaign_hp}/${p.campaign_hp_max}${(p as any).is_solo ? ', SOLO — away from group' : ''})`
@@ -526,7 +565,7 @@ export default function CampaignView() {
             abilities: myParticipant.character?.abilities,
             weaponsItems: (myParticipant.character as any)?.weapons_items,
             isSolo: isSoloMode,
-            soloIntent: soloIntent, // hints narrator to narrate the departure/reunion
+            soloIntent: soloIntent,
             equippedCampaignItems: equippedCampaignItems.map(i => ({
               item_name: i.item_name,
               item_type: i.item_type,
@@ -543,10 +582,15 @@ export default function CampaignView() {
           storyContext: campaign.story_context,
           campaignDescription: campaign.description,
           maxAllowedTier: CAMPAIGN_STARTING_ABILITIES.maxPowerTierAtLevel(myParticipant.campaign_level),
+          // Pass dice results so narrator knows hit/miss outcomes
+          ...(combatResult.narratorDiceContext || {}),
         },
       });
 
       if (!error && data?.narration) {
+        // Process narrator response for status effects
+        campaignCombat.processNarratorResponse(data.narration);
+
         await supabase.from('campaign_messages').insert({
           campaign_id: campaign.id,
           sender_type: 'narrator',
@@ -767,28 +811,70 @@ export default function CampaignView() {
                         );
                       }
 
-                      // Player message — styled like battle chat
+                      // Player message — styled like battle chat with combat mechanics
+                      const msgDice = msg.dice_result as Record<string, unknown> | null;
+                      const hasDiceRoll = msgDice && (msgDice.type === 'attack' || msgDice.type === 'defense');
+
                       return (
-                        <div
-                          key={msg.id}
-                          className={`env-scope p-3 rounded-lg animate-fade-in ${
-                            isMe
-                              ? `bg-primary/20 border-l-4 border-primary ml-8${(msg as any).isPending ? ' opacity-70' : ''}`
-                              : 'bg-muted/50 border-l-4 border-accent mr-8'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2 mb-1">
-                            <Avatar className="w-6 h-6">
-                              <AvatarImage src={msg.character?.image_url || undefined} />
-                              <AvatarFallback className="text-[10px] bg-primary/20">{msg.character?.name?.[0] || '?'}</AvatarFallback>
-                            </Avatar>
-                            <span className="font-semibold text-sm">{msg.character?.name || 'Unknown'}</span>
-                            <span className="text-[10px] text-muted-foreground">{new Date(msg.created_at).toLocaleTimeString()}</span>
-                            {(msg as any).isPending && (
-                              <span className="text-xs text-muted-foreground italic ml-auto">Sending...</span>
-                            )}
+                        <div key={msg.id} className="space-y-1 animate-fade-in">
+                          <div
+                            className={`env-scope p-3 rounded-lg ${
+                              isMe
+                                ? `bg-primary/20 border-l-4 border-primary ml-8${(msg as any).isPending ? ' opacity-70' : ''}`
+                                : 'bg-muted/50 border-l-4 border-accent mr-8'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <Avatar className="w-6 h-6">
+                                <AvatarImage src={msg.character?.image_url || undefined} />
+                                <AvatarFallback className="text-[10px] bg-primary/20">{msg.character?.name?.[0] || '?'}</AvatarFallback>
+                              </Avatar>
+                              <span className="font-semibold text-sm">{msg.character?.name || 'Unknown'}</span>
+                              <span className="text-[10px] text-muted-foreground">{new Date(msg.created_at).toLocaleTimeString()}</span>
+                              {(msg as any).isPending && (
+                                <span className="text-xs text-muted-foreground italic ml-auto">Sending...</span>
+                              )}
+                            </div>
+                            <p className="text-sm whitespace-pre-wrap break-words pl-8">{msg.content}</p>
                           </div>
-                          <p className="text-sm whitespace-pre-wrap break-words pl-8">{msg.content}</p>
+
+                          {/* Inline dice roll display */}
+                          {hasDiceRoll && msgDice.type === 'attack' && (
+                            <div className={isMe ? 'ml-8' : 'mr-8'}>
+                              <DiceRollChatMessage
+                                hitDetermination={{
+                                  attackRoll: msgDice.attackRoll as any,
+                                  defenseRoll: msgDice.defenseRoll as any,
+                                  wouldHit: msgDice.hit as boolean,
+                                  gap: msgDice.gap as number,
+                                  isMentalAttack: (msgDice.isMental as boolean) || false,
+                                }}
+                                attackerName={msg.character?.name || 'Player'}
+                                defenderName="Enemy"
+                                timestamp={new Date(msg.created_at)}
+                              />
+                            </div>
+                          )}
+                          {hasDiceRoll && msgDice.type === 'defense' && (
+                            <div className={isMe ? 'ml-8' : 'mr-8'}>
+                              <div className="border rounded-lg overflow-hidden bg-background/80 border-border/60 px-3 py-2">
+                                <div className="flex items-center gap-2">
+                                  <Shield className="w-4 h-4 text-blue-400" />
+                                  <span className="text-sm font-medium">
+                                    🛡️ {(msgDice.defenseType as string) === 'dodge' ? 'Dodge' : 'Block'} Roll
+                                  </span>
+                                  {(msgDice.success as boolean) ? (
+                                    <Badge className="bg-green-500/20 text-green-400 text-xs">Defended!</Badge>
+                                  ) : (
+                                    <Badge className="bg-red-500/20 text-red-400 text-xs">Failed!</Badge>
+                                  )}
+                                  <span className="text-xs text-muted-foreground ml-auto">
+                                    Defense {(msgDice.defenseRoll as any)?.total} vs Incoming {(msgDice.incomingRoll as any)?.total}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -812,6 +898,41 @@ export default function CampaignView() {
                     <div ref={messagesEndRef} />
                   </div>
                 </ScrollArea>
+
+                {/* Status Effects Overlay on input area */}
+                {isActive && myParticipant?.is_active && campaignCombat.statusEffects.activeEffects.length > 0 && (
+                  <div className="relative mx-3">
+                    <CharacterStatusOverlay effects={campaignCombat.statusEffects.activeEffects} />
+                  </div>
+                )}
+
+                {/* Move Validation Warning */}
+                {isActive && myParticipant?.is_active && campaignCombat.combatState.pendingValidation && campaignCombat.combatState.lastMoveValidation && (
+                  <div className="px-3 pb-2 relative z-10">
+                    <MoveValidationWarning
+                      validation={campaignCombat.combatState.lastMoveValidation}
+                      characterName={myParticipant.character?.name || 'Character'}
+                      onExplain={async (explanation) => {
+                        // Send explanation to narrator for evaluation
+                        const msg = campaignCombat.acceptPendingValidation();
+                        if (msg) {
+                          setInputMessage(msg);
+                          toast.info('Move approved — you can send it now.');
+                        }
+                      }}
+                      onRedo={() => {
+                        campaignCombat.clearPendingValidation();
+                        toast.info('Redo your move.');
+                      }}
+                      onAccept={() => {
+                        const msg = campaignCombat.acceptPendingValidation();
+                        if (msg) {
+                          setInputMessage(msg);
+                        }
+                      }}
+                    />
+                  </div>
+                )}
 
                 {/* Input */}
                 {isActive && myParticipant?.is_active && (
