@@ -16,6 +16,7 @@ interface EmergencyLocation {
   countdownTurns: number;
   tags: string[];
   rarityTier?: 'grounded' | 'advanced' | 'extreme' | 'mythic';
+  urgencyTier?: 'immediate' | 'soon' | 'later';
 }
 
 interface Props {
@@ -36,6 +37,12 @@ const RARITY_STYLES: Record<string, { label: string; color: string }> = {
   advanced: { label: 'Advanced Sci-Fi', color: 'bg-blue-500/20 text-blue-400 border-blue-500/40' },
   extreme: { label: 'Extreme', color: 'bg-orange-500/20 text-orange-400 border-orange-500/40' },
   mythic: { label: 'Mythic', color: 'bg-purple-500/20 text-purple-400 border-purple-500/40' },
+};
+
+const URGENCY_STYLES: Record<string, { label: string; icon: string; color: string }> = {
+  immediate: { label: 'IMMEDIATE', icon: '🔴', color: 'bg-red-600/30 text-red-300 border-red-500/60 animate-pulse' },
+  soon: { label: 'SOON', icon: '🟠', color: 'bg-orange-500/25 text-orange-300 border-orange-500/50' },
+  later: { label: 'LATER', icon: '🟡', color: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40' },
 };
 
 export default function EmergencyLocationGenerator({
@@ -122,6 +129,10 @@ export default function EmergencyLocationGenerator({
     ? RARITY_STYLES[generatedLocation.rarityTier] || RARITY_STYLES.grounded
     : null;
 
+  const urgencyInfo = generatedLocation?.urgencyTier
+    ? URGENCY_STYLES[generatedLocation.urgencyTier] || null
+    : null;
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between p-3 rounded-lg bg-red-500/5 border border-red-500/20">
@@ -173,6 +184,11 @@ export default function EmergencyLocationGenerator({
                     <h3 className="font-bold text-base break-words min-w-0">{generatedLocation.name}</h3>
                   </div>
                   <div className="flex flex-wrap items-center gap-1.5">
+                    {urgencyInfo && (
+                      <Badge variant="outline" className={`text-[10px] font-bold ${urgencyInfo.color}`}>
+                        {urgencyInfo.icon} {urgencyInfo.label}
+                      </Badge>
+                    )}
                     {rarityInfo && (
                       <Badge variant="outline" className={`text-[10px] ${rarityInfo.color}`}>
                         {rarityInfo.label}
