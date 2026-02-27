@@ -640,11 +640,13 @@ export default function CampaignView() {
       if (charData?.personality) loreContext.personality = charData.personality;
       if (charData?.mentality) loreContext.mentality = charData.mentality;
 
-      // Fetch linked stories & groups for deeper NPC awareness
-      const [storiesRes, groupsRes, raceRes] = await Promise.all([
+      // Fetch linked stories, groups, race, and existing campaign NPCs in parallel
+      const [storiesRes, groupsRes, raceRes, npcsRes, npcRelsRes] = await Promise.all([
         supabase.from('story_characters').select('story:stories(title, summary, is_published)').eq('character_id', myParticipant.character_id),
         supabase.from('character_group_members').select('group:character_groups(name, description)').eq('character_id', myParticipant.character_id),
         charData?.race ? supabase.from('races').select('name, description, typical_abilities, cultural_traits, home_planet').eq('name', charData.race).maybeSingle() : Promise.resolve({ data: null }),
+        supabase.from('campaign_npcs').select('*').eq('campaign_id', campaign.id).eq('status', 'alive').limit(30),
+        supabase.from('npc_relationships').select('*').eq('campaign_id', campaign.id).eq('character_id', myParticipant.character_id),
       ]);
 
       const publishedStories = (storiesRes.data || [])
@@ -660,6 +662,24 @@ export default function CampaignView() {
       if (groups.length > 0) loreContext.affiliations = groups;
 
       if (raceRes.data) loreContext.speciesInfo = raceRes.data;
+
+      // Build known NPCs context for the AI
+      const knownNpcs = (npcsRes.data || []).map((npc: any) => {
+        const rel = (npcRelsRes.data || []).find((r: any) => r.npc_id === npc.id);
+        return {
+          id: npc.id,
+          name: npc.name,
+          role: npc.role,
+          personality: npc.personality,
+          appearance: npc.appearance,
+          current_zone: npc.current_zone,
+          backstory: npc.backstory,
+          disposition: rel?.disposition || 'neutral',
+          trust_level: rel?.trust_level || 0,
+          relationship_notes: rel?.notes || null,
+          last_seen_day: npc.last_seen_day,
+        };
+      });
 
       // Detect inventory-check intent
       const INVENTORY_CHECK_PATTERNS = [
@@ -705,6 +725,7 @@ export default function CampaignView() {
           // Pass dice results so narrator knows hit/miss outcomes
           ...(combatResult.narratorDiceContext || {}),
           conversationHistory,
+          knownNpcs,
         },
       });
 
@@ -794,6 +815,70 @@ export default function CampaignView() {
             channel: 'in_universe',
           });
           fetchInventory();
+        }
+
+        // Persist NPC changes from AI response
+        if (data.npcUpdates && Array.isArray(data.npcUpdates)) {
+          for (const npcUpdate of data.npcUpdates) {
+            if (npcUpdate.isNew) {
+              // Create new NPC
+              const { data: newNpc } = await supabase.from('campaign_npcs').insert({
+                campaign_id: campaign.id,
+                name: npcUpdate.name,
+                role: npcUpdate.role || 'civilian',
+                personality: npcUpdate.personality || null,
+                appearance: npcUpdate.appearance || null,
+                current_zone: campaign.current_zone,
+                backstory: npcUpdate.backstory || null,
+                first_met_day: campaign.day_count,
+                last_seen_day: campaign.day_count,
+              } as any).select().single();
+
+              // Create initial relationship
+              if (newNpc && myParticipant) {
+                await supabase.from('npc_relationships').insert({
+                  npc_id: newNpc.id,
+                  character_id: myParticipant.character_id,
+                  campaign_id: campaign.id,
+                  disposition: npcUpdate.disposition || 'neutral',
+                  trust_level: npcUpdate.trust_level || 0,
+                  notes: npcUpdate.relationship_notes || null,
+                  last_interaction_day: campaign.day_count,
+                } as any);
+              }
+            } else if (npcUpdate.id) {
+              // Update existing NPC
+              await supabase.from('campaign_npcs').update({
+                last_seen_day: campaign.day_count,
+                current_zone: npcUpdate.current_zone || campaign.current_zone,
+                status: npcUpdate.status || 'alive',
+              } as any).eq('id', npcUpdate.id);
+
+              // Update relationship
+              if (myParticipant && (npcUpdate.disposition || npcUpdate.trust_change)) {
+                const existingRel = (npcRelsRes.data || []).find((r: any) => r.npc_id === npcUpdate.id);
+                if (existingRel) {
+                  const newTrust = Math.max(-100, Math.min(100, (existingRel.trust_level || 0) + (npcUpdate.trust_change || 0)));
+                  await supabase.from('npc_relationships').update({
+                    disposition: npcUpdate.disposition || existingRel.disposition,
+                    trust_level: newTrust,
+                    notes: npcUpdate.relationship_notes || existingRel.notes,
+                    last_interaction_day: campaign.day_count,
+                  } as any).eq('id', existingRel.id);
+                } else {
+                  await supabase.from('npc_relationships').insert({
+                    npc_id: npcUpdate.id,
+                    character_id: myParticipant.character_id,
+                    campaign_id: campaign.id,
+                    disposition: npcUpdate.disposition || 'neutral',
+                    trust_level: npcUpdate.trust_change || 0,
+                    notes: npcUpdate.relationship_notes || null,
+                    last_interaction_day: campaign.day_count,
+                  } as any);
+                }
+              }
+            }
+          }
         }
 
         // Inline bag bubble when player checked inventory

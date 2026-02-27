@@ -889,6 +889,7 @@ async function handleCampaignNarration(
     diceResult,
     defenseResult,
     conversationHistory,
+    knownNpcs,
   } = body;
 
   // Build conversation history as multi-turn messages for AI continuity
@@ -1011,8 +1012,33 @@ OUTPUT FORMAT (JSON):
   "advanceTime": <number 0-2, how many time periods to advance>,
   "newZone": <string or null if zone changes>,
   "encounterType": <"combat"|"social"|"exploration"|"rest"|null>,
-  "itemsFound": [{"name": "item name", "type": "weapon|armor|potion|artifact|gem|misc", "rarity": "common|uncommon|rare|epic|legendary", "description": "brief description", "statBonus": {"stat": value}}] or [] if no items found
+  "itemsFound": [{"name": "item name", "type": "weapon|armor|potion|artifact|gem|misc", "rarity": "common|uncommon|rare|epic|legendary", "description": "brief description", "statBonus": {"stat": value}}] or [] if no items found,
+  "npcUpdates": [
+    {
+      "isNew": true/false,
+      "id": "existing NPC id (only if isNew is false)",
+      "name": "NPC name",
+      "role": "merchant|guard|innkeeper|civilian|quest_giver|enemy|ally|etc",
+      "personality": "brief personality description",
+      "appearance": "brief physical description",
+      "backstory": "one-line backstory if new",
+      "disposition": "friendly|neutral|wary|hostile|fearful|admiring",
+      "trust_change": <number -10 to +10, how much trust changed this interaction>,
+      "relationship_notes": "brief note about the interaction",
+      "current_zone": "zone they're in now (if they moved)",
+      "status": "alive|dead|departed|missing"
+    }
+  ] or [] if no NPC interactions
 }
+
+NPC PERSISTENCE RULES:
+- When NPCs appear in your narration, include them in npcUpdates so they persist.
+- For NEW named NPCs (shopkeepers, guards, strangers the player talks to), set isNew: true and give them a name, role, and personality.
+- For EXISTING NPCs (listed in KNOWN NPCs below), set isNew: false and include their id.
+- Update trust_change based on how the interaction went: positive for friendly exchanges, negative for hostility/rudeness.
+- Only include NPCs who actually appeared or were affected in this interaction.
+- Give NPCs memorable personalities — quirks, speech patterns, attitudes. Make them feel real.
+- NPCs should remember past interactions based on their relationship data.
 
 ITEMS & LOOT:
 - When players explore, fight, trade, or search, you MAY reward them with items.
@@ -1020,6 +1046,13 @@ ITEMS & LOOT:
 - Rarity should scale with difficulty and campaign level. Early levels = mostly common/uncommon.
 - Don't give items every turn — roughly 1 in 3-4 actions should yield loot, depending on context.
 - If the player explicitly searches or loots, they should usually find something.
+
+KNOWN NPCs IN THIS CAMPAIGN:
+${Array.isArray(knownNpcs) && knownNpcs.length > 0
+  ? knownNpcs.map((npc: any) => `- ${npc.name} (${npc.role}): ${npc.personality || 'No personality set'}. Disposition toward player: ${npc.disposition} (trust: ${npc.trust_level}). Zone: ${npc.current_zone || 'unknown'}. ${npc.relationship_notes ? 'Notes: ' + npc.relationship_notes : ''}`).join('\n')
+  : 'No NPCs met yet. Create new ones naturally as the player interacts with the world.'}
+
+When writing dialogue for KNOWN NPCs, stay consistent with their established personality and relationship. An NPC who is "hostile" should not suddenly be friendly without reason.
 
 CONTEXT:
 Zone: ${currentZone}
@@ -1094,6 +1127,7 @@ Respond as the WORLD — let NPCs speak, environments react, and consequences un
         newZone: typeof parsed.newZone === 'string' ? parsed.newZone : null,
         encounterType: parsed.encounterType || null,
         itemsFound: Array.isArray(parsed.itemsFound) ? parsed.itemsFound : [],
+        npcUpdates: Array.isArray(parsed.npcUpdates) ? parsed.npcUpdates : [],
       }),
       { headers: { ...cors, "Content-Type": "application/json" } }
     );
