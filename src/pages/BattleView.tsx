@@ -95,6 +95,7 @@ import PrivateNarratorChat, { type MechanicDiscoveryMessage } from '@/components
 import { type StatModification } from '@/components/battles/StatModificationPanel';
 import { discoverMechanic, type MechanicKey } from '@/lib/mechanic-discovery';
 import { useBattleSfx } from '@/hooks/use-battle-sfx';
+import { useAmbientSound } from '@/hooks/use-ambient-sound';
 import { getDominantPsychCue } from '@/lib/battle-psychology';
 import { interpretMove } from '@/lib/intent-interpreter';
 import { applyHardClamp, generateClampContext, type CharacterProfile, type ClampResult } from '@/lib/hard-clamp';
@@ -382,6 +383,11 @@ export default function BattleView() {
 
   // Battle SFX
   const { playEvent: playSfxEvent, muted: sfxMuted, toggleMute: toggleSfxMute, processText: processSfxText } = useBattleSfx();
+  // Ambient environment sounds
+  const { muted: ambientMuted, toggleMute: toggleAmbientMute } = useAmbientSound({
+    enabled: battle?.status === 'active',
+    location: battle?.chosen_location,
+  });
   useEffect(() => {
     if (battle?.chosen_location && battle?.dynamic_environment) {
       const env = generateBattleEnvironment(battle.chosen_location, null, null);
@@ -2259,7 +2265,10 @@ export default function BattleView() {
       {/* SFX Toggle (minimal) */}
       {battle.status === 'active' && userCharacter?.character && (
         <div className="flex justify-end">
-          <SfxToggle muted={sfxMuted} onToggle={toggleSfxMute} />
+          <div className="flex items-center gap-1">
+            <SfxToggle muted={sfxMuted} onToggle={toggleSfxMute} />
+            <SfxToggle muted={ambientMuted} onToggle={toggleAmbientMute} />
+          </div>
         </div>
       )}
 

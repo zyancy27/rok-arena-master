@@ -15,10 +15,13 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Compass, Heart, LogOut, MapPin, Play, Send,
   Shield, Swords, Users, Zap, Clock, Sun, Moon, Backpack,
+  Volume2, VolumeX,
 } from 'lucide-react';
 import type { Campaign, CampaignParticipant, CampaignMessage } from '@/lib/campaign-types';
 import { getTimeEmoji, CAMPAIGN_STARTING_ABILITIES, XP_REWARDS, advanceTime } from '@/lib/campaign-types';
 import CampaignInventoryPanel, { type InventoryItem } from '@/components/campaigns/CampaignInventoryPanel';
+import CampaignEndDialog from '@/components/campaigns/CampaignEndDialog';
+import { useAmbientSound } from '@/hooks/use-ambient-sound';
 
 export default function CampaignView() {
   const { id: campaignId } = useParams<{ id: string }>();
@@ -34,6 +37,12 @@ export default function CampaignView() {
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+
+  // Ambient environment sounds for campaign
+  const { muted: ambientMuted, toggleMute: toggleAmbientMute } = useAmbientSound({
+    enabled: campaign?.status === 'active',
+    location: campaign?.current_zone,
+  });
 
   // Join dialog
   const [characters, setCharacters] = useState<{ id: string; name: string; level: number; image_url: string | null }[]>([]);
@@ -422,9 +431,16 @@ export default function CampaignView() {
             </div>
           </div>
         </div>
-        <Badge className={campaign.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}>
-          {campaign.status}
-        </Badge>
+        <div className="flex items-center gap-2">
+          {isActive && (
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleAmbientMute} title={ambientMuted ? 'Unmute ambient' : 'Mute ambient'}>
+              {ambientMuted ? <VolumeX className="w-4 h-4 text-muted-foreground" /> : <Volume2 className="w-4 h-4 text-primary" />}
+            </Button>
+          )}
+          <Badge className={campaign.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}>
+            {campaign.status}
+          </Badge>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
@@ -512,6 +528,15 @@ export default function CampaignView() {
               <Button variant="ghost" size="sm" className="w-full text-destructive gap-1" onClick={handleLeave}>
                 <LogOut className="w-3 h-3" /> Leave Party
               </Button>
+            )}
+
+            {/* End Campaign */}
+            {isCreator && isActive && myParticipant && (
+              <CampaignEndDialog
+                campaign={campaign}
+                participant={myParticipant}
+                onComplete={() => { fetchCampaign(); fetchParticipants(); }}
+              />
             )}
           </CardContent>
         </Card>

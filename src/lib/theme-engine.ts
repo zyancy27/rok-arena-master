@@ -311,7 +311,11 @@ const BACKGROUND_BLOCKS: Partial<Record<EnvironmentTag, BackgroundLayer[]>> = {
 /** Overlay CSS class modules mapped by tag */
 const OVERLAY_BLOCKS: Partial<Record<EnvironmentTag, OverlayModule[]>> = {
   lava: [{ className: 'env-lava-glow', zOrder: 1 }],
-  underwater: [{ className: 'env-underwater-caustics', zOrder: 1 }],
+  underwater: [
+    { className: 'env-underwater-caustics', zOrder: 1 },
+    { className: 'env-underwater-ripple', zOrder: 2 },
+    { className: 'env-underwater-bubbles', zOrder: 3 },
+  ],
   sky: [{ className: 'env-wind-streaks', zOrder: 1 }],
   space: [{ className: 'env-stars', zOrder: 1 }],
   blizzard: [
@@ -321,7 +325,11 @@ const OVERLAY_BLOCKS: Partial<Record<EnvironmentTag, OverlayModule[]>> = {
   desert: [{ className: 'env-heat-shimmer', zOrder: 1 }],
   crystal: [{ className: 'env-crystal-glint', zOrder: 1 }],
   void: [{ className: 'env-void-distortion', zOrder: 1 }],
-  storm: [{ className: 'env-storm-rain', zOrder: 1 }],
+  storm: [
+    { className: 'env-storm-rain', zOrder: 1 },
+    { className: 'env-storm-lightning-flash', zOrder: 2 },
+    { className: 'env-storm-fog', zOrder: 3 },
+  ],
   cyberpunk: [
     { className: 'env-neon-flicker', zOrder: 1 },
     { className: 'env-scan-lines', zOrder: 2 },
@@ -343,6 +351,15 @@ const OVERLAY_BLOCKS: Partial<Record<EnvironmentTag, OverlayModule[]>> = {
   inferno: [
     { className: 'env-lava-glow', zOrder: 1 },
     { className: 'env-inferno-embers', zOrder: 2 },
+  ],
+  forest: [
+    { className: 'env-forest-leaves', zOrder: 1 },
+    { className: 'env-forest-branches', zOrder: 2 },
+    { className: 'env-forest-pollen', zOrder: 3 },
+  ],
+  ruins: [
+    { className: 'env-ruins-dust', zOrder: 1 },
+    { className: 'env-ruins-flicker', zOrder: 2 },
   ],
   'underwater-volcano': [
     { className: 'env-underwater-caustics', zOrder: 1 },
@@ -374,7 +391,10 @@ const OVERLAY_BLOCKS: Partial<Record<EnvironmentTag, OverlayModule[]>> = {
   neon: [{ className: 'env-neon-flicker', zOrder: 1 }],
   cosmic: [{ className: 'env-stars', zOrder: 1 }],
   emergency: [{ className: 'env-emergency-pulse', zOrder: 3 }],
-  tremor: [{ className: 'env-tremor-shake', zOrder: 3 }],
+  tremor: [
+    { className: 'env-tremor-shake', zOrder: 3 },
+    { className: 'env-ruins-dust', zOrder: 2 },
+  ],
 };
 
 /** Ambient glow (box-shadow) per tag */
