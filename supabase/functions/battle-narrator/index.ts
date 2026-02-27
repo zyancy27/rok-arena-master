@@ -69,6 +69,14 @@ interface NarratorRequest {
     gap: number;
     isMental: boolean;
   };
+  /** Defense roll result — determines whether a defensive action succeeds */
+  defenseResult?: {
+    success: boolean;
+    defenseTotal: number;
+    incomingTotal: number;
+    gap: number;
+    defenseType: 'block' | 'dodge';
+  };
 }
 
 interface EnvironmentalEffect {
@@ -198,6 +206,7 @@ serve(async (req) => {
       playerArenaDetails,
       fairnessContext,
       diceResult,
+      defenseResult,
     }: NarratorRequest = requestBody;
 
     // Validate required fields
@@ -273,8 +282,17 @@ Be clear about how these effects change the battlefield (visibility, footing, br
       : '';
 
     // Dice result context — tells narrator the actual outcome
-    const diceInstructions = diceResult
-      ? diceResult.hit
+    let diceInstructions = '';
+    if (defenseResult) {
+      // DEFENSIVE action resolution
+      diceInstructions = defenseResult.success
+        ? `\n\nDICE RESULT: DEFENSE SUCCESS (${defenseResult.defenseType === 'dodge' ? 'Evasion' : 'Block'} ${defenseResult.defenseTotal} vs Incoming ${defenseResult.incomingTotal}, Gap: ${defenseResult.gap})
+The player's ${defenseResult.defenseType} works as they described. Continue your normal narrator role. Do NOT alter their defensive action.`
+        : `\n\nCRITICAL — DICE RESULT: DEFENSE FAILED (${defenseResult.defenseType === 'dodge' ? 'Evasion' : 'Block'} ${defenseResult.defenseTotal} vs Incoming ${defenseResult.incomingTotal}, Gap: ${Math.abs(defenseResult.gap)})
+The player tried to ${defenseResult.defenseType} but the dice say it FAILS. You MUST describe how the defense breaks down — the block crumbles, the dodge is too slow, the parry is overpowered. Describe the hit landing despite the attempt.
+Gap of ${Math.abs(defenseResult.gap)}: ${Math.abs(defenseResult.gap) <= 2 ? 'barely failed — almost worked' : Math.abs(defenseResult.gap) <= 5 ? 'clearly overpowered' : 'completely overwhelmed'}.`;
+    } else if (diceResult) {
+      diceInstructions = diceResult.hit
         ? `\n\nDICE RESULT: HIT (Attack ${diceResult.attackTotal} vs Defense ${diceResult.defenseTotal}, Gap: ${diceResult.gap})
 The attack landed as the player described. You do NOT need to alter or reinterpret their action.
 Continue your normal narrator role based on the user's frequency setting — observe the battle, note environmental changes, comment on noteworthy moments. Do not re-describe what the player already wrote unless adding environmental or atmospheric context.`
@@ -283,37 +301,40 @@ Type: ${diceResult.isMental ? 'Mental/psychic attack' : 'Physical attack'}
 
 The player INTENDED to hit, but the dice say the attack MISSES. You MUST describe how the attack fails — a dodge, a near-miss, the attacker overextending, the strike going wide. Do NOT describe the attack landing.
 The gap of ${Math.abs(diceResult.gap)} indicates how narrowly it missed — small gap = very close call, large gap = clearly dodged.
-Even if the player wrote "I punch you in the face" as if it landed, the dice say otherwise. Narrate the miss.`
-      : '';
+Even if the player wrote "I punch you in the face" as if it landed, the dice say otherwise. Narrate the miss.`;
+    }
 
     const systemPrompt = `You are an invisible narrator observing a battle. You describe what happens in plain, clear language that anyone can understand.
 
 IMPORTANT — INTENT vs OUTCOME:
-Player messages describe what they INTEND to do, not what actually happens. The dice system determines whether attacks land.
-- If the dice say HIT: the player's described action plays out as written. You continue your normal narrator role — observe, comment on the atmosphere, note environmental changes. Do NOT re-describe the hit.
-- If the dice say MISS: you MUST describe how the attack fails. This is the one time you override what the player wrote.
-- If there is no dice result: this was not a direct offensive action. Narrate normally per your frequency setting.
+Player messages describe what they INTEND to do, not what actually happens. The dice system determines whether attacks AND defenses succeed.
+- If the dice say HIT or DEFENSE SUCCESS: the player's described action plays out as written. You continue your normal narrator role.
+- If the dice say MISS: you MUST describe how the attack fails.
+- If the dice say DEFENSE FAILED: you MUST describe how the defense breaks and the hit lands despite the attempt.
+- If there is no dice result: this was not a combat action. Narrate normally per your frequency setting.
 
 ${frequencyInstructions}${envInstructions}${fairnessInstructions}${diceInstructions}
 
 STYLE:
-- 1-2 sentences normally, up to 3 if describing a dramatic miss or major environmental changes
+- 1-2 sentences normally, up to 3 if describing a dramatic miss/failed defense or major environmental changes
 - Use simple, direct language. No flowery vocabulary or overly poetic phrasing.
 - Write like you're telling a friend what just happened — clear, punchy, easy to follow.
 - Avoid fancy words when simple ones work. Say "hit" not "struck with devastating force." Say "moved" not "traversed."
 - No exclamations. No hype commentary. Just observation.
 - For environmental effects: be PRACTICAL — tell the defender what changed in plain terms.
-- When a dice result says MISS, focus on describing the miss creatively — don't just say "it missed."
 
-EXAMPLES (miss):
+EXAMPLES (attack miss):
 "${opponent.name} moved just in time. Close one."
 "The strike went wide — ${userCharacter.name} overcommitted."
-"${opponent.name} slipped under it. Barely."
+
+EXAMPLES (defense failed):
+"${userCharacter.name} tried to block, but the force pushed right through."
+"The dodge was a half-step too slow. That one connected."
+"${userCharacter.name} got the arms up, but it wasn't enough."
 
 EXAMPLES (no dice — normal observation):
 "Dust still floating where ${userCharacter.name} was standing."
-"There's a crack in the stone now."
-"Smoke fills the area. ${opponent.name} can barely see a few feet ahead."`;
+"There's a crack in the stone now."`;
 
     // Distance context for narrator
     const distanceContext = currentDistance 

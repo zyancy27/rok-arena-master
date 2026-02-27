@@ -37,6 +37,7 @@ import { validateMove, isMentalAttack, detectAreaDamage, type MoveValidationResu
 import { 
   determineHit, 
   determineMentalHit, 
+  determineDefenseSuccess,
   detectMovementInAction,
   updateDistance,
   isAttackValidForDistance,
@@ -48,6 +49,7 @@ import {
   detectConstructCreation,
   detectConstructAttack,
   type HitDetermination, 
+  type DefenseDetermination,
   type ConcentrationResult,
   type DistanceState,
   type DistanceZone,
@@ -1342,12 +1344,75 @@ export default function BattleView() {
       });
     }
 
-    // Use the adaptive hit detection parser to determine if this is an offensive action
+    // Use the adaptive hit detection parser to determine if this is an offensive or defensive action
     const hitDetection = detectDirectInteraction(moveText);
+
+    // === DEFENSIVE ACTION RESOLUTION ===
+    if (hitDetection.shouldTriggerDefenseCheck && !hitDetection.shouldTriggerHitCheck) {
+      const defenderChar = userCharacter.character;
+      const opponent = participants.find(p => p.character_id !== userCharacter.character_id);
+      if (!opponent?.character) return;
+
+      const defenderStats: CharacterStats = {
+        stat_intelligence: defenderChar.stat_intelligence ?? 50,
+        stat_battle_iq: defenderChar.stat_battle_iq ?? 50,
+        stat_strength: defenderChar.stat_strength ?? 50,
+        stat_power: defenderChar.stat_power ?? 50,
+        stat_speed: defenderChar.stat_speed ?? 50,
+        stat_durability: defenderChar.stat_durability ?? 50,
+        stat_stamina: defenderChar.stat_stamina ?? 50,
+        stat_skill: defenderChar.stat_skill ?? 50,
+        stat_luck: defenderChar.stat_luck ?? 50,
+      };
+
+      const attackerStats: CharacterStats = {
+        stat_intelligence: opponent.character.stat_intelligence ?? 50,
+        stat_battle_iq: opponent.character.stat_battle_iq ?? 50,
+        stat_strength: opponent.character.stat_strength ?? 50,
+        stat_power: opponent.character.stat_power ?? 50,
+        stat_speed: opponent.character.stat_speed ?? 50,
+        stat_durability: opponent.character.stat_durability ?? 50,
+        stat_stamina: opponent.character.stat_stamina ?? 50,
+        stat_skill: opponent.character.stat_skill ?? 50,
+        stat_luck: opponent.character.stat_luck ?? 50,
+      };
+
+      const defenseType = hitDetection.intent === 'dodge' ? 'dodge' : 'block';
+      const defPenalty = statPenalties[defenderChar.id] ?? 0;
+      const defResult = determineDefenseSuccess(
+        defenderStats, defenderChar.level,
+        attackerStats, opponent.character.level,
+        defenseType, defPenalty,
+      );
+
+      // Post defense result as OOC
+      if (defResult.defenseSuccess) {
+        supabase.from('battle_messages').insert({
+          battle_id: id,
+          character_id: userCharacter.character_id,
+          content: `🛡️ **Defense Roll**: ${defenseType === 'dodge' ? 'Evasion' : 'Block'} ${defResult.defenseRoll.total} vs Incoming ${defResult.incomingAttackPotency.total} — ✅ ${defenseType === 'dodge' ? 'DODGED' : 'BLOCKED'}! (Gap: ${defResult.gap})`,
+          channel: 'out_of_universe',
+        });
+        playSfxEvent('hit_light');
+      } else {
+        supabase.from('battle_messages').insert({
+          battle_id: id,
+          character_id: userCharacter.character_id,
+          content: `🛡️ **Defense Roll**: ${defenseType === 'dodge' ? 'Evasion' : 'Block'} ${defResult.defenseRoll.total} vs Incoming ${defResult.incomingAttackPotency.total} — ❌ ${defenseType === 'dodge' ? 'DODGE FAILED' : 'BLOCK FAILED'}! (Gap: ${Math.abs(defResult.gap)})`,
+          channel: 'out_of_universe',
+        });
+        playSfxEvent('hit_heavy');
+      }
+
+      return;
+    }
+
+    // === OFFENSIVE ACTION RESOLUTION ===
     if (!hitDetection.shouldTriggerHitCheck) return;
 
     const attackerChar = userCharacter.character;
-    const defenderChar = opponent.character;
+    const defenderChar = participants.find(p => p.character_id !== userCharacter.character_id)?.character;
+    if (!defenderChar) return;
 
     // Build stats objects with defaults, applying any active stat modifications
     const applyMods = (base: CharacterStats): CharacterStats => {

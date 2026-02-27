@@ -202,6 +202,8 @@ export interface HitDetectionResult {
   hasTarget: boolean;
   /** Should we trigger the dice/hit-check workflow? */
   shouldTriggerHitCheck: boolean;
+  /** Should we trigger defense resolution? */
+  shouldTriggerDefenseCheck: boolean;
   /** Confidence 0-1 */
   confidence: number;
   /** Reasons hit check was suppressed (for debugging) */
@@ -301,21 +303,27 @@ export function detectDirectInteraction(actionText: string): HitDetectionResult 
 
   // ─── Trigger decision ──────────────────────────────────────────
   let shouldTriggerHitCheck = false;
+  let shouldTriggerDefenseCheck = false;
+
+  const isDefensiveIntent = primaryIntent === 'block' || primaryIntent === 'dodge';
 
   if (isPast) {
     // Never trigger for memories / flashbacks
     shouldTriggerHitCheck = false;
+    shouldTriggerDefenseCheck = false;
   } else if (isOffensiveIntent && hasTarget && confidence >= 0.5) {
-    // Strong signal: offensive verb + explicit target + decent confidence
     shouldTriggerHitCheck = true;
   } else if (isOffensiveIntent && verbCount >= 2 && confidence >= 0.6) {
-    // Multiple offensive verbs without explicit target but high confidence
     shouldTriggerHitCheck = true;
+  } else if (isDefensiveIntent && confidence >= 0.4) {
+    // Defensive actions need lower threshold — player is responding to an incoming attack
+    shouldTriggerDefenseCheck = true;
   }
 
   // If all matched verbs were suppressed, don't trigger
   if (matchedVerbs.length === 0 && suppressionReasons.length > 0) {
     shouldTriggerHitCheck = false;
+    shouldTriggerDefenseCheck = false;
   }
 
   return {
@@ -325,6 +333,7 @@ export function detectDirectInteraction(actionText: string): HitDetectionResult 
     isRanged,
     hasTarget,
     shouldTriggerHitCheck,
+    shouldTriggerDefenseCheck,
     confidence,
     suppressionReasons: suppressionReasons.length > 0 ? suppressionReasons : undefined,
   };

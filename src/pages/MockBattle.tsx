@@ -21,6 +21,7 @@ import { generatePhysicsContext, generateSkillContext, shouldTriggerSkillMishap,
 import {
   determineHit,
   determineMentalHit,
+  determineDefenseSuccess,
   initializeBattleState,
   useConcentration,
   useOffensiveConcentration,
@@ -34,6 +35,7 @@ import {
   detectConstructCreation,
   detectConstructAttack,
   type HitDetermination,
+  type DefenseDetermination,
   type ConcentrationResult,
   type OffensiveConcentrationResult,
   type BattleState,
@@ -2427,9 +2429,42 @@ export default function MockBattle() {
       skillEventNote = '\n\n[CRITICAL SUCCESS: The user executed their technique with exceptional precision! Describe an impressive or unexpected positive outcome!]';
     }
 
-    // Roll dice for the player's attack against the AI opponent — only if hit detection triggered
+    // Roll dice for the player's action — attack or defense resolution
     let playerAttackContext = '';
     let playerDiceResult: { hit: boolean; attackTotal: number; defenseTotal: number; gap: number; isMental: boolean } | null = null;
+
+    // === DEFENSIVE ACTION RESOLUTION ===
+    if (diceEnabled && activeChannel === 'in_universe' && currentOpponent && turnNumber > 0
+        && hitDetection?.shouldTriggerDefenseCheck && !hitDetection?.shouldTriggerHitCheck) {
+      const playerStats = getCharacterStats(selectedCharacter);
+      const opponentAttackStats = getOpponentStats(currentOpponent);
+      const defenseType = hitDetection.intent === 'dodge' ? 'dodge' as const : 'block' as const;
+
+      const defResult = determineDefenseSuccess(
+        playerStats, selectedCharacter.level,
+        opponentAttackStats, currentOpponent.level,
+        defenseType, 0,
+      );
+
+      // Build dice result for narrator (reuse same shape — defense success means the "attack" on them missed)
+      playerDiceResult = {
+        hit: !defResult.defenseSuccess, // From narrator POV: if defense fails, the attack "hit"
+        attackTotal: defResult.incomingAttackPotency.total,
+        defenseTotal: defResult.defenseRoll.total,
+        gap: defResult.gap,
+        isMental: false,
+      };
+
+      if (defResult.defenseSuccess) {
+        playerAttackContext = `\n\n[DEFENSE ROLL: ${selectedCharacter.name}'s ${defenseType} roll ${defResult.defenseRoll.total} vs incoming attack ${defResult.incomingAttackPotency.total}. Defense SUCCEEDS! The ${defenseType} works as intended. Narrate ${currentOpponent.name}'s attack being ${defenseType === 'dodge' ? 'evaded' : 'blocked'} and ${currentOpponent.name} should respond accordingly.]`;
+        playSfxEvent('hit_light');
+      } else {
+        playerAttackContext = `\n\n[DEFENSE ROLL: ${selectedCharacter.name}'s ${defenseType} roll ${defResult.defenseRoll.total} vs incoming attack ${defResult.incomingAttackPotency.total}. Defense FAILS! The ${defenseType} doesn't work — ${selectedCharacter.name} takes the hit despite trying to ${defenseType}. Narrate the failed defense and damage taken.]`;
+        playSfxEvent('hit_heavy');
+      }
+    }
+
+    // === OFFENSIVE ACTION RESOLUTION ===
     if (diceEnabled && activeChannel === 'in_universe' && currentOpponent && turnNumber > 0 && hitDetection?.shouldTriggerHitCheck) {
       const playerStats = getCharacterStats(selectedCharacter);
       const opponentDefenseStats = getOpponentStats(currentOpponent);
