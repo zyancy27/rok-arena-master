@@ -894,8 +894,16 @@ OUTPUT FORMAT (JSON):
   "hpChange": <number, negative for damage, positive for healing, 0 for none>,
   "advanceTime": <number 0-2, how many time periods to advance>,
   "newZone": <string or null if zone changes>,
-  "encounterType": <"combat"|"social"|"exploration"|"rest"|null>
+  "encounterType": <"combat"|"social"|"exploration"|"rest"|null>,
+  "itemsFound": [{"name": "item name", "type": "weapon|armor|potion|artifact|gem|misc", "rarity": "common|uncommon|rare|epic|legendary", "description": "brief description", "statBonus": {"stat": value}}] or [] if no items found
 }
+
+ITEMS & LOOT:
+- When players explore, fight, trade, or search, you MAY reward them with items.
+- Items should fit the narrative context (a cave might have gems, a defeated guard might drop a weapon).
+- Rarity should scale with difficulty and campaign level. Early levels = mostly common/uncommon.
+- Don't give items every turn — roughly 1 in 3-4 actions should yield loot, depending on context.
+- If the player explicitly searches or loots, they should usually find something.
 
 CONTEXT:
 Zone: ${currentZone}
@@ -904,13 +912,16 @@ Campaign: ${campaignDescription || 'An ongoing adventure'}
 World State: ${JSON.stringify(worldState || {})}
 Story Context: ${JSON.stringify(storyContext || {})}`;
 
-  const itemsInfo = playerCharacter.weaponsItems ? `\nEquipped Items: ${playerCharacter.weaponsItems}` : '';
+  const itemsInfo = playerCharacter.weaponsItems ? `\nCharacter's Items (from sheet): ${playerCharacter.weaponsItems}` : '';
+  const equippedCampaignItems = playerCharacter.equippedCampaignItems && playerCharacter.equippedCampaignItems.length > 0
+    ? `\nCurrently Equipped Campaign Items: ${playerCharacter.equippedCampaignItems.map((i: any) => `${i.item_name} (${i.item_rarity} ${i.item_type}${i.description ? ' — ' + i.description : ''})`).join(', ')}`
+    : '';
 
-  const userMessage = `${playerCharacter.name} (Campaign Lv.${playerCharacter.campaignLevel}, HP: ${playerCharacter.hp}/${playerCharacter.hpMax}, Original Tier: ${playerCharacter.originalLevel}) acts:${itemsInfo}
+  const userMessage = `${playerCharacter.name} (Campaign Lv.${playerCharacter.campaignLevel}, HP: ${playerCharacter.hp}/${playerCharacter.hpMax}, Original Tier: ${playerCharacter.originalLevel}) acts:${itemsInfo}${equippedCampaignItems}
 
 "${playerAction}"
 
-Narrate the world's response. Remember: freedom-first, no railroading, scale appropriately. If the character uses an equipped item, reference it naturally in the narration.`;
+Narrate the world's response. Remember: freedom-first, no railroading, scale appropriately. If the character uses an equipped item, reference it naturally in the narration. You may reward items if the action warrants it.`;
 
   try {
     const response = await fetch("https://api.lovable.dev/v1/chat/completions", {
@@ -960,6 +971,7 @@ Narrate the world's response. Remember: freedom-first, no railroading, scale app
         advanceTime: typeof parsed.advanceTime === 'number' ? Math.max(0, Math.min(2, Math.floor(parsed.advanceTime))) : 0,
         newZone: typeof parsed.newZone === 'string' ? parsed.newZone : null,
         encounterType: parsed.encounterType || null,
+        itemsFound: Array.isArray(parsed.itemsFound) ? parsed.itemsFound : [],
       }),
       { headers: { ...cors, "Content-Type": "application/json" } }
     );
