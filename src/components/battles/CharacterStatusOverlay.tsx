@@ -70,6 +70,20 @@ const CloudIcon = ({ className, style }: { className?: string; style?: React.CSS
   </svg>
 );
 
+// Feather for aerial debris
+const FeatherIcon = ({ className, style }: { className?: string; style?: React.CSSProperties }) => (
+  <svg className={className} style={style} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M20 7c0-4-4-4-4-4s0 4-4 8-4 8-4 8h3l1-4 2 4h2l-1-4c3-1 5-5 5-8zM6.5 12L5 10l-3 3h3l1.5 2L8 12H6.5z"/>
+  </svg>
+);
+
+// Wind gust line
+const WindLine = ({ className, style }: { className?: string; style?: React.CSSProperties }) => (
+  <svg className={className} style={style} viewBox="0 0 80 8" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+    <path d="M0 4 Q20 0 40 4 Q60 8 80 4" />
+  </svg>
+);
+
 // Blood drop for bleeding
 const BloodDrop = ({ className, style }: { className?: string; style?: React.CSSProperties }) => (
   <svg className={className} style={style} viewBox="0 0 24 24" fill="currentColor">
@@ -299,24 +313,102 @@ const EffectOverlay = memo(({ effect }: { effect: CharacterStatusEffect }) => {
 
     case 'aerial':
       return (
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {/* Sky-blue tint */}
-          <div className="absolute inset-0 bg-gradient-to-b from-sky-400/10 to-transparent" />
+        <div className="absolute inset-0 pointer-events-none overflow-hidden animate-[aerialBob_3s_ease-in-out_infinite]">
+          {/* Sky gradient – deeper at top for altitude feel */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `linear-gradient(to bottom,
+                hsl(200 80% 70% / ${0.15 * intensityMultiplier}) 0%,
+                hsl(200 60% 85% / ${0.08 * intensityMultiplier}) 50%,
+                transparent 100%)`,
+            }}
+          />
+
           {/* Drifting clouds */}
           {[...Array(Math.floor(3 * intensityMultiplier))].map((_, i) => (
             <CloudIcon
-              key={i}
-              className="absolute w-12 h-8 text-white/30 animate-[cloudDrift_8s_linear_infinite]"
+              key={`cloud-${i}`}
+              className="absolute w-14 h-9 text-white/25 animate-[cloudDrift_8s_linear_infinite]"
               style={{
-                top: `${15 + (i * 25)}%`,
-                left: `-15%`,
+                top: `${10 + i * 28}%`,
+                left: '-18%',
                 animationDelay: `${i * 2.5}s`,
                 animationDuration: `${7 + i * 2}s`,
               }}
             />
           ))}
-          {/* Gentle floating motion indicator */}
-          <div className="absolute inset-0 animate-[gentleFloat_3s_ease-in-out_infinite]" />
+
+          {/* Horizontal wind streaks */}
+          {[...Array(Math.floor(4 * intensityMultiplier))].map((_, i) => (
+            <WindLine
+              key={`wind-${i}`}
+              className="absolute text-sky-300/20 animate-[windStreak_2s_linear_infinite]"
+              style={{
+                width: `${50 + i * 10}px`,
+                top: `${15 + i * 18}%`,
+                left: '-60px',
+                animationDelay: `${i * 0.6}s`,
+                animationDuration: `${1.5 + i * 0.4}s`,
+              }}
+            />
+          ))}
+
+          {/* Feather / debris particles */}
+          {[...Array(Math.floor(2 * intensityMultiplier))].map((_, i) => (
+            <FeatherIcon
+              key={`feather-${i}`}
+              className="absolute w-4 h-4 text-white/20 animate-[featherDrift_5s_ease-in-out_infinite]"
+              style={{
+                top: `${20 + i * 35}%`,
+                right: '-16px',
+                animationDelay: `${i * 2}s`,
+                animationDuration: `${4 + i * 1.5}s`,
+              }}
+            />
+          ))}
+
+          {/* Altitude indicator lines – faint horizontal dashes */}
+          <div className="absolute inset-0 opacity-[0.06]" style={{
+            background: `repeating-linear-gradient(
+              0deg,
+              transparent,
+              transparent 18px,
+              hsl(200 60% 80%) 18px,
+              hsl(200 60% 80%) 19px
+            )`,
+            animationName: 'altitudeScroll',
+            animationDuration: '4s',
+            animationTimingFunction: 'linear',
+            animationIterationCount: 'infinite',
+          }} />
+
+          {/* Upward particle motes (dust / pollen caught in updraft) */}
+          {[...Array(Math.floor(5 * intensityMultiplier))].map((_, i) => (
+            <div
+              key={`mote-${i}`}
+              className="absolute rounded-full animate-[aerialMoteRise_3s_ease-out_infinite]"
+              style={{
+                width: `${2 + (i % 3)}px`,
+                height: `${2 + (i % 3)}px`,
+                background: `hsl(200 40% 80% / ${0.3 + (i % 3) * 0.1})`,
+                left: `${10 + i * 17}%`,
+                bottom: '-4px',
+                animationDelay: `${i * 0.5}s`,
+                animationDuration: `${2.5 + (i % 3) * 0.5}s`,
+              }}
+            />
+          ))}
+
+          {/* Subtle inner glow for severe */}
+          {effect.intensity === 'severe' && (
+            <div
+              className="absolute inset-0 animate-[pulse_4s_ease-in-out_infinite]"
+              style={{
+                boxShadow: 'inset 0 -8px 20px hsl(200 70% 70% / 0.15), inset 0 8px 20px hsl(200 80% 85% / 0.1)',
+              }}
+            />
+          )}
         </div>
       );
 

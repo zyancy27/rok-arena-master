@@ -550,14 +550,47 @@
 
   /* Cloud drift for aerial status */
   @keyframes cloudDrift {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(200%); }
+    0% { transform: translateX(-100%); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateX(250%); opacity: 0; }
   }
 
-  /* Gentle floating for aerial */
-  @keyframes gentleFloat {
+  /* Gentle bobbing for airborne characters */
+  @keyframes aerialBob {
     0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-3px); }
+    25% { transform: translateY(-3px); }
+    75% { transform: translateY(2px); }
+  }
+
+  /* Wind streaks shooting across */
+  @keyframes windStreak {
+    0% { transform: translateX(0); opacity: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { transform: translateX(calc(100vw + 60px)); opacity: 0; }
+  }
+
+  /* Feather / debris drifting diagonally */
+  @keyframes featherDrift {
+    0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+    15% { opacity: 0.6; }
+    50% { transform: translate(-120px, 20px) rotate(180deg); opacity: 0.4; }
+    100% { transform: translate(-250px, 50px) rotate(360deg); opacity: 0; }
+  }
+
+  /* Altitude scroll – dashes moving downward */
+  @keyframes altitudeScroll {
+    0% { background-position-y: 0; }
+    100% { background-position-y: 38px; }
+  }
+
+  /* Dust motes rising in updraft */
+  @keyframes aerialMoteRise {
+    0% { transform: translateY(0) scale(1); opacity: 0; }
+    20% { opacity: 1; }
+    80% { opacity: 0.6; }
+    100% { transform: translateY(-80px) scale(0.4); opacity: 0; }
   }
 
   /* Spark flash for electrified */
