@@ -607,6 +607,167 @@ const EffectOverlay = memo(({ effect }: { effect: CharacterStatusEffect }) => {
         </div>
       );
 
+    case 'thrown':
+      return (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden animate-[thrownTumble_0.6s_ease-out_1]">
+          {/* Motion blur streaks */}
+          {[...Array(Math.floor(6 * intensityMultiplier))].map((_, i) => (
+            <div
+              key={`streak-${i}`}
+              className="absolute animate-[thrownStreak_0.8s_linear_infinite]"
+              style={{
+                width: `${30 + i * 8}px`,
+                height: '2px',
+                background: `linear-gradient(to right, transparent, hsl(0 0% 80% / ${0.3 * intensityMultiplier}), transparent)`,
+                top: `${10 + i * 14}%`,
+                right: '-40px',
+                animationDelay: `${i * 0.1}s`,
+                animationDuration: `${0.5 + i * 0.1}s`,
+              }}
+            />
+          ))}
+          {/* Spinning debris particles */}
+          {[...Array(Math.floor(4 * intensityMultiplier))].map((_, i) => (
+            <div
+              key={`debris-${i}`}
+              className="absolute rounded-sm animate-[thrownDebris_1.2s_ease-out_infinite]"
+              style={{
+                width: `${3 + (i % 3) * 2}px`,
+                height: `${2 + (i % 2) * 2}px`,
+                background: `hsl(${30 + i * 10} ${10 + i * 5}% ${40 + i * 8}% / ${0.5 * intensityMultiplier})`,
+                left: `${15 + i * 20}%`,
+                top: `${20 + (i % 3) * 25}%`,
+                animationDelay: `${i * 0.2}s`,
+              }}
+            />
+          ))}
+          {/* Directional wind effect */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `linear-gradient(to left,
+                hsl(200 20% 80% / ${0.08 * intensityMultiplier}) 0%,
+                transparent 60%)`,
+            }}
+          />
+          {/* Speed lines from center */}
+          <svg className="absolute inset-0 w-full h-full" style={{ opacity: 0.12 * intensityMultiplier }}>
+            {[...Array(5)].map((_, i) => (
+              <line key={i} x1="100%" y1={`${15 + i * 18}%`} x2="30%" y2={`${20 + i * 16}%`}
+                stroke="hsl(0 0% 70%)" strokeWidth="0.8" strokeDasharray="8 4" />
+            ))}
+          </svg>
+          {/* Flash on severe throw */}
+          {effect.intensity === 'severe' && (
+            <div className="absolute inset-0 bg-white/10 animate-[thrownFlash_0.3s_ease-out_1]" />
+          )}
+        </div>
+      );
+
+    case 'impact':
+      return (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {/* Initial screen-shake via animation on container */}
+          <div className="absolute inset-0 animate-[impactShake_0.4s_ease-out_1]">
+            {/* Radial crack pattern from impact point */}
+            <svg className="absolute inset-0 w-full h-full" style={{ opacity: 0.2 * intensityMultiplier }}>
+              {[...Array(Math.floor(5 * intensityMultiplier))].map((_, i) => {
+                const angle = (i * 72) * (Math.PI / 180);
+                const cx = 50, cy = 50;
+                const len = 25 + (i % 3) * 10;
+                return (
+                  <line key={i}
+                    x1={`${cx}%`} y1={`${cy}%`}
+                    x2={`${cx + Math.cos(angle) * len}%`}
+                    y2={`${cy + Math.sin(angle) * len}%`}
+                    stroke="hsl(0 0% 60%)" strokeWidth="1.2"
+                    strokeLinecap="round"
+                  />
+                );
+              })}
+              <circle cx="50%" cy="50%" r="4%" fill="none" stroke="hsl(0 0% 50%)" strokeWidth="1" opacity="0.5" />
+            </svg>
+          </div>
+
+          {/* Dust/debris cloud expanding from center */}
+          {[...Array(Math.floor(6 * intensityMultiplier))].map((_, i) => (
+            <div
+              key={`dust-${i}`}
+              className="absolute rounded-full animate-[impactDust_1.5s_ease-out_infinite]"
+              style={{
+                width: `${4 + (i % 3) * 3}px`,
+                height: `${4 + (i % 3) * 3}px`,
+                background: `hsl(${35 + i * 5} ${10 + i * 3}% ${50 + i * 5}% / ${0.4 * intensityMultiplier})`,
+                left: '50%',
+                top: '50%',
+                animationDelay: `${i * 0.15}s`,
+                animationDuration: `${1 + (i % 3) * 0.3}s`,
+              }}
+            />
+          ))}
+
+          {/* Rubble chips falling */}
+          {[...Array(Math.floor(3 * intensityMultiplier))].map((_, i) => (
+            <div
+              key={`chip-${i}`}
+              className="absolute animate-[impactChipFall_1s_ease-in_infinite]"
+              style={{
+                width: `${4 + i * 2}px`,
+                height: `${3 + i}px`,
+                background: `hsl(25 ${15 + i * 5}% ${30 + i * 8}% / ${0.5 * intensityMultiplier})`,
+                left: `${35 + i * 12}%`,
+                top: '45%',
+                borderRadius: '1px',
+                animationDelay: `${0.3 + i * 0.2}s`,
+              }}
+            />
+          ))}
+
+          {/* Shockwave ring */}
+          <div
+            className="absolute rounded-full border animate-[impactRing_0.8s_ease-out_1]"
+            style={{
+              width: '40px',
+              height: '40px',
+              left: 'calc(50% - 20px)',
+              top: 'calc(50% - 20px)',
+              borderColor: `hsl(0 0% 70% / ${0.3 * intensityMultiplier})`,
+            }}
+          />
+
+          {/* Inner damage glow */}
+          <div
+            className="absolute inset-0"
+            style={{
+              boxShadow: `inset 0 0 ${effect.intensity === 'severe' ? '25px' : '12px'} hsl(20 40% 35% / ${0.25 * intensityMultiplier})`,
+            }}
+          />
+
+          {/* Severe: secondary crack web */}
+          {effect.intensity === 'severe' && (
+            <svg className="absolute inset-0 w-full h-full animate-[pulse_2s_ease-in-out_infinite]" style={{ opacity: 0.15 }}>
+              {[...Array(8)].map((_, i) => {
+                const angle = (i * 45 + 22) * (Math.PI / 180);
+                const cx = 50, cy = 50;
+                const len = 15 + (i % 2) * 12;
+                const midX = cx + Math.cos(angle) * len * 0.5;
+                const midY = cy + Math.sin(angle) * len * 0.5;
+                const branchAngle = angle + ((i % 2 === 0) ? 0.7 : -0.7);
+                return (
+                  <g key={i}>
+                    <line x1={`${cx}%`} y1={`${cy}%`} x2={`${cx + Math.cos(angle) * len}%`} y2={`${cy + Math.sin(angle) * len}%`}
+                      stroke="hsl(0 0% 55%)" strokeWidth="0.7" />
+                    <line x1={`${midX}%`} y1={`${midY}%`}
+                      x2={`${midX + Math.cos(branchAngle) * 8}%`} y2={`${midY + Math.sin(branchAngle) * 8}%`}
+                      stroke="hsl(0 0% 50%)" strokeWidth="0.5" />
+                  </g>
+                );
+              })}
+            </svg>
+          )}
+        </div>
+      );
+
     case 'buried':
       return (
         <div className="absolute inset-0 pointer-events-none overflow-hidden">

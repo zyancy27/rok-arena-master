@@ -21,7 +21,9 @@ export type CharacterStatusType =
   | 'electrified'  // coursing with electricity
   | 'magnetized'   // static/glitch interference
   | 'cosmicVacuum' // being pulled into a void
-  | 'buried';      // underground/buried/trapped below
+  | 'buried'       // underground/buried/trapped below
+  | 'thrown'       // hurled/flung through the air
+  | 'impact';      // slammed into wall/floor/tree/object
 
 export interface CharacterStatusEffect {
   type: CharacterStatusType;
@@ -410,6 +412,56 @@ const STATUS_PATTERNS: StatusPattern[] = [
     intensity: 'severe',
     duration: 20000,
   },
+
+  // Thrown – hurled / flung through the air
+  {
+    type: 'thrown',
+    patterns: [
+      /\b(thrown|threw|flung|hurled|tossed|launched|catapulted)\b/i,
+      /\b(sends?|hurl|fling|throw|toss|launch)\w*.{0,15}(flying|airborne|through|across|into)/i,
+      /\b(grabs?\s+and\s+(?:throws?|flings?|hurls?))\b/i,
+      /\b(knocked|blasted|blown|punched|kicked).{0,10}(back|away|across|through)/i,
+      /\b(sent|goes?|went|flies?|flew).{0,10}(flying|hurtling|tumbling|sailing|careening)/i,
+      /\b(ragdoll|rag.?doll)\w*/i,
+    ],
+    intensity: 'moderate',
+    duration: 8000,
+  },
+  {
+    type: 'thrown',
+    patterns: [
+      /\b(violently|brutally|powerfully).{0,10}(thrown|hurled|flung|launched)/i,
+      /\b(launched|catapulted|rocketed).{0,10}(into|through|across)\b/i,
+      /\b(sent\s+(?:flying|hurtling)).{0,10}(incredible|tremendous|massive)/i,
+    ],
+    intensity: 'severe',
+    duration: 12000,
+  },
+
+  // Impact – slamming into walls, floors, trees, objects
+  {
+    type: 'impact',
+    patterns: [
+      /\b(slams?|crashes?|smashes?|impacts?|collides?)\w*.{0,15}(into|against|through|onto)/i,
+      /\b(hits?|strikes?|plows?)\w*.{0,10}(wall|floor|ground|tree|rock|building|pillar|debris|rubble)/i,
+      /\b(wall|floor|ground|tree|rock|pillar|building).{0,10}(crumbles?|cracks?|breaks?|shatters?).{0,10}(impact|force|collision)/i,
+      /\b(crater|dent|imprint).{0,10}(in|on|against).{0,10}(wall|floor|ground)/i,
+      /\b(body|back|head).{0,10}(slams?|crashes?|smashes?|collides?|hits?)/i,
+      /\b(embedded|lodged|stuck).{0,10}(in|into|inside).{0,10}(wall|rock|ground|tree)/i,
+    ],
+    intensity: 'moderate',
+    duration: 8000,
+  },
+  {
+    type: 'impact',
+    patterns: [
+      /\b(devastating|thunderous|bone.?crushing|earth.?shattering).{0,10}(impact|collision|crash|slam)/i,
+      /\b(through|smashes?\s+through)\w*.{0,10}(wall|building|floor|tree)/i,
+      /\b(crater|shatter)\w*.{0,10}(forms?|appears?|created?)/i,
+    ],
+    intensity: 'severe',
+    duration: 12000,
+  },
 ];
 
 /**
@@ -531,6 +583,8 @@ export function getStatusEffectDescription(effect: CharacterStatusEffect): strin
     magnetized: 'Magnetized - static interference',
     cosmicVacuum: 'Cosmic Vacuum - spatial distortion',
     buried: 'Buried - trapped underground',
+    thrown: 'Thrown - hurled through the air',
+    impact: 'Impact - slammed into surface',
   };
   
   return `${descriptions[effect.type]} (${effect.intensity})`;
@@ -546,7 +600,10 @@ export const EFFECT_PRIORITY: Record<CharacterStatusType, number> = {
   frozen: 60,
   electrified: 55,
   paralyzed: 50,
+  impact: 48,
   bleeding: 45,
+  buried: 45,
+  thrown: 42,
   submerged: 40,
   aerial: 40,
   magnetized: 35,
@@ -557,5 +614,4 @@ export const EFFECT_PRIORITY: Record<CharacterStatusType, number> = {
   smokescreen: 20,
   slowed: 15,
   exhausted: 10,
-  buried: 45,
 };
