@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Swords, Clock, CheckCircle, Users, Bot, Sparkles, BookOpen, UsersRound, Compass } from 'lucide-react';
+import { toast } from 'sonner';
+import { Swords, Clock, CheckCircle, Users, Bot, Sparkles, BookOpen, UsersRound, Compass, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import OpponentFinder from '@/components/battles/OpponentFinder';
 
 interface PveBattle {
@@ -276,6 +278,21 @@ export default function Battles() {
   const pendingBattles = battles.filter(b => b.status === 'pending');
   const completedBattles = battles.filter(b => b.status === 'completed');
 
+  const handleDeleteBattle = async (e: React.MouseEvent, battleId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await supabase.from('battle_messages').delete().eq('battle_id', battleId);
+      await supabase.from('battle_participants').delete().eq('battle_id', battleId);
+      await supabase.from('battle_invitations').delete().eq('battle_id', battleId);
+      await supabase.from('battles').delete().eq('id', battleId);
+      setBattles(prev => prev.filter(b => b.id !== battleId));
+      toast.success('Battle deleted');
+    } catch {
+      toast.error('Failed to delete battle');
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -519,9 +536,40 @@ export default function Battles() {
                                   Ended {new Date(battle.created_at).toLocaleDateString()}
                                 </span>
                               </div>
-                              <Button variant="ghost" size="sm" className="shrink-0 min-h-[44px] self-end sm:self-auto">
-                                View Transcript
-                              </Button>
+                              <div className="flex items-center gap-1 shrink-0 self-end sm:self-auto">
+                                <Button variant="ghost" size="sm" className="min-h-[44px]">
+                                  View Transcript
+                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-9 w-9 text-muted-foreground hover:text-destructive"
+                                      onClick={(e) => e.preventDefault()}
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Battle</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        This will permanently delete this battle and its messages. This cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                      <AlertDialogAction
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        onClick={(e) => handleDeleteBattle(e, battle.id)}
+                                      >
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </div>
                             </CardContent>
                           </Card>
                         </Link>
