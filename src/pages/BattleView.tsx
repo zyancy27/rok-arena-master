@@ -288,6 +288,7 @@ export default function BattleView() {
   
   // Defense validation tracking
   const [lastOpponentAction, setLastOpponentAction] = useState<string>('');
+  const [lastOpponentCharId, setLastOpponentCharId] = useState<string | null>(null);
   const [lastHitResult, setLastHitResult] = useState<{ hit: boolean; gap: number } | null>(null);
   
   // Construct mechanics
@@ -773,8 +774,9 @@ export default function BattleView() {
                   if (charData?.user_id !== user?.id) {
                     processStatusEffect(newMessage.content, true);
                     
-                    // Track opponent's last action for defense validation
+                    // Track opponent's last action and identity for defense validation & group PvP targeting
                     setLastOpponentAction(newMessage.content);
+                    setLastOpponentCharId(newMessage.character_id);
                     setTurnNumber(prev => prev + 1);
 
                     // Process opponent action through combat mechanics (perception, psych updates)
@@ -1314,11 +1316,33 @@ export default function BattleView() {
     }
   };
 
+  // Resolve which opponent to target in group PvP (3-player) by checking name mentions
+  const resolveTarget = (moveText: string): Participant | undefined => {
+    const opponents = participants.filter(p => p.character_id !== userCharacter?.character_id);
+    if (opponents.length <= 1) return opponents[0];
+    
+    // Check if move text mentions an opponent's name
+    const lowerMove = moveText.toLowerCase();
+    const namedTarget = opponents.find(p => 
+      p.character?.name && lowerMove.includes(p.character.name.toLowerCase())
+    );
+    if (namedTarget) return namedTarget;
+    
+    // Fall back to the last opponent who acted
+    if (lastOpponentCharId) {
+      const lastActor = opponents.find(p => p.character_id === lastOpponentCharId);
+      if (lastActor) return lastActor;
+    }
+    
+    // Final fallback: first opponent
+    return opponents[0];
+  };
+
   // Generate dice roll for an attack
   const generateDiceRoll = (moveText: string) => {
     if (!userCharacter?.character) return;
     
-    const opponent = participants.find(p => p.character_id !== userCharacter.character_id);
+    const opponent = resolveTarget(moveText);
     if (!opponent?.character) return;
 
     // Detect and apply movement from the action
@@ -1350,8 +1374,11 @@ export default function BattleView() {
     // === DEFENSIVE ACTION RESOLUTION ===
     if (hitDetection.shouldTriggerDefenseCheck && !hitDetection.shouldTriggerHitCheck) {
       const defenderChar = userCharacter.character;
-      const opponent = participants.find(p => p.character_id !== userCharacter.character_id);
-      if (!opponent?.character) return;
+      // In group PvP, use the last attacker's stats for the incoming attack potency
+      const attacker = lastOpponentCharId
+        ? participants.find(p => p.character_id === lastOpponentCharId)
+        : participants.find(p => p.character_id !== userCharacter.character_id);
+      if (!attacker?.character) return;
 
       const defenderStats: CharacterStats = {
         stat_intelligence: defenderChar.stat_intelligence ?? 50,
@@ -1366,22 +1393,22 @@ export default function BattleView() {
       };
 
       const attackerStats: CharacterStats = {
-        stat_intelligence: opponent.character.stat_intelligence ?? 50,
-        stat_battle_iq: opponent.character.stat_battle_iq ?? 50,
-        stat_strength: opponent.character.stat_strength ?? 50,
-        stat_power: opponent.character.stat_power ?? 50,
-        stat_speed: opponent.character.stat_speed ?? 50,
-        stat_durability: opponent.character.stat_durability ?? 50,
-        stat_stamina: opponent.character.stat_stamina ?? 50,
-        stat_skill: opponent.character.stat_skill ?? 50,
-        stat_luck: opponent.character.stat_luck ?? 50,
+        stat_intelligence: attacker.character.stat_intelligence ?? 50,
+        stat_battle_iq: attacker.character.stat_battle_iq ?? 50,
+        stat_strength: attacker.character.stat_strength ?? 50,
+        stat_power: attacker.character.stat_power ?? 50,
+        stat_speed: attacker.character.stat_speed ?? 50,
+        stat_durability: attacker.character.stat_durability ?? 50,
+        stat_stamina: attacker.character.stat_stamina ?? 50,
+        stat_skill: attacker.character.stat_skill ?? 50,
+        stat_luck: attacker.character.stat_luck ?? 50,
       };
 
       const defenseType = hitDetection.intent === 'dodge' ? 'dodge' : 'block';
       const defPenalty = statPenalties[defenderChar.id] ?? 0;
       const defResult = determineDefenseSuccess(
         defenderStats, defenderChar.level,
-        attackerStats, opponent.character.level,
+        attackerStats, attacker.character.level,
         defenseType, defPenalty,
       );
 
@@ -1411,7 +1438,8 @@ export default function BattleView() {
     if (!hitDetection.shouldTriggerHitCheck) return;
 
     const attackerChar = userCharacter.character;
-    const defenderChar = participants.find(p => p.character_id !== userCharacter.character_id)?.character;
+    const targetOpponent = resolveTarget(moveText);
+    const defenderChar = targetOpponent?.character;
     if (!defenderChar) return;
 
     // Build stats objects with defaults, applying any active stat modifications
