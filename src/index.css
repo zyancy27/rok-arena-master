@@ -1163,6 +1163,65 @@
     50% { transform: scaleY(0.98); }
   }
 
+  /* ══════ THROWN / IMPACT EFFECTS ══════ */
+
+  /* Thrown: initial tumble rotation */
+  @keyframes thrownTumble {
+    0% { transform: translateX(30px) rotate(8deg); opacity: 0.6; }
+    60% { transform: translateX(-5px) rotate(-2deg); opacity: 1; }
+    100% { transform: translateX(0) rotate(0deg); opacity: 1; }
+  }
+
+  /* Thrown: horizontal motion streaks */
+  @keyframes thrownStreak {
+    0% { transform: translateX(0); opacity: 0; }
+    30% { opacity: 0.6; }
+    100% { transform: translateX(-120px); opacity: 0; }
+  }
+
+  /* Thrown: spinning debris */
+  @keyframes thrownDebris {
+    0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+    20% { opacity: 0.7; }
+    100% { transform: translate(-40px, 20px) rotate(180deg); opacity: 0; }
+  }
+
+  /* Thrown: flash on severe impact */
+  @keyframes thrownFlash {
+    0% { opacity: 0.4; }
+    100% { opacity: 0; }
+  }
+
+  /* Impact: screen shake */
+  @keyframes impactShake {
+    0% { transform: translate(0, 0); }
+    15% { transform: translate(-4px, 2px); }
+    30% { transform: translate(3px, -2px); }
+    45% { transform: translate(-2px, 1px); }
+    60% { transform: translate(1px, -1px); }
+    100% { transform: translate(0, 0); }
+  }
+
+  /* Impact: dust particles expanding outward */
+  @keyframes impactDust {
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+    20% { opacity: 0.7; }
+    100% { transform: translate(calc(-50% + var(--dx, 30px)), calc(-50% + var(--dy, -20px))) scale(1.5); opacity: 0; }
+  }
+
+  /* Impact: rubble chips falling */
+  @keyframes impactChipFall {
+    0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+    15% { opacity: 0.6; }
+    100% { transform: translateY(40px) rotate(120deg); opacity: 0; }
+  }
+
+  /* Impact: shockwave ring expanding */
+  @keyframes impactRing {
+    0% { transform: scale(0.3); opacity: 0.6; }
+    100% { transform: scale(3); opacity: 0; }
+  }
+
   /* ══════ EXPANDED ENVIRONMENT EFFECTS ══════ */
 
   /* Forest: falling leaves */
