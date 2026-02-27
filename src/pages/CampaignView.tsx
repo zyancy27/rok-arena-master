@@ -131,20 +131,35 @@ export default function CampaignView() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'campaign_messages', filter: `campaign_id=eq.${campaignId}` },
         async (payload) => {
           const msg = payload.new as any;
-          // Skip if we already have this message (optimistic insert)
           setMessages(prev => {
-            if (prev.some(m => m.id === msg.id)) return prev;
-            // Enrich with character data if available from participants
-            const participant = participants.find(p => p.character_id === msg.character_id);
-            return [...prev, {
+            // Check if we have an optimistic (isPending) message that matches
+            const optimisticIndex = prev.findIndex(m =>
+              m.isPending && m.character_id === msg.character_id && m.content === msg.content
+            );
+            
+            const enriched: CampaignMessage = {
               ...msg,
               metadata: (msg.metadata || {}) as Record<string, unknown>,
               dice_result: msg.dice_result as Record<string, unknown> | null,
               theme_snapshot: msg.theme_snapshot as Record<string, unknown> | null,
-              character: participant?.character
-                ? { name: participant.character.name, image_url: participant.character.image_url }
-                : msg.character || null,
-            }];
+              isPending: false,
+              character: (() => {
+                const participant = participants.find(p => p.character_id === msg.character_id);
+                return participant?.character
+                  ? { name: participant.character.name, image_url: participant.character.image_url }
+                  : msg.character || null;
+              })(),
+            };
+
+            if (optimisticIndex !== -1) {
+              // Reconcile: replace optimistic with confirmed
+              return prev.map((m, i) => i === optimisticIndex ? enriched : m);
+            }
+            
+            // Skip if already exists by real ID
+            if (prev.some(m => m.id === msg.id)) return prev;
+            
+            return [...prev, enriched];
           });
         }
       )
@@ -552,30 +567,42 @@ export default function CampaignView() {
         ? combatResult.diceMetadata as Record<string, unknown>
         : null;
 
-      // Insert player message with dice result
-      const { data: insertedMsg } = await supabase.from('campaign_messages').insert({
+      // OPTIMISTIC: Add message to UI immediately before DB write
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const optimisticMessage: CampaignMessage = {
+        id: tempId,
+        campaign_id: campaign.id,
+        character_id: myParticipant.character_id,
+        sender_type: 'player',
+        channel: 'in_universe',
+        content: messageText,
+        dice_result: diceResult,
+        theme_snapshot: null,
+        metadata: {},
+        created_at: new Date().toISOString(),
+        isPending: true,
+        character: myParticipant.character
+          ? { name: myParticipant.character.name, image_url: myParticipant.character.image_url }
+          : undefined,
+      };
+      setMessages(prev => [...prev, optimisticMessage]);
+
+      // Insert player message with dice result (fire and forget — realtime reconciles)
+      const { error: insertError } = await supabase.from('campaign_messages').insert({
         campaign_id: campaign.id,
         character_id: myParticipant.character_id,
         sender_type: 'player',
         content: messageText,
         channel: 'in_universe',
         dice_result: diceResult as any,
-      } as any).select('*').single();
+      } as any);
 
-      // Optimistic: add message to local state immediately
-      if (insertedMsg) {
-        setMessages(prev => {
-          if (prev.some(m => m.id === insertedMsg.id)) return prev;
-          return [...prev, {
-            ...insertedMsg,
-            metadata: (insertedMsg.metadata || {}) as Record<string, unknown>,
-            dice_result: insertedMsg.dice_result as Record<string, unknown> | null,
-            theme_snapshot: insertedMsg.theme_snapshot as Record<string, unknown> | null,
-            character: myParticipant.character
-              ? { name: myParticipant.character.name, image_url: myParticipant.character.image_url }
-              : null,
-          } as CampaignMessage];
-        });
+      if (insertError) {
+        // Rollback optimistic message on error
+        setMessages(prev => prev.filter(m => m.id !== tempId));
+        toast.error('Failed to send message');
+        setSending(false);
+        return;
       }
 
       // Trigger dice mechanic discovery on first combat action
