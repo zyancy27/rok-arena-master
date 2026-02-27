@@ -19,6 +19,11 @@ interface NarratorMessage {
   timestamp: Date;
 }
 
+export interface CampaignMechanicDiscovery {
+  title: string;
+  summary: string;
+}
+
 interface CampaignNarratorChatProps {
   campaignId: string;
   characterName: string;
@@ -32,6 +37,8 @@ interface CampaignNarratorChatProps {
   storyContext: Record<string, unknown>;
   partyMembers: string[];
   isSolo: boolean;
+  mechanicDiscoveries?: CampaignMechanicDiscovery[];
+  onDiscoveriesShown?: () => void;
 }
 
 export default function CampaignNarratorChat({
@@ -47,12 +54,27 @@ export default function CampaignNarratorChat({
   storyContext,
   partyMembers,
   isSolo,
+  mechanicDiscoveries = [],
+  onDiscoveriesShown,
 }: CampaignNarratorChatProps) {
   const [messages, setMessages] = useState<NarratorMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Show mechanic discovery messages when queued
+  useEffect(() => {
+    if (mechanicDiscoveries.length > 0) {
+      const discoveryMsgs: NarratorMessage[] = mechanicDiscoveries.map((d, i) => ({
+        id: `discovery-${Date.now()}-${i}`,
+        role: 'narrator' as const,
+        content: `🆕 **New Mechanic Discovered: ${d.title}**\n\n${d.summary}`,
+        timestamp: new Date(),
+      }));
+      setMessages(prev => [...prev, ...discoveryMsgs]);
+      onDiscoveriesShown?.();
+    }
+  }, [mechanicDiscoveries.length]);
   const scrollToBottom = () => {
     setTimeout(() => {
       scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
