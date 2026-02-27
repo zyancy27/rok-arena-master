@@ -162,12 +162,14 @@ SIMULATION RULES:
    - A counter-attack or strategic move
 3. Write in roleplay format using *asterisks* for actions and "quotes" for dialogue
 4. Keep each turn 2-3 sentences MAX - punchy and dynamic
-5. Show character personality through HOW they fight
-6. Tier differences should affect the battle realistically
-7. Don't narrate outcomes - let actions speak
-8. No physics explanations - just raw action
-9. Environment reacts naturally (dust, cracks, energy) without separate narration
-10. Battle should feel like a natural exchange, not predetermined
+5. Use simple, plain language a middle schooler can follow. No fancy words, no poetry, no dramatic flair.
+6. Say "punches" not "delivers a devastating blow." Say "dodges" not "narrowly evades with fluid grace."
+7. Show character personality through HOW they fight
+8. Tier differences should affect the battle realistically
+9. Don't narrate outcomes - let actions speak
+10. No physics explanations - just raw action
+11. Environment reacts naturally (dust, cracks, energy) without separate narration
+12. Battle should feel like a natural exchange, not predetermined
 
 OUTPUT FORMAT - Return a JSON object with this exact structure:
 {
