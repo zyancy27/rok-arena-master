@@ -128,6 +128,8 @@ import {
   checkChargeRisk,
   type ChargeState,
 } from '@/lib/battle-charge';
+import PrivateNarratorChat, { type MechanicDiscoveryMessage } from '@/components/battles/PrivateNarratorChat';
+import { discoverMechanic, type MechanicKey } from '@/lib/mechanic-discovery';
 import { 
   ArrowLeft, 
   Swords, 
@@ -145,7 +147,8 @@ import {
   AlertTriangle,
   Info,
   Dices,
-  HelpCircle
+  HelpCircle,
+  BookOpen,
 } from 'lucide-react';
 
 interface UserCharacter {
@@ -1106,7 +1109,30 @@ export default function MockBattle() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [activeChannel, setActiveChannel] = useState<'in_universe' | 'out_of_universe'>('in_universe');
+  const [activeChannel, setActiveChannel] = useState<'in_universe' | 'out_of_universe' | 'private_narrator'>('in_universe');
+
+  // Private narrator state
+  const [pendingNarratorValidation, setPendingNarratorValidation] = useState<{
+    moveText: string;
+    warningMessage: string;
+    suggestedFix?: string;
+  } | null>(null);
+  const [narratorGlowing, setNarratorGlowing] = useState(false);
+  const [pendingDiscoveries, setPendingDiscoveries] = useState<MechanicDiscoveryMessage[]>([]);
+
+  const triggerMechanicDiscovery = (key: MechanicKey) => {
+    if (!user?.id) return;
+    const info = discoverMechanic(user.id, key);
+    if (info) {
+      setPendingDiscoveries(prev => [...prev, { title: info.title, summary: info.summary }]);
+      setNarratorGlowing(true);
+    }
+  };
+
+  const handleDiscoveriesShown = () => {
+    setPendingDiscoveries([]);
+    setNarratorGlowing(false);
+  };
   const [battleStarted, setBattleStarted] = useState(false);
   const [battleLocation, setBattleLocation] = useState('');
   const { settings: userSettings } = useUserSettings();
@@ -2150,7 +2176,7 @@ export default function MockBattle() {
       id: crypto.randomUUID(),
       role: 'user',
       content: input,
-      channel: activeChannel,
+      channel: activeChannel as 'in_universe' | 'out_of_universe',
       characterName: selectedCharacter.name,
       statusEffectsSnapshot: Object.keys(snapshot).length > 0 ? snapshot : undefined,
       hitDetectionResult: hitDetection?.detected ? hitDetection : undefined,
@@ -2600,7 +2626,7 @@ export default function MockBattle() {
         id: crypto.randomUUID(),
         role: 'ai',
         content: response.data.response,
-        channel: activeChannel,
+        channel: activeChannel as 'in_universe' | 'out_of_universe',
         characterName: currentOpponent?.name || 'Unknown',
         perceptionResult: aiPerceptionResult,
       };
@@ -2698,7 +2724,7 @@ export default function MockBattle() {
         content: activeChannel === 'in_universe' 
           ? `*${currentOpponent?.name || 'Your opponent'} narrows their eyes, considering your move*\n\n"Interesting approach, ${selectedCharacter.name}. But can you handle THIS?"\n\n*${currentOpponent?.name || 'Your opponent'} prepares a counter-attack*`
           : `[OOC: Nice move! That was a creative use of your character's abilities. Want to keep going?]`,
-        channel: activeChannel,
+        channel: activeChannel as 'in_universe' | 'out_of_universe',
         characterName: currentOpponent?.name || 'Unknown',
       };
       setMessages(prev => [...prev, fallbackMessage]);
@@ -3502,15 +3528,19 @@ export default function MockBattle() {
 
 
               {/* Channel Tabs */}
-              <Tabs value={activeChannel} onValueChange={(v) => setActiveChannel(v as 'in_universe' | 'out_of_universe')}>
-                <TabsList className="grid w-full grid-cols-2">
+              <Tabs value={activeChannel} onValueChange={(v) => setActiveChannel(v as 'in_universe' | 'out_of_universe' | 'private_narrator')}>
+                <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="in_universe" className="flex items-center gap-2">
                     <Sparkles className="w-4 h-4" />
                     In-Universe (RP)
                   </TabsTrigger>
                   <TabsTrigger value="out_of_universe" className="flex items-center gap-2">
                     <MessageSquare className="w-4 h-4" />
-                    Out-of-Universe (OOC)
+                    OOC
+                  </TabsTrigger>
+                  <TabsTrigger value="private_narrator" className={`flex items-center gap-2 ${narratorGlowing ? 'animate-pulse text-amber-400' : ''}`}>
+                    <BookOpen className="w-4 h-4" />
+                    Narrator
                   </TabsTrigger>
                 </TabsList>
 
@@ -3543,6 +3573,35 @@ export default function MockBattle() {
                     userTurnColor={userTurnColor}
                     battlefieldEffects={[]}
                   />
+                </TabsContent>
+                <TabsContent value="private_narrator" className="mt-0">
+                  {battleStarted && selectedCharacter ? (
+                    <PrivateNarratorChat
+                      battleId={`pve-${selectedCharacter.id}`}
+                      characterName={selectedCharacter.name}
+                      characterPowers={selectedCharacter.powers ?? null}
+                      characterAbilities={selectedCharacter.abilities ?? null}
+                      battleLocation={battleLocation || null}
+                      opponentNames={currentOpponent ? [currentOpponent.name] : []}
+                      publicMessages={messages.filter(m => m.channel === 'in_universe').map(m => ({ character_name: m.characterName, content: m.content }))}
+                      pendingValidation={pendingNarratorValidation}
+                      onMoveApproved={(moveText, explanation) => {
+                        setPendingNarratorValidation(null);
+                        setActiveChannel('in_universe');
+                      }}
+                      onMoveRejected={() => setPendingNarratorValidation(null)}
+                      glowing={narratorGlowing}
+                      mechanicDiscoveries={pendingDiscoveries}
+                      onDiscoveriesShown={handleDiscoveriesShown}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-[300px] text-center text-muted-foreground">
+                      <div>
+                        <BookOpen className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">The narrator will be available once the battle begins.</p>
+                      </div>
+                    </div>
+                  )}
                 </TabsContent>
               </Tabs>
 
