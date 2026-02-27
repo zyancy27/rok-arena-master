@@ -38,6 +38,26 @@ import { discoverMechanic, type MechanicKey } from '@/lib/mechanic-discovery';
 import { useCampaignCombat } from '@/hooks/use-campaign-combat';
 import type { CampaignMechanicDiscovery } from '@/components/campaigns/CampaignNarratorChat';
 
+// Helper: build bag content for the inline backpack bubble
+function buildBagContent(campaignItems: InventoryItem[], characterWeapons: string | null) {
+  const items: { name: string; type: string; rarity: string; equipped: boolean }[] = [];
+  
+  // Campaign inventory items
+  for (const i of campaignItems) {
+    items.push({ name: i.item_name, type: i.item_type, rarity: i.item_rarity, equipped: i.is_equipped });
+  }
+  
+  // Character sheet weapons/items (always available)
+  if (characterWeapons) {
+    const sheetItems = characterWeapons.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
+    for (const si of sheetItems) {
+      items.push({ name: si, type: 'personal', rarity: 'personal', equipped: true });
+    }
+  }
+  
+  return items;
+}
+
 export default function CampaignView() {
   const { id: campaignId } = useParams<{ id: string }>();
   const { user } = useAuth();
@@ -167,7 +187,7 @@ export default function CampaignView() {
   const fetchParticipants = async () => {
     const { data } = await supabase
       .from('campaign_participants')
-      .select('*, character:characters(name, image_url, level, user_id, powers, abilities, weapons_items)')
+      .select('*, character:characters(name, image_url, level, user_id, powers, abilities, weapons_items, lore, race, sub_race, personality, mentality)')
       .eq('campaign_id', campaignId!);
     if (data) {
       const parsed = data.map(p => ({
@@ -555,6 +575,45 @@ export default function CampaignView() {
 
       const equippedCampaignItems = inventory.filter(i => i.is_equipped);
 
+      // Build character lore/fame context for narrator
+      const charData = myParticipant.character;
+      const loreContext: Record<string, unknown> = {};
+      if (charData?.lore) loreContext.lore = charData.lore;
+      if (charData?.race) loreContext.race = charData.race;
+      if (charData?.sub_race) loreContext.subRace = charData.sub_race;
+      if (charData?.personality) loreContext.personality = charData.personality;
+      if (charData?.mentality) loreContext.mentality = charData.mentality;
+
+      // Fetch linked stories & groups for deeper NPC awareness
+      const [storiesRes, groupsRes, raceRes] = await Promise.all([
+        supabase.from('story_characters').select('story:stories(title, summary, is_published)').eq('character_id', myParticipant.character_id),
+        supabase.from('character_group_members').select('group:character_groups(name, description)').eq('character_id', myParticipant.character_id),
+        charData?.race ? supabase.from('races').select('name, description, typical_abilities, cultural_traits, home_planet').eq('name', charData.race).maybeSingle() : Promise.resolve({ data: null }),
+      ]);
+
+      const publishedStories = (storiesRes.data || [])
+        .map((s: any) => s.story)
+        .filter((s: any) => s && s.is_published)
+        .map((s: any) => ({ title: s.title, summary: s.summary }));
+      if (publishedStories.length > 0) loreContext.knownStories = publishedStories;
+
+      const groups = (groupsRes.data || [])
+        .map((g: any) => g.group)
+        .filter(Boolean)
+        .map((g: any) => ({ name: g.name, description: g.description }));
+      if (groups.length > 0) loreContext.affiliations = groups;
+
+      if (raceRes.data) loreContext.speciesInfo = raceRes.data;
+
+      // Detect inventory-check intent
+      const INVENTORY_CHECK_PATTERNS = [
+        /\b(check|look|search|dig|rummage|open|peek)\b.{0,20}\b(bag|backpack|pocket|pockets|inventory|items|pouch|satchel|pack|belongings|supplies|gear|stuff)\b/i,
+        /\bwhat do i have\b/i,
+        /\bmy (items|inventory|stuff|gear|belongings)\b/i,
+        /\b(check|look at) (my |what i ).{0,10}(have|carry|got)\b/i,
+      ];
+      const isInventoryCheck = INVENTORY_CHECK_PATTERNS.some(p => p.test(messageText));
+
       const { data, error } = await supabase.functions.invoke('battle-narrator', {
         body: {
           type: 'campaign_narration',
@@ -576,6 +635,7 @@ export default function CampaignView() {
               item_rarity: i.item_rarity,
               description: i.description,
             })),
+            loreContext,
           },
           playerAction: messageText,
           currentZone: campaign.current_zone,
@@ -677,6 +737,19 @@ export default function CampaignView() {
             channel: 'in_universe',
           });
           fetchInventory();
+        }
+
+        // Inline bag bubble when player checked inventory
+        if (isInventoryCheck) {
+          const allItems = inventory;
+          const charWeapons = myParticipant.character?.weapons_items;
+          const bagContent = buildBagContent(allItems, charWeapons || null);
+          await supabase.from('campaign_messages').insert({
+            campaign_id: campaign.id,
+            sender_type: 'system',
+            content: `__BAG__${JSON.stringify(bagContent)}`,
+            channel: 'in_universe',
+          });
         }
       }
 
@@ -834,6 +907,66 @@ export default function CampaignView() {
                       const isMe = isPlayer && msg.character_id === myParticipant?.character_id;
 
                       if (isSystem) {
+                        // Bag bubble for inventory checks
+                        if (msg.content.startsWith('__BAG__')) {
+                          let bagItems: { name: string; type: string; rarity: string; equipped: boolean }[] = [];
+                          try { bagItems = JSON.parse(msg.content.slice(7)); } catch {}
+                          
+                          const RARITY_COLORS: Record<string, string> = {
+                            common: 'text-muted-foreground',
+                            uncommon: 'text-green-400',
+                            rare: 'text-blue-400',
+                            epic: 'text-purple-400',
+                            legendary: 'text-yellow-400',
+                            personal: 'text-foreground',
+                          };
+                          
+                          return (
+                            <div key={msg.id} className="flex justify-center py-2 animate-fade-in">
+                              <div className="relative max-w-xs w-full">
+                                {/* Bag shape */}
+                                <div className="bg-amber-900/30 border-2 border-amber-700/50 rounded-b-3xl rounded-t-xl p-4 pt-8 backdrop-blur-sm">
+                                  {/* Bag flap / handle */}
+                                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-6 bg-amber-800/40 border-2 border-amber-700/50 rounded-t-full border-b-0" />
+                                  <div className="absolute top-0 left-1/2 -translate-x-1/2 flex items-center gap-1">
+                                    <Backpack className="w-4 h-4 text-amber-400" />
+                                  </div>
+                                  
+                                  <div className="text-center mb-2">
+                                    <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider">Your Bag</span>
+                                  </div>
+                                  
+                                  {bagItems.length === 0 ? (
+                                    <p className="text-xs text-muted-foreground italic text-center">Empty — nothing in here.</p>
+                                  ) : (
+                                    <div className="space-y-1">
+                                      {bagItems.map((item, idx) => (
+                                        <div key={idx} className="flex items-center gap-1.5 text-xs">
+                                          <span className="text-muted-foreground">•</span>
+                                          <span className={`font-medium ${RARITY_COLORS[item.rarity] || 'text-foreground'}`}>
+                                            {item.name}
+                                          </span>
+                                          {item.equipped && item.rarity !== 'personal' && (
+                                            <span className="text-[9px] text-primary/70">(equipped)</span>
+                                          )}
+                                          {item.rarity === 'personal' && (
+                                            <span className="text-[9px] text-muted-foreground">(personal)</span>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                  
+                                  {/* Bag bottom stitching */}
+                                  <div className="mt-3 border-t border-dashed border-amber-700/30 pt-1">
+                                    <p className="text-[9px] text-muted-foreground text-center">{bagItems.length} item{bagItems.length !== 1 ? 's' : ''}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }
+                        
                         return (
                           <div key={msg.id} className="flex justify-center py-1 animate-fade-in">
                             <span className="text-xs text-muted-foreground italic bg-background/60 backdrop-blur-sm px-3 py-1 rounded-full">
