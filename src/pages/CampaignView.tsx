@@ -73,6 +73,7 @@ export default function CampaignView() {
   const [myParticipant, setMyParticipant] = useState<CampaignParticipant | null>(null);
   const [inputMessage, setInputMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const [narratorTyping, setNarratorTyping] = useState(false);
   const [loading, setLoading] = useState(true);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [joinRequests, setJoinRequests] = useState<any[]>([]);
@@ -133,7 +134,7 @@ export default function CampaignView() {
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, narratorTyping]);
 
   const setupRealtime = () => {
     supabase
@@ -640,80 +641,24 @@ export default function CampaignView() {
       .eq('id', myParticipant.id);
   };
 
-  const handleSendMessage = async () => {
-    if (!inputMessage.trim() || !myParticipant || !campaign) return;
-    const messageText = inputMessage.trim();
-
-    // Move validation — check before sending
-    const validation = campaignCombat.validateCampaignMove(messageText);
-    if (!validation.isValid) {
-      // Don't clear input — show validation warning instead
-      return;
-    }
-
-    setInputMessage('');
-    setSending(true);
-
+  /**
+   * Background narrator call — fires after the player message is confirmed.
+   * Runs independently so the input stays unlocked.
+   */
+  const fireNarratorResponse = async (
+    messageText: string,
+    soloIntent: 'go_solo' | 'rejoin' | null,
+    combatResult: ReturnType<typeof campaignCombat.processCombatAction>,
+    snapshotParticipant: CampaignParticipant,
+    snapshotCampaign: Campaign,
+  ) => {
+    setNarratorTyping(true);
     try {
-      // Detect solo/rejoin intent from the player's message
-      const soloIntent = detectSoloIntent(messageText);
-
-      // Process combat mechanics (hit detection, dice rolls)
-      const combatResult = campaignCombat.processCombatAction(messageText);
-
-      // Build dice metadata for the message
-      const diceResult = combatResult.diceMetadata
-        ? combatResult.diceMetadata as Record<string, unknown>
-        : null;
-
-      // OPTIMISTIC: Add message to UI immediately before DB write
-      const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-      const optimisticMessage: CampaignMessage = {
-        id: tempId,
-        campaign_id: campaign.id,
-        character_id: myParticipant.character_id,
-        sender_type: 'player',
-        channel: 'in_universe',
-        content: messageText,
-        dice_result: diceResult,
-        theme_snapshot: null,
-        metadata: {},
-        created_at: new Date().toISOString(),
-        isPending: true,
-        character: myParticipant.character
-          ? { name: myParticipant.character.name, image_url: myParticipant.character.image_url }
-          : undefined,
-      };
-      setMessages(prev => [...prev, optimisticMessage]);
-
-      // Insert player message with dice result (fire and forget — realtime reconciles)
-      const { error: insertError } = await supabase.from('campaign_messages').insert({
-        campaign_id: campaign.id,
-        character_id: myParticipant.character_id,
-        sender_type: 'player',
-        content: messageText,
-        channel: 'in_universe',
-        dice_result: diceResult as any,
-      } as any);
-
-      if (insertError) {
-        // Rollback optimistic message on error
-        setMessages(prev => prev.filter(m => m.id !== tempId));
-        toast.error('Failed to send message');
-        setSending(false);
-        return;
-      }
-
-      // Trigger dice mechanic discovery on first combat action
-      if (combatResult.hitDetection.shouldTriggerHitCheck || combatResult.hitDetection.shouldTriggerDefenseCheck) {
-        triggerDiscovery('dice_roll' as MechanicKey);
-      }
-
       // Fetch recent conversation history for AI continuity (last 20 messages)
       const { data: recentMsgs } = await supabase
         .from('campaign_messages')
         .select('sender_type, content, character_id')
-        .eq('campaign_id', campaign.id)
+        .eq('campaign_id', snapshotCampaign.id)
         .eq('channel', 'in_universe')
         .order('created_at', { ascending: false })
         .limit(20);
@@ -722,7 +667,6 @@ export default function CampaignView() {
         content: m.content,
       }));
 
-      // Call narrator for response — pass dice context
       const activeParticipants = participants.filter(p => p.is_active);
       const partyContext = activeParticipants.map(p =>
         `${p.character?.name} (Campaign Lv.${p.campaign_level}, HP: ${p.campaign_hp}/${p.campaign_hp_max}${(p as any).is_solo ? ', SOLO — away from group' : ''})`
@@ -731,7 +675,7 @@ export default function CampaignView() {
       const equippedCampaignItems = inventory.filter(i => i.is_equipped);
 
       // Build character lore/fame context for narrator
-      const charData = myParticipant.character;
+      const charData = snapshotParticipant.character;
       const loreContext: Record<string, unknown> = {};
       if (charData?.lore) loreContext.lore = charData.lore;
       if (charData?.race) loreContext.race = charData.race;
@@ -741,11 +685,11 @@ export default function CampaignView() {
 
       // Fetch linked stories, groups, race, and existing campaign NPCs in parallel
       const [storiesRes, groupsRes, raceRes, npcsRes, npcRelsRes] = await Promise.all([
-        supabase.from('story_characters').select('story:stories(title, summary, is_published)').eq('character_id', myParticipant.character_id),
-        supabase.from('character_group_members').select('group:character_groups(name, description)').eq('character_id', myParticipant.character_id),
+        supabase.from('story_characters').select('story:stories(title, summary, is_published)').eq('character_id', snapshotParticipant.character_id),
+        supabase.from('character_group_members').select('group:character_groups(name, description)').eq('character_id', snapshotParticipant.character_id),
         charData?.race ? supabase.from('races').select('name, description, typical_abilities, cultural_traits, home_planet').eq('name', charData.race).maybeSingle() : Promise.resolve({ data: null }),
-        supabase.from('campaign_npcs').select('*').eq('campaign_id', campaign.id).eq('status', 'alive').limit(30),
-        supabase.from('npc_relationships').select('*').eq('campaign_id', campaign.id).eq('character_id', myParticipant.character_id),
+        supabase.from('campaign_npcs').select('*').eq('campaign_id', snapshotCampaign.id).eq('status', 'alive').limit(30),
+        supabase.from('npc_relationships').select('*').eq('campaign_id', snapshotCampaign.id).eq('character_id', snapshotParticipant.character_id),
       ]);
 
       const publishedStories = (storiesRes.data || [])
@@ -792,17 +736,17 @@ export default function CampaignView() {
       const { data, error } = await supabase.functions.invoke('battle-narrator', {
         body: {
           type: 'campaign_narration',
-          campaignId: campaign.id,
+          campaignId: snapshotCampaign.id,
           playerCharacter: {
-            name: myParticipant.character?.name,
-            campaignLevel: myParticipant.campaign_level,
-            originalLevel: myParticipant.character?.level,
-            hp: myParticipant.campaign_hp,
-            hpMax: myParticipant.campaign_hp_max,
-            powers: myParticipant.character?.powers,
-            abilities: myParticipant.character?.abilities,
-            weaponsItems: (myParticipant.character as any)?.weapons_items,
-            isSolo: isSoloMode,
+            name: snapshotParticipant.character?.name,
+            campaignLevel: snapshotParticipant.campaign_level,
+            originalLevel: snapshotParticipant.character?.level,
+            hp: snapshotParticipant.campaign_hp,
+            hpMax: snapshotParticipant.campaign_hp_max,
+            powers: snapshotParticipant.character?.powers,
+            abilities: snapshotParticipant.character?.abilities,
+            weaponsItems: (snapshotParticipant.character as any)?.weapons_items,
+            isSolo: snapshotParticipant.is_solo ?? false,
             soloIntent: soloIntent,
             equippedCampaignItems: equippedCampaignItems.map(i => ({
               item_name: i.item_name,
@@ -813,15 +757,14 @@ export default function CampaignView() {
             loreContext,
           },
           playerAction: messageText,
-          currentZone: campaign.current_zone,
-          timeOfDay: campaign.time_of_day,
-          dayCount: campaign.day_count,
+          currentZone: snapshotCampaign.current_zone,
+          timeOfDay: snapshotCampaign.time_of_day,
+          dayCount: snapshotCampaign.day_count,
           partyContext,
-          worldState: campaign.world_state,
-          storyContext: campaign.story_context,
-          campaignDescription: campaign.description,
-          maxAllowedTier: CAMPAIGN_STARTING_ABILITIES.maxPowerTierAtLevel(myParticipant.campaign_level),
-          // Pass dice results so narrator knows hit/miss outcomes
+          worldState: snapshotCampaign.world_state,
+          storyContext: snapshotCampaign.story_context,
+          campaignDescription: snapshotCampaign.description,
+          maxAllowedTier: CAMPAIGN_STARTING_ABILITIES.maxPowerTierAtLevel(snapshotParticipant.campaign_level),
           ...(combatResult.narratorDiceContext || {}),
           conversationHistory,
           knownNpcs,
@@ -836,7 +779,7 @@ export default function CampaignView() {
         processEffectMessage(data.narration);
 
         await supabase.from('campaign_messages').insert({
-          campaign_id: campaign.id,
+          campaign_id: snapshotCampaign.id,
           sender_type: 'narrator',
           content: data.narration,
           channel: 'in_universe',
@@ -845,44 +788,44 @@ export default function CampaignView() {
         // Handle XP / HP changes from narrator response
         if (data.xpGained) {
           triggerDiscovery('campaign_xp');
-          const newXp = myParticipant.campaign_xp + data.xpGained;
-          const xpNeeded = CAMPAIGN_STARTING_ABILITIES.xpForLevel(myParticipant.campaign_level + 1);
+          const newXp = snapshotParticipant.campaign_xp + data.xpGained;
+          const xpNeeded = CAMPAIGN_STARTING_ABILITIES.xpForLevel(snapshotParticipant.campaign_level + 1);
           const levelUp = newXp >= xpNeeded;
 
           await supabase.from('campaign_participants')
             .update({
               campaign_xp: levelUp ? newXp - xpNeeded : newXp,
-              campaign_level: levelUp ? myParticipant.campaign_level + 1 : myParticipant.campaign_level,
-              available_stat_points: levelUp ? myParticipant.available_stat_points + 3 : myParticipant.available_stat_points,
+              campaign_level: levelUp ? snapshotParticipant.campaign_level + 1 : snapshotParticipant.campaign_level,
+              available_stat_points: levelUp ? snapshotParticipant.available_stat_points + 3 : snapshotParticipant.available_stat_points,
             })
-            .eq('id', myParticipant.id);
+            .eq('id', snapshotParticipant.id);
 
           if (levelUp) {
             triggerDiscovery('campaign_level_up');
             await supabase.from('campaign_messages').insert({
-              campaign_id: campaign.id,
+              campaign_id: snapshotCampaign.id,
               sender_type: 'system',
-              content: `🎉 **${myParticipant.character?.name}** leveled up to Campaign Level ${myParticipant.campaign_level + 1}!`,
+              content: `🎉 **${snapshotParticipant.character?.name}** leveled up to Campaign Level ${snapshotParticipant.campaign_level + 1}!`,
               channel: 'in_universe',
             });
           }
         }
 
         if (data.hpChange && data.hpChange !== 0) {
-          const newHp = Math.max(0, Math.min(myParticipant.campaign_hp_max, myParticipant.campaign_hp + data.hpChange));
+          const newHp = Math.max(0, Math.min(snapshotParticipant.campaign_hp_max, snapshotParticipant.campaign_hp + data.hpChange));
           await supabase.from('campaign_participants')
             .update({ campaign_hp: newHp })
-            .eq('id', myParticipant.id);
+            .eq('id', snapshotParticipant.id);
         }
 
         // Time advancement
         if (data.advanceTime) {
           triggerDiscovery('campaign_time');
-          const { time: newTime, newDay } = advanceTime(campaign.time_of_day, data.advanceTime);
+          const { time: newTime, newDay } = advanceTime(snapshotCampaign.time_of_day, data.advanceTime);
           await supabase.from('campaigns').update({
             time_of_day: newTime,
-            day_count: newDay ? campaign.day_count + 1 : campaign.day_count,
-          }).eq('id', campaign.id);
+            day_count: newDay ? snapshotCampaign.day_count + 1 : snapshotCampaign.day_count,
+          }).eq('id', snapshotCampaign.id);
         }
 
         // Zone change
@@ -890,30 +833,31 @@ export default function CampaignView() {
           triggerDiscovery('campaign_zone');
           await supabase.from('campaigns').update({
             current_zone: data.newZone,
-          }).eq('id', campaign.id);
+          }).eq('id', snapshotCampaign.id);
         }
+
         // Items found
-        if (data.itemsFound && Array.isArray(data.itemsFound) && data.itemsFound.length > 0 && myParticipant) {
+        if (data.itemsFound && Array.isArray(data.itemsFound) && data.itemsFound.length > 0) {
           triggerDiscovery('campaign_inventory');
           for (const item of data.itemsFound) {
             await supabase.from('campaign_inventory').insert({
-              campaign_id: campaign.id,
-              participant_id: myParticipant.id,
+              campaign_id: snapshotCampaign.id,
+              participant_id: snapshotParticipant.id,
               user_id: user!.id,
               item_name: item.name || 'Unknown Item',
               item_type: item.type || 'misc',
               item_rarity: item.rarity || 'common',
               description: item.description || null,
               stat_bonus: item.statBonus || {},
-              found_at_zone: campaign.current_zone,
-              found_at_day: campaign.day_count,
+              found_at_zone: snapshotCampaign.current_zone,
+              found_at_day: snapshotCampaign.day_count,
             });
           }
           const itemNames = data.itemsFound.map((i: any) => i.name).join(', ');
           await supabase.from('campaign_messages').insert({
-            campaign_id: campaign.id,
+            campaign_id: snapshotCampaign.id,
             sender_type: 'system',
-            content: `🎒 **${myParticipant.character?.name}** found: ${itemNames}`,
+            content: `🎒 **${snapshotParticipant.character?.name}** found: ${itemNames}`,
             channel: 'in_universe',
           });
           fetchInventory();
@@ -923,41 +867,37 @@ export default function CampaignView() {
         if (data.npcUpdates && Array.isArray(data.npcUpdates)) {
           for (const npcUpdate of data.npcUpdates) {
             if (npcUpdate.isNew) {
-              // Create new NPC
               const { data: newNpc } = await supabase.from('campaign_npcs').insert({
-                campaign_id: campaign.id,
+                campaign_id: snapshotCampaign.id,
                 name: npcUpdate.name,
                 role: npcUpdate.role || 'civilian',
                 personality: npcUpdate.personality || null,
                 appearance: npcUpdate.appearance || null,
-                current_zone: campaign.current_zone,
+                current_zone: snapshotCampaign.current_zone,
                 backstory: npcUpdate.backstory || null,
-                first_met_day: campaign.day_count,
-                last_seen_day: campaign.day_count,
+                first_met_day: snapshotCampaign.day_count,
+                last_seen_day: snapshotCampaign.day_count,
               } as any).select().single();
 
-              // Create initial relationship
-              if (newNpc && myParticipant) {
+              if (newNpc) {
                 await supabase.from('npc_relationships').insert({
                   npc_id: newNpc.id,
-                  character_id: myParticipant.character_id,
-                  campaign_id: campaign.id,
+                  character_id: snapshotParticipant.character_id,
+                  campaign_id: snapshotCampaign.id,
                   disposition: npcUpdate.disposition || 'neutral',
                   trust_level: npcUpdate.trust_level || 0,
                   notes: npcUpdate.relationship_notes || null,
-                  last_interaction_day: campaign.day_count,
+                  last_interaction_day: snapshotCampaign.day_count,
                 } as any);
               }
             } else if (npcUpdate.id) {
-              // Update existing NPC
               await supabase.from('campaign_npcs').update({
-                last_seen_day: campaign.day_count,
-                current_zone: npcUpdate.current_zone || campaign.current_zone,
+                last_seen_day: snapshotCampaign.day_count,
+                current_zone: npcUpdate.current_zone || snapshotCampaign.current_zone,
                 status: npcUpdate.status || 'alive',
               } as any).eq('id', npcUpdate.id);
 
-              // Update relationship
-              if (myParticipant && (npcUpdate.disposition || npcUpdate.trust_change)) {
+              if (npcUpdate.disposition || npcUpdate.trust_change) {
                 const existingRel = (npcRelsRes.data || []).find((r: any) => r.npc_id === npcUpdate.id);
                 if (existingRel) {
                   const newTrust = Math.max(-100, Math.min(100, (existingRel.trust_level || 0) + (npcUpdate.trust_change || 0)));
@@ -965,17 +905,17 @@ export default function CampaignView() {
                     disposition: npcUpdate.disposition || existingRel.disposition,
                     trust_level: newTrust,
                     notes: npcUpdate.relationship_notes || existingRel.notes,
-                    last_interaction_day: campaign.day_count,
+                    last_interaction_day: snapshotCampaign.day_count,
                   } as any).eq('id', existingRel.id);
                 } else {
                   await supabase.from('npc_relationships').insert({
                     npc_id: npcUpdate.id,
-                    character_id: myParticipant.character_id,
-                    campaign_id: campaign.id,
+                    character_id: snapshotParticipant.character_id,
+                    campaign_id: snapshotCampaign.id,
                     disposition: npcUpdate.disposition || 'neutral',
                     trust_level: npcUpdate.trust_change || 0,
                     notes: npcUpdate.relationship_notes || null,
-                    last_interaction_day: campaign.day_count,
+                    last_interaction_day: snapshotCampaign.day_count,
                   } as any);
                 }
               }
@@ -986,10 +926,10 @@ export default function CampaignView() {
         // Inline bag bubble when player checked inventory
         if (isInventoryCheck) {
           const allItems = inventory;
-          const charWeapons = myParticipant.character?.weapons_items;
+          const charWeapons = snapshotParticipant.character?.weapons_items;
           const bagContent = buildBagContent(allItems, charWeapons || null);
           await supabase.from('campaign_messages').insert({
-            campaign_id: campaign.id,
+            campaign_id: snapshotCampaign.id,
             sender_type: 'system',
             content: `__BAG__${JSON.stringify(bagContent)}`,
             channel: 'in_universe',
@@ -1005,9 +945,88 @@ export default function CampaignView() {
 
       fetchParticipants();
     } catch (err) {
-      console.error('Campaign message error:', err);
-      toast.error('Failed to process action');
+      console.error('Campaign narrator error:', err);
     } finally {
+      setNarratorTyping(false);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || !myParticipant || !campaign) return;
+    const messageText = inputMessage.trim();
+
+    // Move validation — check before sending
+    const validation = campaignCombat.validateCampaignMove(messageText);
+    if (!validation.isValid) {
+      return;
+    }
+
+    setInputMessage('');
+    setSending(true);
+
+    try {
+      // Detect solo/rejoin intent from the player's message
+      const soloIntent = detectSoloIntent(messageText);
+
+      // Process combat mechanics (hit detection, dice rolls)
+      const combatResult = campaignCombat.processCombatAction(messageText);
+
+      // Build dice metadata for the message
+      const diceResult = combatResult.diceMetadata
+        ? combatResult.diceMetadata as Record<string, unknown>
+        : null;
+
+      // OPTIMISTIC: Add message to UI immediately before DB write
+      const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const optimisticMessage: CampaignMessage = {
+        id: tempId,
+        campaign_id: campaign.id,
+        character_id: myParticipant.character_id,
+        sender_type: 'player',
+        channel: 'in_universe',
+        content: messageText,
+        dice_result: diceResult,
+        theme_snapshot: null,
+        metadata: {},
+        created_at: new Date().toISOString(),
+        isPending: true,
+        character: myParticipant.character
+          ? { name: myParticipant.character.name, image_url: myParticipant.character.image_url }
+          : undefined,
+      };
+      setMessages(prev => [...prev, optimisticMessage]);
+
+      // Insert player message
+      const { error: insertError } = await supabase.from('campaign_messages').insert({
+        campaign_id: campaign.id,
+        character_id: myParticipant.character_id,
+        sender_type: 'player',
+        content: messageText,
+        channel: 'in_universe',
+        dice_result: diceResult as any,
+      } as any);
+
+      if (insertError) {
+        setMessages(prev => prev.filter(m => m.id !== tempId));
+        toast.error('Failed to send message');
+        setSending(false);
+        return;
+      }
+
+      // Trigger dice mechanic discovery on first combat action
+      if (combatResult.hitDetection.shouldTriggerHitCheck || combatResult.hitDetection.shouldTriggerDefenseCheck) {
+        triggerDiscovery('dice_roll' as MechanicKey);
+      }
+
+      // Release input immediately — narrator runs in background
+      setSending(false);
+
+      // Fire narrator response in background (non-blocking)
+      fireNarratorResponse(messageText, soloIntent, combatResult, myParticipant, campaign);
+
+    } catch (err) {
+      console.error('Campaign message error:', err);
+      toast.error('Failed to send message');
       setSending(false);
     }
   };
@@ -1396,6 +1415,22 @@ export default function CampaignView() {
                             <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                             <span className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                           </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Narrator typing indicator */}
+                    {narratorTyping && (
+                      <div className="flex items-start gap-3 py-2">
+                        <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                          <BookOpen className="w-4 h-4 text-amber-400" />
+                        </div>
+                        <div className="bg-muted/50 rounded-lg px-4 py-3 border border-amber-500/20">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-2 h-2 rounded-full bg-amber-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <div className="w-2 h-2 rounded-full bg-amber-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <div className="w-2 h-2 rounded-full bg-amber-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                          </div>
                         </div>
                       </div>
                     )}
