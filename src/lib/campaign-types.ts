@@ -41,6 +41,7 @@ export interface CampaignParticipant {
   stat_overrides: Record<string, number>;
   unlocked_abilities: string[];
   is_active: boolean;
+  is_solo: boolean;
   last_active_at: string | null;
   power_reset_applied: boolean;
   created_at: string;

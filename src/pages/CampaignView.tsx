@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Compass, Heart, LogOut, MapPin, Play, Send,
   Shield, Swords, Users, Zap, Clock, Sun, Moon, Backpack,
-  Volume2, VolumeX,
+  Volume2, VolumeX, UserMinus, UserPlus,
 } from 'lucide-react';
 import type { Campaign, CampaignParticipant, CampaignMessage } from '@/lib/campaign-types';
 import { getTimeEmoji, CAMPAIGN_STARTING_ABILITIES, XP_REWARDS, advanceTime } from '@/lib/campaign-types';
@@ -248,6 +248,42 @@ export default function CampaignView() {
     fetchCampaign();
   };
 
+  const handleGoSolo = async () => {
+    if (!myParticipant || !campaign) return;
+    await supabase.from('campaign_participants')
+      .update({ is_solo: true } as any)
+      .eq('id', myParticipant.id);
+
+    await supabase.from('campaign_messages').insert({
+      campaign_id: campaign.id,
+      character_id: myParticipant.character_id,
+      sender_type: 'system',
+      content: `🚶 **${myParticipant.character?.name || 'An adventurer'}** has stepped away from the group to explore on their own.`,
+      channel: 'in_universe',
+    });
+
+    toast.success('You are now exploring solo. You can act freely without waiting for others.');
+    fetchParticipants();
+  };
+
+  const handleRejoinGroup = async () => {
+    if (!myParticipant || !campaign) return;
+    await supabase.from('campaign_participants')
+      .update({ is_solo: false } as any)
+      .eq('id', myParticipant.id);
+
+    await supabase.from('campaign_messages').insert({
+      campaign_id: campaign.id,
+      character_id: myParticipant.character_id,
+      sender_type: 'system',
+      content: `🤝 **${myParticipant.character?.name || 'An adventurer'}** has rejoined the group.`,
+      channel: 'in_universe',
+    });
+
+    toast.success('You have rejoined the party!');
+    fetchParticipants();
+  };
+
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !myParticipant || !campaign) return;
     const messageText = inputMessage.trim();
@@ -267,7 +303,7 @@ export default function CampaignView() {
       // Call narrator for response
       const activeParticipants = participants.filter(p => p.is_active);
       const partyContext = activeParticipants.map(p =>
-        `${p.character?.name} (Campaign Lv.${p.campaign_level}, HP: ${p.campaign_hp}/${p.campaign_hp_max})`
+        `${p.character?.name} (Campaign Lv.${p.campaign_level}, HP: ${p.campaign_hp}/${p.campaign_hp_max}${(p as any).is_solo ? ', SOLO — away from group' : ''})`
       ).join(', ');
 
       const equippedCampaignItems = inventory.filter(i => i.is_equipped);
@@ -285,6 +321,7 @@ export default function CampaignView() {
             powers: myParticipant.character?.powers,
             abilities: myParticipant.character?.abilities,
             weaponsItems: (myParticipant.character as any)?.weapons_items,
+            isSolo: isSoloMode,
             equippedCampaignItems: equippedCampaignItems.map(i => ({
               item_name: i.item_name,
               item_type: i.item_type,
@@ -405,7 +442,8 @@ export default function CampaignView() {
   const isCreator = campaign.creator_id === user?.id;
   const canJoin = !myParticipant && campaign.status === 'recruiting' && participants.filter(p => p.is_active).length < campaign.max_players;
   const isActive = campaign.status === 'active';
-  const isSolo = campaign.max_players === 1;
+  const isSoloCampaign = campaign.max_players === 1;
+  const isSoloMode = myParticipant?.is_solo ?? false;
   const canStart = isCreator && campaign.status === 'recruiting' && participants.filter(p => p.is_active).length >= 1;
 
   return (
@@ -461,6 +499,9 @@ export default function CampaignView() {
                     <AvatarFallback className="text-[10px]">{p.character?.name?.[0] || '?'}</AvatarFallback>
                   </Avatar>
                   <span className="text-sm font-medium truncate">{p.character?.name}</span>
+                  {p.is_solo && (
+                    <Badge variant="outline" className="text-[10px] border-amber-500/50 text-amber-400 shrink-0">Solo</Badge>
+                  )}
                   <Badge variant="outline" className="text-[10px] ml-auto shrink-0">Lv.{p.campaign_level}</Badge>
                 </div>
                 <div className="flex items-center gap-2">
@@ -521,6 +562,19 @@ export default function CampaignView() {
               <Button size="sm" className="w-full gap-1" onClick={handleStartCampaign}>
                 <Play className="w-3 h-3" /> Start Campaign
               </Button>
+            )}
+
+            {/* Go Solo / Rejoin */}
+            {isActive && myParticipant?.is_active && !isSoloCampaign && (
+              isSoloMode ? (
+                <Button variant="outline" size="sm" className="w-full gap-1" onClick={handleRejoinGroup}>
+                  <UserPlus className="w-3 h-3" /> Rejoin Group
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" className="w-full gap-1 text-amber-400 border-amber-500/30 hover:bg-amber-500/10" onClick={handleGoSolo}>
+                  <UserMinus className="w-3 h-3" /> Go Solo
+                </Button>
+              )
             )}
 
             {/* Leave */}
@@ -584,12 +638,20 @@ export default function CampaignView() {
             </div>
           </ScrollArea>
 
+          {/* Solo mode banner */}
+          {isActive && isSoloMode && myParticipant?.is_active && (
+            <div className="px-4 py-2 border-t border-amber-500/20 bg-amber-500/5 flex items-center gap-2 text-xs text-amber-400">
+              <UserMinus className="w-3 h-3 shrink-0" />
+              <span>You're exploring solo — act freely without waiting for the group.</span>
+            </div>
+          )}
+
           {/* Input */}
           {isActive && myParticipant?.is_active && (
             <div className="p-3 border-t border-border">
               <form onSubmit={e => { e.preventDefault(); handleSendMessage(); }} className="flex gap-2">
                 <Input
-                  placeholder="Describe your action..."
+                  placeholder={isSoloMode ? "Describe your solo action..." : "Describe your action..."}
                   value={inputMessage}
                   onChange={e => setInputMessage(e.target.value)}
                   disabled={sending}
