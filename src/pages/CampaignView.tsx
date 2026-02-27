@@ -10,17 +10,19 @@ import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Compass, Heart, LogOut, MapPin, Play, Send,
   Shield, Swords, Users, Zap, Clock, Sun, Moon, Backpack,
-  Volume2, VolumeX, RefreshCw,
+  Volume2, VolumeX, RefreshCw, BookOpen,
 } from 'lucide-react';
 import type { Campaign, CampaignParticipant, CampaignMessage } from '@/lib/campaign-types';
 import { getTimeEmoji, CAMPAIGN_STARTING_ABILITIES, XP_REWARDS, advanceTime } from '@/lib/campaign-types';
 import CampaignInventoryPanel, { type InventoryItem } from '@/components/campaigns/CampaignInventoryPanel';
 import CampaignEndDialog from '@/components/campaigns/CampaignEndDialog';
+import CampaignNarratorChat from '@/components/campaigns/CampaignNarratorChat';
 import { useAmbientSound } from '@/hooks/use-ambient-sound';
 
 export default function CampaignView() {
@@ -682,75 +684,104 @@ export default function CampaignView() {
           </CardContent>
         </Card>
 
-        {/* Chat */}
+        {/* Chat + Narrator */}
         <Card className="lg:col-span-3 bg-card-gradient border-border flex flex-col" style={{ minHeight: '60vh' }}>
-          <CardHeader className="py-3 px-4 border-b border-border">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Compass className="w-4 h-4" />
-              Adventure Log
-              {campaign.description && (
-                <span className="text-xs text-muted-foreground font-normal ml-2 truncate">{campaign.description}</span>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <ScrollArea className="flex-1 p-4">
-            <div className="space-y-3">
-              {messages.map(msg => (
-                <div key={msg.id} className={`flex gap-3 ${msg.sender_type === 'narrator' ? 'bg-primary/5 rounded-lg p-3' : msg.sender_type === 'system' ? 'justify-center' : ''}`}>
-                  {msg.sender_type === 'system' ? (
-                    <p className="text-xs text-muted-foreground italic text-center">{msg.content}</p>
-                  ) : (
-                    <>
-                      <Avatar className="w-8 h-8 shrink-0">
-                        {msg.sender_type === 'narrator' ? (
-                          <AvatarFallback className="bg-primary/20 text-primary text-xs">📖</AvatarFallback>
-                        ) : (
-                          <>
-                            <AvatarImage src={msg.character?.image_url || undefined} />
-                            <AvatarFallback className="text-xs">{msg.character?.name?.[0] || '?'}</AvatarFallback>
-                          </>
-                        )}
-                      </Avatar>
-                      <div className="min-w-0">
-                        <span className="text-xs font-semibold">
-                          {msg.sender_type === 'narrator' ? 'Narrator' : msg.character?.name || 'Unknown'}
-                        </span>
-                        <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
-                      </div>
-                    </>
-                  )}
+          <Tabs defaultValue="adventure" className="flex flex-col flex-1">
+            <div className="border-b border-border px-4">
+              <TabsList className="bg-transparent h-auto p-0 gap-4">
+                <TabsTrigger value="adventure" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-1 pb-2 pt-3 text-sm gap-1.5">
+                  <Compass className="w-4 h-4" />
+                  Adventure Log
+                </TabsTrigger>
+                {isActive && myParticipant?.is_active && (
+                  <TabsTrigger value="narrator" className="rounded-none border-b-2 border-transparent data-[state=active]:border-amber-400 data-[state=active]:bg-transparent px-1 pb-2 pt-3 text-sm gap-1.5">
+                    <BookOpen className="w-4 h-4" />
+                    Private Narrator
+                  </TabsTrigger>
+                )}
+              </TabsList>
+            </div>
+
+            <TabsContent value="adventure" className="flex-1 flex flex-col mt-0 data-[state=inactive]:hidden">
+              <ScrollArea className="flex-1 p-4">
+                <div className="space-y-3">
+                  {messages.map(msg => (
+                    <div key={msg.id} className={`flex gap-3 ${msg.sender_type === 'narrator' ? 'bg-primary/5 rounded-lg p-3' : msg.sender_type === 'system' ? 'justify-center' : ''}`}>
+                      {msg.sender_type === 'system' ? (
+                        <p className="text-xs text-muted-foreground italic text-center">{msg.content}</p>
+                      ) : (
+                        <>
+                          <Avatar className="w-8 h-8 shrink-0">
+                            {msg.sender_type === 'narrator' ? (
+                              <AvatarFallback className="bg-primary/20 text-primary text-xs">📖</AvatarFallback>
+                            ) : (
+                              <>
+                                <AvatarImage src={msg.character?.image_url || undefined} />
+                                <AvatarFallback className="text-xs">{msg.character?.name?.[0] || '?'}</AvatarFallback>
+                              </>
+                            )}
+                          </Avatar>
+                          <div className="min-w-0">
+                            <span className="text-xs font-semibold">
+                              {msg.sender_type === 'narrator' ? 'Narrator' : msg.character?.name || 'Unknown'}
+                            </span>
+                            <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} />
                 </div>
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
-          </ScrollArea>
+              </ScrollArea>
 
-          {/* Input */}
-          {isActive && myParticipant?.is_active && (
-            <div className="p-3 border-t border-border">
-              <form onSubmit={e => { e.preventDefault(); handleSendMessage(); }} className="flex gap-2">
-                <Input
-                  placeholder={isSoloMode ? "Describe your solo action..." : "Describe your action..."}
-                  value={inputMessage}
-                  onChange={e => setInputMessage(e.target.value)}
-                  disabled={sending}
-                  className="flex-1"
+              {/* Input */}
+              {isActive && myParticipant?.is_active && (
+                <div className="p-3 border-t border-border">
+                  <form onSubmit={e => { e.preventDefault(); handleSendMessage(); }} className="flex gap-2">
+                    <Input
+                      placeholder={isSoloMode ? "Describe your solo action..." : "Describe your action..."}
+                      value={inputMessage}
+                      onChange={e => setInputMessage(e.target.value)}
+                      disabled={sending}
+                      className="flex-1"
+                    />
+                    <Button type="submit" disabled={sending || !inputMessage.trim()} size="sm">
+                      <Send className="w-4 h-4" />
+                    </Button>
+                  </form>
+                </div>
+              )}
+
+              {/* Recruiting state */}
+              {campaign.status === 'recruiting' && (
+                <div className="p-6 text-center text-muted-foreground">
+                  <Clock className="w-8 h-8 mx-auto mb-2" />
+                  <p>Waiting for the campaign to start...</p>
+                  {isCreator && <p className="text-xs mt-1">Click "Start Campaign" when your party is ready.</p>}
+                </div>
+              )}
+            </TabsContent>
+
+            {isActive && myParticipant?.is_active && (
+              <TabsContent value="narrator" className="flex-1 flex flex-col mt-0 data-[state=inactive]:hidden">
+                <CampaignNarratorChat
+                  campaignId={campaign.id}
+                  characterName={myParticipant.character?.name || 'Unknown'}
+                  characterPowers={myParticipant.character?.powers || null}
+                  characterAbilities={myParticipant.character?.abilities || null}
+                  currentZone={campaign.current_zone}
+                  timeOfDay={campaign.time_of_day}
+                  dayCount={campaign.day_count}
+                  campaignDescription={campaign.description}
+                  worldState={campaign.world_state}
+                  storyContext={campaign.story_context}
+                  partyMembers={participants.filter(p => p.is_active).map(p => p.character?.name || 'Unknown')}
+                  isSolo={isSoloMode}
                 />
-                <Button type="submit" disabled={sending || !inputMessage.trim()} size="sm">
-                  <Send className="w-4 h-4" />
-                </Button>
-              </form>
-            </div>
-          )}
-
-          {/* Recruiting state */}
-          {campaign.status === 'recruiting' && (
-            <div className="p-6 text-center text-muted-foreground">
-              <Clock className="w-8 h-8 mx-auto mb-2" />
-              <p>Waiting for the campaign to start...</p>
-              {isCreator && <p className="text-xs mt-1">Click "Start Campaign" when your party is ready.</p>}
-            </div>
-          )}
+              </TabsContent>
+            )}
+          </Tabs>
         </Card>
       </div>
     </div>
