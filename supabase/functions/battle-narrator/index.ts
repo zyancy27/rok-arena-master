@@ -826,7 +826,20 @@ Party: ${partyMembers}`;
       }),
     });
 
-    const data = await response.json();
+    const rawText = await response.text();
+    if (!response.ok) {
+      console.error("Campaign intro API error:", response.status, rawText);
+      throw new Error(`AI API returned ${response.status}`);
+    }
+
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      console.error("Campaign intro parse error, raw:", rawText.substring(0, 200));
+      throw new Error("Failed to parse AI response");
+    }
+
     const narration = data.choices?.[0]?.message?.content || "The adventure begins...";
 
     return new Response(
@@ -912,7 +925,20 @@ Narrate the world's response. Remember: freedom-first, no railroading, scale app
       }),
     });
 
-    const data = await response.json();
+    const rawText = await response.text();
+    if (!response.ok) {
+      console.error("Campaign narration API error:", response.status, rawText);
+      throw new Error(`AI API returned ${response.status}`);
+    }
+
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch {
+      console.error("Campaign narration parse error, raw:", rawText.substring(0, 200));
+      throw new Error("Failed to parse AI response");
+    }
+
     const content = data.choices?.[0]?.message?.content || '{}';
 
     let parsed;
