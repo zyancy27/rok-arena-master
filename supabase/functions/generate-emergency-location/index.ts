@@ -153,6 +153,38 @@ DO NOT generate off-planet or space-based emergencies. The crisis happens ON thi
 Reflect the planet's climate, terrain, tech level, and atmosphere in the emergency.`;
     }
 
+    // === URGENCY TIER ===
+    // 30% immediate (2 turns), 50% soon (3-6 turns), 20% later (7-12 turns)
+    const urgencyRoll = Math.random();
+    let urgencyTier: string;
+    let urgencyCountdown: number;
+    let urgencyInstruction: string;
+    if (urgencyRoll < 0.30) {
+      urgencyTier = "immediate";
+      urgencyCountdown = 2;
+      urgencyInstruction = `URGENCY TIER: IMMEDIATE (2 turns before disaster strikes)
+The crisis is ALREADY happening. Players have only 2 turns before catastrophic failure.
+The environment should feel like it's actively collapsing/exploding/flooding RIGHT NOW.
+Every second counts — no setup time, no warning phase. Pure reaction mode.
+Examples: building mid-collapse, reactor seconds from meltdown, floodwater already chest-high, fissure splitting the ground beneath them.`;
+    } else if (urgencyRoll < 0.80) {
+      urgencyTier = "soon";
+      urgencyCountdown = 3 + Math.floor(Math.random() * 4); // 3-6 turns
+      urgencyInstruction = `URGENCY TIER: SOON (${urgencyCountdown} turns before disaster strikes)
+The crisis is building rapidly. Players have ${urgencyCountdown} turns to act before the worst hits.
+There are clear warning signs escalating — cracks spreading, alarms blaring, pressure rising.
+Players have a narrow window to strategize but must act decisively.
+Examples: dam cracking with water seeping through, reactor temp climbing, tremors intensifying, structure groaning under stress.`;
+    } else {
+      urgencyTier = "later";
+      urgencyCountdown = 7 + Math.floor(Math.random() * 6); // 7-12 turns
+      urgencyInstruction = `URGENCY TIER: LATER (${urgencyCountdown} turns before disaster strikes)
+The crisis is approaching but not yet critical. Players have ${urgencyCountdown} turns.
+The threat is visible on the horizon — smoke in the distance, early tremors, distant sirens, readings going abnormal.
+Players can plan and position, but the clock IS ticking and conditions will worsen each turn.
+Examples: storm approaching, lava flow advancing, structural fatigue accumulating, containment slowly failing.`;
+    }
+
     // === DEDUPLICATION ===
     let dedupConstraint = "";
     if (previousLocations && Array.isArray(previousLocations) && previousLocations.length > 0) {
@@ -202,6 +234,9 @@ ${survivabilityGuidance}
 ${planetConstraint}
 ${dedupConstraint}
 
+URGENCY TIER:
+${urgencyInstruction}
+
 MODULAR CONSTRUCTION — Build the emergency from these components:
 1. BASE LOCATION TYPE: facility, vehicle, structure, terrain zone, natural formation, urban center, industrial complex
 2. IMMEDIATE THREAT TRIGGER: countdown, collapse, overload, breach, eruption, derailment, rupture, meltdown
@@ -224,10 +259,12 @@ OUTPUT FORMAT — Return ONLY valid JSON:
   "description": "2-3 sentence vivid description",
   "hazards": "Specific environmental hazards affecting combat",
   "urgency": "The ticking clock consequence",
-  "countdownTurns": <number 10-30>,
+  "countdownTurns": ${urgencyCountdown},
+  "urgencyTier": "${urgencyTier}",
   "tags": ["tag1", "tag2", "tag3"],
   "rarityTier": "${rarityTier.toLowerCase()}"
-}`;
+}
+IMPORTANT: "countdownTurns" MUST be exactly ${urgencyCountdown}. "urgencyTier" MUST be exactly "${urgencyTier}". Do NOT change these values.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
