@@ -607,6 +607,69 @@ const EffectOverlay = memo(({ effect }: { effect: CharacterStatusEffect }) => {
         </div>
       );
 
+    case 'buried':
+      return (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {/* Dark earthy overlay */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: `linear-gradient(to top,
+                hsl(25 20% 12% / ${0.5 * intensityMultiplier}) 0%,
+                hsl(30 15% 18% / ${0.3 * intensityMultiplier}) 40%,
+                hsl(20 10% 10% / ${0.15 * intensityMultiplier}) 100%)`,
+            }}
+          />
+          {/* Falling dirt/rubble particles */}
+          {[...Array(Math.floor(5 * intensityMultiplier))].map((_, i) => (
+            <div
+              key={`dirt-${i}`}
+              className="absolute rounded-sm animate-[buriedDirtFall_2s_ease-in_infinite]"
+              style={{
+                width: `${3 + (i % 3) * 2}px`,
+                height: `${3 + (i % 3) * 2}px`,
+                background: `hsl(${25 + i * 5} ${15 + i * 3}% ${20 + i * 5}% / ${0.6 * intensityMultiplier})`,
+                left: `${10 + i * 18}%`,
+                top: '-6px',
+                animationDelay: `${i * 0.35}s`,
+                animationDuration: `${1.5 + (i % 3) * 0.4}s`,
+              }}
+            />
+          ))}
+          {/* Crack lines on surface */}
+          <svg className="absolute inset-0 w-full h-full" style={{ opacity: 0.15 * intensityMultiplier }}>
+            <line x1="15%" y1="0" x2="25%" y2="100%" stroke="hsl(30 10% 40%)" strokeWidth="1" />
+            <line x1="55%" y1="0" x2="45%" y2="80%" stroke="hsl(25 15% 35%)" strokeWidth="0.8" />
+            <line x1="80%" y1="10%" x2="70%" y2="100%" stroke="hsl(20 10% 30%)" strokeWidth="0.6" />
+          </svg>
+          {/* Roots/tendrils creeping */}
+          {[...Array(Math.floor(2 * intensityMultiplier))].map((_, i) => (
+            <div
+              key={`root-${i}`}
+              className="absolute animate-[buriedRootCreep_6s_ease-in-out_infinite]"
+              style={{
+                width: '2px',
+                height: `${20 + i * 10}px`,
+                background: `linear-gradient(to bottom, hsl(30 25% 25% / ${0.4 * intensityMultiplier}), transparent)`,
+                top: '0',
+                left: `${30 + i * 35}%`,
+                borderRadius: '0 0 2px 2px',
+                animationDelay: `${i * 2}s`,
+              }}
+            />
+          ))}
+          {/* Compression effect for severe */}
+          {effect.intensity === 'severe' && (
+            <div
+              className="absolute inset-0 animate-[buriedCrush_4s_ease-in-out_infinite]"
+              style={{
+                boxShadow: 'inset 0 20px 30px -10px hsl(25 15% 8% / 0.5), inset 0 -10px 20px -5px hsl(30 10% 10% / 0.3)',
+              }}
+            />
+          )}
+        </div>
+      );
+
     default:
       return null;
   }
