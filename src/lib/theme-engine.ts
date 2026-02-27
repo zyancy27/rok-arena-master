@@ -207,7 +207,7 @@ const TAG_RULES: Array<{ pattern: RegExp; tag: EnvironmentTag }> = [
   { pattern: /tremor|earthquake|quake|seismic/, tag: 'tremor' },
   { pattern: /emergency|alarm|critical|meltdown|evacuate|countdown/, tag: 'emergency' },
   // New tags
-  { pattern: /smoke|smog|fume|exhaust|chimney|haze.*thick/, tag: 'smoke' },
+  { pattern: /smok[ey]|smog|fume|exhaust|chimney|haze.*thick/, tag: 'smoke' },
   { pattern: /earth|soil|mud|clay|dirt|loam|bog|muddy|swamp.*mud/, tag: 'earth' },
   { pattern: /metal|iron|steel|bronze|copper|alloy|forge|foundry|anvil|rust/, tag: 'metal' },
   { pattern: /rock|stone|boulder|cliff|mountain|crag|gorge|canyon|quarry|rocky/, tag: 'rock' },
