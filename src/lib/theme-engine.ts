@@ -115,7 +115,10 @@ export type EnvironmentTag =
   | 'cosmic' | 'acid' | 'gravity' | 'tremor'
   // New building-block tags
   | 'smoke' | 'earth' | 'metal' | 'rock' | 'cloud'
-  | 'rubble' | 'sick' | 'drunk' | 'plant' | 'insect';
+  | 'rubble' | 'sick' | 'drunk' | 'plant' | 'insect'
+  // Office & structure tags
+  | 'office' | 'library' | 'prison' | 'hospital' | 'laboratory'
+  | 'tower' | 'corridor' | 'rooftop' | 'lobby' | 'ship';
 
 /** Status effect type → EnvironmentTag mapping for visual theming */
 const STATUS_EFFECT_TAG_MAP: Record<string, EnvironmentTag> = {
@@ -147,6 +150,11 @@ const STATUS_EFFECT_TAG_MAP: Record<string, EnvironmentTag> = {
   stoned: 'rock',
   smoked: 'smoke',
   dirtied: 'earth',
+  confined: 'prison',
+  sterile: 'hospital',
+  seasick: 'ship',
+  vertigo: 'tower',
+  claustrophobic: 'corridor',
 };
 
 /**
@@ -217,6 +225,17 @@ const TAG_RULES: Array<{ pattern: RegExp; tag: EnvironmentTag }> = [
   { pattern: /drunk|intoxicat|dizzy|tipsy|tavern|bar\b|alehouse|wasted|inebriat/, tag: 'drunk' },
   { pattern: /plant|vine|flower|bloom|overgrown|thorn|root|botanical|garden|petal|moss|fungi|mushroom/, tag: 'plant' },
   { pattern: /insect|bug|swarm|spider|hive|wasp|beetle|ant\b|cockroach|centipede|moth|larvae|locust|flea/, tag: 'insect' },
+  // Office & structure
+  { pattern: /office|cubicle|corporate|boardroom|workspace|desk|filing|copier|meeting.*room|conference/, tag: 'office' },
+  { pattern: /library|librar|bookshelf|archive|reading.*room|study\b|scrolls|tome|manuscript/, tag: 'library' },
+  { pattern: /prison|jail|cell\b|dungeon|penitentiary|lockup|brig|shackle|barred|incarcerat/, tag: 'prison' },
+  { pattern: /hospital|clinic|ward\b|infirmary|medical|surgery|operat.*room|icu|ambulance|triage/, tag: 'hospital' },
+  { pattern: /laborator|lab\b|chem.*lab|research.*fac|experiment|beaker|centrifuge|specimen/, tag: 'laboratory' },
+  { pattern: /tower|spire|turret|belfry|minaret|watchtower|lighthouse|lookout|high.*rise|skyscraper/, tag: 'tower' },
+  { pattern: /corridor|hallway|passage|alley.*way|tunnel.*walk|gangway|aisle|walkway|gallery/, tag: 'corridor' },
+  { pattern: /rooftop|roof\b|penthouse|terrace|balcony|ledge|parapet|helipad|skyline.*view/, tag: 'rooftop' },
+  { pattern: /lobby|foyer|atrium|vestibule|reception|entrance.*hall|grand.*hall|marble.*floor/, tag: 'lobby' },
+  { pattern: /ship\b|galleon|vessel|frigate|deck\b|helm|porthole|cabin\b|yacht|boat\b|cruiser|brigantine|naval/, tag: 'ship' },
 ];
 
 /**
@@ -401,6 +420,39 @@ const BACKGROUND_BLOCKS: Partial<Record<EnvironmentTag, BackgroundLayer[]>> = {
   ],
   insect: [
     { type: 'radial', gradient: 'ellipse at 50% 70%, hsl(45 30% 15% / 0.25) 0%, hsl(40 20% 10% / 0.15) 40%, transparent 70%' },
+  ],
+  // Office & structure
+  office: [
+    { type: 'linear', gradient: 'to bottom, hsl(210 10% 40% / 0.08) 0%, hsl(200 5% 50% / 0.05) 50%, hsl(40 20% 50% / 0.03) 100%' },
+  ],
+  library: [
+    { type: 'linear', gradient: 'to top, hsl(25 30% 15% / 0.25) 0%, hsl(30 20% 20% / 0.15) 40%, hsl(35 15% 25% / 0.08) 80%' },
+  ],
+  prison: [
+    { type: 'linear', gradient: 'to bottom, hsl(210 5% 15% / 0.35) 0%, hsl(0 0% 12% / 0.3) 50%, hsl(210 8% 8% / 0.4) 100%' },
+  ],
+  hospital: [
+    { type: 'linear', gradient: 'to bottom, hsl(180 10% 85% / 0.06) 0%, hsl(190 5% 90% / 0.04) 50%, hsl(200 8% 80% / 0.05) 100%' },
+  ],
+  laboratory: [
+    { type: 'linear', gradient: 'to bottom, hsl(200 15% 30% / 0.15) 0%, hsl(180 10% 20% / 0.12) 50%, hsl(160 20% 25% / 0.1) 100%' },
+    { type: 'radial', gradient: 'ellipse at 70% 40%, hsl(120 40% 40% / 0.06) 0%, transparent 40%' },
+  ],
+  tower: [
+    { type: 'linear', gradient: 'to top, hsl(220 15% 15% / 0.2) 0%, hsl(210 20% 40% / 0.08) 40%, hsl(200 30% 60% / 0.05) 80%' },
+  ],
+  corridor: [
+    { type: 'linear', gradient: 'to bottom, hsl(30 8% 10% / 0.3) 0%, hsl(25 5% 15% / 0.2) 50%, hsl(30 8% 10% / 0.3) 100%' },
+  ],
+  rooftop: [
+    { type: 'linear', gradient: 'to top, hsl(220 10% 12% / 0.2) 0%, hsl(210 25% 50% / 0.08) 40%, hsl(200 40% 65% / 0.05) 80%' },
+  ],
+  lobby: [
+    { type: 'linear', gradient: 'to top, hsl(35 15% 25% / 0.15) 0%, hsl(30 10% 35% / 0.08) 40%, hsl(40 8% 50% / 0.04) 80%' },
+    { type: 'radial', gradient: 'ellipse at 50% 20%, hsl(40 25% 60% / 0.06) 0%, transparent 50%' },
+  ],
+  ship: [
+    { type: 'linear', gradient: 'to top, hsl(200 40% 18% / 0.3) 0%, hsl(210 30% 25% / 0.2) 40%, hsl(195 20% 30% / 0.1) 80%' },
   ],
 };
 
@@ -604,6 +656,48 @@ const OVERLAY_BLOCKS: Partial<Record<EnvironmentTag, OverlayModule[]>> = {
     { className: 'env-insect-swarm', zOrder: 1 },
     { className: 'env-insect-crawl', zOrder: 2 },
   ],
+  // Office & structure
+  office: [
+    { className: 'env-office-flicker', zOrder: 1 },
+    { className: 'env-office-dust', zOrder: 2 },
+  ],
+  library: [
+    { className: 'env-library-dust', zOrder: 1 },
+    { className: 'env-library-pages', zOrder: 2 },
+  ],
+  prison: [
+    { className: 'env-prison-bars', zOrder: 1 },
+    { className: 'env-prison-flicker', zOrder: 2 },
+  ],
+  hospital: [
+    { className: 'env-hospital-pulse', zOrder: 1 },
+    { className: 'env-hospital-sterile', zOrder: 2 },
+  ],
+  laboratory: [
+    { className: 'env-lab-bubbles', zOrder: 1 },
+    { className: 'env-lab-glow', zOrder: 2 },
+    { className: 'env-scan-lines', zOrder: 3 },
+  ],
+  tower: [
+    { className: 'env-tower-wind', zOrder: 1 },
+    { className: 'env-tower-vertigo', zOrder: 2 },
+  ],
+  corridor: [
+    { className: 'env-corridor-flicker', zOrder: 1 },
+    { className: 'env-corridor-shadow', zOrder: 2 },
+  ],
+  rooftop: [
+    { className: 'env-wind-streaks', zOrder: 1 },
+    { className: 'env-rooftop-glow', zOrder: 2 },
+  ],
+  lobby: [
+    { className: 'env-lobby-echo', zOrder: 1 },
+    { className: 'env-lobby-gleam', zOrder: 2 },
+  ],
+  ship: [
+    { className: 'env-ship-rock', zOrder: 1 },
+    { className: 'env-ship-spray', zOrder: 2 },
+  ],
 };
 
 /** Ambient glow (box-shadow) per tag */
@@ -650,6 +744,17 @@ const GLOW_BLOCKS: Partial<Record<EnvironmentTag, string>> = {
   drunk: 'inset 0 0 60px hsl(30 50% 40% / 0.12)',
   plant: 'inset 0 40px 60px -20px hsl(130 30% 15% / 0.25)',
   insect: 'inset 0 0 50px hsl(45 25% 15% / 0.2)',
+  // Office & structure
+  office: 'inset 0 0 40px hsl(210 10% 50% / 0.08)',
+  library: 'inset 0 40px 60px -20px hsl(25 25% 15% / 0.2)',
+  prison: 'inset 0 0 60px hsl(0 0% 8% / 0.3)',
+  hospital: 'inset 0 0 40px hsl(180 15% 80% / 0.06)',
+  laboratory: 'inset 0 0 50px hsl(160 40% 40% / 0.1)',
+  tower: 'inset 0 -40px 60px -20px hsl(220 15% 30% / 0.15)',
+  corridor: 'inset 0 0 60px hsl(30 8% 8% / 0.25)',
+  rooftop: 'inset 0 -30px 60px -10px hsl(210 20% 50% / 0.1)',
+  lobby: 'inset 0 40px 60px -20px hsl(35 15% 30% / 0.12)',
+  ship: 'inset 0 -40px 60px -10px hsl(200 40% 25% / 0.2)',
 };
 
 /** Animation intensity by tag */
@@ -668,6 +773,10 @@ const INTENSITY_MAP: Partial<Record<EnvironmentTag, 'low' | 'medium' | 'high'>> 
   smoke: 'low', earth: 'low', metal: 'low', rock: 'low',
   cloud: 'low', rubble: 'medium', sick: 'medium', drunk: 'medium',
   plant: 'low', insect: 'medium',
+  // Office & structure
+  office: 'low', library: 'low', prison: 'medium', hospital: 'low',
+  laboratory: 'medium', tower: 'low', corridor: 'medium', rooftop: 'low',
+  lobby: 'low', ship: 'medium',
 };
 
 /** Chat box style presets per tag */
@@ -720,6 +829,17 @@ const CHATBOX_BLOCKS: Partial<Record<EnvironmentTag, Partial<ChatBoxStyle>>> = {
   drunk: { borderStyle: 'border-amber-500/20', urgencyAnimation: 'env-urgency-sway' },
   plant: { borderStyle: 'border-green-600/25', textGlow: '0 0 4px hsl(130 50% 40% / 0.15)' },
   insect: { borderStyle: 'border-yellow-800/20', backgroundTexture: 'bg-gradient-to-b from-yellow-950/8 to-transparent' },
+  // Office & structure
+  office: { borderStyle: 'border-slate-400/15', backgroundTexture: 'bg-gradient-to-b from-slate-800/5 to-transparent' },
+  library: { borderStyle: 'border-amber-800/20', backgroundTexture: 'bg-gradient-to-b from-amber-950/10 to-transparent', fontHint: 'italic' },
+  prison: { borderStyle: 'border-gray-600/30', backgroundTexture: 'bg-gradient-to-b from-gray-900/15 to-transparent', fontHint: 'bold' },
+  hospital: { borderStyle: 'border-cyan-300/15', textGlow: '0 0 3px hsl(180 30% 70% / 0.15)' },
+  laboratory: { borderStyle: 'border-emerald-400/20', textGlow: '0 0 4px hsl(160 60% 50% / 0.2)' },
+  tower: { borderStyle: 'border-sky-400/15', backgroundTexture: 'bg-gradient-to-t from-slate-900/10 to-transparent' },
+  corridor: { borderStyle: 'border-stone-600/20', backgroundTexture: 'bg-gradient-to-b from-stone-900/10 to-transparent' },
+  rooftop: { borderStyle: 'border-sky-300/15' },
+  lobby: { borderStyle: 'border-amber-400/15', textGlow: '0 0 3px hsl(40 30% 60% / 0.12)' },
+  ship: { borderStyle: 'border-blue-400/20', urgencyAnimation: 'env-urgency-sway' },
 };
 
 // ── Theme Composer ──────────────────────────────────────────────
