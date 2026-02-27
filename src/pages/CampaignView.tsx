@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Compass, Heart, LogOut, MapPin, Play, Send,
   Shield, Swords, Users, Zap, Clock, Sun, Moon, Backpack,
-  Volume2, VolumeX, RefreshCw, BookOpen, Sparkles, Dices, Trash2,
+  Volume2, VolumeX, RefreshCw, BookOpen, Sparkles, Dices, Trash2, UserCheck,
 } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -72,6 +72,8 @@ export default function CampaignView() {
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [joinRequests, setJoinRequests] = useState<any[]>([]);
+  const [myJoinRequest, setMyJoinRequest] = useState<any | null>(null);
 
   // Ambient environment sounds for campaign
   const { muted: ambientMuted, toggleMute: toggleAmbientMute } = useAmbientSound({
@@ -175,7 +177,8 @@ export default function CampaignView() {
             environment_tags: Array.isArray(updated.environment_tags) ? updated.environment_tags : [],
             story_context: updated.story_context || {},
             world_state: updated.world_state || {},
-          } : null);
+            visibility: updated.visibility || prev.visibility,
+          } as Campaign : null);
         }
       )
       .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_inventory', filter: `campaign_id=eq.${campaignId}` },
@@ -185,7 +188,7 @@ export default function CampaignView() {
   };
 
   const fetchAll = async () => {
-    await Promise.all([fetchCampaign(), fetchParticipants(), fetchMessages(), fetchInventory()]);
+    await Promise.all([fetchCampaign(), fetchParticipants(), fetchMessages(), fetchInventory(), fetchJoinRequests()]);
     setLoading(false);
   };
 
@@ -196,7 +199,8 @@ export default function CampaignView() {
       environment_tags: Array.isArray(data.environment_tags) ? data.environment_tags as string[] : [],
       story_context: (data.story_context || {}) as Record<string, unknown>,
       world_state: (data.world_state || {}) as Record<string, unknown>,
-    });
+      visibility: (data as any).visibility || 'public',
+    } as Campaign);
   };
 
   const fetchParticipants = async () => {
@@ -257,9 +261,51 @@ export default function CampaignView() {
     })) as InventoryItem[]);
   };
 
-  const handleJoin = async () => {
-    if (!joinCharacter) { toast.error('Select a character'); return; }
+  const fetchJoinRequests = async () => {
+    if (!campaignId) return;
+    const { data } = await supabase
+      .from('campaign_join_requests')
+      .select('*, character:characters(name, level, image_url)')
+      .eq('campaign_id', campaignId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true });
+    if (data) {
+      setJoinRequests(data);
+      setMyJoinRequest(data.find((r: any) => r.user_id === user?.id) || null);
+    }
+  };
 
+  const handleJoin = async () => {
+    if (!joinCharacter || !campaign) { toast.error('Select a character'); return; }
+
+    // If creator, join directly (always allowed)
+    const isCreator = campaign.creator_id === user?.id;
+    if (isCreator) {
+      await directJoin();
+      return;
+    }
+
+    // For non-creators, submit a join request
+    const { error } = await supabase.from('campaign_join_requests').insert({
+      campaign_id: campaignId!,
+      user_id: user!.id,
+      character_id: joinCharacter,
+    } as any);
+
+    if (error) {
+      if (error.code === '23505') {
+        toast.error('You already have a pending request for this campaign');
+      } else {
+        toast.error(error.message);
+      }
+      return;
+    }
+
+    toast.success('Join request sent! Waiting for the campaign creator to accept.');
+    fetchJoinRequests();
+  };
+
+  const directJoin = async () => {
     const { error } = await supabase.from('campaign_participants').insert({
       campaign_id: campaignId!,
       character_id: joinCharacter,
@@ -317,6 +363,47 @@ export default function CampaignView() {
 
     toast.success('Joined campaign!');
     fetchParticipants();
+  };
+
+  const handleAcceptRequest = async (request: any) => {
+    if (!campaign) return;
+
+    // Add them as participant
+    const { error: joinErr } = await supabase.from('campaign_participants').insert({
+      campaign_id: campaign.id,
+      character_id: request.character_id,
+      user_id: request.user_id,
+      power_reset_applied: true,
+    });
+
+    if (joinErr) { toast.error(joinErr.message); return; }
+
+    // Update request status
+    await supabase.from('campaign_join_requests')
+      .update({ status: 'accepted' } as any)
+      .eq('id', request.id);
+
+    // Add system message
+    const charName = request.character?.name || 'A new adventurer';
+    await supabase.from('campaign_messages').insert({
+      campaign_id: campaign.id,
+      sender_type: 'system',
+      content: `**${charName}** has been accepted into the campaign!`,
+      channel: 'in_universe',
+    });
+
+    toast.success(`Accepted ${charName}!`);
+    fetchParticipants();
+    fetchJoinRequests();
+  };
+
+  const handleDeclineRequest = async (request: any) => {
+    await supabase.from('campaign_join_requests')
+      .update({ status: 'declined' } as any)
+      .eq('id', request.id);
+
+    toast.success('Request declined.');
+    fetchJoinRequests();
   };
 
   const handleLeave = async () => {
@@ -1443,7 +1530,7 @@ export default function CampaignView() {
                   <Badge variant="outline" className="text-[10px] ml-auto shrink-0">Lv.{p.campaign_level}</Badge>
                 </div>
               ))}
-              {canJoin && (
+              {canJoin && !myJoinRequest && (
                 <div className="flex gap-2 pt-2">
                   <Select value={joinCharacter} onValueChange={setJoinCharacter}>
                     <SelectTrigger className="h-8 text-xs flex-1"><SelectValue placeholder="Select character..." /></SelectTrigger>
@@ -1453,7 +1540,47 @@ export default function CampaignView() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Button size="sm" onClick={handleJoin}>Join</Button>
+                  <Button size="sm" onClick={handleJoin}>
+                    {isCreator ? 'Join' : 'Request'}
+                  </Button>
+                </div>
+              )}
+              {myJoinRequest && (
+                <div className="text-center py-2">
+                  <Badge variant="outline" className="text-xs border-amber-500/50 text-amber-400">
+                    <Clock className="w-3 h-3 mr-1" />
+                    Join request pending...
+                  </Badge>
+                </div>
+              )}
+              {/* Join Request Approvals (creator only) */}
+              {isCreator && joinRequests.length > 0 && (
+                <div className="space-y-2 pt-2">
+                  <Separator />
+                  <p className="text-xs font-medium text-amber-400 flex items-center gap-1.5">
+                    <UserCheck className="w-3.5 h-3.5" />
+                    Join Requests ({joinRequests.length})
+                  </p>
+                  {joinRequests.map((req: any) => (
+                    <div key={req.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/30">
+                      <Avatar className="w-6 h-6">
+                        <AvatarImage src={req.character?.image_url || undefined} />
+                        <AvatarFallback className="text-[9px]">{req.character?.name?.[0] || '?'}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs font-medium truncate block">{req.character?.name || 'Unknown'}</span>
+                        <span className="text-[10px] text-muted-foreground">Tier {req.character?.level || '?'}</span>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <Button size="sm" variant="outline" className="h-6 text-[10px] px-2 text-green-400 border-green-500/30 hover:bg-green-500/10" onClick={() => handleAcceptRequest(req)}>
+                          Accept
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-6 text-[10px] px-2 text-destructive border-destructive/30 hover:bg-destructive/10" onClick={() => handleDeclineRequest(req)}>
+                          Decline
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
               {canStart && (
