@@ -17,8 +17,12 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Compass, Heart, LogOut, MapPin, Play, Send,
   Shield, Swords, Users, Zap, Clock, Sun, Moon, Backpack,
-  Volume2, VolumeX, RefreshCw, BookOpen, Sparkles, Dices,
+  Volume2, VolumeX, RefreshCw, BookOpen, Sparkles, Dices, Trash2,
 } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import EnvironmentChatBackground from '@/components/battles/EnvironmentChatBackground';
 import DiceRollChatMessage from '@/components/battles/DiceRollChatMessage';
 import HitDetectionBadge from '@/components/battles/HitDetectionBadge';
@@ -706,6 +710,30 @@ export default function CampaignView() {
   const isSoloMode = myParticipant?.is_solo ?? false;
   const canStart = isCreator && campaign.status === 'recruiting' && participants.filter(p => p.is_active).length >= 1;
 
+  const handleDeleteCampaign = async () => {
+    try {
+      // Deactivate my participation
+      if (myParticipant) {
+        await supabase.from('campaign_participants')
+          .update({ is_active: false })
+          .eq('id', myParticipant.id);
+      }
+
+      // If no other active participants remain, mark campaign as abandoned
+      const otherActive = participants.filter(p => p.is_active && p.user_id !== user?.id);
+      if (otherActive.length === 0) {
+        await supabase.from('campaigns')
+          .update({ status: 'abandoned' })
+          .eq('id', campaign.id);
+      }
+
+      toast.success('Campaign removed from your list.');
+      navigate('/campaigns');
+    } catch {
+      toast.error('Failed to delete campaign');
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-4">
       {/* Header */}
@@ -738,6 +766,29 @@ export default function CampaignView() {
           <Badge className={campaign.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}>
             {campaign.status}
           </Badge>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="Delete campaign">
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete this campaign?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {participants.filter(p => p.is_active && p.user_id !== user?.id).length > 0
+                    ? "You'll be removed from this campaign. Other players can continue without you."
+                    : "This will archive the campaign since you're the only participant."}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteCampaign} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 
