@@ -376,6 +376,85 @@ export function useOffensiveConcentration(
   };
 }
 
+export interface DefenseDetermination {
+  defenseRoll: DiceRollResult;
+  incomingAttackPotency: DiceRollResult;
+  defenseSuccess: boolean;
+  gap: number;
+  defenseType: 'block' | 'dodge';
+}
+
+/**
+ * Determine if a defensive action (block, parry, dodge, deflect) succeeds.
+ *
+ * The defender rolls their defense dice against the "residual attack potency" —
+ * representing the strength of the incoming attack they're trying to defend against.
+ *
+ * defenseType 'block' uses durability + strength (tanking the hit)
+ * defenseType 'dodge' uses speed + battle_iq (avoiding the hit)
+ */
+export function determineDefenseSuccess(
+  defenderStats: CharacterStats,
+  defenderTier: number,
+  attackerStats: CharacterStats | null,
+  attackerTier: number,
+  defenseType: 'block' | 'dodge',
+  defenderPenalty: number = 0,
+): DefenseDetermination {
+  const baseRoll = Math.floor(Math.random() * 20) + 1;
+  const tierBonus = Math.floor(Math.min(10, Math.ceil(defenderTier * 1.4)) / 2);
+
+  let statBonus: number;
+  let battleIqBonus: number;
+  let skillBonus: number;
+
+  if (defenseType === 'block') {
+    const avg = (defenderStats.stat_durability + defenderStats.stat_strength) / 2;
+    statBonus = scaleStatModifier(avg);
+    battleIqBonus = scaleStatModifier(defenderStats.stat_battle_iq);
+    skillBonus = scaleStatModifier(defenderStats.stat_skill);
+  } else {
+    const avg = (defenderStats.stat_speed + defenderStats.stat_battle_iq) / 2;
+    statBonus = scaleStatModifier(avg);
+    battleIqBonus = scaleStatModifier(defenderStats.stat_battle_iq);
+    skillBonus = scaleStatModifier(defenderStats.stat_skill);
+  }
+
+  const penaltyReduction = Math.floor((tierBonus + statBonus + battleIqBonus + skillBonus) * (defenderPenalty / 100));
+  const defenseTotal = Math.max(1, baseRoll + tierBonus + statBonus + skillBonus + battleIqBonus - penaltyReduction);
+
+  const defenseRoll: DiceRollResult = {
+    baseRoll,
+    modifiers: { tierBonus, statBonus, skillBonus, battleIqBonus },
+    total: defenseTotal,
+    rollType: 'defense',
+  };
+
+  // Roll the incoming attack potency
+  let incomingRoll: DiceRollResult;
+  if (attackerStats) {
+    incomingRoll = rollAttackDice(attackerStats, attackerTier, true);
+  } else {
+    const estimatedStats: CharacterStats = {
+      stat_intelligence: 50, stat_battle_iq: 50, stat_strength: 50,
+      stat_power: 50, stat_speed: 50, stat_durability: 50,
+      stat_stamina: 50, stat_skill: 50, stat_luck: 50,
+    };
+    incomingRoll = rollAttackDice(estimatedStats, attackerTier, true);
+  }
+
+  const gap = defenseRoll.total - incomingRoll.total;
+  const defenseSuccess = gap >= 0;
+
+  return {
+    defenseRoll,
+    incomingAttackPotency: incomingRoll,
+    defenseSuccess,
+    gap,
+    defenseType,
+  };
+}
+
 /** Max gap (inclusive) at which concentration can be used */
 export const CONCENTRATION_GAP_THRESHOLD = 5;
 
