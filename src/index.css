@@ -1495,3 +1495,41 @@
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--primary) / 0.6);
 }
+
+/* Backpack bag open/close animations */
+@keyframes bag-open {
+  0% { transform: scale(0.4) rotateX(40deg) translateY(30px); opacity: 0; }
+  60% { transform: scale(1.05) rotateX(-3deg) translateY(-4px); opacity: 1; }
+  100% { transform: scale(1) rotateX(0deg) translateY(0); opacity: 1; }
+}
+
+@keyframes bag-close {
+  0% { transform: scale(1) rotateX(0deg) translateY(0); opacity: 1; max-height: 400px; }
+  40% { transform: scale(0.95) rotateX(8deg) translateY(4px); opacity: 0.8; }
+  100% { transform: scale(0.3) rotateX(50deg) translateY(20px); opacity: 0; max-height: 40px; }
+}
+
+@keyframes flap-open {
+  0% { transform: rotateX(0deg) translateY(0); }
+  100% { transform: rotateX(-30deg) translateY(-4px); }
+}
+
+@keyframes flap-close {
+  0% { transform: rotateX(-30deg) translateY(-4px); }
+  100% { transform: rotateX(0deg) translateY(0); }
+}
+
+@keyframes bag-contents-open {
+  0% { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; }
+  100% { max-height: 300px; opacity: 1; }
+}
+
+@keyframes bag-contents-close {
+  0% { max-height: 300px; opacity: 1; }
+  100% { max-height: 0; opacity: 0; padding-top: 0; padding-bottom: 0; }
+}
+
+@keyframes bag-item-appear {
+  0% { transform: translateY(8px) scale(0.8); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}

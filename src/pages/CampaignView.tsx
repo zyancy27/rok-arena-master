@@ -920,10 +920,21 @@ export default function CampaignView() {
                             legendary: 'text-yellow-400',
                             personal: 'text-foreground',
                           };
+
+                          // Determine if a newer non-bag message exists after this one → bag is closed
+                          const myIndex = messages.indexOf(msg);
+                          const hasLaterMessage = messages.slice(myIndex + 1).some(m => !m.content.startsWith('__BAG__'));
+                          const isClosed = hasLaterMessage;
                           
                           return (
-                            <div key={msg.id} className="flex justify-center py-3 animate-fade-in" style={{ perspective: '600px' }}>
-                              <div className="relative max-w-xs w-full" style={{ transformStyle: 'preserve-3d' }}>
+                            <div key={msg.id} className="flex justify-center py-3" style={{ perspective: '600px' }}>
+                              <div
+                                className="relative max-w-xs w-full"
+                                style={{
+                                  transformStyle: 'preserve-3d',
+                                  animation: isClosed ? 'bag-close 0.6s ease-in forwards' : 'bag-open 0.7s cubic-bezier(0.34,1.56,0.64,1) forwards',
+                                }}
+                              >
                                 {/* Backpack body — 3D tilt */}
                                 <div
                                   className="relative overflow-hidden rounded-b-[2rem] rounded-t-2xl"
@@ -939,15 +950,15 @@ export default function CampaignView() {
                                     style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px)' }}
                                   />
 
-                                  {/* Flap (open, folded back) */}
+                                  {/* Flap — animates open/closed */}
                                   <div className="relative mx-auto"
                                     style={{
                                       width: '85%',
                                       height: '28px',
                                       background: 'linear-gradient(180deg, #7a4220 0%, #5a3015 100%)',
                                       borderRadius: '14px 14px 0 0',
-                                      transform: 'rotateX(-30deg) translateY(-4px)',
                                       transformOrigin: 'bottom center',
+                                      animation: isClosed ? 'flap-close 0.5s ease-in forwards' : 'flap-open 0.5s ease-out 0.2s both',
                                       boxShadow: '0 4px 12px -2px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,200,100,0.15)',
                                     }}
                                   >
@@ -962,11 +973,12 @@ export default function CampaignView() {
                                     style={{ boxShadow: '0 -2px 6px rgba(0,0,0,0.3)' }}
                                   />
 
-                                  {/* Inner dark opening */}
-                                  <div className="mx-3 mt-1 mb-1 rounded-xl p-3 pt-4 relative"
+                                  {/* Inner dark opening — contents animate in */}
+                                  <div className="mx-3 mt-1 mb-1 rounded-xl p-3 pt-4 relative overflow-hidden"
                                     style={{
                                       background: 'radial-gradient(ellipse at 50% 20%, #2a1508 0%, #1a0d04 50%, #0f0802 100%)',
                                       boxShadow: 'inset 0 6px 18px rgba(0,0,0,0.7), inset 0 -2px 8px rgba(0,0,0,0.3)',
+                                      animation: isClosed ? 'bag-contents-close 0.4s ease-in forwards' : 'bag-contents-open 0.5s ease-out 0.35s both',
                                     }}
                                   >
                                     {/* Peering-in vignette */}
@@ -985,7 +997,13 @@ export default function CampaignView() {
                                       ) : (
                                         <div className="space-y-1">
                                           {bagItems.map((item, idx) => (
-                                            <div key={idx} className="flex items-center gap-1.5 text-xs">
+                                            <div
+                                              key={idx}
+                                              className="flex items-center gap-1.5 text-xs"
+                                              style={{
+                                                animation: isClosed ? 'none' : `bag-item-appear 0.3s ease-out ${0.5 + idx * 0.08}s both`,
+                                              }}
+                                            >
                                               <span className="text-amber-600/50 text-[8px]">◆</span>
                                               <span className={`font-medium ${RARITY_COLORS[item.rarity] || 'text-amber-100/80'}`}>
                                                 {item.name}
