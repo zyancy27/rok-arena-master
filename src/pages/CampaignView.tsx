@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Compass, Heart, LogOut, MapPin, Play, Send,
   Shield, Swords, Users, Zap, Clock, Sun, Moon, Backpack,
-  Volume2, VolumeX,
+  Volume2, VolumeX, RefreshCw,
 } from 'lucide-react';
 import type { Campaign, CampaignParticipant, CampaignMessage } from '@/lib/campaign-types';
 import { getTimeEmoji, CAMPAIGN_STARTING_ABILITIES, XP_REWARDS, advanceTime } from '@/lib/campaign-types';
@@ -44,9 +44,11 @@ export default function CampaignView() {
     location: campaign?.current_zone,
   });
 
-  // Join dialog
+  // Join / swap dialog
   const [characters, setCharacters] = useState<{ id: string; name: string; level: number; image_url: string | null }[]>([]);
   const [joinCharacter, setJoinCharacter] = useState('');
+  const [swapCharacter, setSwapCharacter] = useState('');
+  const [swapping, setSwapping] = useState(false);
 
   useEffect(() => {
     if (user && campaignId) {
@@ -121,7 +123,7 @@ export default function CampaignView() {
         character: Array.isArray(p.character) ? p.character[0] : p.character,
       })) as CampaignParticipant[];
       setParticipants(parsed);
-      setMyParticipant(parsed.find(p => p.user_id === user!.id) || null);
+      setMyParticipant(parsed.find(p => p.user_id === user!.id && p.is_active) || null);
     }
   };
 
@@ -208,6 +210,68 @@ export default function CampaignView() {
 
     toast.success('Left campaign. Your progress is saved — you can return anytime.');
     fetchParticipants();
+  };
+
+  const handleSwapCharacter = async () => {
+    if (!swapCharacter || !myParticipant || !campaign) return;
+    if (swapCharacter === myParticipant.character_id) {
+      toast.error('That character is already active');
+      return;
+    }
+    setSwapping(true);
+    try {
+      // Deactivate current character (preserves their campaign data)
+      await supabase.from('campaign_participants')
+        .update({ is_active: false })
+        .eq('id', myParticipant.id);
+
+      // Check if the new character was previously in this campaign
+      const { data: existing } = await supabase
+        .from('campaign_participants')
+        .select('id')
+        .eq('campaign_id', campaign.id)
+        .eq('character_id', swapCharacter)
+        .eq('user_id', user!.id)
+        .maybeSingle();
+
+      if (existing) {
+        // Re-activate with preserved stats
+        await supabase.from('campaign_participants')
+          .update({ is_active: true })
+          .eq('id', existing.id);
+      } else {
+        // Brand new to campaign — fresh stats
+        await supabase.from('campaign_participants').insert({
+          campaign_id: campaign.id,
+          character_id: swapCharacter,
+          user_id: user!.id,
+          power_reset_applied: true,
+          is_active: true,
+        });
+      }
+
+      const oldName = myParticipant.character?.name || 'A character';
+      const newChar = characters.find(c => c.id === swapCharacter);
+      const returning = !!existing;
+
+      await supabase.from('campaign_messages').insert({
+        campaign_id: campaign.id,
+        sender_type: 'system',
+        content: returning
+          ? `🔄 **${oldName}** steps back as **${newChar?.name}** returns to the adventure.`
+          : `🔄 **${oldName}** steps back. **${newChar?.name}** enters the campaign for the first time.`,
+        channel: 'in_universe',
+      });
+
+      setSwapCharacter('');
+      toast.success(`Swapped to ${newChar?.name}`);
+      fetchParticipants();
+    } catch (err) {
+      console.error('Swap error:', err);
+      toast.error('Failed to swap character');
+    } finally {
+      setSwapping(false);
+    }
   };
 
   const handleStartCampaign = async () => {
