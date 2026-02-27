@@ -260,6 +260,230 @@ export type Database = {
           },
         ]
       }
+      campaign_logs: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          event_data: Json | null
+          event_type: string
+          id: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_logs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_messages: {
+        Row: {
+          campaign_id: string
+          channel: string
+          character_id: string | null
+          content: string
+          created_at: string
+          dice_result: Json | null
+          id: string
+          metadata: Json | null
+          sender_type: string
+          theme_snapshot: Json | null
+        }
+        Insert: {
+          campaign_id: string
+          channel?: string
+          character_id?: string | null
+          content: string
+          created_at?: string
+          dice_result?: Json | null
+          id?: string
+          metadata?: Json | null
+          sender_type?: string
+          theme_snapshot?: Json | null
+        }
+        Update: {
+          campaign_id?: string
+          channel?: string
+          character_id?: string | null
+          content?: string
+          created_at?: string
+          dice_result?: Json | null
+          id?: string
+          metadata?: Json | null
+          sender_type?: string
+          theme_snapshot?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_messages_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_messages_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_participants: {
+        Row: {
+          available_stat_points: number
+          campaign_hp: number
+          campaign_hp_max: number
+          campaign_id: string
+          campaign_level: number
+          campaign_xp: number
+          character_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          last_active_at: string | null
+          power_reset_applied: boolean
+          stat_overrides: Json | null
+          unlocked_abilities: Json | null
+          updated_at: string
+          user_id: string
+          xp_to_next_level: number
+        }
+        Insert: {
+          available_stat_points?: number
+          campaign_hp?: number
+          campaign_hp_max?: number
+          campaign_id: string
+          campaign_level?: number
+          campaign_xp?: number
+          character_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_active_at?: string | null
+          power_reset_applied?: boolean
+          stat_overrides?: Json | null
+          unlocked_abilities?: Json | null
+          updated_at?: string
+          user_id: string
+          xp_to_next_level?: number
+        }
+        Update: {
+          available_stat_points?: number
+          campaign_hp?: number
+          campaign_hp_max?: number
+          campaign_id?: string
+          campaign_level?: number
+          campaign_xp?: number
+          character_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_active_at?: string | null
+          power_reset_applied?: boolean
+          stat_overrides?: Json | null
+          unlocked_abilities?: Json | null
+          updated_at?: string
+          user_id?: string
+          xp_to_next_level?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_participants_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_participants_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          average_party_level: number
+          campaign_seed: string | null
+          chosen_location: string | null
+          created_at: string
+          creator_id: string
+          current_zone: string
+          day_count: number
+          description: string | null
+          difficulty_scale: number
+          environment_tags: Json | null
+          id: string
+          max_players: number
+          name: string
+          status: Database["public"]["Enums"]["campaign_status"]
+          story_context: Json | null
+          time_of_day: Database["public"]["Enums"]["campaign_time"]
+          updated_at: string
+          world_state: Json | null
+        }
+        Insert: {
+          average_party_level?: number
+          campaign_seed?: string | null
+          chosen_location?: string | null
+          created_at?: string
+          creator_id: string
+          current_zone?: string
+          day_count?: number
+          description?: string | null
+          difficulty_scale?: number
+          environment_tags?: Json | null
+          id?: string
+          max_players?: number
+          name: string
+          status?: Database["public"]["Enums"]["campaign_status"]
+          story_context?: Json | null
+          time_of_day?: Database["public"]["Enums"]["campaign_time"]
+          updated_at?: string
+          world_state?: Json | null
+        }
+        Update: {
+          average_party_level?: number
+          campaign_seed?: string | null
+          chosen_location?: string | null
+          created_at?: string
+          creator_id?: string
+          current_zone?: string
+          day_count?: number
+          description?: string | null
+          difficulty_scale?: number
+          environment_tags?: Json | null
+          id?: string
+          max_players?: number
+          name?: string
+          status?: Database["public"]["Enums"]["campaign_status"]
+          story_context?: Json | null
+          time_of_day?: Database["public"]["Enums"]["campaign_time"]
+          updated_at?: string
+          world_state?: Json | null
+        }
+        Relationships: []
+      }
       character_3d_configs: {
         Row: {
           character_id: string
@@ -1361,6 +1585,21 @@ export type Database = {
     Enums: {
       app_role: "admin" | "moderator" | "user"
       battle_status: "pending" | "active" | "completed"
+      campaign_status:
+        | "recruiting"
+        | "active"
+        | "paused"
+        | "completed"
+        | "abandoned"
+      campaign_time:
+        | "dawn"
+        | "morning"
+        | "midday"
+        | "afternoon"
+        | "dusk"
+        | "evening"
+        | "night"
+        | "midnight"
       character_template:
         | "adult_basic"
         | "adult_slim"
@@ -1511,6 +1750,23 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "moderator", "user"],
       battle_status: ["pending", "active", "completed"],
+      campaign_status: [
+        "recruiting",
+        "active",
+        "paused",
+        "completed",
+        "abandoned",
+      ],
+      campaign_time: [
+        "dawn",
+        "morning",
+        "midday",
+        "afternoon",
+        "dusk",
+        "evening",
+        "night",
+        "midnight",
+      ],
       character_template: [
         "adult_basic",
         "adult_slim",
