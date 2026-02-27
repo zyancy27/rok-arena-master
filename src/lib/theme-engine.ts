@@ -9,6 +9,7 @@
  *   2. Building Blocks: modular visual components (backgrounds, overlays, lighting, etc.)
  *   3. Composer: assembles blocks into a complete ThemeComposition
  *   4. Cache: memoizes composed themes for performance
+ *   5. Snapshot: serializable snapshots for per-message historical persistence
  */
 
 // ── Types ───────────────────────────────────────────────────────
@@ -67,6 +68,31 @@ export interface SavedThemePreset {
   composition: ThemeComposition;
 }
 
+// ── Theme Snapshot (serializable, per-message) ──────────────────
+
+/**
+ * A lightweight, JSON-serializable snapshot of the visual theme at a point in time.
+ * Stored in battle_messages.theme_snapshot for historical message rendering.
+ */
+export interface ThemeSnapshot {
+  /** Location string at send-time */
+  location: string | null;
+  /** Final computed environment tags (location + modifiers) */
+  tags: EnvironmentTag[];
+  /** Status/effect tags active on the character at send-time */
+  statusTags: EnvironmentTag[];
+  /** Overlay classNames (pre-resolved for rendering) */
+  overlays: string[];
+  /** Animation intensity at send-time */
+  animationIntensity: 'low' | 'medium' | 'high';
+  /** Chat box style fields */
+  chatBox: ChatBoxStyle;
+  /** Ambient glow string */
+  ambientGlow?: string;
+  /** Background layers (pre-resolved) */
+  backgrounds: BackgroundLayer[];
+}
+
 // ── Tag Taxonomy ────────────────────────────────────────────────
 
 /** Environmental tag categories */
@@ -86,6 +112,42 @@ export type EnvironmentTag =
   | 'emergency' | 'fire' | 'ice' | 'electric' | 'radiation'
   | 'wind' | 'rain' | 'fog' | 'darkness' | 'holy' | 'neon'
   | 'cosmic' | 'acid' | 'gravity' | 'tremor';
+
+/** Status effect type → EnvironmentTag mapping for visual theming */
+const STATUS_EFFECT_TAG_MAP: Record<string, EnvironmentTag> = {
+  poisoned: 'toxic',
+  burning: 'fire',
+  frozen: 'ice',
+  electrified: 'electric',
+  irradiated: 'radiation',
+  blinded: 'darkness',
+  panicked: 'emergency',
+  cursed: 'haunted',
+  blessed: 'celestial',
+  corroded: 'acid',
+  paralyzed: 'electric',
+  chilled: 'ice',
+  overheated: 'fire',
+  suffocating: 'void',
+  drowning: 'underwater',
+  gravityCrushed: 'gravity',
+  windSwept: 'wind',
+  fogBlinded: 'fog',
+};
+
+/**
+ * Convert status effect types to environment tags for theming.
+ */
+export function statusEffectsToTags(statusTypes: string[]): EnvironmentTag[] {
+  const tags: EnvironmentTag[] = [];
+  for (const st of statusTypes) {
+    const tag = STATUS_EFFECT_TAG_MAP[st];
+    if (tag && !tags.includes(tag)) {
+      tags.push(tag);
+    }
+  }
+  return tags;
+}
 
 /** Keyword → tag mapping rules */
 const TAG_RULES: Array<{ pattern: RegExp; tag: EnvironmentTag }> = [
@@ -502,4 +564,84 @@ export function isNeutralTheme(composition: ThemeComposition): boolean {
  */
 export function clearThemeCache(): void {
   themeCache.clear();
+}
+
+// ── Snapshot System ─────────────────────────────────────────────
+
+export interface SnapshotInput {
+  /** Player's current scene location (per-player, not global) */
+  location: string | null;
+  /** Extra location tags (from scene_tags) */
+  locationTags?: EnvironmentTag[];
+  /** Active status effect types on the character (e.g. ['poisoned','burning']) */
+  activeStatusEffects?: string[];
+}
+
+/**
+ * Build a serializable ThemeSnapshot from the player's current state.
+ * This captures the visual theme at a moment in time for message persistence.
+ */
+export function buildSnapshotFromState(input: SnapshotInput): ThemeSnapshot {
+  // Location-derived tags
+  const locationTags = input.locationTags && input.locationTags.length > 0
+    ? input.locationTags
+    : analyzeLocation(input.location);
+
+  // Status effect tags
+  const statusTags = input.activeStatusEffects
+    ? statusEffectsToTags(input.activeStatusEffects)
+    : [];
+
+  // Merge all tags for composition
+  const allTags = deduplicateTags([...locationTags, ...statusTags]);
+
+  // Compose full theme
+  const composition = composeTheme(allTags);
+
+  return {
+    location: input.location,
+    tags: locationTags,
+    statusTags,
+    overlays: composition.overlays.map(o => o.className),
+    animationIntensity: composition.animationIntensity,
+    chatBox: composition.chatBox,
+    ambientGlow: composition.ambientGlow,
+    backgrounds: composition.backgrounds,
+  };
+}
+
+/**
+ * Reconstruct a full ThemeComposition from a stored ThemeSnapshot.
+ * Used when rendering historical message bubbles.
+ */
+export function buildCompositionFromSnapshot(snapshot: ThemeSnapshot): ThemeComposition {
+  const allTags = deduplicateTags([...snapshot.tags, ...snapshot.statusTags]);
+
+  return {
+    cacheKey: `snap:${allTags.sort().join('+')}`,
+    backgrounds: snapshot.backgrounds,
+    overlays: snapshot.overlays.map((cn, i) => ({ className: cn, zOrder: i })),
+    ambientGlow: snapshot.ambientGlow,
+    animationIntensity: snapshot.animationIntensity,
+    chatBox: snapshot.chatBox,
+    tags: allTags,
+  };
+}
+
+/**
+ * Generate CSS custom properties from a composition for variable-driven rendering.
+ */
+export function compositionToCssVars(composition: ThemeComposition): Record<string, string> {
+  const intensityScale = { low: '0.6', medium: '1', high: '1.4' };
+  const speedScale = { low: '1.5', medium: '1', high: '0.7' };
+
+  return {
+    '--env-intensity': intensityScale[composition.animationIntensity],
+    '--env-speed': speedScale[composition.animationIntensity],
+  };
+}
+
+/** Deduplicate tags preserving order */
+function deduplicateTags(tags: EnvironmentTag[]): EnvironmentTag[] {
+  return Array.from(new Set(tags));
 }

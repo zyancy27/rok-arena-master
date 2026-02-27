@@ -86,6 +86,7 @@ import { detectCharacterStatusEffects } from '@/lib/character-status-effects';
 import { shouldSuppressStatus } from '@/lib/battlefield-effects';
 import SaveLocationPrompt from '@/components/battles/SaveLocationPrompt';
 import EnvironmentChatBackground from '@/components/battles/EnvironmentChatBackground';
+import { buildSnapshotFromState, type ThemeSnapshot } from '@/lib/theme-engine';
 import { usePvPCombatMechanics } from '@/hooks/use-pvp-combat-mechanics';
 import SfxToggle from '@/components/battles/SfxToggle';
 import PrivateNarratorChat, { type MechanicDiscoveryMessage } from '@/components/battles/PrivateNarratorChat';
@@ -216,6 +217,8 @@ interface Message {
   statusEffectsSnapshot?: StatusEffectsSnapshot;
   /** True while the message is being sent to the server */
   isPending?: boolean;
+  /** Theme snapshot at send-time for historical rendering */
+  themeSnapshot?: ThemeSnapshot | null;
 }
 
 type NarratorFrequency = 'always' | 'key_moments' | 'off';
@@ -677,7 +680,7 @@ export default function BattleView() {
   const fetchMessages = async () => {
     const { data: messagesData } = await supabase
       .from('battle_messages')
-      .select('id, character_id, content, channel, created_at')
+      .select('id, character_id, content, channel, created_at, theme_snapshot')
       .eq('battle_id', id)
       .order('created_at', { ascending: true });
 
@@ -695,6 +698,7 @@ export default function BattleView() {
         ...m,
         channel: m.channel as 'in_universe' | 'out_of_universe',
         character_name: charMap.get(m.character_id) || 'Unknown',
+        themeSnapshot: (m as any).theme_snapshot ?? null,
       }));
 
       setMessages(messagesWithNames);
@@ -734,6 +738,7 @@ export default function BattleView() {
                   ...newMessage,
                   channel: newMessage.channel as 'in_universe' | 'out_of_universe',
                   character_name: charData?.name || 'Unknown',
+                  themeSnapshot: (newMessage as any).theme_snapshot ?? null,
                   isPending: false,
                 };
                 
@@ -744,9 +749,8 @@ export default function BattleView() {
                     m.isPending && m.character_id === newMessage.character_id && m.content === newMessage.content
                   );
                   if (optimisticIndex !== -1) {
-                    // Reconcile: replace optimistic with server-confirmed, preserving snapshot
                     const optimistic = current[optimisticIndex];
-                    const reconciled = { ...messageWithName, statusEffectsSnapshot: optimistic.statusEffectsSnapshot };
+                    const reconciled = { ...messageWithName, statusEffectsSnapshot: optimistic.statusEffectsSnapshot, themeSnapshot: optimistic.themeSnapshot };
                     return current.map((m, i) => i === optimisticIndex ? reconciled : m);
                   }
                   // Otherwise just update the placeholder
@@ -1090,6 +1094,15 @@ export default function BattleView() {
       }
     }
 
+    // Build theme snapshot for historical per-message rendering
+    const playerSceneLocation = battle?.chosen_location ?? null;
+    const themeSnap = activeChannel === 'in_universe'
+      ? buildSnapshotFromState({
+          location: playerSceneLocation,
+          activeStatusEffects: characterStatusEffects.map(e => e.type),
+        })
+      : null;
+
     // OPTIMISTIC: Add message to UI immediately
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const optimisticMessage: Message = {
@@ -1100,6 +1113,7 @@ export default function BattleView() {
       created_at: new Date().toISOString(),
       character_name: userCharacter.character?.name || 'You',
       statusEffectsSnapshot: Object.keys(snapshot).length > 0 ? snapshot : undefined,
+      themeSnapshot: themeSnap,
       isPending: true,
     };
     
@@ -1108,13 +1122,14 @@ export default function BattleView() {
     setPendingMove(null);
     setMoveValidation(null);
 
-    // Send to server
+    // Send to server (include theme_snapshot)
     const { error } = await supabase.from('battle_messages').insert({
       battle_id: id,
       character_id: userCharacter.character_id,
       content: content.trim(),
       channel: activeChannel,
-    });
+      ...(themeSnap ? { theme_snapshot: themeSnap } : {}),
+    } as any);
 
     if (error) {
       // Rollback optimistic message
@@ -2672,12 +2687,20 @@ export default function BattleView() {
                               )}
                               
                               <div 
-                                className={`relative p-3 rounded-lg overflow-hidden ${
+                                className={`env-scope p-3 rounded-lg ${
                                   isFromUser
                                     ? `bg-primary/20 border-l-4 border-primary ml-8${msg.isPending ? ' opacity-70' : ''}`
                                     : 'bg-muted/50 border-l-4 border-accent mr-8'
                                 }`}
                               >
+                                {/* Per-message theme snapshot background */}
+                                {msg.themeSnapshot && (
+                                  <EnvironmentChatBackground
+                                    snapshot={msg.themeSnapshot}
+                                    scope="bubble"
+                                    className="rounded-lg"
+                                  />
+                                )}
                                 {/* Snapshot-based Status Effect Overlay — permanent per message */}
                                 {snapshotEffects.length > 0 && (
                                   <CharacterStatusOverlay 

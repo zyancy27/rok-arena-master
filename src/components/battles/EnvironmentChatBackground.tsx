@@ -3,9 +3,12 @@ import { cn } from '@/lib/utils';
 import {
   buildThemeFromLocation,
   buildThemeFromTags,
+  buildCompositionFromSnapshot,
+  compositionToCssVars,
   backgroundLayerToCSS,
   isNeutralTheme,
   type ThemeComposition,
+  type ThemeSnapshot,
   type EnvironmentTag,
 } from '@/lib/theme-engine';
 
@@ -20,38 +23,49 @@ interface EnvironmentChatBackgroundProps {
   tags?: EnvironmentTag[];
   /** Optional: a pre-composed theme (overrides both location and tags) */
   composition?: ThemeComposition;
-  /** Optional: apply only to a specific player scope ('full' = entire chat area) */
-  scope?: 'full' | 'player-only';
+  /** Optional: a stored ThemeSnapshot (highest priority, used for message bubbles) */
+  snapshot?: ThemeSnapshot | null;
+  /** Optional: apply only to a specific player scope ('full' = entire chat area, 'bubble' = message bubble) */
+  scope?: 'full' | 'player-only' | 'bubble';
   className?: string;
 }
 
 /**
  * Persistent environment background overlay for the battle chat area.
  * Uses the modular Theme Engine to compose visual effects from building blocks.
- * Effects remain as long as the location is active.
+ * Supports two rendering modes:
+ *   - "full" / "player-only": current scene theme for the chat container
+ *   - "bubble": per-message snapshot theme for historical messages
  */
 export default function EnvironmentChatBackground({
   location,
   tags,
   composition: preComposed,
+  snapshot,
   scope = 'full',
   className,
 }: EnvironmentChatBackgroundProps) {
   const theme = useMemo(() => {
+    // Snapshot takes highest priority (historical message rendering)
+    if (snapshot) return buildCompositionFromSnapshot(snapshot);
     if (preComposed) return preComposed;
     if (tags && tags.length > 0) return buildThemeFromTags(tags);
     return buildThemeFromLocation(location);
-  }, [location, tags, preComposed]);
+  }, [location, tags, preComposed, snapshot]);
+
+  const cssVars = useMemo(() => compositionToCssVars(theme), [theme]);
 
   if (isNeutralTheme(theme)) return null;
 
   return (
     <div
       className={cn(
-        'absolute inset-0 pointer-events-none overflow-hidden z-0 transition-opacity duration-1000',
+        'env-layer overflow-hidden z-0 transition-opacity duration-1000',
         scope === 'player-only' && 'rounded-lg',
+        scope === 'bubble' && 'rounded-lg',
         className,
       )}
+      style={cssVars as React.CSSProperties}
       aria-hidden
     >
       <ComposedThemeRenderer composition={theme} />
@@ -75,7 +89,7 @@ function ComposedThemeRenderer({ composition }: { composition: ThemeComposition 
       {/* Background gradient layers (merged into one div for performance) */}
       {backgroundCSS && (
         <div
-          className="absolute inset-0"
+          className="env-layer"
           style={{ background: backgroundCSS }}
         />
       )}
@@ -84,14 +98,14 @@ function ComposedThemeRenderer({ composition }: { composition: ThemeComposition 
       {composition.overlays.map((overlay) => (
         <div
           key={overlay.className}
-          className={cn('absolute inset-0', overlay.className)}
+          className={cn('env-layer', overlay.className)}
         />
       ))}
 
       {/* Ambient glow via inset box-shadow */}
       {composition.ambientGlow && (
         <div
-          className="absolute inset-0"
+          className="env-layer"
           style={{ boxShadow: composition.ambientGlow }}
         />
       )}
