@@ -412,6 +412,65 @@ export type Database = {
           },
         ]
       }
+      campaign_npcs: {
+        Row: {
+          appearance: string | null
+          backstory: string | null
+          campaign_id: string
+          created_at: string
+          current_zone: string | null
+          first_met_day: number
+          id: string
+          last_seen_day: number | null
+          metadata: Json | null
+          name: string
+          personality: string | null
+          role: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          appearance?: string | null
+          backstory?: string | null
+          campaign_id: string
+          created_at?: string
+          current_zone?: string | null
+          first_met_day?: number
+          id?: string
+          last_seen_day?: number | null
+          metadata?: Json | null
+          name: string
+          personality?: string | null
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          appearance?: string | null
+          backstory?: string | null
+          campaign_id?: string
+          created_at?: string
+          current_zone?: string | null
+          first_met_day?: number
+          id?: string
+          last_seen_day?: number | null
+          metadata?: Json | null
+          name?: string
+          personality?: string | null
+          role?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_npcs_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_participants: {
         Row: {
           available_stat_points: number
@@ -1201,6 +1260,67 @@ export type Database = {
             columns: ["solar_system_id"]
             isOneToOne: false
             referencedRelation: "solar_systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      npc_relationships: {
+        Row: {
+          campaign_id: string
+          character_id: string
+          created_at: string
+          disposition: string
+          id: string
+          last_interaction_day: number | null
+          notes: string | null
+          npc_id: string
+          trust_level: number
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          character_id: string
+          created_at?: string
+          disposition?: string
+          id?: string
+          last_interaction_day?: number | null
+          notes?: string | null
+          npc_id: string
+          trust_level?: number
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          character_id?: string
+          created_at?: string
+          disposition?: string
+          id?: string
+          last_interaction_day?: number | null
+          notes?: string | null
+          npc_id?: string
+          trust_level?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "npc_relationships_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "npc_relationships_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "npc_relationships_npc_id_fkey"
+            columns: ["npc_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_npcs"
             referencedColumns: ["id"]
           },
         ]
