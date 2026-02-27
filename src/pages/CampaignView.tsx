@@ -200,35 +200,37 @@ export default function CampaignView() {
     const char = characters.find(c => c.id === joinCharacter);
     triggerDiscovery('campaign_power_reset');
 
-    // Narrator-driven organic arrival (only if campaign is active)
+    // Narrator-driven organic arrival + world briefing (only if campaign is active)
     if (campaign?.status === 'active') {
       try {
+        const activeParty = participants.filter(p => p.is_active).map(p => `${p.character?.name}`).join(', ');
         const { data } = await supabase.functions.invoke('battle-narrator', {
           body: {
             type: 'campaign_narration',
             campaignId: campaignId!,
-            playerAction: `[NEW ARRIVAL] ${char?.name} has just joined the campaign. Write a brief, organic narrative describing their arrival at ${campaign.current_zone} during ${campaign.time_of_day}. Make it feel natural to the current scene.`,
+            playerAction: `[NEW ARRIVAL] ${char?.name} has just joined the campaign. Write an organic narrative describing their arrival at ${campaign.current_zone} during ${campaign.time_of_day}. Then give a brief world briefing so they understand where they are, what the current situation is, who else is present (${activeParty || 'nobody yet'}), and what their immediate options are. Make it immersive and in-character.`,
             currentZone: campaign.current_zone,
             timeOfDay: campaign.time_of_day,
             dayCount: campaign.day_count,
             worldState: campaign.world_state,
             storyContext: campaign.story_context,
             campaignDescription: campaign.description,
+            environmentTags: campaign.environment_tags,
             playerCharacter: { name: char?.name },
-            partyContext: participants.filter(p => p.is_active).map(p => `${p.character?.name}`).join(', '),
+            partyContext: activeParty,
           },
         });
         await supabase.from('campaign_messages').insert({
           campaign_id: campaignId!,
           sender_type: 'narrator',
-          content: data?.narration || `A new figure appears — **${char?.name}** has arrived.`,
+          content: data?.narration || `A new figure appears — **${char?.name}** has arrived at ${campaign.current_zone}.`,
           channel: 'in_universe',
         });
       } catch {
         await supabase.from('campaign_messages').insert({
           campaign_id: campaignId!,
           sender_type: 'narrator',
-          content: `A new figure emerges from the path — **${char?.name || 'a new adventurer'}** has arrived.`,
+          content: `A new figure emerges from the path — **${char?.name || 'a new adventurer'}** has arrived at ${campaign.current_zone}.`,
           channel: 'in_universe',
         });
       }
@@ -679,110 +681,9 @@ export default function CampaignView() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        {/* Party Panel */}
-        <Card className="lg:col-span-1 bg-card-gradient border-border">
-          <CardHeader className="py-3 px-4">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              Party ({participants.filter(p => p.is_active).length}/{campaign.max_players})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4 space-y-3">
-            {participants.filter(p => p.is_active).map(p => (
-              <div key={p.id} className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <Avatar className="w-6 h-6">
-                    <AvatarImage src={p.character?.image_url || undefined} />
-                    <AvatarFallback className="text-[10px]">{p.character?.name?.[0] || '?'}</AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm font-medium truncate">{p.character?.name}</span>
-                  {p.is_solo && (
-                    <Badge variant="outline" className="text-[10px] border-amber-500/50 text-amber-400 shrink-0">Solo</Badge>
-                  )}
-                  <Badge variant="outline" className="text-[10px] ml-auto shrink-0">Lv.{p.campaign_level}</Badge>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Heart className="w-3 h-3 text-red-400 shrink-0" />
-                  <Progress value={(p.campaign_hp / p.campaign_hp_max) * 100} className="h-1.5 flex-1" />
-                  <span className="text-[10px] text-muted-foreground shrink-0">{p.campaign_hp}/{p.campaign_hp_max}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Zap className="w-3 h-3 text-yellow-400 shrink-0" />
-                  <Progress value={(p.campaign_xp / p.xp_to_next_level) * 100} className="h-1.5 flex-1" />
-                  <span className="text-[10px] text-muted-foreground shrink-0">{p.campaign_xp}/{p.xp_to_next_level} XP</span>
-                </div>
-              </div>
-            ))}
-
-            {/* Inactive (left) members */}
-            {participants.filter(p => !p.is_active).map(p => (
-              <div key={p.id} className="flex items-center gap-2 opacity-50">
-                <Avatar className="w-6 h-6">
-                  <AvatarFallback className="text-[10px]">{p.character?.name?.[0] || '?'}</AvatarFallback>
-                </Avatar>
-                <span className="text-xs truncate">{p.character?.name}</span>
-                <Badge variant="outline" className="text-[10px] ml-auto">Left</Badge>
-              </div>
-            ))}
-
-            {/* Inventory */}
-            {myParticipant && (
-              <>
-                <Separator />
-                <CampaignInventoryPanel
-                  items={inventory}
-                  onUpdate={fetchInventory}
-                  isActive={isActive && myParticipant.is_active}
-                />
-              </>
-            )}
-
-            <Separator />
-
-            {/* Join */}
-            {canJoin && (
-              <div className="space-y-2">
-                <Select value={joinCharacter} onValueChange={setJoinCharacter}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select character..." /></SelectTrigger>
-                  <SelectContent>
-                    {characters.map(c => (
-                      <SelectItem key={c.id} value={c.id}>{c.name} (Tier {c.level})</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button size="sm" className="w-full" onClick={handleJoin}>Join Campaign</Button>
-              </div>
-            )}
-
-            {/* Start */}
-            {canStart && (
-              <Button size="sm" className="w-full gap-1" onClick={handleStartCampaign}>
-                <Play className="w-3 h-3" /> Start Campaign
-              </Button>
-            )}
-
-
-            {/* Leave */}
-            {myParticipant?.is_active && (
-              <Button variant="ghost" size="sm" className="w-full text-destructive gap-1" onClick={handleLeave}>
-                <LogOut className="w-3 h-3" /> Leave Party
-              </Button>
-            )}
-
-            {/* End Campaign */}
-            {isCreator && isActive && myParticipant && (
-              <CampaignEndDialog
-                campaign={campaign}
-                participant={myParticipant}
-                onComplete={() => { fetchCampaign(); fetchParticipants(); }}
-              />
-            )}
-          </CardContent>
-        </Card>
-
+      <div className="space-y-4">
         {/* Chat + Narrator */}
-        <Card className="lg:col-span-3 bg-card-gradient border-border flex flex-col" style={{ minHeight: '60vh' }}>
+        <Card className="bg-card-gradient border-border flex flex-col" style={{ minHeight: '65vh' }}>
           <Tabs defaultValue="adventure" className="flex flex-col flex-1">
             <div className="border-b border-border px-4">
               <TabsList className="bg-transparent h-auto p-0 gap-4">
@@ -873,6 +774,8 @@ export default function CampaignView() {
               <TabsContent value="narrator" className="flex-1 flex flex-col mt-0 data-[state=inactive]:hidden">
                 <CampaignNarratorChat
                   campaignId={campaign.id}
+                  campaignName={campaign.name}
+                  campaignStatus={campaign.status}
                   characterName={myParticipant.character?.name || 'Unknown'}
                   characterPowers={myParticipant.character?.powers || null}
                   characterAbilities={myParticipant.character?.abilities || null}
@@ -889,17 +792,85 @@ export default function CampaignView() {
                   storyContext={campaign.story_context}
                   environmentTags={campaign.environment_tags}
                   partyMembers={participants.filter(p => p.is_active).map(p => p.character?.name || 'Unknown')}
+                  participants={participants}
                   isSolo={isSoloMode}
+                  inventory={inventory}
+                  onInventoryUpdate={fetchInventory}
+                  isInventoryActive={isActive && myParticipant.is_active}
                   mechanicDiscoveries={pendingDiscoveries}
                   onDiscoveriesShown={() => {
                     setPendingDiscoveries([]);
                     setNarratorTabGlowing(false);
                   }}
+                  isCreator={isCreator}
+                  maxPlayers={campaign.max_players}
+                  canJoin={canJoin}
+                  canStart={canStart}
+                  characters={characters}
+                  joinCharacter={joinCharacter}
+                  onJoinCharacterChange={setJoinCharacter}
+                  onJoin={handleJoin}
+                  onStart={handleStartCampaign}
+                  onLeave={handleLeave}
+                  myParticipant={myParticipant}
+                  swapCharacter={swapCharacter}
+                  onSwapCharacterChange={setSwapCharacter}
+                  onSwap={handleSwapCharacter}
+                  swapping={swapping}
+                  campaignEndDialog={
+                    isCreator && isActive ? (
+                      <CampaignEndDialog
+                        campaign={campaign}
+                        participant={myParticipant}
+                        onComplete={() => { fetchCampaign(); fetchParticipants(); }}
+                      />
+                    ) : null
+                  }
                 />
               </TabsContent>
             )}
           </Tabs>
         </Card>
+
+        {/* Join / Start controls when not in narrator tab (recruiting or not joined yet) */}
+        {(!myParticipant || !isActive) && (
+          <Card className="bg-card-gradient border-border">
+            <CardContent className="p-4 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Users className="w-4 h-4" />
+                Party ({participants.filter(p => p.is_active).length}/{campaign.max_players})
+              </div>
+              {participants.filter(p => p.is_active).map(p => (
+                <div key={p.id} className="flex items-center gap-2">
+                  <Avatar className="w-6 h-6">
+                    <AvatarImage src={p.character?.image_url || undefined} />
+                    <AvatarFallback className="text-[10px]">{p.character?.name?.[0] || '?'}</AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm truncate">{p.character?.name}</span>
+                  <Badge variant="outline" className="text-[10px] ml-auto shrink-0">Lv.{p.campaign_level}</Badge>
+                </div>
+              ))}
+              {canJoin && (
+                <div className="flex gap-2 pt-2">
+                  <Select value={joinCharacter} onValueChange={setJoinCharacter}>
+                    <SelectTrigger className="h-8 text-xs flex-1"><SelectValue placeholder="Select character..." /></SelectTrigger>
+                    <SelectContent>
+                      {characters.map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name} (Tier {c.level})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button size="sm" onClick={handleJoin}>Join</Button>
+                </div>
+              )}
+              {canStart && (
+                <Button size="sm" className="w-full gap-1" onClick={handleStartCampaign}>
+                  <Play className="w-3 h-3" /> Start Campaign
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

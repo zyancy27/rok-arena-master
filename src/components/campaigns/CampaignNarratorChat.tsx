@@ -1,17 +1,26 @@
 /**
  * Private Narrator Chat for Campaigns
- * Players can privately ask the narrator about the world, story,
- * their surroundings, NPCs, and get guidance — without the group seeing.
- * Auto-delivers a world-building briefing on first entry.
+ * Includes campaign info, party panel, inventory, and private narrator queries.
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
-import { BookOpen, Send, Sparkles, Lock, Globe, User, Map, Swords } from 'lucide-react';
+import {
+  BookOpen, Send, Sparkles, Lock, Globe, User, Map, Swords,
+  Heart, Zap, Users, ChevronDown, MapPin, RefreshCw, LogOut, Play, Backpack,
+} from 'lucide-react';
+import CampaignInventoryPanel, { type InventoryItem } from './CampaignInventoryPanel';
+import { getTimeEmoji } from '@/lib/campaign-types';
+import type { CampaignParticipant } from '@/lib/campaign-types';
 
 interface NarratorMessage {
   id: string;
@@ -27,6 +36,8 @@ export interface CampaignMechanicDiscovery {
 
 interface CampaignNarratorChatProps {
   campaignId: string;
+  campaignName: string;
+  campaignStatus: string;
   characterName: string;
   characterPowers: string | null;
   characterAbilities: string | null;
@@ -43,9 +54,30 @@ interface CampaignNarratorChatProps {
   storyContext: Record<string, unknown>;
   environmentTags?: string[];
   partyMembers: string[];
+  participants: CampaignParticipant[];
   isSolo: boolean;
+  inventory: InventoryItem[];
+  onInventoryUpdate: () => void;
+  isInventoryActive: boolean;
   mechanicDiscoveries?: CampaignMechanicDiscovery[];
   onDiscoveriesShown?: () => void;
+  // Campaign controls
+  isCreator: boolean;
+  maxPlayers: number;
+  canJoin: boolean;
+  canStart: boolean;
+  characters: { id: string; name: string; level: number; image_url: string | null }[];
+  joinCharacter: string;
+  onJoinCharacterChange: (v: string) => void;
+  onJoin: () => void;
+  onStart: () => void;
+  onLeave: () => void;
+  myParticipant: CampaignParticipant | null;
+  swapCharacter: string;
+  onSwapCharacterChange: (v: string) => void;
+  onSwap: () => void;
+  swapping: boolean;
+  campaignEndDialog: ReactNode;
 }
 
 const QUICK_ASKS = [
@@ -56,34 +88,25 @@ const QUICK_ASKS = [
 ];
 
 export default function CampaignNarratorChat({
-  campaignId,
-  characterName,
-  characterPowers,
-  characterAbilities,
-  characterWeapons,
-  characterLevel,
-  campaignLevel,
-  campaignHp,
-  campaignHpMax,
-  currentZone,
-  timeOfDay,
-  dayCount,
-  campaignDescription,
-  worldState,
-  storyContext,
-  environmentTags = [],
-  partyMembers,
-  isSolo,
-  mechanicDiscoveries = [],
-  onDiscoveriesShown,
+  campaignId, campaignName, campaignStatus,
+  characterName, characterPowers, characterAbilities, characterWeapons,
+  characterLevel, campaignLevel, campaignHp, campaignHpMax,
+  currentZone, timeOfDay, dayCount, campaignDescription,
+  worldState, storyContext, environmentTags = [],
+  partyMembers, participants, isSolo,
+  inventory, onInventoryUpdate, isInventoryActive,
+  mechanicDiscoveries = [], onDiscoveriesShown,
+  isCreator, maxPlayers, canJoin, canStart,
+  characters, joinCharacter, onJoinCharacterChange, onJoin, onStart, onLeave,
+  myParticipant, swapCharacter, onSwapCharacterChange, onSwap, swapping,
+  campaignEndDialog,
 }: CampaignNarratorChatProps) {
   const [messages, setMessages] = useState<NarratorMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [introSent, setIntroSent] = useState(false);
+  const [partyOpen, setPartyOpen] = useState(false);
+  const [inventoryOpen, setInventoryOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  // No auto-intro here — world briefing is posted to the public adventure log on campaign start
 
   // Show mechanic discovery messages when queued
   useEffect(() => {
@@ -109,19 +132,16 @@ export default function CampaignNarratorChat({
     scrollToBottom();
   }, [messages]);
 
-  const sendNarratorQuery = async (queryText: string, isAutoIntro = false) => {
+  const sendNarratorQuery = async (queryText: string) => {
     if (isLoading) return;
 
-    if (!isAutoIntro) {
-      const userMsg: NarratorMessage = {
-        id: `user-${Date.now()}`,
-        role: 'user',
-        content: queryText,
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, userMsg]);
-    }
-
+    const userMsg: NarratorMessage = {
+      id: `user-${Date.now()}`,
+      role: 'user',
+      content: queryText,
+      timestamp: new Date(),
+    };
+    setMessages(prev => [...prev, userMsg]);
     setIsLoading(true);
 
     try {
@@ -136,34 +156,22 @@ export default function CampaignNarratorChat({
           opponentNames: [],
           recentPublicActions: '',
           campaignContext: {
-            campaignId,
-            currentZone,
-            timeOfDay,
-            dayCount,
-            campaignDescription,
-            worldState,
-            storyContext,
-            environmentTags,
-            partyMembers,
-            isSolo,
-            isCampaign: true,
-            characterWeapons,
-            characterLevel,
-            campaignLevel,
-            campaignHp,
-            campaignHpMax,
+            campaignId, currentZone, timeOfDay, dayCount,
+            campaignDescription, worldState, storyContext,
+            environmentTags, partyMembers, isSolo,
+            isCampaign: true, characterWeapons, characterLevel,
+            campaignLevel, campaignHp, campaignHpMax,
           },
         },
       });
 
       if (response.data) {
-        const narratorMsg: NarratorMessage = {
+        setMessages(prev => [...prev, {
           id: `nar-${Date.now()}`,
           role: 'narrator',
           content: response.data.answer || 'The narrator ponders silently...',
           timestamp: new Date(),
-        };
-        setMessages(prev => [...prev, narratorMsg]);
+        }]);
       }
     } catch (error) {
       console.error('Campaign narrator error:', error);
@@ -185,20 +193,125 @@ export default function CampaignNarratorChat({
     await sendNarratorQuery(userInput);
   };
 
-  const handleQuickAsk = (prompt: string) => {
-    sendNarratorQuery(prompt);
-  };
+  const activeParticipants = participants.filter(p => p.is_active);
+  const inactiveParticipants = participants.filter(p => !p.is_active);
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center gap-2 p-3 border-b border-border bg-gradient-to-r from-amber-500/5 to-transparent">
-        <BookOpen className="w-4 h-4 text-amber-400" />
-        <span className="text-sm font-semibold text-amber-400">Private Narrator</span>
-        <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-300 ml-auto">
-          <Lock className="w-2.5 h-2.5 mr-1" />
-          Only you
-        </Badge>
+      {/* Campaign Info Header */}
+      <div className="px-3 pt-3 pb-2 border-b border-border space-y-2">
+        <div className="flex items-center gap-2">
+          <BookOpen className="w-4 h-4 text-amber-400 shrink-0" />
+          <span className="text-sm font-semibold text-amber-400 truncate">{campaignName}</span>
+          <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-300 ml-auto shrink-0">
+            <Lock className="w-2.5 h-2.5 mr-1" />
+            Private
+          </Badge>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+          <span>{getTimeEmoji(timeOfDay as any)} {timeOfDay}</span>
+          <span>Day {dayCount}</span>
+          <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{currentZone}</span>
+        </div>
+
+        {/* Collapsible Party */}
+        <Collapsible open={partyOpen} onOpenChange={setPartyOpen}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="w-full justify-between h-7 text-xs px-2">
+              <span className="flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5" />
+                Party ({activeParticipants.length}/{maxPlayers})
+              </span>
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${partyOpen ? 'rotate-180' : ''}`} />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-2 pt-1">
+            {activeParticipants.map(p => (
+              <div key={p.id} className="space-y-1 px-1">
+                <div className="flex items-center gap-2">
+                  <Avatar className="w-5 h-5">
+                    <AvatarImage src={p.character?.image_url || undefined} />
+                    <AvatarFallback className="text-[9px]">{p.character?.name?.[0] || '?'}</AvatarFallback>
+                  </Avatar>
+                  <span className="text-xs font-medium truncate">{p.character?.name}</span>
+                  {p.is_solo && <Badge variant="outline" className="text-[9px] border-amber-500/50 text-amber-400 shrink-0">Solo</Badge>}
+                  <Badge variant="outline" className="text-[9px] ml-auto shrink-0">Lv.{p.campaign_level}</Badge>
+                </div>
+                <div className="flex items-center gap-1.5 px-1">
+                  <Heart className="w-2.5 h-2.5 text-destructive shrink-0" />
+                  <Progress value={(p.campaign_hp / p.campaign_hp_max) * 100} className="h-1 flex-1" />
+                  <span className="text-[9px] text-muted-foreground shrink-0">{p.campaign_hp}/{p.campaign_hp_max}</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-1">
+                  <Zap className="w-2.5 h-2.5 text-primary shrink-0" />
+                  <Progress value={(p.campaign_xp / p.xp_to_next_level) * 100} className="h-1 flex-1" />
+                  <span className="text-[9px] text-muted-foreground shrink-0">{p.campaign_xp}/{p.xp_to_next_level} XP</span>
+                </div>
+              </div>
+            ))}
+            {inactiveParticipants.map(p => (
+              <div key={p.id} className="flex items-center gap-2 opacity-50 px-1">
+                <Avatar className="w-5 h-5">
+                  <AvatarFallback className="text-[9px]">{p.character?.name?.[0] || '?'}</AvatarFallback>
+                </Avatar>
+                <span className="text-[11px] truncate">{p.character?.name}</span>
+                <Badge variant="outline" className="text-[9px] ml-auto">Left</Badge>
+              </div>
+            ))}
+
+            {/* Swap Character */}
+            {myParticipant?.is_active && characters.length > 1 && (
+              <>
+                <Separator className="my-1" />
+                <div className="flex gap-1.5 px-1">
+                  <Select value={swapCharacter} onValueChange={onSwapCharacterChange}>
+                    <SelectTrigger className="h-7 text-[11px] flex-1"><SelectValue placeholder="Swap character..." /></SelectTrigger>
+                    <SelectContent>
+                      {characters.filter(c => c.id !== myParticipant.character_id).map(c => (
+                        <SelectItem key={c.id} value={c.id}>{c.name} (Tier {c.level})</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button size="sm" className="h-7 text-[11px]" onClick={onSwap} disabled={!swapCharacter || swapping}>
+                    <RefreshCw className={`w-3 h-3 ${swapping ? 'animate-spin' : ''}`} />
+                  </Button>
+                </div>
+              </>
+            )}
+
+            {/* Leave */}
+            {myParticipant?.is_active && (
+              <Button variant="ghost" size="sm" className="w-full h-7 text-[11px] text-destructive gap-1" onClick={onLeave}>
+                <LogOut className="w-3 h-3" /> Leave Party
+              </Button>
+            )}
+
+            {/* End Campaign */}
+            {campaignEndDialog}
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Collapsible Inventory */}
+        {myParticipant && (
+          <Collapsible open={inventoryOpen} onOpenChange={setInventoryOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-full justify-between h-7 text-xs px-2">
+                <span className="flex items-center gap-1.5">
+                  <Backpack className="w-3.5 h-3.5" />
+                  Inventory ({inventory.length})
+                </span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${inventoryOpen ? 'rotate-180' : ''}`} />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-1">
+              <CampaignInventoryPanel
+                items={inventory}
+                onUpdate={onInventoryUpdate}
+                isActive={isInventoryActive}
+              />
+            </CollapsibleContent>
+          </Collapsible>
+        )}
       </div>
 
       {/* Quick Ask Buttons */}
@@ -209,7 +322,7 @@ export default function CampaignNarratorChat({
             variant="outline"
             size="sm"
             className="h-7 text-[11px] gap-1 border-amber-500/20 text-amber-300/80 hover:text-amber-300 hover:bg-amber-500/10 hover:border-amber-500/40"
-            onClick={() => handleQuickAsk(qa.prompt)}
+            onClick={() => sendNarratorQuery(qa.prompt)}
             disabled={isLoading}
           >
             <qa.icon className="w-3 h-3" />
@@ -224,7 +337,10 @@ export default function CampaignNarratorChat({
           <div className="flex flex-col items-center justify-center h-full gap-2 text-center py-6">
             <Sparkles className="w-6 h-6 text-amber-400/50" />
             <p className="text-xs text-muted-foreground">
-              The narrator is preparing your world briefing...
+              Ask the narrator about the world, your surroundings, NPCs, or get hints about the story.
+            </p>
+            <p className="text-[10px] text-muted-foreground/60">
+              This conversation is private — only you can see it.
             </p>
           </div>
         ) : (
