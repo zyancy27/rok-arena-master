@@ -27,6 +27,9 @@ import EnvironmentChatBackground from '@/components/battles/EnvironmentChatBackg
 import DiceRollChatMessage from '@/components/battles/DiceRollChatMessage';
 import HitDetectionBadge from '@/components/battles/HitDetectionBadge';
 import { CharacterStatusOverlay } from '@/components/battles/CharacterStatusOverlay';
+import BattlefieldEffectsOverlay from '@/components/battles/BattlefieldEffectsOverlay';
+import { useBattlefieldEffects } from '@/components/battles/useBattlefieldEffects';
+import { shouldSuppressStatus } from '@/lib/battlefield-effects';
 import MoveValidationWarning from '@/components/battles/MoveValidationWarning';
 import type { Campaign, CampaignParticipant, CampaignMessage } from '@/lib/campaign-types';
 import { getTimeEmoji, CAMPAIGN_STARTING_ABILITIES, XP_REWARDS, advanceTime } from '@/lib/campaign-types';
@@ -103,6 +106,11 @@ export default function CampaignView() {
     } : null
   );
 
+  // Battlefield environment effects (fire, ice, storm, etc.)
+  const { activeEffects: battlefieldEffects, processMessage: processEffectMessage } = useBattlefieldEffects({
+    enabled: campaign?.status === 'active',
+  });
+
   const triggerDiscovery = (key: MechanicKey) => {
     if (!user) return;
     const info = discoverMechanic(user.id, key);
@@ -133,6 +141,12 @@ export default function CampaignView() {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'campaign_messages', filter: `campaign_id=eq.${campaignId}` },
         async (payload) => {
           const msg = payload.new as any;
+
+          // Detect battlefield effects from narrator messages
+          if (msg.sender_type === 'narrator' && msg.content) {
+            processEffectMessage(msg.content);
+          }
+
           setMessages(prev => {
             // Check if we have an optimistic (isPending) message that matches
             const optimisticIndex = prev.findIndex(m =>
@@ -154,11 +168,9 @@ export default function CampaignView() {
             };
 
             if (optimisticIndex !== -1) {
-              // Reconcile: replace optimistic with confirmed
               return prev.map((m, i) => i === optimisticIndex ? enriched : m);
             }
             
-            // Skip if already exists by real ID
             if (prev.some(m => m.id === msg.id)) return prev;
             
             return [...prev, enriched];
@@ -820,6 +832,9 @@ export default function CampaignView() {
         // Process narrator response for status effects
         campaignCombat.processNarratorResponse(data.narration);
 
+        // Process narrator response for battlefield environment effects
+        processEffectMessage(data.narration);
+
         await supabase.from('campaign_messages').insert({
           campaign_id: campaign.id,
           sender_type: 'narrator',
@@ -1127,6 +1142,9 @@ export default function CampaignView() {
                 {/* Persistent Environment Background */}
                 <EnvironmentChatBackground location={campaign.current_zone} />
 
+                {/* Battlefield Effects Overlay */}
+                <BattlefieldEffectsOverlay effects={battlefieldEffects} className="z-[1]" />
+
                 <ScrollArea className="flex-1 p-4 relative z-10" style={{ minHeight: 0 }}>
                   <div className="space-y-4">
                     {messages.map(msg => {
@@ -1389,7 +1407,11 @@ export default function CampaignView() {
                 {/* Status Effects Overlay on input area */}
                 {isActive && myParticipant?.is_active && campaignCombat.statusEffects.activeEffects.length > 0 && (
                   <div className="relative mx-3">
-                    <CharacterStatusOverlay effects={campaignCombat.statusEffects.activeEffects} />
+                    <CharacterStatusOverlay
+                      effects={campaignCombat.statusEffects.activeEffects.filter(
+                        e => !shouldSuppressStatus(e.type, battlefieldEffects)
+                      )}
+                    />
                   </div>
                 )}
 
