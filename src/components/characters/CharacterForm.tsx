@@ -39,6 +39,7 @@ interface CharacterFormData {
   lore: string;
   powers: string;
   abilities: string;
+  weapons_items: string;
   home_planet: string;
   home_moon: string;
   race: string;
@@ -80,6 +81,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
     lore: initialData?.lore || '',
     powers: initialData?.powers || '',
     abilities: initialData?.abilities || '',
+    weapons_items: (initialData as any)?.weapons_items || '',
     home_planet: initialData?.home_planet || '',
     home_moon: (initialData as any)?.home_moon || '',
     race: initialData?.race || '',
@@ -462,6 +464,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
         lore: formData.lore.trim() || null,
         powers: formData.powers.trim() || null,
         abilities: formData.abilities.trim() || null,
+        weapons_items: formData.weapons_items.trim() || null,
         home_planet: planetName || null,
         home_moon: moonName || null,
         race: formData.race.trim() || null,
@@ -1005,6 +1008,20 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                 onChange={(e) => handleChange('abilities', e.target.value)}
                 rows={4}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="weapons_items" className="flex items-center gap-2">
+                ⚔️ Weapons & Items
+              </Label>
+              <Textarea
+                id="weapons_items"
+                placeholder="List weapons, tools, artifacts, or consumables your character carries. These will be referenced by the narrator during campaigns and battles."
+                value={formData.weapons_items}
+                onChange={(e) => handleChange('weapons_items', e.target.value)}
+                rows={4}
+              />
+              <p className="text-xs text-muted-foreground">Items can modify stats and affect narrative outcomes in Campaign Mode.</p>
             </div>
 
             {/* Alignment & Archetype Section */}

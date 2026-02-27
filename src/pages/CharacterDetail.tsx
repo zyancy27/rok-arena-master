@@ -57,6 +57,7 @@ import {
   Box,
   Users,
   FileText,
+  Backpack,
 } from 'lucide-react';
 import { downloadCharacterSheet, downloadCharacterSheetJSON } from '@/lib/character-sheet-download';
 import {
@@ -404,6 +405,20 @@ export default function CharacterDetail() {
                     </AccordionTrigger>
                     <AccordionContent className="text-muted-foreground whitespace-pre-wrap">
                       {character.abilities}
+                    </AccordionContent>
+                  </AccordionItem>
+                )}
+
+                {isOwner && (character as any).weapons_items && (
+                  <AccordionItem value="weapons_items" className="border-border">
+                    <AccordionTrigger className="hover:no-underline">
+                      <span className="flex items-center gap-2">
+                        <Backpack className="w-4 h-4 text-accent" />
+                        Weapons & Items
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="text-muted-foreground whitespace-pre-wrap">
+                      {(character as any).weapons_items}
                     </AccordionContent>
                   </AccordionItem>
                 )}

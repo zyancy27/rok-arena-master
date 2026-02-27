@@ -1,0 +1,1 @@
+ALTER TABLE public.characters ADD COLUMN IF NOT EXISTS weapons_items text DEFAULT NULL;

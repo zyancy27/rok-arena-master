@@ -53,6 +53,7 @@ export interface CampaignParticipant {
     user_id: string;
     powers: string | null;
     abilities: string | null;
+    weapons_items: string | null;
   };
 }
 
