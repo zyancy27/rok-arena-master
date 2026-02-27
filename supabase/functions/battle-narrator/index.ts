@@ -59,6 +59,8 @@ interface NarratorRequest {
     meters: number;
   };
   playerArenaDetails?: string[];
+  /** Internal fairness context from hard clamp — never shown to players */
+  fairnessContext?: string;
 }
 
 interface EnvironmentalEffect {
@@ -186,6 +188,7 @@ serve(async (req) => {
       detectEnvironmentalEffects = true,
       currentDistance,
       playerArenaDetails,
+      fairnessContext,
     }: NarratorRequest = requestBody;
 
     // Validate required fields
@@ -255,9 +258,14 @@ You MUST describe these effects BEFORE the counter-attack happens so the defende
 Be clear about how these effects change the battlefield (visibility, footing, breathing, etc.).`
       : '';
 
+    // Internal fairness context (never shown to players)
+    const fairnessInstructions = fairnessContext && fairnessContext.trim().length > 0
+      ? `\n${fairnessContext}`
+      : '';
+
     const systemPrompt = `You are an invisible narrator observing a battle. You describe what happens in plain, clear language that anyone can understand.
 
-${frequencyInstructions}${envInstructions}
+${frequencyInstructions}${envInstructions}${fairnessInstructions}
 
 STYLE:
 - 1-2 sentences normally, up to 3 if describing major environmental changes
