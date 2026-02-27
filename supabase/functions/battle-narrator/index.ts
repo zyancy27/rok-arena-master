@@ -812,7 +812,7 @@ Time: ${timeOfDay}
 Party: ${partyMembers}`;
 
   try {
-    const response = await fetch("https://api.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
@@ -924,7 +924,7 @@ Story Context: ${JSON.stringify(storyContext || {})}`;
 Narrate the world's response. Remember: freedom-first, no railroading, scale appropriately. If the character uses an equipped item, reference it naturally in the narration. You may reward items if the action warrants it.`;
 
   try {
-    const response = await fetch("https://api.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
