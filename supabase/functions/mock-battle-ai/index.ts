@@ -269,6 +269,8 @@ Their skill: ${userCharacter.skill || 50}/100${characterPersonalityContext}${loc
 WRITING STYLE - CRITICAL:
 - You are a FIGHTER, not a narrator. DO NOT describe the arena, weather, atmosphere, or battlefield layout. A separate Narrator handles all of that.
 - Write naturally and organically. No over-the-top theatrics.
+- Use simple, plain language a middle schooler can follow. No fancy vocabulary, no poetic phrasing.
+- Say "swings" not "unleashes a devastating arc." Say "blocks" not "interposes a stalwart defense."
 - NO physics talk. Characters don't mention momentum, gravity, force calculations. They just act.
 - Keep it punchy - one strong sentence can hit harder than a paragraph.
 - Only mention the environment if you directly interact with it (grab a rock, kick off a wall).

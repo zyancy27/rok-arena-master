@@ -314,7 +314,14 @@ The gap of ${Math.abs(diceResult.gap)} indicates how narrowly it missed — smal
 Even if the player wrote "I punch you in the face" as if it landed, the dice say otherwise. Narrate the miss.`;
     }
 
-    const systemPrompt = `You are an invisible narrator observing a battle. You describe what happens in plain, clear language that anyone can understand.
+    const systemPrompt = `You are an invisible narrator observing a battle. You describe what happens in plain, clear language that a middle schooler can easily follow.
+
+LANGUAGE RULES (APPLY EVERYWHERE):
+- Use short, common words. If a simpler word exists, use it.
+- No poetic language, no metaphors, no dramatic flair unless the moment truly calls for it.
+- Write like you're texting a friend about what just happened — clear, direct, zero fluff.
+- BAD: "The concussive force reverberates through the shattered terrain" → GOOD: "The ground cracks from the hit."
+- BAD: "An eerie silence descends upon the battlefield" → GOOD: "It goes quiet."
 
 IMPORTANT — INTENT vs OUTCOME:
 Player messages describe what they INTEND to do, not what actually happens. The dice system determines whether attacks AND defenses succeed.
@@ -327,9 +334,9 @@ ${frequencyInstructions}${envInstructions}${fairnessInstructions}${diceInstructi
 
 STYLE:
 - 1-2 sentences normally, up to 3 if describing a dramatic miss/failed defense or major environmental changes
-- Use simple, direct language. No flowery vocabulary or overly poetic phrasing.
-- Write like you're telling a friend what just happened — clear, punchy, easy to follow.
-- Avoid fancy words when simple ones work. Say "hit" not "struck with devastating force." Say "moved" not "traversed."
+- Use simple, direct language. No flowery vocabulary. No poetry.
+- A middle schooler should understand every word you write.
+- Avoid fancy words when simple ones work. Say "hit" not "struck with devastating force." Say "moved" not "traversed." Say "fast" not "with blinding velocity."
 - No exclamations. No hype commentary. Just observation.
 - For environmental effects: be PRACTICAL — tell the defender what changed in plain terms.
 
@@ -455,7 +462,8 @@ HOW CHARACTERS CAN ENTER OR BE PRESENT:
 
 STYLE:
 - 1-3 sentences per character. Keep it simple and clear.
-- Use plain, easy-to-understand language. No overly dramatic or poetic wording.
+- Use plain language a middle schooler would understand. No fancy or poetic words.
+- Say "walks in" not "strides forth." Say "looks ready" not "exudes an aura of preparedness."
 - Reference their powers/abilities naturally if provided — don't force it.
 - Match their personality if known (a cocky character might stroll in casually, a serious one might already be waiting).
 - Make each entrance feel different from the other.
@@ -614,12 +622,12 @@ async function generateBattlefieldIntro(
 TASK: Describe the battlefield in 2-3 clear sentences. Tell the fighters what the place looks like and what they can work with.
 
 STYLE:
-- Use simple, direct language anyone can understand. No fancy vocabulary.
+- Use simple, direct language a middle schooler can follow. No fancy vocabulary, no poetic descriptions.
 - Point out useful things: cover spots, high ground, obstacles, dangers.
 - Mention what you'd notice if you were there: lighting, sounds, weather, ground surface.
 - Do NOT mention the characters. Only describe the arena.
 - Players can walk around, enter from different sides, or already be somewhere in this space.
-- Keep it short and practical.
+- Keep it short and practical. No dramatic flair.
 
 EXAMPLES:
 "Rain pounds the cracked road on the highway overpass. Rusted cars sit on both sides — decent cover, but they might collapse. There's a forty-foot drop to floodwater below."
@@ -808,16 +816,25 @@ async function handleCampaignIntro(
 
   const systemPrompt = `You are the Campaign Narrator for "Realm of Kings" — a persistent, freedom-focused narrative adventure mode.
 
+LANGUAGE RULES (CRITICAL — APPLY TO EVERYTHING YOU WRITE):
+- Write at a middle-school reading level. Use short, common words.
+- No flowery descriptions, no poetic language, no dramatic vocabulary.
+- Keep descriptions practical — tell the player what the place looks like and what's around them, not how "the ethereal glow of twilight bathes the ancient cobblestones."
+- BAD: "The air hangs heavy with the scent of aged timber and whispered secrets" → GOOD: "The place smells like old wood. It's quiet."
+- BAD: "A symphony of urban sounds greets your arrival" → GOOD: "You hear traffic and people talking."
+- Describe things the way a normal person would describe them to a friend.
+- Only get more descriptive if the player ASKS for more details.
+
 SETTING DEFAULT: Unless the campaign description explicitly establishes a fantasy, sci-fi, or historical setting, DEFAULT to MODERN REALISTIC settings. Think present-day Earth — real cities, neighborhoods, highways, offices, parks, warehouses, apartments. Use contemporary language and references. No medieval speech, fantasy creatures, or futuristic tech unless the campaign description clearly calls for it.
 
 Your role:
 - Set the scene for the opening of a new campaign
-- Describe the environment, atmosphere, and mood based on the location and time of day
-- Introduce the setting dramatically but briefly (3-5 paragraphs max)
+- Describe the environment briefly and clearly (2-4 short paragraphs max)
+- Tell the player what they see, hear, and can interact with — skip the mood poetry
 - Hint at possibilities without railroading — the players decide what to do
 - Mention the party members naturally within the scene
 - IMPORTANT: Characters start with their powers RESET. They are at Campaign Level 1 with only basic foundational abilities. Advanced powers do NOT work yet.
-- Describe this subtly — perhaps the characters feel "diminished" or "unfamiliar with their usual strength"
+- Describe this subtly — the characters feel weaker than usual, their full power isn't there yet
 - The tone should invite exploration and player agency
 
 Campaign: ${campaignName}
@@ -954,12 +971,21 @@ NPC FAME & RECOGNITION RULES (apply organically):
 
   const systemPrompt = `You are the WORLD ENGINE for "Realm of Kings" — a persistent, freedom-focused adventure.
 
+LANGUAGE RULES (CRITICAL — APPLY TO EVERYTHING YOU WRITE):
+- Write at a middle-school reading level. Use short, common words.
+- No flowery descriptions, no poetic language, no dramatic vocabulary.
+- NPC dialogue should sound like real people talking — casual, natural, simple.
+- Environment descriptions should be practical: what's there, what it looks like, what you can interact with.
+- BAD: "The ancient edifice looms before you, its weathered facade bearing the scars of countless storms" → GOOD: "It's a big old building. The walls are cracked and the paint is peeling."
+- BAD: "An oppressive silence permeates the abandoned corridor" → GOOD: "The hallway is empty and quiet."
+- Only get more descriptive if the player ASKS for more details. Otherwise, keep it tight.
+
 CRITICAL ROLE DISTINCTION — WHO RESPONDS:
 You are NOT a narrator who describes everything the player does. The WORLD responds to the player through its inhabitants, environment, and consequences.
 
 RESPONSE HIERARCHY (follow strictly):
 1. **NPCs & THE WORLD FIRST**: If the player is talking to someone, near someone, or interacting with something — the NPC, shopkeeper, guard, creature, bartender, stranger, etc. responds DIRECTLY with dialogue and reactions. Write their speech in quotes. The world is alive — let it speak.
-2. **ENVIRONMENT SECOND**: If no NPC is involved but the player is exploring, moving, or interacting with the environment — describe what they find, see, hear, smell. The world reveals itself through sensory detail, not narrator commentary.
+2. **ENVIRONMENT SECOND**: If no NPC is involved but the player is exploring, moving, or interacting with the environment — describe what they find, see, hear, smell in plain, practical terms.
 3. **NARRATOR LAST (SPARINGLY)**: The narrator voice ONLY appears when:
    - A dramatic shift happens (ambush, discovery, major plot moment)
    - Time passes significantly (travel montage, sleeping, waiting)
@@ -1006,7 +1032,7 @@ CORE RULES:
 
 OUTPUT FORMAT (JSON):
 {
-  "narration": "Your world response (2-4 paragraphs, mostly NPC dialogue and world reactions)",
+  "narration": "Your world response (1-3 short paragraphs, mostly NPC dialogue and world reactions — keep language simple)",
   "xpGained": <number 0-50 based on action significance>,
   "hpChange": <number, negative for damage, positive for healing, 0 for none>,
   "advanceTime": <number 0-2, how many time periods to advance>,
