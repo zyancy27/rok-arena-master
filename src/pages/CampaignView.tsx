@@ -871,12 +871,18 @@ export default function CampaignView() {
                   characterName={myParticipant.character?.name || 'Unknown'}
                   characterPowers={myParticipant.character?.powers || null}
                   characterAbilities={myParticipant.character?.abilities || null}
+                  characterWeapons={(myParticipant.character as any)?.weapons_items || null}
+                  characterLevel={myParticipant.character?.level}
+                  campaignLevel={myParticipant.campaign_level}
+                  campaignHp={myParticipant.campaign_hp}
+                  campaignHpMax={myParticipant.campaign_hp_max}
                   currentZone={campaign.current_zone}
                   timeOfDay={campaign.time_of_day}
                   dayCount={campaign.day_count}
                   campaignDescription={campaign.description}
                   worldState={campaign.world_state}
                   storyContext={campaign.story_context}
+                  environmentTags={campaign.environment_tags}
                   partyMembers={participants.filter(p => p.is_active).map(p => p.character?.name || 'Unknown')}
                   isSolo={isSoloMode}
                   mechanicDiscoveries={pendingDiscoveries}
