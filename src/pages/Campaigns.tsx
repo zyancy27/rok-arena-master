@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
 import { ArrowLeft, BookOpen, Clock, MapPin, Play, Plus, Shield, Users, Compass, Swords, User, Globe, Lock, UserCheck, Shuffle } from 'lucide-react';
@@ -238,12 +239,13 @@ export default function Campaigns() {
               New Campaign
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
+          <DialogContent className="sm:max-w-md max-h-[85vh] flex flex-col">
+            <DialogHeader className="shrink-0">
               <DialogTitle>Create Campaign</DialogTitle>
               <DialogDescription>Start a new persistent adventure for your party.</DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
+            <ScrollArea className="flex-1 -mx-6 px-6">
+            <div className="space-y-4 pb-2">
               <div>
                 <Label>Campaign Name</Label>
                 <div className="flex gap-2">
@@ -362,7 +364,8 @@ export default function Campaigns() {
               </>
               )}
             </div>
-            <DialogFooter>
+            </ScrollArea>
+            <DialogFooter className="shrink-0">
               <Button onClick={handleCreate} disabled={creating}>
                 {creating ? 'Creating...' : 'Create Campaign'}
               </Button>
