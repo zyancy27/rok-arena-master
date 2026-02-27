@@ -1,0 +1,1 @@
+ALTER TABLE public.campaign_participants ADD COLUMN is_solo boolean NOT NULL DEFAULT false;
