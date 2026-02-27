@@ -553,14 +553,30 @@ export default function CampaignView() {
         : null;
 
       // Insert player message with dice result
-      await supabase.from('campaign_messages').insert({
+      const { data: insertedMsg } = await supabase.from('campaign_messages').insert({
         campaign_id: campaign.id,
         character_id: myParticipant.character_id,
         sender_type: 'player',
         content: messageText,
         channel: 'in_universe',
         dice_result: diceResult as any,
-      } as any);
+      } as any).select('*').single();
+
+      // Optimistic: add message to local state immediately
+      if (insertedMsg) {
+        setMessages(prev => {
+          if (prev.some(m => m.id === insertedMsg.id)) return prev;
+          return [...prev, {
+            ...insertedMsg,
+            metadata: (insertedMsg.metadata || {}) as Record<string, unknown>,
+            dice_result: insertedMsg.dice_result as Record<string, unknown> | null,
+            theme_snapshot: insertedMsg.theme_snapshot as Record<string, unknown> | null,
+            character: myParticipant.character
+              ? { name: myParticipant.character.name, image_url: myParticipant.character.image_url }
+              : null,
+          } as CampaignMessage];
+        });
+      }
 
       // Trigger dice mechanic discovery on first combat action
       if (combatResult.hitDetection.shouldTriggerHitCheck || combatResult.hitDetection.shouldTriggerDefenseCheck) {
