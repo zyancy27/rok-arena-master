@@ -1049,8 +1049,19 @@ ITEMS & LOOT:
 
 KNOWN NPCs IN THIS CAMPAIGN:
 ${Array.isArray(knownNpcs) && knownNpcs.length > 0
-  ? knownNpcs.map((npc: any) => `- ${npc.name} (${npc.role}): ${npc.personality || 'No personality set'}. Disposition toward player: ${npc.disposition} (trust: ${npc.trust_level}). Zone: ${npc.current_zone || 'unknown'}. ${npc.relationship_notes ? 'Notes: ' + npc.relationship_notes : ''}`).join('\n')
+  ? knownNpcs.map((npc: any) => `- ${npc.name} (${npc.role}): ${npc.personality || 'No personality set'}. Disposition toward player: ${npc.disposition} (trust: ${npc.trust_level}). Zone: ${npc.current_zone || 'unknown'}. Last seen: Day ${npc.last_seen_day || '?'}. ${npc.backstory ? 'Backstory: ' + npc.backstory + '. ' : ''}${npc.relationship_notes ? 'Notes: ' + npc.relationship_notes : ''}`).join('\n')
   : 'No NPCs met yet. Create new ones naturally as the player interacts with the world.'}
+
+NPC MOVEMENT & PRESENCE RULES:
+- NPCs have LIVES. They don't stand in one spot forever. Between interactions, they move based on their role and personality.
+- A merchant might travel between market zones. A guard patrols different areas. A wanderer drifts. A bartender stays at their bar.
+- When the player enters a zone, consider which KNOWN NPCs would logically be there NOW based on their role, last known zone, and how many days have passed since last seen.
+- If an NPC WOULD have moved since last seen, update their current_zone in npcUpdates. Use "current_zone" field.
+- NPCs NOT in the player's current zone should NOT appear in dialogue unless the player asks about them or travels to their zone.
+- If the player revisits a zone and an NPC has moved away, they simply aren't there. Another NPC might mention where they went.
+- Some NPCs are STATIONARY (bartenders, shopkeepers at their shop, prisoners) — they stay put unless something dramatic happens.
+- Some NPCs are MOBILE (travelers, guards, merchants, adventurers) — they naturally move between zones over days.
+- When updating an NPC's zone, make it make sense for their role. A fisherman moves between the docks and the market, not to a dungeon.
 
 When writing dialogue for KNOWN NPCs, stay consistent with their established personality and relationship. An NPC who is "hostile" should not suddenly be friendly without reason.
 
