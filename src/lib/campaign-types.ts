@@ -74,6 +74,8 @@ export interface CampaignMessage {
   theme_snapshot: Record<string, unknown> | null;
   metadata: Record<string, unknown>;
   created_at: string;
+  /** True while the message is being sent to the server */
+  isPending?: boolean;
   // Joined
   character?: {
     name: string;
