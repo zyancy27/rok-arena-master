@@ -57,6 +57,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          theme_snapshot: Json | null
         }
         Insert: {
           battle_id: string
@@ -65,6 +66,7 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          theme_snapshot?: Json | null
         }
         Update: {
           battle_id?: string
@@ -73,6 +75,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          theme_snapshot?: Json | null
         }
         Relationships: [
           {
@@ -102,6 +105,9 @@ export type Database = {
           last_read_at: string | null
           last_read_message_id: string | null
           last_typed_at: string | null
+          scene_effect_tags: Json | null
+          scene_location: string | null
+          scene_tags: Json | null
           turn_order: number
         }
         Insert: {
@@ -114,6 +120,9 @@ export type Database = {
           last_read_at?: string | null
           last_read_message_id?: string | null
           last_typed_at?: string | null
+          scene_effect_tags?: Json | null
+          scene_location?: string | null
+          scene_tags?: Json | null
           turn_order?: number
         }
         Update: {
@@ -126,6 +135,9 @@ export type Database = {
           last_read_at?: string | null
           last_read_message_id?: string | null
           last_typed_at?: string | null
+          scene_effect_tags?: Json | null
+          scene_location?: string | null
+          scene_tags?: Json | null
           turn_order?: number
         }
         Relationships: [

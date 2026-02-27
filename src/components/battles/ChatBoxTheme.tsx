@@ -3,9 +3,12 @@ import { cn } from '@/lib/utils';
 import {
   buildThemeFromLocation,
   buildThemeFromTags,
+  buildCompositionFromSnapshot,
+  compositionToCssVars,
   isNeutralTheme,
   type ChatBoxStyle,
   type ThemeComposition,
+  type ThemeSnapshot,
   type EnvironmentTag,
 } from '@/lib/theme-engine';
 
@@ -16,6 +19,8 @@ interface ChatBoxThemeProps {
   tags?: EnvironmentTag[];
   /** Pre-composed theme override */
   composition?: ThemeComposition;
+  /** Stored snapshot (highest priority — for message bubbles) */
+  snapshot?: ThemeSnapshot | null;
   /** The chat message content */
   children: React.ReactNode;
   /** Additional classes */
@@ -26,22 +31,27 @@ interface ChatBoxThemeProps {
  * Wraps a chat message with environment-aware styling.
  * Applies border style, text glow, background texture, and urgency animations
  * derived from the theme engine.
+ * 
+ * Supports snapshot mode for historical per-message rendering.
  */
 export default function ChatBoxTheme({
   location,
   tags,
   composition: preComposed,
+  snapshot,
   children,
   className,
 }: ChatBoxThemeProps) {
   const theme = useMemo(() => {
+    if (snapshot) return buildCompositionFromSnapshot(snapshot);
     if (preComposed) return preComposed;
     if (tags && tags.length > 0) return buildThemeFromTags(tags);
     return buildThemeFromLocation(location);
-  }, [location, tags, preComposed]);
+  }, [location, tags, preComposed, snapshot]);
 
   const chatBox = theme.chatBox;
   const isNeutral = isNeutralTheme(theme);
+  const cssVars = useMemo(() => compositionToCssVars(theme), [theme]);
 
   return (
     <div
@@ -55,11 +65,12 @@ export default function ChatBoxTheme({
         !isNeutral && chatBox.fontHint === 'italic' && 'italic',
         className,
       )}
-      style={
-        !isNeutral && chatBox.textGlow
+      style={{
+        ...(!isNeutral && chatBox.textGlow
           ? { textShadow: chatBox.textGlow }
-          : undefined
-      }
+          : {}),
+        ...(cssVars as React.CSSProperties),
+      }}
     >
       {children}
     </div>
