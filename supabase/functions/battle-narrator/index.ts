@@ -1196,7 +1196,7 @@ Respond as the WORLD — let NPCs speak, environments react, and consequences un
 
     return new Response(
       JSON.stringify({
-        narration: parsed.narration || content,
+        narration: (typeof parsed.narration === 'string' && parsed.narration.trim()) ? parsed.narration : 'The world responds to your actions...',
         xpGained: typeof parsed.xpGained === 'number' ? Math.max(0, Math.min(50, parsed.xpGained)) : 5,
         hpChange: typeof parsed.hpChange === 'number' ? Math.max(-50, Math.min(30, parsed.hpChange)) : 0,
         advanceTime: typeof parsed.advanceTime === 'number' ? Math.max(0, Math.min(2, Math.floor(parsed.advanceTime))) : 0,
