@@ -24,6 +24,8 @@ import CampaignInventoryPanel, { type InventoryItem } from '@/components/campaig
 import CampaignEndDialog from '@/components/campaigns/CampaignEndDialog';
 import CampaignNarratorChat from '@/components/campaigns/CampaignNarratorChat';
 import { useAmbientSound } from '@/hooks/use-ambient-sound';
+import { discoverMechanic, type MechanicKey } from '@/lib/mechanic-discovery';
+import type { CampaignMechanicDiscovery } from '@/components/campaigns/CampaignNarratorChat';
 
 export default function CampaignView() {
   const { id: campaignId } = useParams<{ id: string }>();
@@ -51,6 +53,19 @@ export default function CampaignView() {
   const [joinCharacter, setJoinCharacter] = useState('');
   const [swapCharacter, setSwapCharacter] = useState('');
   const [swapping, setSwapping] = useState(false);
+
+  // Mechanic discoveries
+  const [pendingDiscoveries, setPendingDiscoveries] = useState<CampaignMechanicDiscovery[]>([]);
+  const [narratorTabGlowing, setNarratorTabGlowing] = useState(false);
+
+  const triggerDiscovery = (key: MechanicKey) => {
+    if (!user) return;
+    const info = discoverMechanic(user.id, key);
+    if (info) {
+      setPendingDiscoveries(prev => [...prev, info]);
+      setNarratorTabGlowing(true);
+    }
+  };
 
   useEffect(() => {
     if (user && campaignId) {
@@ -182,33 +197,103 @@ export default function CampaignView() {
 
     if (error) { toast.error(error.message); return; }
 
-    // System message
     const char = characters.find(c => c.id === joinCharacter);
-    await supabase.from('campaign_messages').insert({
-      campaign_id: campaignId!,
-      sender_type: 'system',
-      content: `**${char?.name || 'A new adventurer'}** has joined the campaign.`,
-      channel: 'in_universe',
-    });
+    triggerDiscovery('campaign_power_reset');
+
+    // Narrator-driven organic arrival (only if campaign is active)
+    if (campaign?.status === 'active') {
+      try {
+        const { data } = await supabase.functions.invoke('battle-narrator', {
+          body: {
+            type: 'campaign_narration',
+            campaignId: campaignId!,
+            playerAction: `[NEW ARRIVAL] ${char?.name} has just joined the campaign. Write a brief, organic narrative describing their arrival at ${campaign.current_zone} during ${campaign.time_of_day}. Make it feel natural to the current scene.`,
+            currentZone: campaign.current_zone,
+            timeOfDay: campaign.time_of_day,
+            dayCount: campaign.day_count,
+            worldState: campaign.world_state,
+            storyContext: campaign.story_context,
+            campaignDescription: campaign.description,
+            playerCharacter: { name: char?.name },
+            partyContext: participants.filter(p => p.is_active).map(p => `${p.character?.name}`).join(', '),
+          },
+        });
+        await supabase.from('campaign_messages').insert({
+          campaign_id: campaignId!,
+          sender_type: 'narrator',
+          content: data?.narration || `A new figure appears — **${char?.name}** has arrived.`,
+          channel: 'in_universe',
+        });
+      } catch {
+        await supabase.from('campaign_messages').insert({
+          campaign_id: campaignId!,
+          sender_type: 'narrator',
+          content: `A new figure emerges from the path — **${char?.name || 'a new adventurer'}** has arrived.`,
+          channel: 'in_universe',
+        });
+      }
+    } else {
+      await supabase.from('campaign_messages').insert({
+        campaign_id: campaignId!,
+        sender_type: 'system',
+        content: `**${char?.name || 'A new adventurer'}** has joined the campaign.`,
+        channel: 'in_universe',
+      });
+    }
 
     toast.success('Joined campaign!');
     fetchParticipants();
   };
 
   const handleLeave = async () => {
-    if (!myParticipant) return;
+    if (!myParticipant || !campaign) return;
 
     await supabase.from('campaign_participants')
       .update({ is_active: false })
       .eq('id', myParticipant.id);
 
-    await supabase.from('campaign_messages').insert({
-      campaign_id: campaignId!,
-      character_id: myParticipant.character_id,
-      sender_type: 'system',
-      content: `**${myParticipant.character?.name || 'An adventurer'}** has left the party.`,
-      channel: 'in_universe',
-    });
+    const charName = myParticipant.character?.name || 'An adventurer';
+
+    // Narrator-driven organic departure (only if campaign is active)
+    if (campaign.status === 'active') {
+      try {
+        const { data } = await supabase.functions.invoke('battle-narrator', {
+          body: {
+            type: 'campaign_narration',
+            campaignId: campaign.id,
+            playerAction: `[DEPARTURE] ${charName} is leaving the party. Write a brief, organic narrative describing their departure from ${campaign.current_zone} during ${campaign.time_of_day}. Make it feel natural — perhaps they have other duties, or they slip away quietly.`,
+            currentZone: campaign.current_zone,
+            timeOfDay: campaign.time_of_day,
+            dayCount: campaign.day_count,
+            worldState: campaign.world_state,
+            storyContext: campaign.story_context,
+            campaignDescription: campaign.description,
+            playerCharacter: { name: charName },
+            partyContext: participants.filter(p => p.is_active && p.id !== myParticipant.id).map(p => `${p.character?.name}`).join(', '),
+          },
+        });
+        await supabase.from('campaign_messages').insert({
+          campaign_id: campaign.id,
+          sender_type: 'narrator',
+          content: data?.narration || `**${charName}** turns and walks away from the group.`,
+          channel: 'in_universe',
+        });
+      } catch {
+        await supabase.from('campaign_messages').insert({
+          campaign_id: campaign.id,
+          sender_type: 'narrator',
+          content: `**${charName}** quietly slips away from the party, disappearing into the ${campaign.current_zone}.`,
+          channel: 'in_universe',
+        });
+      }
+    } else {
+      await supabase.from('campaign_messages').insert({
+        campaign_id: campaignId!,
+        sender_type: 'system',
+        content: `**${charName}** has left the party.`,
+        channel: 'in_universe',
+      });
+    }
 
     toast.success('Left campaign. Your progress is saved — you can return anytime.');
     fetchParticipants();
@@ -298,6 +383,7 @@ export default function CampaignView() {
       }
 
       setSwapCharacter('');
+      triggerDiscovery('campaign_character_swap');
       toast.success(`Swapped to ${newChar?.name}`);
       fetchParticipants();
     } catch (err) {
@@ -447,6 +533,7 @@ export default function CampaignView() {
 
         // Handle XP / HP changes from narrator response
         if (data.xpGained) {
+          triggerDiscovery('campaign_xp');
           const newXp = myParticipant.campaign_xp + data.xpGained;
           const xpNeeded = CAMPAIGN_STARTING_ABILITIES.xpForLevel(myParticipant.campaign_level + 1);
           const levelUp = newXp >= xpNeeded;
@@ -460,6 +547,7 @@ export default function CampaignView() {
             .eq('id', myParticipant.id);
 
           if (levelUp) {
+            triggerDiscovery('campaign_level_up');
             await supabase.from('campaign_messages').insert({
               campaign_id: campaign.id,
               sender_type: 'system',
@@ -478,6 +566,7 @@ export default function CampaignView() {
 
         // Time advancement
         if (data.advanceTime) {
+          triggerDiscovery('campaign_time');
           const { time: newTime, newDay } = advanceTime(campaign.time_of_day, data.advanceTime);
           await supabase.from('campaigns').update({
             time_of_day: newTime,
@@ -487,12 +576,14 @@ export default function CampaignView() {
 
         // Zone change
         if (data.newZone) {
+          triggerDiscovery('campaign_zone');
           await supabase.from('campaigns').update({
             current_zone: data.newZone,
           }).eq('id', campaign.id);
         }
         // Items found
         if (data.itemsFound && Array.isArray(data.itemsFound) && data.itemsFound.length > 0 && myParticipant) {
+          triggerDiscovery('campaign_inventory');
           for (const item of data.itemsFound) {
             await supabase.from('campaign_inventory').insert({
               campaign_id: campaign.id,
@@ -520,6 +611,7 @@ export default function CampaignView() {
 
       // Apply solo status change if intent was detected
       if (soloIntent) {
+        triggerDiscovery('campaign_solo_mode');
         await applySoloStatusChange(soloIntent);
       }
 
@@ -694,9 +786,18 @@ export default function CampaignView() {
                   Adventure Log
                 </TabsTrigger>
                 {isActive && myParticipant?.is_active && (
-                  <TabsTrigger value="narrator" className="rounded-none border-b-2 border-transparent data-[state=active]:border-amber-400 data-[state=active]:bg-transparent px-1 pb-2 pt-3 text-sm gap-1.5">
+                  <TabsTrigger
+                    value="narrator"
+                    className={`rounded-none border-b-2 border-transparent data-[state=active]:border-amber-400 data-[state=active]:bg-transparent px-1 pb-2 pt-3 text-sm gap-1.5 transition-all ${
+                      narratorTabGlowing ? 'animate-pulse text-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.4)]' : ''
+                    }`}
+                    onClick={() => setNarratorTabGlowing(false)}
+                  >
                     <BookOpen className="w-4 h-4" />
                     Private Narrator
+                    {pendingDiscoveries.length > 0 && (
+                      <span className="ml-1 w-2 h-2 rounded-full bg-amber-400 animate-ping inline-block" />
+                    )}
                   </TabsTrigger>
                 )}
               </TabsList>
@@ -778,6 +879,11 @@ export default function CampaignView() {
                   storyContext={campaign.story_context}
                   partyMembers={participants.filter(p => p.is_active).map(p => p.character?.name || 'Unknown')}
                   isSolo={isSoloMode}
+                  mechanicDiscoveries={pendingDiscoveries}
+                  onDiscoveriesShown={() => {
+                    setPendingDiscoveries([]);
+                    setNarratorTabGlowing(false);
+                  }}
                 />
               </TabsContent>
             )}

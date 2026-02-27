@@ -18,7 +18,16 @@ export type MechanicKey =
   | 'area_damage'
   | 'mental_attack'
   | 'charge_attack'
-  | 'overcharge';
+  | 'overcharge'
+  // Campaign-specific mechanics
+  | 'campaign_xp'
+  | 'campaign_level_up'
+  | 'campaign_inventory'
+  | 'campaign_time'
+  | 'campaign_zone'
+  | 'campaign_solo_mode'
+  | 'campaign_power_reset'
+  | 'campaign_character_swap';
 
 interface MechanicInfo {
   title: string;
@@ -81,6 +90,38 @@ const MECHANIC_EXPLANATIONS: Record<MechanicKey, MechanicInfo> = {
   overcharge: {
     title: '🔥 Overcharge',
     summary: 'Pushing an ability beyond its normal limits. Overcharged moves are stronger but risk a mishap or stamina drain. The narrator factors this into the outcome.',
+  },
+  campaign_xp: {
+    title: '⭐ Campaign XP',
+    summary: 'Your actions in the campaign earn Experience Points. Combat victories, exploration, creative problem-solving, and story progress all reward XP. Accumulate enough to level up your campaign character.',
+  },
+  campaign_level_up: {
+    title: '🎉 Campaign Level Up',
+    summary: 'When you gain enough XP, your campaign character levels up — gaining +3 stat points to distribute and unlocking access to higher-tier abilities. Your campaign level is separate from your character\'s base tier.',
+  },
+  campaign_inventory: {
+    title: '🎒 Campaign Inventory',
+    summary: 'You can find items during your adventure — weapons, potions, artifacts. Equip items for stat bonuses. Items are specific to this campaign session and don\'t transfer to your base character.',
+  },
+  campaign_time: {
+    title: '🕐 Time Progression',
+    summary: 'The campaign world has a day/night cycle. Your actions advance time — dawn, morning, midday, afternoon, dusk, evening, night, midnight. Different times affect the environment, NPC behavior, and available encounters.',
+  },
+  campaign_zone: {
+    title: '🗺️ Zone Travel',
+    summary: 'The campaign world is divided into zones. Your actions can move the party to new areas with different environments, encounters, and story threads. The narrator announces zone changes.',
+  },
+  campaign_solo_mode: {
+    title: '🚶 Solo Exploration',
+    summary: 'You can explore independently by describing your character going off on their own. While solo, you act freely without waiting for the group. Describe finding or returning to the party to rejoin.',
+  },
+  campaign_power_reset: {
+    title: '⚡ Power Reset',
+    summary: 'In campaigns, characters start at Campaign Level 1 regardless of their base tier. You unlock higher-tier abilities as you level up. This keeps the adventure balanced and gives a sense of progression.',
+  },
+  campaign_character_swap: {
+    title: '🔄 Character Swap',
+    summary: 'You can swap to another of your characters mid-campaign. The swapped-out character\'s campaign data (HP, XP, level, items) is preserved. New characters start fresh; returning characters keep their progress.',
   },
 };
 
