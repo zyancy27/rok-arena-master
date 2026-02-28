@@ -948,6 +948,9 @@ export default function CampaignView() {
       console.error('Campaign narrator error:', err);
     } finally {
       setNarratorTyping(false);
+      // Force-refresh messages so the narrator response is visible immediately
+      // even if the realtime subscription is slow or missed
+      await fetchMessages();
     }
   };
 
