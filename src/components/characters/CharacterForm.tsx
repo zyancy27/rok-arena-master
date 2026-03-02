@@ -36,8 +36,26 @@ function parseWeaponItems(raw: string): WeaponItem[] {
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) return parsed;
   } catch {}
-  // Legacy: split by comma/newline, treat each as name-only
-  return raw.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean).map(name => ({ name, description: '' }));
+  // Legacy: split by double-newline (paragraphs) first, then single newline/comma
+  const blocks = raw.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
+  if (blocks.length > 1) {
+    // Multi-paragraph: each block is one item, split "Name: description"
+    return blocks.map(block => {
+      const colonIdx = block.indexOf(':');
+      if (colonIdx > 0 && colonIdx < 40) {
+        return { name: block.slice(0, colonIdx).trim(), description: block.slice(colonIdx + 1).trim() };
+      }
+      return { name: block.split('\n')[0].trim(), description: '' };
+    });
+  }
+  // Single block: split by comma/semicolon/newline
+  return raw.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean).map(part => {
+    const colonIdx = part.indexOf(':');
+    if (colonIdx > 0 && colonIdx < 40) {
+      return { name: part.slice(0, colonIdx).trim(), description: part.slice(colonIdx + 1).trim() };
+    }
+    return { name: part, description: '' };
+  });
 }
 
 function serializeWeaponItems(items: WeaponItem[]): string {
