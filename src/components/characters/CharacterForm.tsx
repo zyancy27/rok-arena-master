@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { VoiceTextarea } from '@/components/ui/voice-textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -615,7 +616,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                 {/* Lore */}
                 <div className="space-y-1">
                   <Label className="text-xs">Lore & Backstory</Label>
-                  <Textarea placeholder="Origins, motivations, journey..." value={formData.lore} onChange={(e) => handleChange('lore', e.target.value)} rows={3} className="text-sm" />
+                  <VoiceTextarea placeholder="Origins, motivations, journey..." value={formData.lore} onValueChange={(v) => handleChange('lore', v)} rows={3} className="text-sm" />
                 </div>
               </CardContent>
             </Card>
@@ -642,15 +643,15 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                     Base Power
                     <span className="text-muted-foreground ml-1.5">(one base power per R.O.K. rules)</span>
                   </Label>
-                  <Textarea placeholder="Describe your character's single base power..." value={formData.powers} onChange={(e) => handleChange('powers', e.target.value)} rows={3} className="text-sm" />
+                  <VoiceTextarea placeholder="Describe your character's single base power..." value={formData.powers} onValueChange={(v) => handleChange('powers', v)} rows={3} className="text-sm" />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Abilities & Techniques</Label>
-                  <Textarea placeholder="Techniques derived from your base power..." value={formData.abilities} onChange={(e) => handleChange('abilities', e.target.value)} rows={3} className="text-sm" />
+                  <VoiceTextarea placeholder="Techniques derived from your base power..." value={formData.abilities} onValueChange={(v) => handleChange('abilities', v)} rows={3} className="text-sm" />
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs flex items-center gap-1.5">⚔️ Weapons & Items</Label>
-                  <Textarea placeholder="Weapons, tools, artifacts your character carries..." value={formData.weapons_items} onChange={(e) => handleChange('weapons_items', e.target.value)} rows={3} className="text-sm" />
+                  <VoiceTextarea placeholder="Weapons, tools, artifacts your character carries..." value={formData.weapons_items} onValueChange={(v) => handleChange('weapons_items', v)} rows={3} className="text-sm" />
                   <p className="text-[11px] text-muted-foreground">Items can modify stats and affect narrative outcomes.</p>
                 </div>
               </CardContent>
@@ -778,27 +779,27 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs flex items-center gap-1.5"><Smile className="w-3.5 h-3.5 text-accent" /> Personality</Label>
-                    <Textarea
+                    <VoiceTextarea
                       placeholder="Personality traits, demeanor..."
                       value={formData.personality?.replace(/\[ARCHETYPE:[^\]]+\]\s*/gi, '') || ''}
-                      onChange={(e) => {
+                      onValueChange={(v) => {
                         const archetypeMatch = formData.personality?.match(/\[ARCHETYPE:[^\]]+\]/i);
                         const archetype = archetypeMatch ? archetypeMatch[0] + ' ' : '';
-                        handleChange('personality', archetype + e.target.value);
+                        handleChange('personality', archetype + v);
                       }}
                       rows={3} className="text-sm"
                     />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs flex items-center gap-1.5"><Lightbulb className="w-3.5 h-3.5 text-cosmic-gold" /> Mentality</Label>
-                    <Textarea
+                    <VoiceTextarea
                       placeholder="Mindset, beliefs, motivations..."
                       value={formData.mentality?.replace(/\[(ALIGNMENT|APPROACH):[^\]]+\]\s*/gi, '') || ''}
-                      onChange={(e) => {
+                      onValueChange={(v) => {
                         const alignmentMatch = formData.mentality?.match(/\[ALIGNMENT:[^\]]+\]/i);
                         const approachMatch = formData.mentality?.match(/\[APPROACH:[^\]]+\]/i);
                         const prefix = [alignmentMatch?.[0], approachMatch?.[0]].filter(Boolean).join(' ');
-                        handleChange('mentality', prefix ? prefix + ' ' + e.target.value : e.target.value);
+                        handleChange('mentality', prefix ? prefix + ' ' + v : v);
                       }}
                       rows={3} className="text-sm"
                     />
