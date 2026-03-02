@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { VoiceTextarea } from '@/components/ui/voice-textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -1485,12 +1485,13 @@ export default function CampaignView() {
                 {isActive && myParticipant?.is_active && (
                   <div className="p-3 border-t border-border relative z-10">
                     <form onSubmit={e => { e.preventDefault(); handleSendMessage(); }} className="flex gap-2">
-                      <Input
+                      <VoiceTextarea
                         placeholder={isSoloMode ? "Describe your solo action..." : "Describe your action..."}
                         value={inputMessage}
-                        onChange={e => setInputMessage(e.target.value)}
+                        onValueChange={setInputMessage}
                         disabled={sending}
                         className="flex-1"
+                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
                       />
                       <Button type="submit" disabled={sending || !inputMessage.trim()} size="sm" className="gap-1.5">
                         <Send className="w-4 h-4" />
