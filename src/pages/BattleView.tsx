@@ -6,6 +6,7 @@ import { buildSceneTags } from '@/lib/build-scene-tags';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { VoiceTextarea } from '@/components/ui/voice-textarea';
 import {
   Select,
   SelectContent,
@@ -2962,9 +2963,9 @@ export default function BattleView() {
                           {characterStatusEffects.length > 0 && (
                             <CharacterStatusOverlay effects={characterStatusEffects} />
                           )}
-                          <Input
+                          <VoiceTextarea
                             value={activeChannel === 'in_universe' ? messageInput : ''}
-                            onChange={(e) => handleInputChange(e.target.value, 'in_universe')}
+                            onValueChange={(v) => handleInputChange(v, 'in_universe')}
                             placeholder={isSending
                               ? 'Sending...'
                               : !isUserTurn
@@ -2974,6 +2975,7 @@ export default function BattleView() {
                               : 'Describe your action or attack...'}
                             disabled={!!pendingHit || isSending}
                             className="relative z-20"
+                            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
                           />
                         </div>
                         <Button type="submit" size="icon" disabled={!!pendingHit || !messageInput.trim() || isSending || !isUserTurn} className="min-h-[44px] min-w-[44px]">
@@ -3039,11 +3041,12 @@ export default function BattleView() {
                     }}
                     className="flex gap-2"
                   >
-                    <Input
+                    <VoiceTextarea
                       placeholder={isSending ? "Sending..." : "Say something OOC..."}
                       value={activeChannel === 'out_of_universe' ? messageInput : ''}
-                      onChange={(e) => handleInputChange(e.target.value, 'out_of_universe')}
+                      onValueChange={(v) => handleInputChange(v, 'out_of_universe')}
                       disabled={isSending}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
                     />
                     <Button type="submit" size="icon" variant="secondary" disabled={isSending || !messageInput.trim()} className="min-h-[44px] min-w-[44px]">
                       {isSending ? (

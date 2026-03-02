@@ -6,6 +6,7 @@ import { useUserSettings } from '@/hooks/use-user-settings';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { VoiceTextarea } from '@/components/ui/voice-textarea';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -3793,9 +3794,9 @@ export default function MockBattle() {
                   {activeChannel === 'in_universe' && characterStatusEffects.length > 0 && (
                     <CharacterStatusOverlay effects={characterStatusEffects} />
                   )}
-                  <Input
+                  <VoiceTextarea
                     value={input}
-                    onChange={(e) => setInput(e.target.value)}
+                    onValueChange={(v) => setInput(v)}
                     placeholder={pendingHit 
                       ? 'Resolve the incoming attack first...'
                       : pendingOffensiveHit
@@ -3807,7 +3808,7 @@ export default function MockBattle() {
                       : activeChannel === 'in_universe' 
                       ? 'Describe your action or attack...' 
                       : 'Ask a question or discuss strategy...'}
-                    onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && !pendingHit && !pendingOffensiveHit && sendMessage()}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !pendingHit && !pendingOffensiveHit) { e.preventDefault(); sendMessage(); } }}
                     disabled={isLoading || !!pendingHit || !!pendingOffensiveHit}
                     className="relative z-20"
                   />

@@ -7,7 +7,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { VoiceTextarea } from '@/components/ui/voice-textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
@@ -266,12 +266,13 @@ export default function PrivateNarratorChat({
           }}
           className="flex gap-2"
         >
-          <Input
+          <VoiceTextarea
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onValueChange={setInput}
             placeholder={pendingValidation ? 'Explain your move or type "redo"...' : 'Ask the narrator...'}
             disabled={isLoading}
             className="text-sm"
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
           />
           <Button type="submit" size="icon" variant="secondary" disabled={isLoading || !input.trim()} className="min-h-[44px] min-w-[44px] shrink-0">
             {isLoading ? (
