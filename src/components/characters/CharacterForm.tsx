@@ -24,8 +24,27 @@ import { AutoSaveIndicator } from '@/components/ui/auto-save-indicator';
 import {
   ArrowLeft, Save, Sparkles, Camera, Brain, Crosshair, Dumbbell, Flame, Zap, Shield, Heart, Target,
   Wand2, Smile, Lightbulb, Globe, Mountain, Thermometer, FileText, Loader2, ChevronDown, Check,
-  Swords, User, BookOpen,
+  Swords, User, BookOpen, Plus, Trash2,
 } from 'lucide-react';
+
+// Helper to parse weapons_items (supports both JSON array and legacy plain text)
+interface WeaponItem { name: string; description: string }
+
+function parseWeaponItems(raw: string): WeaponItem[] {
+  if (!raw.trim()) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+  } catch {}
+  // Legacy: split by comma/newline, treat each as name-only
+  return raw.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean).map(name => ({ name, description: '' }));
+}
+
+function serializeWeaponItems(items: WeaponItem[]): string {
+  const filtered = items.filter(i => i.name.trim());
+  if (filtered.length === 0) return '';
+  return JSON.stringify(filtered);
+}
 
 const iconMap = {
   Brain: <Brain className="w-4 h-4" />,
@@ -649,10 +668,49 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                   <Label className="text-xs">Abilities & Techniques</Label>
                   <VoiceTextarea placeholder="Techniques derived from your base power..." value={formData.abilities} onValueChange={(v) => handleChange('abilities', v)} rows={3} className="text-sm" />
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <Label className="text-xs flex items-center gap-1.5">⚔️ Weapons & Items</Label>
-                  <VoiceTextarea placeholder="Weapons, tools, artifacts your character carries..." value={formData.weapons_items} onValueChange={(v) => handleChange('weapons_items', v)} rows={3} className="text-sm" />
-                  <p className="text-[11px] text-muted-foreground">Items can modify stats and affect narrative outcomes.</p>
+                  <p className="text-[11px] text-muted-foreground">Item names appear in your inventory bag. Descriptions are kept for the narrator's memory.</p>
+                  {(() => {
+                    const items = parseWeaponItems(formData.weapons_items);
+                    const updateItems = (newItems: WeaponItem[]) => handleChange('weapons_items', serializeWeaponItems(newItems));
+                    const addItem = () => updateItems([...items, { name: '', description: '' }]);
+                    const removeItem = (idx: number) => updateItems(items.filter((_, i) => i !== idx));
+                    const updateItem = (idx: number, field: keyof WeaponItem, value: string) => {
+                      const copy = [...items];
+                      copy[idx] = { ...copy[idx], [field]: value };
+                      updateItems(copy);
+                    };
+                    return (
+                      <div className="space-y-3">
+                        {items.map((item, idx) => (
+                          <div key={idx} className="p-3 rounded-lg border border-border bg-background/50 space-y-2">
+                            <div className="flex items-center gap-2">
+                              <Input
+                                placeholder="Item name (e.g. Flame Sword)"
+                                value={item.name}
+                                onChange={(e) => updateItem(idx, 'name', e.target.value)}
+                                className="h-8 text-sm flex-1"
+                              />
+                              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-destructive hover:text-destructive" onClick={() => removeItem(idx)}>
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                            <VoiceTextarea
+                              placeholder="Item description (powers, effects, history...)"
+                              value={item.description}
+                              onValueChange={(v) => updateItem(idx, 'description', v)}
+                              rows={2}
+                              className="text-sm"
+                            />
+                          </div>
+                        ))}
+                        <Button type="button" variant="outline" size="sm" className="w-full gap-1.5" onClick={addItem}>
+                          <Plus className="w-3.5 h-3.5" /> Add Item
+                        </Button>
+                      </div>
+                    );
+                  })()}
                 </div>
               </CardContent>
             </Card>

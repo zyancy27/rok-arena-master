@@ -50,11 +50,20 @@ function buildBagContent(campaignItems: InventoryItem[], characterWeapons: strin
     items.push({ name: i.item_name, type: i.item_type, rarity: i.item_rarity, equipped: i.is_equipped });
   }
   
-  // Character sheet weapons/items (always available)
+  // Character sheet weapons/items (always available) — show name only in bag
   if (characterWeapons) {
-    const sheetItems = characterWeapons.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean);
-    for (const si of sheetItems) {
-      items.push({ name: si, type: 'personal', rarity: 'personal', equipped: true });
+    let parsed: { name: string; description?: string }[] = [];
+    try {
+      const json = JSON.parse(characterWeapons);
+      if (Array.isArray(json)) parsed = json;
+    } catch {
+      // Legacy plain-text format
+      parsed = characterWeapons.split(/[,;\n]+/).map(s => s.trim()).filter(Boolean).map(n => ({ name: n }));
+    }
+    for (const si of parsed) {
+      if (si.name.trim()) {
+        items.push({ name: si.name.trim(), type: 'personal', rarity: 'personal', equipped: true });
+      }
     }
   }
   

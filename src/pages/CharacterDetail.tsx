@@ -417,8 +417,26 @@ export default function CharacterDetail() {
                         Weapons & Items
                       </span>
                     </AccordionTrigger>
-                    <AccordionContent className="text-muted-foreground whitespace-pre-wrap">
-                      {(character as any).weapons_items}
+                    <AccordionContent className="text-muted-foreground">
+                      {(() => {
+                        const raw = (character as any).weapons_items;
+                        try {
+                          const parsed = JSON.parse(raw);
+                          if (Array.isArray(parsed)) {
+                            return (
+                              <div className="space-y-2">
+                                {parsed.filter((i: any) => i.name?.trim()).map((item: any, idx: number) => (
+                                  <div key={idx} className="p-2 rounded-lg border border-border bg-background/50">
+                                    <div className="font-medium text-sm text-foreground">⚔️ {item.name}</div>
+                                    {item.description && <p className="text-xs mt-1">{item.description}</p>}
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          }
+                        } catch {}
+                        return <span className="whitespace-pre-wrap">{raw}</span>;
+                      })()}
                     </AccordionContent>
                   </AccordionItem>
                 )}
