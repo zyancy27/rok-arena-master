@@ -1069,6 +1069,7 @@ OUTPUT FORMAT (JSON):
   "newZone": <string or null if zone changes>,
   "encounterType": <"combat"|"social"|"exploration"|"rest"|null>,
   "itemsFound": [{"name": "item name", "type": "weapon|armor|potion|artifact|gem|misc", "rarity": "common|uncommon|rare|epic|legendary", "description": "brief description", "statBonus": {"stat": value}}] or [] if no items found,
+  "itemsUsed": [{"name": "exact item name that was consumed/given away/used up", "reason": "consumed|given|dropped|destroyed"}] or [] if no items were used up,
   "npcUpdates": [
     {
       "isNew": true/false,
@@ -1152,6 +1153,16 @@ ITEMS & LOOT:
 - Don't give items every turn — roughly 1 in 3-4 actions should yield loot, depending on context.
 - If the player explicitly searches or loots, they should usually find something.
 
+INVENTORY TRACKING (CRITICAL — ENFORCE STRICTLY):
+- The player's FULL inventory is listed below. They can ONLY use, consume, give away, or reference items that appear in this list.
+- If the player tries to use an item they do NOT have, the action FAILS. Describe it naturally: "You reach for it but realize you don't have one" or "You check your bag but can't find it."
+- Do NOT let the player invent items they don't possess. If they say "I throw a grenade" but have no grenade, the action fails.
+- When a player USES or CONSUMES a single-use item (potion, scroll, bomb, food, etc.), add it to "itemsUsed" in your response so it gets removed from their inventory.
+- When a player GIVES an item to an NPC or drops it, also add it to "itemsUsed".
+- Weapons, armor, and reusable equipment are NOT consumed when used — only single-use consumables.
+- Items from the character sheet (type: "personal") are permanent innate equipment — they are NEVER consumed or lost.
+- Be strict but fair. If the player has a "healing potion" and drinks it, consume it. If they have a "sword" and swing it, don't consume it.
+
 KNOWN NPCs IN THIS CAMPAIGN:
 ${Array.isArray(knownNpcs) && knownNpcs.length > 0
   ? knownNpcs.map((npc: any) => `- ${npc.name} (${npc.role}): ${npc.personality || 'No personality set'}. Disposition toward player: ${npc.disposition} (trust: ${npc.trust_level}). Zone: ${npc.current_zone || 'unknown'}. Last seen: Day ${npc.last_seen_day || '?'}. ${npc.backstory ? 'Backstory: ' + npc.backstory + '. ' : ''}${npc.relationship_notes ? 'Notes: ' + npc.relationship_notes : ''}`).join('\n')
@@ -1176,7 +1187,10 @@ Party: ${partyContext}
 Campaign: ${campaignDescription || 'An ongoing adventure'}
 World State: ${JSON.stringify(worldState || {})}
 Story Context: ${JSON.stringify(storyContext || {})}`;
-  const itemsInfo = playerCharacter.weaponsItems ? `\nCharacter's Items (from sheet): ${playerCharacter.weaponsItems}` : '';
+  const itemsInfo = playerCharacter.weaponsItems ? `\nCharacter's Items (from sheet, type: personal — NEVER consumed): ${playerCharacter.weaponsItems}` : '';
+  const allCampaignItems = playerCharacter.allCampaignItems && playerCharacter.allCampaignItems.length > 0
+    ? `\nFULL CAMPAIGN INVENTORY: ${playerCharacter.allCampaignItems.map((i: any) => `${i.item_name} (${i.item_rarity} ${i.item_type}${i.is_equipped ? ', equipped' : ''}${i.description ? ' — ' + i.description : ''})`).join(', ')}`
+    : '\nFULL CAMPAIGN INVENTORY: Empty — no items found yet.';
   const equippedCampaignItems = playerCharacter.equippedCampaignItems && playerCharacter.equippedCampaignItems.length > 0
     ? `\nCurrently Equipped Campaign Items: ${playerCharacter.equippedCampaignItems.map((i: any) => `${i.item_name} (${i.item_rarity} ${i.item_type}${i.description ? ' — ' + i.description : ''})`).join(', ')}`
     : '';
@@ -1187,7 +1201,7 @@ Story Context: ${JSON.stringify(storyContext || {})}`;
     ? `\n\n[DEFENSE ROLL: ${defenseResult.success ? 'SUCCESS' : 'FAILED'} — Defense ${defenseResult.defenseTotal} vs Incoming ${defenseResult.incomingTotal}]`
     : '';
 
-  const userMessage = `${playerCharacter.name} (Campaign Lv.${playerCharacter.campaignLevel}, HP: ${playerCharacter.hp}/${playerCharacter.hpMax}, Original Tier: ${playerCharacter.originalLevel}) acts:${itemsInfo}${equippedCampaignItems}
+  const userMessage = `${playerCharacter.name} (Campaign Lv.${playerCharacter.campaignLevel}, HP: ${playerCharacter.hp}/${playerCharacter.hpMax}, Original Tier: ${playerCharacter.originalLevel}) acts:${itemsInfo}${allCampaignItems}${equippedCampaignItems}
 
 "${playerAction}"${diceContext}
 
@@ -1266,6 +1280,7 @@ Respond as the WORLD — let NPCs speak, environments react, and consequences un
         newZone: typeof parsed.newZone === 'string' ? parsed.newZone : null,
         encounterType: parsed.encounterType || null,
         itemsFound: Array.isArray(parsed.itemsFound) ? parsed.itemsFound : [],
+        itemsUsed: Array.isArray(parsed.itemsUsed) ? parsed.itemsUsed : [],
         npcUpdates: Array.isArray(parsed.npcUpdates) ? parsed.npcUpdates : [],
         enemySpawned: parsed.enemySpawned && typeof parsed.enemySpawned === 'object' && parsed.enemySpawned.name ? parsed.enemySpawned : null,
         enemyUpdates: Array.isArray(parsed.enemyUpdates) ? parsed.enemyUpdates : [],
