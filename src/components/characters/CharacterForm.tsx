@@ -274,10 +274,13 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
           ...prev,
           name: parsed.name || prev.name, race: parsed.race || prev.race, sub_race: parsed.sub_race || prev.sub_race,
           age: parsed.age?.toString() || prev.age, home_planet: parsed.home_planet || prev.home_planet,
+          home_moon: parsed.home_moon || prev.home_moon,
           powers: parsed.powers || prev.powers, abilities: parsed.abilities || prev.abilities,
+          weapons_items: parsed.weapons_items || prev.weapons_items,
           personality: parsed.personality || prev.personality, mentality: parsed.mentality || prev.mentality,
           lore: parsed.lore || prev.lore, level: parsed.level || prev.level,
         }));
+        // weapons_items is already set in formData above — items render from it directly
         if (parsed.race && !availableRaces.find(r => r.name === parsed.race)) setUseCustomRace(true);
         if (parsed.home_planet && !availablePlanets.find(p => p.name === parsed.home_planet)) setUseCustomPlanet(true);
         // Auto-open relevant sections
