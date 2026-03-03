@@ -10,16 +10,16 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.parse-species-info]
-verify_jwt = true
+verify_jwt = false
 
 [functions.parse-character-notes]
 verify_jwt = false
 
 [functions.parse-lore-document]
-verify_jwt = true
+verify_jwt = false
 
 [functions.trigger-3d-generation]
-verify_jwt = true
+verify_jwt = false
 
 [functions.detect-new-technique]
 verify_jwt = false
