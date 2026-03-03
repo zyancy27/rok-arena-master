@@ -309,7 +309,13 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
       ...data.stats,
     };
     const { error } = await supabase.from('characters').update(characterData).eq('id', initialData.id);
-    if (error) throw error;
+    if (error) {
+      if (error.code === '23505') {
+        toast.error(`You already have a character named "${data.formData.name.trim()}". Please choose a different name.`);
+        return;
+      }
+      throw error;
+    }
   }, [initialData?.id, user]);
 
   const { isSaving: autoSaving, lastSaved, canUndo, undo } = useAutoSave({
@@ -380,11 +386,25 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
 
       if (mode === 'create') {
         const { error } = await supabase.from('characters').insert(characterData);
-        if (error) throw error;
+        if (error) {
+          if (error.code === '23505') {
+            toast.error(`You already have a character named "${formData.name.trim()}". Please choose a different name.`);
+            setIsLoading(false);
+            return;
+          }
+          throw error;
+        }
         toast.success('Character created successfully!');
       } else if (initialData?.id) {
         const { error } = await supabase.from('characters').update(characterData).eq('id', initialData.id);
-        if (error) throw error;
+        if (error) {
+          if (error.code === '23505') {
+            toast.error(`You already have a character named "${formData.name.trim()}". Please choose a different name.`);
+            setIsLoading(false);
+            return;
+          }
+          throw error;
+        }
         toast.success('Character updated successfully!');
       }
       navigate('/hub');
