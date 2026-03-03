@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Brain, Swords, Target, Plus, Trash2, Pencil, Check, X } from 'lucide-react';
 import { useCharacterAINotes, type CharacterAINote } from '@/hooks/use-character-ai-notes';
 import { supabase } from '@/integrations/supabase/client';
+import { fromDecrypted } from '@/lib/encrypted-query';
 import { toast } from 'sonner';
 
 interface AICharacterNotePanelProps {
@@ -73,8 +74,7 @@ async function syncNoteToCharacterField(
   if (!field) return;
 
   try {
-    const { data: char } = await supabase
-      .from('characters')
+    const { data: char } = await fromDecrypted('characters')
       .select('powers, personality, mentality, lore, abilities')
       .eq('id', characterId)
       .single();
