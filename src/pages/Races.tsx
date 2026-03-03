@@ -110,6 +110,7 @@ export default function Races() {
   const [isPasteOpen, setIsPasteOpen] = useState(false);
   const [discoveredCharacters, setDiscoveredCharacters] = useState<DiscoveredCharacter[]>([]);
   const [discoveredStories, setDiscoveredStories] = useState<DiscoveredStory[]>([]);
+  const [discoveredSubRaces, setDiscoveredSubRaces] = useState<Array<SubRaceFormData & { selected: boolean }>>([]);
   const [subRaces, setSubRaces] = useState<Record<string, SubRace[]>>({});
   const [subRaceForm, setSubRaceForm] = useState<SubRaceFormData>(emptySubRaceForm);
   const [editingSubRace, setEditingSubRace] = useState<SubRace | null>(null);
@@ -295,12 +296,24 @@ export default function Races() {
         setDiscoveredCharacters(chars);
         setDiscoveredStories(storiesData);
 
+        // Extract discovered sub-races
+        const subRacesData = (data.sub_races || []).map((sr: any) => ({
+          name: sr.name || '',
+          description: sr.description || '',
+          typical_physiology: sr.typical_physiology || '',
+          typical_abilities: sr.typical_abilities || '',
+          cultural_traits: sr.cultural_traits || '',
+          selected: true,
+        }));
+        setDiscoveredSubRaces(subRacesData);
+
         const extras: string[] = [];
+        if (subRacesData.length > 0) extras.push(`${subRacesData.length} sub-race${subRacesData.length > 1 ? 's' : ''}`);
         if (chars.length > 0) extras.push(`${chars.length} character${chars.length > 1 ? 's' : ''}`);
         if (storiesData.length > 0) extras.push(`${storiesData.length} stor${storiesData.length > 1 ? 'ies' : 'y'}`);
         
         toast.success(
-          `Species info extracted!${extras.length > 0 ? ` Also found ${extras.join(' and ')}.` : ''}`
+          `Species info extracted!${extras.length > 0 ? ` Also found ${extras.join(', ')}.` : ''}`
         );
         setPasteText('');
         setIsPasteOpen(false);
@@ -323,6 +336,7 @@ export default function Races() {
     setIsPasteOpen(false);
     setDiscoveredCharacters([]);
     setDiscoveredStories([]);
+    setDiscoveredSubRaces([]);
     setIsDialogOpen(true);
   };
 
@@ -394,7 +408,7 @@ export default function Races() {
         if (error) throw error;
         toast.success('Race updated!');
       } else {
-        const { error } = await supabase.from('races').insert({
+        const { data: newRace, error } = await supabase.from('races').insert({
           user_id: user?.id,
           name: formData.name,
           description: formData.description || null,
@@ -403,9 +417,28 @@ export default function Races() {
           typical_abilities: formData.typical_abilities || null,
           cultural_traits: formData.cultural_traits || null,
           average_lifespan: formData.average_lifespan || null,
-        });
+        }).select().single();
 
         if (error) throw error;
+
+        // Save discovered sub-races
+        const selectedSubRaces = discoveredSubRaces.filter(sr => sr.selected && sr.name.trim());
+        if (selectedSubRaces.length > 0 && newRace) {
+          const { error: srError } = await supabase.from('sub_races').insert(
+            selectedSubRaces.map(sr => ({
+              race_id: newRace.id,
+              user_id: user?.id,
+              name: sr.name,
+              description: sr.description || null,
+              typical_physiology: sr.typical_physiology || null,
+              typical_abilities: sr.typical_abilities || null,
+              cultural_traits: sr.cultural_traits || null,
+            }))
+          );
+          if (srError) console.error('Failed to save sub-races:', srError);
+        }
+
+        setDiscoveredSubRaces([]);
         toast.success('Race created!');
       }
 
@@ -526,8 +559,49 @@ export default function Races() {
                     onComplete={() => {
                       setDiscoveredCharacters([]);
                       setDiscoveredStories([]);
+                      setDiscoveredSubRaces([]);
                     }}
                   />
+                )}
+
+                {/* Discovered Sub-Races */}
+                {discoveredSubRaces.length > 0 && (
+                  <Card className="border-dashed">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <GitBranch className="h-4 w-4" />
+                        Discovered Sub-Races ({discoveredSubRaces.filter(s => s.selected).length}/{discoveredSubRaces.length})
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        These sub-races will be saved when you create/update this race.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {discoveredSubRaces.map((sr, idx) => (
+                        <div key={idx} className="flex items-start gap-2 rounded-md border border-border p-2">
+                          <input
+                            type="checkbox"
+                            checked={sr.selected}
+                            onChange={() => {
+                              const updated = [...discoveredSubRaces];
+                              updated[idx] = { ...updated[idx], selected: !updated[idx].selected };
+                              setDiscoveredSubRaces(updated);
+                            }}
+                            className="mt-1"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium">{sr.name}</p>
+                            {sr.description && <p className="text-xs text-muted-foreground line-clamp-2">{sr.description}</p>}
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {sr.typical_abilities && <Badge variant="outline" className="text-[10px]">Abilities</Badge>}
+                              {sr.typical_physiology && <Badge variant="outline" className="text-[10px]">Physiology</Badge>}
+                              {sr.cultural_traits && <Badge variant="outline" className="text-[10px]">Culture</Badge>}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
                 )}
 
                 <div className="space-y-2">

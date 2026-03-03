@@ -80,9 +80,17 @@ Your job is to deeply analyze the provided text and extract ALL of the following
 
 1. **Species/Race Info** — name, physiology, abilities, culture, home planet, lifespan, description.
 
-2. **Named Characters** — Any specific named individuals mentioned in the text who belong to or are associated with this species. For each character extract:
+2. **Sub-Races** — Any sub-races, variants, sub-species, clans, bloodlines, castes, or distinct sub-groups within the main species. For each sub-race extract:
+   - name (required)
+   - description
+   - typical_physiology (how they physically differ from the main species)
+   - typical_abilities (unique abilities or powers)
+   - cultural_traits (cultural differences from the main species)
+
+3. **Named Characters** — Any specific named individuals mentioned in the text who belong to or are associated with this species. For each character extract:
    - name (required)
    - race/species they belong to
+   - sub_race (if they belong to a specific sub-race)
    - any powers or abilities mentioned
    - personality traits
    - lore/backstory details
@@ -90,15 +98,15 @@ Your job is to deeply analyze the provided text and extract ALL of the following
    - level estimate (1-100, based on how powerful they seem; default 50)
    - any weapons or items mentioned
 
-3. **Story Elements** — Any narrative content, legends, historical events, myths, wars, or story arcs described in the text. For each story extract:
+4. **Story Elements** — Any narrative content, legends, historical events, myths, wars, or story arcs described in the text. For each story extract:
    - title (create a fitting title if none is given)
    - content (the narrative/story text, retold faithfully)
    - summary (1-2 sentence summary)
    - which characters are involved (by name)
 
-4. **Relationships** — How the characters, species, and stories connect to each other.
+5. **Relationships** — How the characters, species, and stories connect to each other.
 
-Be thorough. Extract EVERY named character, even minor ones. Extract EVERY story element, even brief legends or historical references. If a character is only mentioned by name with no details, still include them with just the name and species.`;
+Be thorough. Extract EVERY sub-race, even if only briefly mentioned. Extract EVERY named character, even minor ones. Extract EVERY story element, even brief legends or historical references. If a character is only mentioned by name with no details, still include them with just the name and species.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -134,6 +142,21 @@ Be thorough. Extract EVERY named character, even minor ones. Extract EVERY story
                       average_lifespan: { type: 'string', description: 'Typical lifespan' }
                     },
                     required: ['name']
+                  },
+                  sub_races: {
+                    type: 'array',
+                    description: 'Sub-races, variants, clans, bloodlines, or sub-groups within this species',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        name: { type: 'string', description: 'Sub-race name' },
+                        description: { type: 'string', description: 'Description of this sub-race' },
+                        typical_physiology: { type: 'string', description: 'Physical differences from main species' },
+                        typical_abilities: { type: 'string', description: 'Unique abilities' },
+                        cultural_traits: { type: 'string', description: 'Cultural differences' }
+                      },
+                      required: ['name']
+                    }
                   },
                   characters: {
                     type: 'array',
@@ -218,6 +241,7 @@ Be thorough. Extract EVERY named character, even minor ones. Extract EVERY story
         data: extractedData.species || extractedData,
         characters: extractedData.characters || [],
         stories: extractedData.stories || [],
+        sub_races: extractedData.sub_races || [],
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
