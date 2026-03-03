@@ -14,7 +14,7 @@ const RARITY_COLORS: Record<string, string> = {
   rare: 'text-blue-400',
   epic: 'text-purple-400',
   legendary: 'text-yellow-400',
-  personal: 'text-foreground',
+  unique: 'text-orange-300',
 };
 
 const RARITY_GLOW: Record<string, string> = {
@@ -22,6 +22,7 @@ const RARITY_GLOW: Record<string, string> = {
   rare: 'rgba(96, 165, 250, 0.5)',
   epic: 'rgba(192, 132, 252, 0.5)',
   legendary: 'rgba(250, 204, 21, 0.6)',
+  unique: 'rgba(251, 146, 60, 0.5)',
 };
 
 const RARITY_SHIMMER_GRADIENT: Record<string, string> = {
@@ -29,6 +30,7 @@ const RARITY_SHIMMER_GRADIENT: Record<string, string> = {
   rare: 'linear-gradient(90deg, transparent 0%, rgba(96,165,250,0.15) 40%, rgba(96,165,250,0.35) 50%, rgba(96,165,250,0.15) 60%, transparent 100%)',
   epic: 'linear-gradient(90deg, transparent 0%, rgba(192,132,252,0.15) 40%, rgba(192,132,252,0.35) 50%, rgba(192,132,252,0.15) 60%, transparent 100%)',
   legendary: 'linear-gradient(90deg, transparent 0%, rgba(250,204,21,0.2) 30%, rgba(255,255,200,0.5) 50%, rgba(250,204,21,0.2) 70%, transparent 100%)',
+  unique: 'linear-gradient(90deg, transparent 0%, rgba(251,146,60,0.15) 40%, rgba(251,146,60,0.3) 50%, rgba(251,146,60,0.15) 60%, transparent 100%)',
 };
 
 interface Props {
@@ -138,7 +140,7 @@ export default function BagBubble({ bagItems, isClosed }: Props) {
               {bagItems.length === 0 ? (
                 <p className="text-xs text-amber-200/30 italic text-center py-2">Empty — nothing in here.</p>
               ) : (
-                <div className="space-y-1">
+                <div className="space-y-1 max-h-[140px] overflow-y-auto scrollbar-thin pr-0.5" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(217,119,6,0.3) transparent' }}>
                   {bagItems.map((item, idx) => {
                     const glowColor = RARITY_GLOW[item.rarity];
                     const shimmerGradient = RARITY_SHIMMER_GRADIENT[item.rarity];
@@ -181,11 +183,11 @@ export default function BagBubble({ bagItems, isClosed }: Props) {
                         >
                           {item.name}
                         </span>
-                        {item.equipped && item.rarity !== 'personal' && (
+                        {item.equipped && item.rarity !== 'unique' && (
                           <span className="text-[9px] text-amber-500/50 relative z-10">(equipped)</span>
                         )}
-                        {item.rarity === 'personal' && (
-                          <span className="text-[9px] text-amber-200/30 relative z-10">(personal)</span>
+                        {item.rarity === 'unique' && (
+                          <span className="text-[9px] text-orange-400/40 relative z-10">(unique)</span>
                         )}
                       </div>
                     );
