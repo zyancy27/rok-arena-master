@@ -62,6 +62,7 @@ export interface CampaignParticipant {
     sub_race: string | null;
     personality: string | null;
     mentality: string | null;
+    stat_strength: number | null;
   };
 }
 

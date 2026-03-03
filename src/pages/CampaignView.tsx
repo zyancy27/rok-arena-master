@@ -241,7 +241,7 @@ export default function CampaignView() {
   const fetchParticipants = async () => {
     const { data } = await supabase
       .from('campaign_participants')
-      .select('*, character:characters(name, image_url, level, user_id, powers, abilities, weapons_items, lore, race, sub_race, personality, mentality)')
+      .select('*, character:characters(name, image_url, level, user_id, powers, abilities, weapons_items, lore, race, sub_race, personality, mentality, stat_strength)')
       .eq('campaign_id', campaignId!);
     if (data) {
       const parsed = data.map(p => ({
@@ -780,6 +780,7 @@ export default function CampaignView() {
             powers: snapshotParticipant.character?.powers,
             abilities: snapshotParticipant.character?.abilities,
             weaponsItems: (snapshotParticipant.character as any)?.weapons_items,
+            strengthStat: (snapshotParticipant.character as any)?.stat_strength ?? 50,
             isSolo: snapshotParticipant.is_solo ?? false,
             soloIntent: soloIntent,
             equippedCampaignItems: equippedCampaignItems.map(i => ({

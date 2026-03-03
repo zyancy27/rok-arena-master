@@ -1197,11 +1197,15 @@ ITEM PICKUP RULES (CRITICAL):
 - The world is full of things to interact with. When describing environments, include tangible objects the player could grab.
 - For mundane items: type "misc", rarity "common", no statBonus. Description should be brief and flavorful.
 - For useful items: assign appropriate type, rarity, and optional statBonus.
-- For items too large or heavy to pocket (furniture, a crate, a motorcycle, a body), do NOT just refuse. Instead:
-  • Narrate the weight/size realistically ("It's heavy, but you manage to drag it")
-  • Suggest or allow transport methods contextually: dragging, pushing, rolling, carrying on their back, loading onto a vehicle, hiring someone to help, tying it to something, etc.
-  • If the player finds a way to move it, ADD it to itemsFound with a description noting its bulk (e.g., "Heavy wooden crate — requires two hands to carry")
-  • Only truly immovable things (a building, a mountain, something welded to the floor) can't be taken. Everything else — let them try.
+- For items too large or heavy to pocket, consider the character's STRENGTH stat (${playerCharacter.strengthStat ?? 50}/100):
+  • Strength 0-20: Can barely carry a heavy backpack. Anything over ~15 kg is a struggle.
+  • Strength 21-50: Average person. Can carry moderate loads, drag heavy objects short distances.
+  • Strength 51-75: Strong. Can lift furniture, carry another person, haul heavy crates.
+  • Strength 76-100: Superhuman range. Can carry massive objects, flip cars, drag boulders.
+  • If the item is within the character's strength capability, add it to itemsFound and narrate them carrying/transporting it.
+  • If the item is TOO heavy even for their strength, do NOT add it to itemsFound. Instead, narrate the struggle and suggest transport options (a cart, a vehicle, hiring help, dragging it). The player must arrange transport before the item enters their inventory.
+  • CRITICAL: Items too big for the inventory bag that the player is actively carrying/transporting are TEMPORARY. If the player does something else (enters combat, travels to a new zone, rests, or stops paying attention to the item), the oversized item is DROPPED automatically. Include it in itemsUsed with reason "dropped" and narrate it being left behind.
+  • Mark oversized items in their description: e.g., "Heavy steel beam — carrying by hand, will drop if you stop holding it"
 - After combat victories, always mention lootable items on defeated enemies — the player can choose to grab them.
 
 ACTIVE ENEMIES IN THIS COMBAT:
