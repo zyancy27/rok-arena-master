@@ -83,7 +83,7 @@ interface CampaignNarratorChatProps {
   // Trade props
   incomingTrades: CampaignTrade[];
   outgoingTrades: CampaignTrade[];
-  onSendTradeOffer: (itemId: string, receiverParticipantId: string, message?: string) => Promise<boolean>;
+  onSendTradeOffer: (itemId: string, receiverParticipantId: string, message?: string, senderZone?: string, receiverZone?: string) => Promise<boolean>;
   onAcceptTrade: (tradeId: string) => void;
   onDeclineTrade: (tradeId: string) => void;
   onCancelTrade: (tradeId: string) => void;

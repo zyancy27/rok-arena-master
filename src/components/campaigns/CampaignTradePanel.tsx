@@ -24,7 +24,7 @@ interface Props {
   participants: CampaignParticipant[];
   myParticipantId: string;
   currentZone: string;
-  onSendOffer: (itemId: string, receiverParticipantId: string, message?: string) => Promise<boolean>;
+  onSendOffer: (itemId: string, receiverParticipantId: string, message?: string, senderZone?: string, receiverZone?: string) => Promise<boolean>;
   onAccept: (tradeId: string) => void;
   onDecline: (tradeId: string) => void;
   onCancel: (tradeId: string) => void;
@@ -47,7 +47,8 @@ export default function CampaignTradePanel({
   const handleSend = async () => {
     if (!selectedItem || !selectedRecipient) return;
     setSending(true);
-    const success = await onSendOffer(selectedItem, selectedRecipient);
+    // Pass current zone for both sender and receiver (same-zone check in hook)
+    const success = await onSendOffer(selectedItem, selectedRecipient, undefined, currentZone, currentZone);
     setSending(false);
     if (success) {
       setSelectedItem('');
