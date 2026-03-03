@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -26,7 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus, Search, User, Edit, Globe, Sparkles, Users, X, Wand2, Loader2, ChevronDown, FileText, Check } from 'lucide-react';
+import { Plus, Search, User, Edit, Globe, Sparkles, Users, X, Wand2, Loader2, ChevronDown, FileText, Check, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Character {
@@ -83,6 +83,8 @@ export default function CharacterList() {
   const [isParsing, setIsParsing] = useState(false);
   const [discoveredChars, setDiscoveredChars] = useState<DiscoveredCharacter[]>([]);
   const [isCreating, setIsCreating] = useState(false);
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user) {
@@ -207,6 +209,29 @@ export default function CharacterList() {
     setBatchLoading(false);
   };
 
+  const processExtractedCharacters = async (result: any) => {
+    if (result.success && result.characters?.length > 0) {
+      const { data: existing } = await supabase
+        .from('characters')
+        .select('id, name')
+        .eq('user_id', user!.id);
+      const existingMap: Record<string, string> = {};
+      if (existing) for (const e of existing) existingMap[e.name.toLowerCase()] = e.id;
+
+      const chars: DiscoveredCharacter[] = result.characters.map((c: any) => ({
+        ...c,
+        selected: !existingMap[c.name?.toLowerCase()],
+        existingId: existingMap[c.name?.toLowerCase()] || undefined,
+      }));
+      setDiscoveredChars(chars);
+      toast.success(`Found ${chars.length} character${chars.length !== 1 ? 's' : ''}!`);
+      setImportText('');
+      setIsImportOpen(false);
+    } else {
+      toast.info('No characters found in the text');
+    }
+  };
+
   // Batch import: extract multiple characters from text
   const handleExtractCharacters = async () => {
     if (!importText.trim()) { toast.error('Paste some text first'); return; }
@@ -224,30 +249,57 @@ export default function CharacterList() {
         throw new Error(err.error || 'Failed to extract');
       }
       const result = await response.json();
-      if (result.success && result.characters?.length > 0) {
-        const { data: existing } = await supabase
-          .from('characters')
-          .select('id, name')
-          .eq('user_id', user!.id);
-        const existingMap: Record<string, string> = {};
-        if (existing) for (const e of existing) existingMap[e.name.toLowerCase()] = e.id;
-
-        const chars: DiscoveredCharacter[] = result.characters.map((c: any) => ({
-          ...c,
-          selected: !existingMap[c.name?.toLowerCase()],
-          existingId: existingMap[c.name?.toLowerCase()] || undefined,
-        }));
-        setDiscoveredChars(chars);
-        toast.success(`Found ${chars.length} character${chars.length !== 1 ? 's' : ''}!`);
-        setImportText('');
-        setIsImportOpen(false);
-      } else {
-        toast.info('No characters found in the text');
-      }
+      await processExtractedCharacters(result);
     } catch (error: any) {
       toast.error(error.message || 'Failed to extract characters');
     } finally {
       setIsParsing(false);
+    }
+  };
+
+  // Batch import: extract characters from uploaded document
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    const validExts = ['pdf', 'docx', 'doc', 'txt', 'md'];
+    if (!ext || !validExts.includes(ext)) {
+      toast.error('Supported formats: PDF, DOCX, TXT, MD');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File size must be under 10MB');
+      return;
+    }
+
+    setIsUploadingFile(true);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      const base64 = btoa(String.fromCharCode(...bytes));
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-character-notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ fileData: base64, fileType: ext }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Failed to process document');
+      }
+
+      const result = await response.json();
+      await processExtractedCharacters(result);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to process document');
+    } finally {
+      setIsUploadingFile(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -377,21 +429,46 @@ export default function CharacterList() {
               rows={5}
               className="text-sm"
             />
-            <Button
-              type="button"
-              onClick={handleExtractCharacters}
-              disabled={isParsing || !importText.trim()}
-              className="w-full sm:w-auto"
-              size="sm"
-            >
-              {isParsing ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Extracting Characters...</>
-              ) : (
-                <><Sparkles className="w-4 h-4 mr-2" /> Extract All Characters</>
-              )}
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                type="button"
+                onClick={handleExtractCharacters}
+                disabled={isParsing || isUploadingFile || !importText.trim()}
+                className="w-full sm:w-auto"
+                size="sm"
+              >
+                {isParsing ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Extracting Characters...</>
+                ) : (
+                  <><Sparkles className="w-4 h-4 mr-2" /> Extract from Text</>
+                )}
+              </Button>
+              <div className="relative">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.docx,.doc,.txt,.md"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isParsing || isUploadingFile}
+                  className="w-full sm:w-auto"
+                >
+                  {isUploadingFile ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing Document...</>
+                  ) : (
+                    <><Upload className="w-4 h-4 mr-2" /> Upload Document</>
+                  )}
+                </Button>
+              </div>
+            </div>
             <p className="text-xs text-muted-foreground">
-              AI will find every named character in your text and let you create them all at once.
+              Paste text or upload a document (PDF, DOCX, TXT, MD) — AI will extract all characters.
             </p>
           </CollapsibleContent>
         </Collapsible>

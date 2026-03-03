@@ -8,6 +8,62 @@ const corsHeaders = {
 
 const MAX_NOTES_LENGTH = 50000;
 
+// Extract text from DOCX (XML-based)
+function extractTextFromDocx(bytes: Uint8Array): string {
+  const decoder = new TextDecoder('utf-8', { fatal: false });
+  const rawText = decoder.decode(bytes);
+  const textMatches = rawText.match(/<w:t[^>]*>([^<]*)<\/w:t>/g);
+  if (textMatches) {
+    return textMatches.map(match => match.replace(/<[^>]+>/g, '')).join(' ');
+  }
+  return rawText.replace(/[^\x20-\x7E\n\r]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+// Extract text from PDF (basic extraction)
+function extractTextFromPdf(bytes: Uint8Array): string {
+  const decoder = new TextDecoder('latin1', { fatal: false });
+  const raw = decoder.decode(bytes);
+  
+  const textParts: string[] = [];
+  
+  // Extract text from PDF stream objects
+  // Look for text between BT (begin text) and ET (end text) operators
+  const btEtRegex = /BT\s([\s\S]*?)ET/g;
+  let match;
+  while ((match = btEtRegex.exec(raw)) !== null) {
+    const block = match[1];
+    // Extract text from Tj, TJ, ', " operators
+    const tjRegex = /\(([^)]*)\)\s*Tj/g;
+    let tjMatch;
+    while ((tjMatch = tjRegex.exec(block)) !== null) {
+      textParts.push(tjMatch[1]);
+    }
+    // TJ array operator
+    const tjArrayRegex = /\[([^\]]*)\]\s*TJ/g;
+    let tjArrMatch;
+    while ((tjArrMatch = tjArrayRegex.exec(block)) !== null) {
+      const inner = tjArrMatch[1];
+      const strRegex = /\(([^)]*)\)/g;
+      let strMatch;
+      while ((strMatch = strRegex.exec(inner)) !== null) {
+        textParts.push(strMatch[1]);
+      }
+    }
+  }
+  
+  if (textParts.length > 0) {
+    return textParts.join(' ').replace(/\s+/g, ' ').trim();
+  }
+  
+  // Fallback: extract readable ASCII strings
+  const asciiParts = raw.match(/[A-Za-z][A-Za-z0-9 .,;:!?'"()\-]{4,}/g);
+  if (asciiParts) {
+    return asciiParts.join(' ').substring(0, MAX_NOTES_LENGTH);
+  }
+  
+  return '';
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -47,7 +103,33 @@ serve(async (req) => {
       );
     }
 
-    const { notes, multi } = body;
+    let { notes, multi } = body;
+    const { fileData, fileType } = body;
+
+    // If file data is provided, extract text from it
+    if (fileData && fileType) {
+      const bytes = Uint8Array.from(atob(fileData), c => c.charCodeAt(0));
+
+      if (fileType === 'pdf') {
+        notes = extractTextFromPdf(bytes);
+      } else if (fileType === 'docx' || fileType === 'doc') {
+        notes = extractTextFromDocx(bytes);
+      } else {
+        // txt, md - decode as UTF-8
+        const decoder = new TextDecoder('utf-8');
+        notes = decoder.decode(bytes);
+      }
+
+      if (!notes || notes.trim().length < 10) {
+        return new Response(
+          JSON.stringify({ error: 'Could not extract readable text from the document. Try a different format or paste text directly.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // File uploads always use multi mode
+      multi = true;
+    }
 
     if (!notes || typeof notes !== 'string') {
       return new Response(
@@ -57,10 +139,7 @@ serve(async (req) => {
     }
 
     if (notes.length > MAX_NOTES_LENGTH) {
-      return new Response(
-        JSON.stringify({ error: `Notes exceed maximum length of ${MAX_NOTES_LENGTH} characters` }),
-        { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      notes = notes.substring(0, MAX_NOTES_LENGTH);
     }
 
     if (notes.trim().length === 0) {
