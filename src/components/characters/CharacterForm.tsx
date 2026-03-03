@@ -254,21 +254,69 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
 
   const handleChange = (field: keyof CharacterFormData, value: string | number) => setFormData(prev => ({ ...prev, [field]: value }));
 
-  // AI Auto-fill from notes
+  // AI Auto-fill from notes (supports multi-character extraction)
   const handleAutoFillFromNotes = async () => {
     if (!characterNotes.trim()) { toast.error('Please enter your character notes first'); return; }
     setIsParsingNotes(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
+      // Always use multi mode to detect all characters
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-character-notes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ notes: characterNotes }),
+        body: JSON.stringify({ notes: characterNotes, multi: true }),
       });
       if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.error || 'Failed to parse notes'); }
       const result = await response.json();
-      if (result.success && result.data) {
+      if (result.success && result.characters && result.characters.length > 0) {
+        const [first, ...extras] = result.characters;
+        // Fill current form with the first character
+        const applyCharacter = (parsed: any) => {
+          setFormData(prev => ({
+            ...prev,
+            name: parsed.name || prev.name, race: parsed.race || prev.race, sub_race: parsed.sub_race || prev.sub_race,
+            age: parsed.age?.toString() || prev.age, home_planet: parsed.home_planet || prev.home_planet,
+            home_moon: parsed.home_moon || prev.home_moon,
+            powers: parsed.powers || prev.powers, abilities: parsed.abilities || prev.abilities,
+            weapons_items: parsed.weapons_items || prev.weapons_items,
+            personality: parsed.personality || prev.personality, mentality: parsed.mentality || prev.mentality,
+            lore: parsed.lore || prev.lore, level: parsed.level || prev.level,
+          }));
+          if (parsed.race && !availableRaces.find(r => r.name === parsed.race)) setUseCustomRace(true);
+          if (parsed.home_planet && !availablePlanets.find(p => p.name === parsed.home_planet)) setUseCustomPlanet(true);
+        };
+        applyCharacter(first);
+        setOpenSections({ identity: true, powers: true, personality: true, stats: false });
+
+        // Batch-create additional characters in the background
+        if (extras.length > 0 && user) {
+          let created = 0;
+          for (const ch of extras) {
+            if (!ch.name?.trim()) continue;
+            const { error } = await supabase.from('characters').insert({
+              name: ch.name.trim(), level: ch.level || 1, user_id: user.id,
+              race: ch.race || null, sub_race: ch.sub_race || null,
+              age: ch.age ? parseInt(ch.age) : null,
+              home_planet: ch.home_planet || null, home_moon: ch.home_moon || null,
+              powers: ch.powers || null, abilities: ch.abilities || null,
+              weapons_items: ch.weapons_items || null,
+              personality: ch.personality || null, mentality: ch.mentality || null,
+              lore: ch.lore || null,
+            });
+            if (!error) created++;
+            if (!error) created++;
+          }
+          if (created > 0) {
+            toast.success(`Form filled with "${first.name}". ${created} additional character${created > 1 ? 's' : ''} created automatically!`);
+          } else {
+            toast.success('Character information extracted! Review and adjust as needed.');
+          }
+        } else {
+          toast.success('Character information extracted! Review and adjust as needed.');
+        }
+      } else if (result.success && result.data) {
+        // Fallback for single-mode response
         const parsed = result.data;
         setFormData(prev => ({
           ...prev,
@@ -280,10 +328,8 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
           personality: parsed.personality || prev.personality, mentality: parsed.mentality || prev.mentality,
           lore: parsed.lore || prev.lore, level: parsed.level || prev.level,
         }));
-        // weapons_items is already set in formData above — items render from it directly
         if (parsed.race && !availableRaces.find(r => r.name === parsed.race)) setUseCustomRace(true);
         if (parsed.home_planet && !availablePlanets.find(p => p.name === parsed.home_planet)) setUseCustomPlanet(true);
-        // Auto-open relevant sections
         setOpenSections({ identity: true, powers: true, personality: true, stats: false });
         toast.success('Character information extracted! Review and adjust as needed.');
       }
