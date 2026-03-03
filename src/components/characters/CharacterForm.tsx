@@ -645,10 +645,24 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                         </SelectContent>
                       </Select>
                     ) : (
-                      <div className="flex gap-1.5">
-                        <Input placeholder="Stormkin" value={formData.sub_race} onChange={(e) => handleChange('sub_race', e.target.value)} className="h-9 flex-1" />
-                        {availableSubRaces.length > 0 && (
-                          <Button type="button" variant="outline" size="sm" className="h-9 px-2 text-xs" onClick={() => { setUseCustomSubRace(false); handleChange('sub_race', ''); }}>List</Button>
+                      <div className="space-y-1.5">
+                        <div className="flex gap-1.5">
+                          <Input placeholder="Stormkin" value={formData.sub_race} onChange={(e) => handleChange('sub_race', e.target.value)} className="h-9 flex-1" />
+                          {availableSubRaces.length > 0 && (
+                            <Button type="button" variant="outline" size="sm" className="h-9 px-2 text-xs" onClick={() => { setUseCustomSubRace(false); handleChange('sub_race', ''); }}>List</Button>
+                          )}
+                        </div>
+                        {formData.sub_race.trim() && availableSubRaces.some(sr => sr.name.toLowerCase() === formData.sub_race.trim().toLowerCase()) && (
+                          <button
+                            type="button"
+                            className="flex items-center gap-1.5 text-[11px] text-primary hover:underline"
+                            onClick={() => {
+                              const match = availableSubRaces.find(sr => sr.name.toLowerCase() === formData.sub_race.trim().toLowerCase());
+                              if (match) { handleChange('sub_race', match.name); setUseCustomSubRace(false); }
+                            }}
+                          >
+                            <Check className="w-3 h-3" /> Link to existing "{availableSubRaces.find(sr => sr.name.toLowerCase() === formData.sub_race.trim().toLowerCase())?.name}"
+                          </button>
                         )}
                       </div>
                     )}
