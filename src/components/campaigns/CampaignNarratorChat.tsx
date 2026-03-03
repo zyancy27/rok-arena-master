@@ -19,6 +19,8 @@ import {
   Heart, Zap, Users, ChevronDown, MapPin, RefreshCw, LogOut, Play, Backpack,
 } from 'lucide-react';
 import CampaignInventoryPanel, { type InventoryItem } from './CampaignInventoryPanel';
+import CampaignTradePanel from './CampaignTradePanel';
+import type { CampaignTrade } from '@/hooks/use-campaign-trades';
 import { getTimeEmoji } from '@/lib/campaign-types';
 import type { CampaignParticipant } from '@/lib/campaign-types';
 
@@ -78,6 +80,13 @@ interface CampaignNarratorChatProps {
   onSwap: () => void;
   swapping: boolean;
   campaignEndDialog: ReactNode;
+  // Trade props
+  incomingTrades: CampaignTrade[];
+  outgoingTrades: CampaignTrade[];
+  onSendTradeOffer: (itemId: string, receiverParticipantId: string, message?: string) => Promise<boolean>;
+  onAcceptTrade: (tradeId: string) => void;
+  onDeclineTrade: (tradeId: string) => void;
+  onCancelTrade: (tradeId: string) => void;
 }
 
 const QUICK_ASKS = [
@@ -100,6 +109,8 @@ export default function CampaignNarratorChat({
   characters, joinCharacter, onJoinCharacterChange, onJoin, onStart, onLeave,
   myParticipant, swapCharacter, onSwapCharacterChange, onSwap, swapping,
   campaignEndDialog,
+  incomingTrades, outgoingTrades,
+  onSendTradeOffer, onAcceptTrade, onDeclineTrade, onCancelTrade,
 }: CampaignNarratorChatProps) {
   const [messages, setMessages] = useState<NarratorMessage[]>([]);
   const [input, setInput] = useState('');
@@ -318,6 +329,24 @@ export default function CampaignNarratorChat({
               />
             </CollapsibleContent>
           </Collapsible>
+        )}
+
+        {/* Trade Panel (multiplayer only) */}
+        {myParticipant && participants.filter(p => p.is_active).length > 1 && (
+          <div className="px-2 pb-1">
+            <CampaignTradePanel
+              incomingTrades={incomingTrades}
+              outgoingTrades={outgoingTrades}
+              inventory={inventory}
+              participants={participants}
+              myParticipantId={myParticipant.id}
+              currentZone={currentZone}
+              onSendOffer={onSendTradeOffer}
+              onAccept={onAcceptTrade}
+              onDecline={onDeclineTrade}
+              onCancel={onCancelTrade}
+            />
+          </div>
         )}
       </div>
 

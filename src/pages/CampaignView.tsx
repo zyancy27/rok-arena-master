@@ -42,6 +42,7 @@ import { useCampaignCombat } from '@/hooks/use-campaign-combat';
 import type { CampaignMechanicDiscovery } from '@/components/campaigns/CampaignNarratorChat';
 import BagBubble from '@/components/campaigns/BagBubble';
 import CampaignEnemyTracker, { type CampaignEnemy } from '@/components/campaigns/CampaignEnemyTracker';
+import { useCampaignTrades } from '@/hooks/use-campaign-trades';
 // Helper: build bag content for the inline backpack bubble
 function buildBagContent(campaignItems: InventoryItem[], characterWeapons: string | null) {
   const items: { name: string; type: string; rarity: string; equipped: boolean }[] = [];
@@ -89,6 +90,9 @@ export default function CampaignView() {
   const [joinRequests, setJoinRequests] = useState<any[]>([]);
   const [myJoinRequest, setMyJoinRequest] = useState<any | null>(null);
   const [campaignEnemies, setCampaignEnemies] = useState<CampaignEnemy[]>([]);
+
+  // Campaign trading between party members
+  const campaignTrades = useCampaignTrades(campaignId, myParticipant?.id);
 
   // Ambient environment sounds for campaign
   const { muted: ambientMuted, toggleMute: toggleAmbientMute } = useAmbientSound({
@@ -1600,6 +1604,12 @@ export default function CampaignView() {
                       />
                     ) : null
                   }
+                  incomingTrades={campaignTrades.incomingTrades}
+                  outgoingTrades={campaignTrades.outgoingTrades}
+                  onSendTradeOffer={campaignTrades.sendOffer}
+                  onAcceptTrade={campaignTrades.acceptTrade}
+                  onDeclineTrade={campaignTrades.declineTrade}
+                  onCancelTrade={campaignTrades.cancelTrade}
                 />
               </TabsContent>
             )}
