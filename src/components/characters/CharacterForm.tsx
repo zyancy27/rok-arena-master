@@ -291,7 +291,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
 
         // Batch-create additional characters in the background
         if (extras.length > 0 && user) {
-          let created = 0;
+          const createdNames: string[] = [];
           for (const ch of extras) {
             if (!ch.name?.trim()) continue;
             const { error } = await supabase.from('characters').insert({
@@ -304,11 +304,13 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
               personality: ch.personality || null, mentality: ch.mentality || null,
               lore: ch.lore || null,
             });
-            if (!error) created++;
-            if (!error) created++;
+            if (!error) createdNames.push(ch.name.trim());
           }
-          if (created > 0) {
-            toast.success(`Form filled with "${first.name}". ${created} additional character${created > 1 ? 's' : ''} created automatically!`);
+          if (createdNames.length > 0) {
+            toast.success(`Form filled with "${first.name}"`, {
+              description: `Also created: ${createdNames.join(', ')}`,
+              duration: 6000,
+            });
           } else {
             toast.success('Character information extracted! Review and adjust as needed.');
           }
