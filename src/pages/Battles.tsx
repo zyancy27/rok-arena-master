@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { fromDecrypted } from '@/lib/encrypted-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -116,8 +117,7 @@ export default function Battles() {
   };
 
   const fetchCharacters = async () => {
-    const { data } = await supabase
-      .from('characters')
+    const { data } = await fromDecrypted('characters')
       .select('id, name, level, image_url, powers, abilities, personality, mentality, stat_speed, stat_strength, stat_skill')
       .eq('user_id', user?.id);
 

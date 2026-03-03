@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { fromDecrypted } from '@/lib/encrypted-query';
 import CharacterForm from '@/components/characters/CharacterForm';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -47,8 +48,7 @@ export default function EditCharacter() {
   }, [id]);
 
   const fetchCharacter = async () => {
-    const { data, error } = await supabase
-      .from('characters')
+    const { data, error } = await fromDecrypted('characters')
       .select('*')
       .eq('id', id)
       .maybeSingle();

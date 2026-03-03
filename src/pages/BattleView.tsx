@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { fromDecrypted } from '@/lib/encrypted-query';
 import { buildSceneTags } from '@/lib/build-scene-tags';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -595,8 +596,7 @@ export default function BattleView() {
     if (participantsData) {
       // Fetch character details with powers, abilities, and stats for validation and dice rolls
       const charIds = participantsData.map(p => p.character_id);
-      const { data: charsData } = await supabase
-        .from('characters')
+      const { data: charsData } = await fromDecrypted('characters')
         .select('id, name, level, user_id, powers, abilities, stat_intelligence, stat_battle_iq, stat_strength, stat_power, stat_speed, stat_durability, stat_stamina, stat_skill, stat_luck')
         .in('id', charIds);
 
@@ -673,8 +673,7 @@ export default function BattleView() {
       const isInvited = !!invitation;
 
       if (isChallenged || isInvited) {
-        const { data: myChars } = await supabase
-          .from('characters')
+        const { data: myChars } = await fromDecrypted('characters')
           .select('id, name, level, user_id, powers, abilities, stat_intelligence, stat_battle_iq, stat_strength, stat_power, stat_speed, stat_durability, stat_stamina, stat_skill, stat_luck')
           .eq('user_id', user!.id);
         
@@ -894,8 +893,7 @@ export default function BattleView() {
         async (payload) => {
           // A new player joined — refetch participants for waiting room
           const newP = payload.new as any;
-          const { data: charData } = await supabase
-            .from('characters')
+          const { data: charData } = await fromDecrypted('characters')
             .select('id, name, level, user_id, powers, abilities, stat_intelligence, stat_battle_iq, stat_strength, stat_power, stat_speed, stat_durability, stat_stamina, stat_skill, stat_luck')
             .eq('id', newP.character_id)
             .maybeSingle();
@@ -1930,8 +1928,7 @@ export default function BattleView() {
           
           if (allParticipants) {
             for (const p of allParticipants) {
-              const { data: charData } = await supabase
-                .from('characters')
+              const { data: charData } = await fromDecrypted('characters')
                 .select('id, name, level, user_id, powers, abilities, stat_intelligence, stat_battle_iq, stat_strength, stat_power, stat_speed, stat_durability, stat_stamina, stat_skill, stat_luck')
                 .eq('id', p.character_id)
                 .maybeSingle();
