@@ -783,6 +783,14 @@ export default function CampaignView() {
               item_rarity: i.item_rarity,
               description: i.description,
             })),
+            allCampaignItems: inventory.map(i => ({
+              id: i.id,
+              item_name: i.item_name,
+              item_type: i.item_type,
+              item_rarity: i.item_rarity,
+              description: i.description,
+              is_equipped: i.is_equipped,
+            })),
             loreContext,
           },
           playerAction: messageText,
@@ -904,6 +912,27 @@ export default function CampaignView() {
             campaign_id: snapshotCampaign.id,
             sender_type: 'system',
             content: `🎒 **${snapshotParticipant.character?.name}** found: ${itemNames}`,
+            channel: 'in_universe',
+          });
+          fetchInventory();
+        }
+
+        // Handle items consumed/used/given away
+        if (data.itemsUsed && Array.isArray(data.itemsUsed) && data.itemsUsed.length > 0) {
+          for (const usedItem of data.itemsUsed) {
+            // Find matching campaign inventory item by name (case-insensitive)
+            const match = inventory.find(i =>
+              i.item_name.toLowerCase() === (usedItem.name || '').toLowerCase()
+            );
+            if (match) {
+              await supabase.from('campaign_inventory').delete().eq('id', match.id);
+            }
+          }
+          const usedNames = data.itemsUsed.map((i: any) => i.name).join(', ');
+          await supabase.from('campaign_messages').insert({
+            campaign_id: snapshotCampaign.id,
+            sender_type: 'system',
+            content: `📦 Items used: ${usedNames}`,
             channel: 'in_universe',
           });
           fetchInventory();
