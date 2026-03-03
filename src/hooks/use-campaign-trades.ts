@@ -60,8 +60,15 @@ export function useCampaignTrades(campaignId: string | undefined, myParticipantI
     return () => { supabase.removeChannel(channel); };
   }, [campaignId, fetchTrades]);
 
-  const sendOffer = async (itemId: string, receiverParticipantId: string, message?: string) => {
+  const sendOffer = async (itemId: string, receiverParticipantId: string, message?: string, senderZone?: string, receiverZone?: string) => {
     if (!campaignId || !myParticipantId) return false;
+
+    // Same-zone restriction
+    if (senderZone && receiverZone && senderZone !== receiverZone) {
+      toast.error('You must be in the same zone to trade with this player.');
+      return false;
+    }
+
     const { error } = await supabase.from('campaign_trades' as any).insert({
       campaign_id: campaignId,
       sender_participant_id: myParticipantId,
