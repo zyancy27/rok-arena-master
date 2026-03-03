@@ -1197,7 +1197,11 @@ ITEM PICKUP RULES (CRITICAL):
 - The world is full of things to interact with. When describing environments, include tangible objects the player could grab.
 - For mundane items: type "misc", rarity "common", no statBonus. Description should be brief and flavorful.
 - For useful items: assign appropriate type, rarity, and optional statBonus.
-- NEVER refuse to let a player pick something up unless it's physically impossible (bolted down, too heavy, guarded). Even then, narrate the attempt.
+- For items too large or heavy to pocket (furniture, a crate, a motorcycle, a body), do NOT just refuse. Instead:
+  • Narrate the weight/size realistically ("It's heavy, but you manage to drag it")
+  • Suggest or allow transport methods contextually: dragging, pushing, rolling, carrying on their back, loading onto a vehicle, hiring someone to help, tying it to something, etc.
+  • If the player finds a way to move it, ADD it to itemsFound with a description noting its bulk (e.g., "Heavy wooden crate — requires two hands to carry")
+  • Only truly immovable things (a building, a mountain, something welded to the floor) can't be taken. Everything else — let them try.
 - After combat victories, always mention lootable items on defeated enemies — the player can choose to grab them.
 
 ACTIVE ENEMIES IN THIS COMBAT:
