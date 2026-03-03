@@ -36,7 +36,17 @@ import { LoreDocumentUpload } from '@/components/lore/LoreDocumentUpload';
 import { useAutoSave } from '@/hooks/use-auto-save';
 import { AutoSaveIndicator } from '@/components/ui/auto-save-indicator';
 import { SpeciesDiscoveryPanel, DiscoveredCharacter, DiscoveredStory } from '@/components/races/SpeciesDiscoveryPanel';
-import { Dna, Plus, Edit, Trash2, Globe, Sparkles, Heart, Clock, ChevronDown, Wand2, Loader2 } from 'lucide-react';
+import { Dna, Plus, Edit, Trash2, Globe, Sparkles, Heart, Clock, ChevronDown, Wand2, Loader2, GitBranch, X } from 'lucide-react';
+
+interface SubRace {
+  id: string;
+  race_id: string;
+  name: string;
+  description: string | null;
+  typical_physiology: string | null;
+  typical_abilities: string | null;
+  cultural_traits: string | null;
+}
 
 interface Race {
   id: string;
@@ -61,6 +71,14 @@ interface RaceFormData {
   average_lifespan: string;
 }
 
+interface SubRaceFormData {
+  name: string;
+  description: string;
+  typical_physiology: string;
+  typical_abilities: string;
+  cultural_traits: string;
+}
+
 const emptyForm: RaceFormData = {
   name: '',
   description: '',
@@ -69,6 +87,14 @@ const emptyForm: RaceFormData = {
   typical_abilities: '',
   cultural_traits: '',
   average_lifespan: '',
+};
+
+const emptySubRaceForm: SubRaceFormData = {
+  name: '',
+  description: '',
+  typical_physiology: '',
+  typical_abilities: '',
+  cultural_traits: '',
 };
 
 export default function Races() {
@@ -84,6 +110,11 @@ export default function Races() {
   const [isPasteOpen, setIsPasteOpen] = useState(false);
   const [discoveredCharacters, setDiscoveredCharacters] = useState<DiscoveredCharacter[]>([]);
   const [discoveredStories, setDiscoveredStories] = useState<DiscoveredStory[]>([]);
+  const [subRaces, setSubRaces] = useState<Record<string, SubRace[]>>({});
+  const [subRaceForm, setSubRaceForm] = useState<SubRaceFormData>(emptySubRaceForm);
+  const [editingSubRace, setEditingSubRace] = useState<SubRace | null>(null);
+  const [addingSubRaceFor, setAddingSubRaceFor] = useState<string | null>(null);
+  const [savingSubRace, setSavingSubRace] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -102,8 +133,94 @@ export default function Races() {
       toast.error('Failed to load races');
     } else {
       setRaces(data || []);
+      // Fetch sub-races for all races
+      if (data && data.length > 0) {
+        const raceIds = data.map((r: Race) => r.id);
+        const { data: subData } = await supabase
+          .from('sub_races')
+          .select('*')
+          .in('race_id', raceIds)
+          .order('name');
+        if (subData) {
+          const grouped: Record<string, SubRace[]> = {};
+          for (const sr of subData) {
+            if (!grouped[sr.race_id]) grouped[sr.race_id] = [];
+            grouped[sr.race_id].push(sr as SubRace);
+          }
+          setSubRaces(grouped);
+        }
+      }
     }
     setLoading(false);
+  };
+
+  const handleOpenSubRaceAdd = (raceId: string) => {
+    setAddingSubRaceFor(raceId);
+    setEditingSubRace(null);
+    setSubRaceForm(emptySubRaceForm);
+  };
+
+  const handleOpenSubRaceEdit = (sr: SubRace) => {
+    setAddingSubRaceFor(sr.race_id);
+    setEditingSubRace(sr);
+    setSubRaceForm({
+      name: sr.name,
+      description: sr.description || '',
+      typical_physiology: sr.typical_physiology || '',
+      typical_abilities: sr.typical_abilities || '',
+      cultural_traits: sr.cultural_traits || '',
+    });
+  };
+
+  const handleSaveSubRace = async () => {
+    if (!subRaceForm.name.trim() || !addingSubRaceFor) return;
+    setSavingSubRace(true);
+    try {
+      if (editingSubRace) {
+        const { error } = await supabase
+          .from('sub_races')
+          .update({
+            name: subRaceForm.name,
+            description: subRaceForm.description || null,
+            typical_physiology: subRaceForm.typical_physiology || null,
+            typical_abilities: subRaceForm.typical_abilities || null,
+            cultural_traits: subRaceForm.cultural_traits || null,
+          })
+          .eq('id', editingSubRace.id);
+        if (error) throw error;
+        toast.success('Sub-race updated!');
+      } else {
+        const { error } = await supabase.from('sub_races').insert({
+          race_id: addingSubRaceFor,
+          user_id: user?.id,
+          name: subRaceForm.name,
+          description: subRaceForm.description || null,
+          typical_physiology: subRaceForm.typical_physiology || null,
+          typical_abilities: subRaceForm.typical_abilities || null,
+          cultural_traits: subRaceForm.cultural_traits || null,
+        });
+        if (error) throw error;
+        toast.success('Sub-race added!');
+      }
+      setAddingSubRaceFor(null);
+      setEditingSubRace(null);
+      setSubRaceForm(emptySubRaceForm);
+      fetchRaces();
+    } catch (error) {
+      toast.error('Failed to save sub-race');
+    } finally {
+      setSavingSubRace(false);
+    }
+  };
+
+  const handleDeleteSubRace = async (id: string) => {
+    const { error } = await supabase.from('sub_races').delete().eq('id', id);
+    if (error) {
+      toast.error('Failed to delete sub-race');
+    } else {
+      toast.success('Sub-race deleted');
+      fetchRaces();
+    }
   };
 
   const handleAutoFillFromPaste = async () => {
@@ -594,11 +711,97 @@ export default function Races() {
                       <p className="text-sm line-clamp-2">{race.typical_abilities}</p>
                     </div>
                   )}
+
+                  {/* Sub-Races Section */}
+                  <Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="ghost" size="sm" className="w-full justify-between px-2 h-8 text-xs">
+                        <span className="flex items-center gap-1">
+                          <GitBranch className="h-3 w-3" />
+                          Sub-Races ({(subRaces[race.id] || []).length})
+                        </span>
+                        <ChevronDown className="h-3 w-3" />
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pt-2 space-y-2">
+                      {(subRaces[race.id] || []).map((sr) => (
+                        <div key={sr.id} className="rounded-md border border-border bg-muted/30 p-2 text-sm space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium">{sr.name}</span>
+                            <div className="flex gap-0.5">
+                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleOpenSubRaceEdit(sr)}>
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-6 w-6">
+                                    <Trash2 className="h-3 w-3 text-destructive" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete {sr.name}?</AlertDialogTitle>
+                                    <AlertDialogDescription>This sub-race will be permanently removed.</AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteSubRace(sr.id)}>Delete</AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </div>
+                          {sr.description && <p className="text-xs text-muted-foreground line-clamp-2">{sr.description}</p>}
+                        </div>
+                      ))}
+                      <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => handleOpenSubRaceAdd(race.id)}>
+                        <Plus className="h-3 w-3 mr-1" /> Add Sub-Race
+                      </Button>
+                    </CollapsibleContent>
+                  </Collapsible>
                 </CardContent>
               </Card>
             ))}
           </div>
         )}
+
+        {/* Sub-Race Add/Edit Dialog */}
+        <Dialog open={!!addingSubRaceFor} onOpenChange={(open) => { if (!open) { setAddingSubRaceFor(null); setEditingSubRace(null); } }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>{editingSubRace ? 'Edit Sub-Race' : 'Add Sub-Race'}</DialogTitle>
+              <DialogDescription>Define a variation within this race.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 py-2">
+              <div className="space-y-1">
+                <Label htmlFor="sr-name">Name *</Label>
+                <Input id="sr-name" value={subRaceForm.name} onChange={(e) => setSubRaceForm({ ...subRaceForm, name: e.target.value })} placeholder="e.g., Mountain Crystalborn" />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="sr-desc">Description</Label>
+                <Textarea id="sr-desc" value={subRaceForm.description} onChange={(e) => setSubRaceForm({ ...subRaceForm, description: e.target.value })} placeholder="What distinguishes this sub-race..." rows={2} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="sr-phys">Physiology Differences</Label>
+                <Textarea id="sr-phys" value={subRaceForm.typical_physiology} onChange={(e) => setSubRaceForm({ ...subRaceForm, typical_physiology: e.target.value })} placeholder="Physical traits unique to this sub-race..." rows={2} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="sr-abil">Unique Abilities</Label>
+                <Textarea id="sr-abil" value={subRaceForm.typical_abilities} onChange={(e) => setSubRaceForm({ ...subRaceForm, typical_abilities: e.target.value })} placeholder="Abilities specific to this sub-race..." rows={2} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="sr-cult">Cultural Differences</Label>
+                <Textarea id="sr-cult" value={subRaceForm.cultural_traits} onChange={(e) => setSubRaceForm({ ...subRaceForm, cultural_traits: e.target.value })} placeholder="Cultural traits unique to this sub-race..." rows={2} />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => { setAddingSubRaceFor(null); setEditingSubRace(null); }}>Cancel</Button>
+                <Button onClick={handleSaveSubRace} disabled={savingSubRace || !subRaceForm.name.trim()}>
+                  {savingSubRace ? 'Saving...' : editingSubRace ? 'Update' : 'Add'}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

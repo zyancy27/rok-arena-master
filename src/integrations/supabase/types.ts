@@ -1830,6 +1830,53 @@ export type Database = {
           },
         ]
       }
+      sub_races: {
+        Row: {
+          created_at: string
+          cultural_traits: string | null
+          description: string | null
+          id: string
+          name: string
+          race_id: string
+          typical_abilities: string | null
+          typical_physiology: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          cultural_traits?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          race_id: string
+          typical_abilities?: string | null
+          typical_physiology?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          cultural_traits?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          race_id?: string
+          typical_abilities?: string | null
+          typical_physiology?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sub_races_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sun_customizations: {
         Row: {
           color: string
