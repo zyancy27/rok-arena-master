@@ -154,6 +154,8 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
   const [availableMoons, setAvailableMoons] = useState<{ name: string; display_name: string | null; planet_name: string }[]>([]);
   const [availableRaces, setAvailableRaces] = useState<{ id: string; name: string; typical_physiology: string | null; typical_abilities: string | null }[]>([]);
   const [availableSubRaces, setAvailableSubRaces] = useState<{ id: string; name: string }[]>([]);
+  const [availableGroups, setAvailableGroups] = useState<{ id: string; name: string; color: string | null }[]>([]);
+  const [selectedGroupIds, setSelectedGroupIds] = useState<string[]>([]);
   const [useCustomPlanet, setUseCustomPlanet] = useState(false);
   const [useCustomMoon, setUseCustomMoon] = useState(false);
   const [useCustomRace, setUseCustomRace] = useState(false);
@@ -217,6 +219,8 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
         setAvailableRaces(races);
         if (initialData?.race && !races.some(r => r.name === initialData.race)) setUseCustomRace(true);
       }
+      const { data: groups } = await supabase.from('character_groups').select('id, name, color').eq('user_id', user.id).order('name');
+      if (groups) setAvailableGroups(groups);
     };
     fetchData();
   }, [user, initialData?.home_planet, initialData?.race]);
@@ -451,7 +455,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
       };
 
       if (mode === 'create') {
-        const { error } = await supabase.from('characters').insert(characterData);
+        const { data: newChar, error } = await supabase.from('characters').insert(characterData).select('id').single();
         if (error) {
           if (error.code === '23505') {
             toast.error(`You already have a character named "${formData.name.trim()}". Please choose a different name.`);
@@ -459,6 +463,11 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
             return;
           }
           throw error;
+        }
+        // Assign to selected groups
+        if (selectedGroupIds.length > 0 && newChar) {
+          const memberships = selectedGroupIds.map(gid => ({ group_id: gid, character_id: newChar.id }));
+          await supabase.from('character_group_members').insert(memberships);
         }
         toast.success('Character created successfully!');
       } else if (initialData?.id) {
@@ -785,6 +794,31 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                         </ul>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Groups */}
+                {availableGroups.length > 0 && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs flex items-center gap-1.5">🏷️ Groups</Label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {availableGroups.map((g) => {
+                        const selected = selectedGroupIds.includes(g.id);
+                        return (
+                          <button
+                            key={g.id}
+                            type="button"
+                            onClick={() => setSelectedGroupIds(prev => selected ? prev.filter(id => id !== g.id) : [...prev, g.id])}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border transition-colors ${selected ? 'bg-primary/15 border-primary text-primary font-medium' : 'bg-muted/50 border-border text-muted-foreground hover:border-primary/40'}`}
+                          >
+                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: g.color || 'hsl(var(--primary))' }} />
+                            {g.name}
+                            {selected && <Check className="w-3 h-3" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">Assign to existing groups. Manage groups on the character detail page.</p>
                   </div>
                 )}
 
