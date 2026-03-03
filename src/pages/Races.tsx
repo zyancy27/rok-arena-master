@@ -132,15 +132,48 @@ export default function Races() {
           average_lifespan: extracted.average_lifespan || formData.average_lifespan,
         });
 
-        // Set discovered characters and stories
+        // Check for existing characters and stories to avoid duplicates
+        const charNames = (data.characters || []).map((c: any) => c.name);
+        const storyTitles = (data.stories || []).map((s: any) => s.title);
+
+        // Fetch existing characters by name for this user
+        let existingChars: Record<string, string> = {};
+        if (charNames.length > 0 && user) {
+          const { data: existingData } = await supabase
+            .from('characters')
+            .select('id, name')
+            .eq('user_id', user.id);
+          if (existingData) {
+            for (const ec of existingData) {
+              existingChars[ec.name.toLowerCase()] = ec.id;
+            }
+          }
+        }
+
+        // Fetch existing stories by title for this user
+        let existingStories: Record<string, string> = {};
+        if (storyTitles.length > 0 && user) {
+          const { data: existingData } = await supabase
+            .from('stories')
+            .select('id, title')
+            .eq('user_id', user.id);
+          if (existingData) {
+            for (const es of existingData) {
+              existingStories[es.title.toLowerCase()] = es.id;
+            }
+          }
+        }
+
         const chars: DiscoveredCharacter[] = (data.characters || []).map((c: any) => ({
           ...c,
           race: c.race || extracted.name || '',
           selected: true,
+          existingId: existingChars[c.name?.toLowerCase()] || undefined,
         }));
         const storiesData: DiscoveredStory[] = (data.stories || []).map((s: any) => ({
           ...s,
           selected: true,
+          existingId: existingStories[s.title?.toLowerCase()] || undefined,
         }));
         setDiscoveredCharacters(chars);
         setDiscoveredStories(storiesData);
