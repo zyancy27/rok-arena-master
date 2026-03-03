@@ -621,6 +621,7 @@ export default function CampaignView() {
           storyContext: campaign.story_context,
           environmentTags: campaign.environment_tags,
           chosenLocation: campaign.chosen_location,
+          campaignSeed: campaign.campaign_seed || `${campaign.id}-${Date.now()}`,
         },
       });
 
