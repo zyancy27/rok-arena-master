@@ -67,7 +67,8 @@ export default function Campaigns() {
     const { data: myParticipations } = await supabase
       .from('campaign_participants')
       .select('campaign_id, id, campaign_hp, campaign_hp_max, campaign_level, campaign_xp, is_active')
-      .eq('user_id', user!.id);
+      .eq('user_id', user!.id)
+      .eq('is_active', true);
 
     const myCampaignIds = myParticipations?.map(p => p.campaign_id) || [];
 
@@ -91,6 +92,7 @@ export default function Campaigns() {
       .from('campaigns')
       .select('*')
       .in('id', allIds)
+      .neq('status', 'abandoned')
       .order('updated_at', { ascending: false });
 
     // Get participant counts
