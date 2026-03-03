@@ -234,8 +234,13 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
       const { data } = await supabase.from('sub_races').select('id, name').eq('race_id', selectedRace.id).eq('user_id', user.id).order('name');
       if (data) {
         setAvailableSubRaces(data);
-        if (formData.sub_race && !data.some(sr => sr.name === formData.sub_race)) setUseCustomSubRace(true);
-        else setUseCustomSubRace(false);
+        if (formData.sub_race && !data.some(sr => sr.name.toLowerCase() === formData.sub_race.trim().toLowerCase())) setUseCustomSubRace(true);
+        else {
+          setUseCustomSubRace(false);
+          // Auto-normalize casing to match the database record
+          const match = data.find(sr => sr.name.toLowerCase() === formData.sub_race.trim().toLowerCase());
+          if (match && match.name !== formData.sub_race) handleChange('sub_race', match.name);
+        }
       }
     };
     fetchSubRaces();
