@@ -63,7 +63,7 @@ function buildBagContent(campaignItems: InventoryItem[], characterWeapons: strin
     }
     for (const si of parsed) {
       if (si.name.trim()) {
-        items.push({ name: si.name.trim(), type: 'personal', rarity: 'personal', equipped: true });
+        items.push({ name: si.name.trim(), type: 'personal', rarity: 'unique', equipped: true });
       }
     }
   }
