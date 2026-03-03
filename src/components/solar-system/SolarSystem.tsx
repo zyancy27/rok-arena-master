@@ -26,6 +26,7 @@ import PlanetInspectionMode from './PlanetInspectionMode';
 
 import { getHabitableZone } from './Sun';
 import { supabase } from '@/integrations/supabase/client';
+import { fromDecrypted } from '@/lib/encrypted-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Button } from '@/components/ui/button';
@@ -266,8 +267,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
     }
 
     // Fetch characters that belong to this system OR have a home_planet matching a planet in this system
-    let query = supabase
-      .from('characters')
+    let query = fromDecrypted('characters')
       .select('id, name, level, race, home_planet, home_moon, user_id, solar_system_id, lore, powers')
       .order('created_at', { ascending: false });
 
@@ -289,7 +289,7 @@ export default function SolarSystem({ viewSystemId }: SolarSystemProps) {
       (!c.solar_system_id && planetCustomizations[c.home_planet || ''])
     );
 
-    const userIds = [...new Set(systemCharacters.map(c => c.user_id))];
+    const userIds = [...new Set(systemCharacters.map(c => c.user_id))] as string[];
 
     const { data: profilesData } = await supabase
       .from('profiles')

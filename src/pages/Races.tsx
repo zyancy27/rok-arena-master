@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { fromDecrypted } from '@/lib/encrypted-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -124,8 +125,7 @@ export default function Races() {
   }, [user]);
 
   const fetchRaces = async () => {
-    const { data, error } = await supabase
-      .from('races')
+    const { data, error } = await fromDecrypted('races')
       .select('*')
       .eq('user_id', user?.id)
       .order('name');
@@ -137,8 +137,7 @@ export default function Races() {
       // Fetch sub-races for all races
       if (data && data.length > 0) {
         const raceIds = data.map((r: Race) => r.id);
-        const { data: subData } = await supabase
-          .from('sub_races')
+        const { data: subData } = await fromDecrypted('sub_races')
           .select('*')
           .in('race_id', raceIds)
           .order('name');
