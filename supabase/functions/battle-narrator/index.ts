@@ -1083,8 +1083,27 @@ OUTPUT FORMAT (JSON):
       "current_zone": "zone they're in now (if they moved)",
       "status": "alive|dead|departed|missing"
     }
-  ] or [] if no NPC interactions
+  ] or [] if no NPC interactions,
+  "enemySpawned": {
+    "name": "Enemy name",
+    "tier": <number 1-7, scaled to party level and story context>,
+    "hp": <number, enemy hit points — scale with tier: T1=30-50, T2=50-80, T3=80-120, T4=120-180, T5=180-250, T6=250-400, T7=50>,
+    "description": "1-2 sentence description of the enemy — appearance, weapon, behavior",
+    "abilities": "brief summary of what this enemy can do in combat",
+    "weakness": "a hint at what might work well against them (optional but encouraged)",
+    "count": <number 1-5, how many of this enemy appear — default 1>
+  } or null if no enemy appears
 }
+
+ENEMY CREATION RULES:
+- You CAN and SHOULD create enemies when the story calls for it — ambushes, hostile creatures, bandits, monsters, aggressive NPCs, etc.
+- Enemies can appear from: player actions (picking a fight, trespassing), story progression (ambush, guard patrol), exploration (wild creatures, dungeon denizens), or NPC hostility escalating.
+- Enemy tier should NEVER exceed the party's max allowed tier (${maxAllowedTier}). Scale enemies to be challenging but fair.
+- For groups of weak enemies, use count > 1 with lower tier. For a boss, use count 1 with higher tier.
+- Give enemies personality — a bandit who taunts, a creature that circles warily, a guard who warns before attacking.
+- Enemies can also be existing NPCs whose disposition turned hostile. In that case, include them in BOTH npcUpdates (with disposition: "hostile") AND enemySpawned.
+- Don't spawn enemies every turn. Enemies appear when the narrative demands it — roughly 1 in 4-6 actions in dangerous areas, less in safe zones.
+- When an enemy is defeated (hp reaches 0 from combat), update their NPC entry status to "dead" or "departed" as appropriate.
 
 NPC PERSISTENCE RULES:
 - When NPCs appear in your narration, include them in npcUpdates so they persist.
@@ -1217,6 +1236,7 @@ Respond as the WORLD — let NPCs speak, environments react, and consequences un
         encounterType: parsed.encounterType || null,
         itemsFound: Array.isArray(parsed.itemsFound) ? parsed.itemsFound : [],
         npcUpdates: Array.isArray(parsed.npcUpdates) ? parsed.npcUpdates : [],
+        enemySpawned: parsed.enemySpawned && typeof parsed.enemySpawned === 'object' && parsed.enemySpawned.name ? parsed.enemySpawned : null,
       }),
       { headers: { ...cors, "Content-Type": "application/json" } }
     );
