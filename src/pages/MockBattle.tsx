@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { fromDecrypted } from '@/lib/encrypted-query';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -1308,8 +1309,7 @@ export default function MockBattle() {
   const fetchCharacterStories = async (characterId: string) => {
     try {
       // Fetch stories linked to this character
-      const { data: stories } = await supabase
-        .from('stories')
+      const { data: stories } = await fromDecrypted('stories')
         .select('id, title, content, summary')
         .eq('character_id', characterId)
         .order('updated_at', { ascending: false })
@@ -1362,8 +1362,7 @@ export default function MockBattle() {
   }, [messages]);
 
   const fetchUserCharacters = async () => {
-    const { data } = await supabase
-      .from('characters')
+    const { data } = await fromDecrypted('characters')
       .select('id, name, level, image_url, powers, abilities, stat_skill, stat_strength, stat_power, stat_speed, stat_durability, stat_stamina, stat_intelligence, stat_battle_iq, stat_luck, personality, mentality')
       .eq('user_id', user?.id);
     

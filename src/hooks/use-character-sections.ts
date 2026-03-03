@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { fromDecrypted } from '@/lib/encrypted-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import type { CharacterSection } from '@/lib/character-3d-types';
@@ -28,8 +29,7 @@ export function useCharacterSections(characterId: string | undefined): UseCharac
     }
 
     try {
-      const { data, error } = await supabase
-        .from('character_sections')
+      const { data, error } = await fromDecrypted('character_sections')
         .select('*')
         .eq('character_id', characterId)
         .order('sort_order', { ascending: true });

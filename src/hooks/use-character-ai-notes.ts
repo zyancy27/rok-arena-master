@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { fromDecrypted } from '@/lib/encrypted-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -23,8 +24,7 @@ export function useCharacterAINotes(characterId: string | null) {
   const fetchNotes = useCallback(async () => {
     if (!characterId || !user) return;
     setLoading(true);
-    const { data, error } = await supabase
-      .from('character_ai_notes')
+    const { data, error } = await fromDecrypted('character_ai_notes')
       .select('*')
       .eq('character_id', characterId)
       .order('created_at', { ascending: false });

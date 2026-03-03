@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { fromDecrypted } from '@/lib/encrypted-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -134,8 +135,7 @@ export default function CharacterDetail() {
 
   const fetchCharacter = async () => {
     // First fetch the character
-    const { data: charData, error: charError } = await supabase
-      .from('characters')
+    const { data: charData, error: charError } = await fromDecrypted('characters')
       .select('*')
       .eq('id', id)
       .maybeSingle();

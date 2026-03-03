@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { fromDecrypted } from '@/lib/encrypted-query';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -118,8 +119,7 @@ export default function EvEBattle() {
   }, [battleLocation, dynamicEnvironment]);
 
   const fetchUserCharacters = async () => {
-    const { data } = await supabase
-      .from('characters')
+    const { data } = await fromDecrypted('characters')
       .select('id, name, level, image_url, powers, abilities, personality, mentality, stat_speed, stat_strength, stat_skill')
       .eq('user_id', user?.id)
       .order('name');

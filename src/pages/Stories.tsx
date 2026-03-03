@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { fromDecrypted } from '@/lib/encrypted-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -94,8 +95,7 @@ export default function Stories() {
   const fetchStories = async () => {
     if (!user) return;
     
-    const { data, error } = await supabase
-      .from('stories')
+    const { data, error } = await fromDecrypted('stories')
       .select(`
         *,
         character:characters(id, name),

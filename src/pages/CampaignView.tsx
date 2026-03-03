@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { fromDecrypted } from '@/lib/encrypted-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { VoiceTextarea } from '@/components/ui/voice-textarea';
@@ -241,8 +242,29 @@ export default function CampaignView() {
   const fetchParticipants = async () => {
     const { data } = await supabase
       .from('campaign_participants')
-      .select('*, character:characters(name, image_url, level, user_id, powers, abilities, weapons_items, lore, race, sub_race, personality, mentality, stat_strength)')
+      .select('*, character:characters(name, image_url, level, user_id, race, sub_race, stat_strength)')
       .eq('campaign_id', campaignId!);
+    // Fetch decrypted character fields separately
+    if (data) {
+      const charIds = data.map(p => (Array.isArray(p.character) ? p.character[0]?.id : (p as any).character_id)).filter(Boolean);
+      const uniqueIds = [...new Set(charIds.map(id => typeof id === 'string' ? id : (data.find(d => true) as any)?.character_id))];
+      const realIds = data.map(p => p.character_id);
+      if (realIds.length > 0) {
+        const { data: decChars } = await fromDecrypted('characters')
+          .select('id, powers, abilities, weapons_items, lore, personality, mentality')
+          .in('id', realIds);
+        if (decChars) {
+          const charMap = Object.fromEntries(decChars.map((c: any) => [c.id, c]));
+          data.forEach(p => {
+            const dec = charMap[p.character_id];
+            if (dec && p.character) {
+              const char = Array.isArray(p.character) ? p.character[0] : p.character;
+              if (char) Object.assign(char, { powers: dec.powers, abilities: dec.abilities, weapons_items: dec.weapons_items, lore: dec.lore, personality: dec.personality, mentality: dec.mentality });
+            }
+          });
+        }
+      }
+    }
     if (data) {
       const parsed = data.map(p => ({
         ...p,

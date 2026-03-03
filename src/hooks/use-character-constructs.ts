@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { fromDecrypted } from '@/lib/encrypted-query';
 import { useAuth } from '@/contexts/AuthContext';
 import type { ConstructRules, ConstructCategory } from '@/lib/battle-dice';
 
@@ -20,8 +21,7 @@ export function useCharacterConstructs(characterId?: string) {
 
   const fetchSavedConstructs = useCallback(async (): Promise<SavedConstruct[]> => {
     if (!user || !characterId) return [];
-    const { data, error } = await supabase
-      .from('character_constructs')
+    const { data, error } = await fromDecrypted('character_constructs')
       .select('*')
       .eq('character_id', characterId)
       .eq('user_id', user.id);
@@ -61,8 +61,7 @@ export function useCharacterConstructs(characterId?: string) {
 
   const findSavedConstruct = useCallback(async (name: string): Promise<SavedConstruct | null> => {
     if (!user || !characterId) return null;
-    const { data } = await supabase
-      .from('character_constructs')
+    const { data } = await fromDecrypted('character_constructs')
       .select('*')
       .eq('character_id', characterId)
       .eq('user_id', user.id)

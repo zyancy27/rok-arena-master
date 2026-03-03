@@ -92,6 +92,13 @@ export type Database = {
             referencedRelation: "characters"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "battle_messages_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters_decrypted"
+            referencedColumns: ["id"]
+          },
         ]
       }
       battle_participants: {
@@ -153,6 +160,13 @@ export type Database = {
             columns: ["character_id"]
             isOneToOne: false
             referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "battle_participants_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters_decrypted"
             referencedColumns: ["id"]
           },
         ]
@@ -245,6 +259,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "battles_loser_id_fkey"
+            columns: ["loser_id"]
+            isOneToOne: false
+            referencedRelation: "characters_decrypted"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "battles_planet_id_fkey"
             columns: ["planet_id"]
             isOneToOne: false
@@ -256,6 +277,13 @@ export type Database = {
             columns: ["winner_id"]
             isOneToOne: false
             referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "battles_winner_id_fkey"
+            columns: ["winner_id"]
+            isOneToOne: false
+            referencedRelation: "characters_decrypted"
             referencedColumns: ["id"]
           },
         ]
@@ -440,6 +468,13 @@ export type Database = {
             referencedRelation: "characters"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "campaign_join_requests_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters_decrypted"
+            referencedColumns: ["id"]
+          },
         ]
       }
       campaign_logs: {
@@ -524,6 +559,13 @@ export type Database = {
             columns: ["character_id"]
             isOneToOne: false
             referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_messages_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters_decrypted"
             referencedColumns: ["id"]
           },
         ]
@@ -661,6 +703,13 @@ export type Database = {
             columns: ["character_id"]
             isOneToOne: false
             referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_participants_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters_decrypted"
             referencedColumns: ["id"]
           },
         ]
@@ -850,6 +899,13 @@ export type Database = {
             referencedRelation: "characters"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "character_3d_configs_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: true
+            referencedRelation: "characters_decrypted"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_ai_notes: {
@@ -899,6 +955,13 @@ export type Database = {
             columns: ["character_id"]
             isOneToOne: false
             referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_ai_notes_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters_decrypted"
             referencedColumns: ["id"]
           },
         ]
@@ -954,6 +1017,13 @@ export type Database = {
             referencedRelation: "characters"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "character_constructs_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters_decrypted"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_group_members: {
@@ -981,6 +1051,13 @@ export type Database = {
             columns: ["character_id"]
             isOneToOne: false
             referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_group_members_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters_decrypted"
             referencedColumns: ["id"]
           },
           {
@@ -1058,6 +1135,13 @@ export type Database = {
             referencedRelation: "characters"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "character_images_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters_decrypted"
+            referencedColumns: ["id"]
+          },
         ]
       }
       character_sections: {
@@ -1097,6 +1181,13 @@ export type Database = {
             columns: ["character_id"]
             isOneToOne: false
             referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_sections_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters_decrypted"
             referencedColumns: ["id"]
           },
         ]
@@ -1204,6 +1295,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "characters_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races_decrypted"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "characters_solar_system_id_fkey"
             columns: ["solar_system_id"]
             isOneToOne: false
@@ -1248,6 +1346,21 @@ export type Database = {
           tags?: string[] | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      encryption_config: {
+        Row: {
+          encryption_key: string
+          id: number
+        }
+        Insert: {
+          encryption_key: string
+          id?: number
+        }
+        Update: {
+          encryption_key?: string
+          id?: number
         }
         Relationships: []
       }
@@ -1387,6 +1500,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "generation_jobs_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters_decrypted"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "generation_jobs_config_id_fkey"
             columns: ["config_id"]
             isOneToOne: false
@@ -1498,6 +1618,13 @@ export type Database = {
             columns: ["character_id"]
             isOneToOne: false
             referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "npc_relationships_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters_decrypted"
             referencedColumns: ["id"]
           },
           {
@@ -1754,6 +1881,13 @@ export type Database = {
             referencedRelation: "characters"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "stories_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters_decrypted"
+            referencedColumns: ["id"]
+          },
         ]
       }
       story_chapters: {
@@ -1792,6 +1926,13 @@ export type Database = {
             referencedRelation: "stories"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "story_chapters_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories_decrypted"
+            referencedColumns: ["id"]
+          },
         ]
       }
       story_characters: {
@@ -1822,10 +1963,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "story_characters_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters_decrypted"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "story_characters_story_id_fkey"
             columns: ["story_id"]
             isOneToOne: false
             referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_characters_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories_decrypted"
             referencedColumns: ["id"]
           },
         ]
@@ -1873,6 +2028,13 @@ export type Database = {
             columns: ["race_id"]
             isOneToOne: false
             referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sub_races_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races_decrypted"
             referencedColumns: ["id"]
           },
         ]
@@ -1971,7 +2133,485 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      character_ai_notes_decrypted: {
+        Row: {
+          battle_id: string | null
+          category: string | null
+          character_id: string | null
+          created_at: string | null
+          id: string | null
+          note: string | null
+          scope: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          battle_id?: string | null
+          category?: string | null
+          character_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          note?: never
+          scope?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          battle_id?: string | null
+          category?: string | null
+          character_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          note?: never
+          scope?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_ai_notes_battle_id_fkey"
+            columns: ["battle_id"]
+            isOneToOne: false
+            referencedRelation: "battles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_ai_notes_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_ai_notes_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters_decrypted"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_constructs_decrypted: {
+        Row: {
+          behavior_summary: string | null
+          character_id: string | null
+          construct_type: string | null
+          created_at: string | null
+          durability_level: string | null
+          durability_numeric: number | null
+          id: string | null
+          limitations: string | null
+          name: string | null
+          persistence: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          behavior_summary?: never
+          character_id?: string | null
+          construct_type?: string | null
+          created_at?: string | null
+          durability_level?: string | null
+          durability_numeric?: number | null
+          id?: string | null
+          limitations?: never
+          name?: string | null
+          persistence?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          behavior_summary?: never
+          character_id?: string | null
+          construct_type?: string | null
+          created_at?: string | null
+          durability_level?: string | null
+          durability_numeric?: number | null
+          id?: string | null
+          limitations?: never
+          name?: string | null
+          persistence?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_constructs_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_constructs_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters_decrypted"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      character_sections_decrypted: {
+        Row: {
+          body: string | null
+          character_id: string | null
+          created_at: string | null
+          id: string | null
+          sort_order: number | null
+          title: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          body?: never
+          character_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          sort_order?: number | null
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          body?: never
+          character_id?: string | null
+          created_at?: string | null
+          id?: string | null
+          sort_order?: number | null
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_sections_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_sections_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters_decrypted"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      characters_decrypted: {
+        Row: {
+          abilities: string | null
+          age: number | null
+          created_at: string | null
+          home_moon: string | null
+          home_planet: string | null
+          id: string | null
+          image_url: string | null
+          level: number | null
+          lore: string | null
+          mentality: string | null
+          name: string | null
+          personality: string | null
+          powers: string | null
+          race: string | null
+          race_id: string | null
+          solar_system_id: string | null
+          stat_battle_iq: number | null
+          stat_durability: number | null
+          stat_intelligence: number | null
+          stat_luck: number | null
+          stat_power: number | null
+          stat_skill: number | null
+          stat_speed: number | null
+          stat_stamina: number | null
+          stat_strength: number | null
+          sub_race: string | null
+          updated_at: string | null
+          user_id: string | null
+          weapons_items: string | null
+        }
+        Insert: {
+          abilities?: never
+          age?: number | null
+          created_at?: string | null
+          home_moon?: string | null
+          home_planet?: string | null
+          id?: string | null
+          image_url?: string | null
+          level?: number | null
+          lore?: never
+          mentality?: never
+          name?: string | null
+          personality?: never
+          powers?: never
+          race?: string | null
+          race_id?: string | null
+          solar_system_id?: string | null
+          stat_battle_iq?: number | null
+          stat_durability?: number | null
+          stat_intelligence?: number | null
+          stat_luck?: number | null
+          stat_power?: number | null
+          stat_skill?: number | null
+          stat_speed?: number | null
+          stat_stamina?: number | null
+          stat_strength?: number | null
+          sub_race?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          weapons_items?: never
+        }
+        Update: {
+          abilities?: never
+          age?: number | null
+          created_at?: string | null
+          home_moon?: string | null
+          home_planet?: string | null
+          id?: string | null
+          image_url?: string | null
+          level?: number | null
+          lore?: never
+          mentality?: never
+          name?: string | null
+          personality?: never
+          powers?: never
+          race?: string | null
+          race_id?: string | null
+          solar_system_id?: string | null
+          stat_battle_iq?: number | null
+          stat_durability?: number | null
+          stat_intelligence?: number | null
+          stat_luck?: number | null
+          stat_power?: number | null
+          stat_skill?: number | null
+          stat_speed?: number | null
+          stat_stamina?: number | null
+          stat_strength?: number | null
+          sub_race?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+          weapons_items?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "characters_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "characters_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races_decrypted"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "characters_solar_system_id_fkey"
+            columns: ["solar_system_id"]
+            isOneToOne: false
+            referencedRelation: "solar_systems"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      races_decrypted: {
+        Row: {
+          average_lifespan: string | null
+          created_at: string | null
+          cultural_traits: string | null
+          description: string | null
+          home_planet: string | null
+          id: string | null
+          image_url: string | null
+          name: string | null
+          typical_abilities: string | null
+          typical_physiology: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          average_lifespan?: string | null
+          created_at?: string | null
+          cultural_traits?: never
+          description?: never
+          home_planet?: string | null
+          id?: string | null
+          image_url?: string | null
+          name?: string | null
+          typical_abilities?: never
+          typical_physiology?: never
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          average_lifespan?: string | null
+          created_at?: string | null
+          cultural_traits?: never
+          description?: never
+          home_planet?: string | null
+          id?: string | null
+          image_url?: string | null
+          name?: string | null
+          typical_abilities?: never
+          typical_physiology?: never
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      stories_decrypted: {
+        Row: {
+          character_id: string | null
+          content: string | null
+          created_at: string | null
+          id: string | null
+          is_published: boolean | null
+          summary: string | null
+          title: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          character_id?: string | null
+          content?: never
+          created_at?: string | null
+          id?: string | null
+          is_published?: boolean | null
+          summary?: never
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          character_id?: string | null
+          content?: never
+          created_at?: string | null
+          id?: string | null
+          is_published?: boolean | null
+          summary?: never
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stories_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stories_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters_decrypted"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      story_chapters_decrypted: {
+        Row: {
+          chapter_number: number | null
+          content: string | null
+          created_at: string | null
+          id: string | null
+          story_id: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          chapter_number?: number | null
+          content?: never
+          created_at?: string | null
+          id?: string | null
+          story_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          chapter_number?: number | null
+          content?: never
+          created_at?: string | null
+          id?: string | null
+          story_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_chapters_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_chapters_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories_decrypted"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sub_races_decrypted: {
+        Row: {
+          created_at: string | null
+          cultural_traits: string | null
+          description: string | null
+          id: string | null
+          name: string | null
+          race_id: string | null
+          typical_abilities: string | null
+          typical_physiology: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          cultural_traits?: never
+          description?: never
+          id?: string | null
+          name?: string | null
+          race_id?: string | null
+          typical_abilities?: never
+          typical_physiology?: never
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          cultural_traits?: never
+          description?: never
+          id?: string | null
+          name?: string | null
+          race_id?: string | null
+          typical_abilities?: never
+          typical_physiology?: never
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sub_races_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sub_races_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races_decrypted"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       admin_set_user_role: {
@@ -1993,6 +2633,8 @@ export type Database = {
         }
         Returns: string
       }
+      decrypt_field: { Args: { encrypted_text: string }; Returns: string }
+      encrypt_field: { Args: { plain_text: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
