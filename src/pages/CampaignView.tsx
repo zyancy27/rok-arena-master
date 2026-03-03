@@ -41,7 +41,7 @@ import { discoverMechanic, type MechanicKey } from '@/lib/mechanic-discovery';
 import { useCampaignCombat } from '@/hooks/use-campaign-combat';
 import type { CampaignMechanicDiscovery } from '@/components/campaigns/CampaignNarratorChat';
 import BagBubble from '@/components/campaigns/BagBubble';
-
+import CampaignEnemyTracker, { type CampaignEnemy } from '@/components/campaigns/CampaignEnemyTracker';
 // Helper: build bag content for the inline backpack bubble
 function buildBagContent(campaignItems: InventoryItem[], characterWeapons: string | null) {
   const items: { name: string; type: string; rarity: string; equipped: boolean }[] = [];
@@ -88,6 +88,7 @@ export default function CampaignView() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [joinRequests, setJoinRequests] = useState<any[]>([]);
   const [myJoinRequest, setMyJoinRequest] = useState<any | null>(null);
+  const [campaignEnemies, setCampaignEnemies] = useState<CampaignEnemy[]>([]);
 
   // Ambient environment sounds for campaign
   const { muted: ambientMuted, toggleMute: toggleAmbientMute } = useAmbientSound({
@@ -211,11 +212,14 @@ export default function CampaignView() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_inventory', filter: `campaign_id=eq.${campaignId}` },
         () => fetchInventory()
       )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_enemies', filter: `campaign_id=eq.${campaignId}` },
+        () => fetchEnemies()
+      )
       .subscribe();
   };
 
   const fetchAll = async () => {
-    await Promise.all([fetchCampaign(), fetchParticipants(), fetchMessages(), fetchInventory(), fetchJoinRequests()]);
+    await Promise.all([fetchCampaign(), fetchParticipants(), fetchMessages(), fetchInventory(), fetchJoinRequests(), fetchEnemies()]);
     setLoading(false);
   };
 
@@ -286,6 +290,17 @@ export default function CampaignView() {
       ...i,
       stat_bonus: (i.stat_bonus || {}) as Record<string, number>,
     })) as InventoryItem[]);
+  };
+
+  const fetchEnemies = async () => {
+    if (!campaignId) return;
+    const { data } = await supabase
+      .from('campaign_enemies' as any)
+      .select('*')
+      .eq('campaign_id', campaignId)
+      .in('status', ['active', 'hiding'])
+      .order('created_at', { ascending: true });
+    if (data) setCampaignEnemies(data as unknown as CampaignEnemy[]);
   };
 
   const fetchJoinRequests = async () => {
@@ -782,6 +797,7 @@ export default function CampaignView() {
           ...(combatResult.narratorDiceContext || {}),
           conversationHistory,
           knownNpcs,
+          activeEnemies: campaignEnemies.filter(e => e.status === 'active' || e.status === 'hiding'),
         },
       });
 
@@ -951,6 +967,77 @@ export default function CampaignView() {
               }
             }
           }
+        }
+
+        // Handle enemy spawning from narrator response
+        if (data.enemySpawned) {
+          await supabase.from('campaign_enemies' as any).insert({
+            campaign_id: snapshotCampaign.id,
+            name: data.enemySpawned.name,
+            tier: data.enemySpawned.tier || 1,
+            hp: data.enemySpawned.hp || 50,
+            hp_max: data.enemySpawned.hp || 50,
+            description: data.enemySpawned.description || null,
+            abilities: data.enemySpawned.abilities || null,
+            weakness: data.enemySpawned.weakness || null,
+            count: data.enemySpawned.count || 1,
+            status: 'active',
+            behavior_profile: data.enemySpawned.behaviorProfile || 'aggressive',
+            spawned_at_zone: snapshotCampaign.current_zone,
+            spawned_at_day: snapshotCampaign.day_count,
+          });
+          fetchEnemies();
+        }
+
+        // Handle enemy updates (HP changes, status changes) from narrator response
+        if (data.enemyUpdates && Array.isArray(data.enemyUpdates)) {
+          for (const eu of data.enemyUpdates) {
+            if (!eu.id) continue;
+            const enemy = campaignEnemies.find(e => e.id === eu.id);
+            if (!enemy) continue;
+
+            const newHp = eu.hpChange ? Math.max(0, enemy.hp + eu.hpChange) : enemy.hp;
+            const newStatus = newHp <= 0 ? 'defeated' : (eu.status || enemy.status);
+
+            await supabase.from('campaign_enemies' as any)
+              .update({
+                hp: newHp,
+                status: newStatus,
+                last_action: eu.lastAction || null,
+              } as any)
+              .eq('id', eu.id);
+
+            // Grant XP for defeating enemies
+            if (newStatus === 'defeated' && enemy.status !== 'defeated') {
+              const defeatXp = Math.min(50, enemy.tier * 10 + 5);
+              const currentXp = snapshotParticipant.campaign_xp + (data.xpGained || 0);
+              await supabase.from('campaign_messages').insert({
+                campaign_id: snapshotCampaign.id,
+                sender_type: 'system',
+                content: `💀 **${enemy.name}** has been defeated! (+${defeatXp} XP)`,
+                channel: 'in_universe',
+              });
+            }
+
+            if (newStatus === 'fled') {
+              await supabase.from('campaign_messages').insert({
+                campaign_id: snapshotCampaign.id,
+                sender_type: 'system',
+                content: `🏃 **${enemy.name}** has fled the battle!`,
+                channel: 'in_universe',
+              });
+            }
+
+            if (newStatus === 'hiding') {
+              await supabase.from('campaign_messages').insert({
+                campaign_id: snapshotCampaign.id,
+                sender_type: 'system',
+                content: `👁️ **${enemy.name}** has disappeared into the shadows...`,
+                channel: 'in_universe',
+              });
+            }
+          }
+          fetchEnemies();
         }
 
         // Inline bag bubble when player checked inventory
@@ -1354,6 +1441,9 @@ export default function CampaignView() {
                     <div ref={messagesEndRef} />
                   </div>
                 </ScrollArea>
+
+                {/* Active Enemy Tracker */}
+                <CampaignEnemyTracker enemies={campaignEnemies} />
 
                 {/* Status Effects Overlay on input area */}
                 {isActive && myParticipant?.is_active && campaignCombat.statusEffects.activeEffects.length > 0 && (

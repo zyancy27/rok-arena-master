@@ -260,6 +260,77 @@ export type Database = {
           },
         ]
       }
+      campaign_enemies: {
+        Row: {
+          abilities: string | null
+          behavior_profile: string | null
+          campaign_id: string
+          count: number
+          created_at: string
+          description: string | null
+          hp: number
+          hp_max: number
+          id: string
+          last_action: string | null
+          metadata: Json | null
+          name: string
+          spawned_at_day: number | null
+          spawned_at_zone: string | null
+          status: string
+          tier: number
+          updated_at: string
+          weakness: string | null
+        }
+        Insert: {
+          abilities?: string | null
+          behavior_profile?: string | null
+          campaign_id: string
+          count?: number
+          created_at?: string
+          description?: string | null
+          hp: number
+          hp_max: number
+          id?: string
+          last_action?: string | null
+          metadata?: Json | null
+          name: string
+          spawned_at_day?: number | null
+          spawned_at_zone?: string | null
+          status?: string
+          tier?: number
+          updated_at?: string
+          weakness?: string | null
+        }
+        Update: {
+          abilities?: string | null
+          behavior_profile?: string | null
+          campaign_id?: string
+          count?: number
+          created_at?: string
+          description?: string | null
+          hp?: number
+          hp_max?: number
+          id?: string
+          last_action?: string | null
+          metadata?: Json | null
+          name?: string
+          spawned_at_day?: number | null
+          spawned_at_zone?: string | null
+          status?: string
+          tier?: number
+          updated_at?: string
+          weakness?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_enemies_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_inventory: {
         Row: {
           campaign_id: string

@@ -920,6 +920,7 @@ async function handleCampaignNarration(
     defenseResult,
     conversationHistory,
     knownNpcs,
+    activeEnemies,
   } = body;
 
   // Build conversation history as multi-turn messages for AI continuity
@@ -1091,8 +1092,17 @@ OUTPUT FORMAT (JSON):
     "description": "1-2 sentence description of the enemy — appearance, weapon, behavior",
     "abilities": "brief summary of what this enemy can do in combat",
     "weakness": "a hint at what might work well against them (optional but encouraged)",
-    "count": <number 1-5, how many of this enemy appear — default 1>
-  } or null if no enemy appears
+    "count": <number 1-5, how many of this enemy appear — default 1>,
+    "behaviorProfile": <"aggressive"|"defensive"|"cowardly"|"ambusher"|"tactical" — determines flee/hide behavior>
+  } or null if no NEW enemy appears,
+  "enemyUpdates": [
+    {
+      "id": "enemy UUID from ACTIVE ENEMIES list",
+      "hpChange": <number, negative for damage taken, positive for healing — REQUIRED when player attacks>,
+      "status": <"active"|"defeated"|"fled"|"hiding" — change status when appropriate>,
+      "lastAction": "brief description of what the enemy did this turn (attacked, dodged, taunted, tried to flee, etc.)"
+    }
+  ] or [] if no active enemy changes
 }
 
 ENEMY CREATION RULES:
@@ -1103,7 +1113,28 @@ ENEMY CREATION RULES:
 - Give enemies personality — a bandit who taunts, a creature that circles warily, a guard who warns before attacking.
 - Enemies can also be existing NPCs whose disposition turned hostile. In that case, include them in BOTH npcUpdates (with disposition: "hostile") AND enemySpawned.
 - Don't spawn enemies every turn. Enemies appear when the narrative demands it — roughly 1 in 4-6 actions in dangerous areas, less in safe zones.
-- When an enemy is defeated (hp reaches 0 from combat), update their NPC entry status to "dead" or "departed" as appropriate.
+
+ENEMY COMBAT LOOP (CRITICAL — when ACTIVE ENEMIES exist):
+- When the player attacks an active enemy, you MUST include an enemyUpdates entry with the enemy's id and a negative hpChange.
+- Damage should be proportional to the attack type, dice result, and tier difference. A powerful hit on a weak enemy does more.
+- If dice say HIT: apply meaningful damage (10-40% of their max HP depending on attack power). If dice say MISS: hpChange = 0.
+- Each turn, active enemies ALSO ACT. Describe their attack/defense/movement in your narration. If an enemy attacks the player, apply negative hpChange to the PLAYER.
+- ENEMY BEHAVIOR by profile:
+  • "aggressive" — attacks relentlessly, never flees, fights to the death
+  • "defensive" — blocks/dodges a lot, counterattacks, retreats at low HP (<20%)
+  • "cowardly" — flees when HP drops below 40%, may drop loot while running
+  • "ambusher" — attacks from stealth, if HP drops below 30% goes to "hiding" status to attack again later
+  • "tactical" — adapts strategy, may flee at <25% HP if losing, regroups with allies
+- When an enemy's HP reaches 0 or below, set status to "defeated". Give XP for the kill.
+- When an enemy flees, set status to "fled". They're gone from combat but may reappear later.
+- When an enemy hides, set status to "hiding". They disappear but will ambush later. The narrator should bring them back after 2-4 player turns.
+- Hiding enemies should re-emerge naturally: "A shadow moves in the rafters" → enemy attacks from hiding on next turn.
+- When ALL active enemies are defeated/fled, combat ends. Describe the aftermath and any loot.
+
+ACTIVE ENEMIES IN THIS COMBAT:
+${Array.isArray(activeEnemies) && activeEnemies.length > 0
+  ? activeEnemies.map((e: any) => `- [ID: ${e.id}] ${e.name} (Tier ${e.tier}, HP: ${e.hp}/${e.hp_max}, Status: ${e.status}, Profile: ${e.behavior_profile || 'aggressive'}${e.last_action ? ', Last action: ' + e.last_action : ''}): ${e.description || 'No description'}. Abilities: ${e.abilities || 'basic attacks'}${e.weakness ? '. Weakness: ' + e.weakness : ''}`).join('\n')
+  : 'No active enemies. Create new ones only if the story demands it.'}
 
 NPC PERSISTENCE RULES:
 - When NPCs appear in your narration, include them in npcUpdates so they persist.
@@ -1237,6 +1268,7 @@ Respond as the WORLD — let NPCs speak, environments react, and consequences un
         itemsFound: Array.isArray(parsed.itemsFound) ? parsed.itemsFound : [],
         npcUpdates: Array.isArray(parsed.npcUpdates) ? parsed.npcUpdates : [],
         enemySpawned: parsed.enemySpawned && typeof parsed.enemySpawned === 'object' && parsed.enemySpawned.name ? parsed.enemySpawned : null,
+        enemyUpdates: Array.isArray(parsed.enemyUpdates) ? parsed.enemyUpdates : [],
       }),
       { headers: { ...cors, "Content-Type": "application/json" } }
     );
