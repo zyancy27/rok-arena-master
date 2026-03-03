@@ -1123,7 +1123,7 @@ OUTPUT FORMAT (JSON):
   "advanceTime": <number 0-2, how many time periods to advance>,
   "newZone": <string or null if zone changes>,
   "encounterType": <"combat"|"social"|"exploration"|"rest"|null>,
-  "itemsFound": [{"name": "item name", "type": "weapon|armor|potion|artifact|gem|misc", "rarity": "common|uncommon|rare|epic|legendary", "description": "brief description", "statBonus": {"stat": value}}] or [] if no items found,
+  "itemsFound": [{"name": "item name", "type": "weapon|armor|potion|artifact|gem|misc", "rarity": "common|uncommon|rare|epic|legendary", "description": "brief description", "statBonus": {"stat": value}}] or [] if no items picked up,
   "itemsUsed": [{"name": "exact item name that was consumed/given away/used up", "reason": "consumed|given|dropped|destroyed"}] or [] if no items were used up,
   "npcUpdates": [
     {
@@ -1186,6 +1186,19 @@ ENEMY COMBAT LOOP (CRITICAL — when ACTIVE ENEMIES exist):
 - When an enemy hides, set status to "hiding". They disappear but will ambush later. The narrator should bring them back after 2-4 player turns.
 - Hiding enemies should re-emerge naturally: "A shadow moves in the rafters" → enemy attacks from hiding on next turn.
 - When ALL active enemies are defeated/fled, combat ends. Describe the aftermath and any loot.
+
+ITEM PICKUP RULES (CRITICAL):
+- When a player says they grab, pick up, take, pocket, collect, loot, or acquire ANYTHING — add it to itemsFound. This includes:
+  • Objects from the environment (a rock, a stick, a newspaper, a bottle, keys, a pen)
+  • Items from defeated enemies (weapons, armor, personal belongings)
+  • Things NPCs give them or they buy/trade for
+  • Random stuff they find interesting (a shiny coin, a strange feather, a torn note)
+- Items do NOT need to have a clear purpose. If the player wants to grab a random coffee mug from a desk, LET THEM. Add it as type "misc", rarity "common".
+- The world is full of things to interact with. When describing environments, include tangible objects the player could grab.
+- For mundane items: type "misc", rarity "common", no statBonus. Description should be brief and flavorful.
+- For useful items: assign appropriate type, rarity, and optional statBonus.
+- NEVER refuse to let a player pick something up unless it's physically impossible (bolted down, too heavy, guarded). Even then, narrate the attempt.
+- After combat victories, always mention lootable items on defeated enemies — the player can choose to grab them.
 
 ACTIVE ENEMIES IN THIS COMBAT:
 ${Array.isArray(activeEnemies) && activeEnemies.length > 0
