@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Accordion,
   AccordionContent,
@@ -58,6 +59,7 @@ import {
   Users,
   FileText,
   Backpack,
+  Check,
 } from 'lucide-react';
 import { downloadCharacterSheet, downloadCharacterSheetJSON } from '@/lib/character-sheet-download';
 import {
@@ -110,7 +112,8 @@ export default function CharacterDetail() {
   const [loading, setLoading] = useState(true);
   const [showChallengeModal, setShowChallengeModal] = useState(false);
   const [userCharacters, setUserCharacters] = useState<{ id: string; name: string; level: number }[]>([]);
-
+  const [availableSubRaces, setAvailableSubRaces] = useState<{ id: string; name: string }[]>([]);
+  const [editingSubRace, setEditingSubRace] = useState(false);
   useEffect(() => {
     if (id) {
       fetchCharacter();
@@ -155,6 +158,15 @@ export default function CharacterDetail() {
       profile: profileData || undefined,
     });
     setLoading(false);
+
+    // Fetch sub-races if character has a race
+    if (charData.race) {
+      const { data: raceData } = await supabase.from('races').select('id').eq('name', charData.race).eq('user_id', charData.user_id).maybeSingle();
+      if (raceData) {
+        const { data: subRaces } = await supabase.from('sub_races').select('id, name').eq('race_id', raceData.id).eq('user_id', charData.user_id).order('name');
+        if (subRaces) setAvailableSubRaces(subRaces);
+      }
+    }
   };
 
   const handleDelete = async () => {
@@ -338,9 +350,73 @@ export default function CharacterDetail() {
                 {character.sub_race && (
                   <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50">
                     <User className="w-4 h-4 text-accent" />
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <p className="text-xs text-muted-foreground">Sub-Race</p>
                       <p className="font-medium">{character.sub_race}</p>
+                    </div>
+                    {isOwner && availableSubRaces.length > 0 && !availableSubRaces.some(sr => sr.name === character.sub_race) && (
+                      <div className="shrink-0">
+                        {!editingSubRace ? (
+                          <button
+                            type="button"
+                            className="flex items-center gap-1 text-[11px] text-primary hover:underline"
+                            onClick={() => setEditingSubRace(true)}
+                          >
+                            Link
+                          </button>
+                        ) : (
+                          <Select
+                            value=""
+                            onValueChange={async (value) => {
+                              const { error } = await supabase.from('characters').update({ sub_race: value }).eq('id', character.id);
+                              if (!error) {
+                                setCharacter(prev => prev ? { ...prev, sub_race: value } : prev);
+                                toast.success(`Sub-race linked to "${value}"`);
+                              }
+                              setEditingSubRace(false);
+                            }}
+                          >
+                            <SelectTrigger className="h-7 w-[120px] text-xs">
+                              <SelectValue placeholder="Select..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availableSubRaces.map(sr => (
+                                <SelectItem key={sr.id} value={sr.name}>{sr.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+                    )}
+                    {isOwner && availableSubRaces.length > 0 && availableSubRaces.some(sr => sr.name === character.sub_race) && (
+                      <Check className="w-3.5 h-3.5 text-primary shrink-0" />
+                    )}
+                  </div>
+                )}
+                {!character.sub_race && isOwner && availableSubRaces.length > 0 && (
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 border border-dashed border-border">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-muted-foreground">Sub-Race</p>
+                      <Select
+                        value=""
+                        onValueChange={async (value) => {
+                          const { error } = await supabase.from('characters').update({ sub_race: value }).eq('id', character.id);
+                          if (!error) {
+                            setCharacter(prev => prev ? { ...prev, sub_race: value } : prev);
+                            toast.success(`Sub-race set to "${value}"`);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-7 mt-0.5 text-xs">
+                          <SelectValue placeholder="Select sub-race..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableSubRaces.map(sr => (
+                            <SelectItem key={sr.id} value={sr.name}>{sr.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 )}
