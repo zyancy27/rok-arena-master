@@ -207,18 +207,18 @@ export default function CampaignNarratorChat({
     <div className="flex flex-col h-full">
       {/* Campaign Info Header */}
       <div className="px-3 pt-3 pb-2 border-b border-border space-y-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <BookOpen className="w-4 h-4 text-amber-400 shrink-0" />
-          <span className="text-sm font-semibold text-amber-400 truncate">{campaignName}</span>
+          <span className="text-xs sm:text-sm font-semibold text-amber-400 truncate">{campaignName}</span>
           <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-300 ml-auto shrink-0">
             <Lock className="w-2.5 h-2.5 mr-1" />
             Private
           </Badge>
         </div>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-          <span>{getTimeEmoji(timeOfDay as any)} {timeOfDay}</span>
-          <span>Day {dayCount}</span>
-          <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{currentZone}</span>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+          <span className="whitespace-nowrap">{getTimeEmoji(timeOfDay as any)} {timeOfDay}</span>
+          <span className="whitespace-nowrap">Day {dayCount}</span>
+          <span className="flex items-center gap-1 min-w-0"><MapPin className="w-3 h-3 shrink-0" /><span className="truncate max-w-[140px] sm:max-w-[200px]">{currentZone}</span></span>
         </div>
 
         {/* Collapsible Party */}

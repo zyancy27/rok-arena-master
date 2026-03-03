@@ -1086,33 +1086,35 @@ export default function CampaignView() {
   return (
     <div className="max-w-4xl mx-auto space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <Button variant="ghost" size="sm" onClick={() => navigate('/campaigns')}>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+        <div className="flex items-start sm:items-center gap-2 sm:gap-3 min-w-0">
+          <Button variant="ghost" size="sm" className="shrink-0 mt-0.5 sm:mt-0" onClick={() => navigate('/campaigns')}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <div className="min-w-0">
-            <h1 className="text-xl font-bold flex items-center gap-2 truncate">
-              <Compass className="w-5 h-5 text-primary shrink-0" />
-              {campaign.name}
+          <div className="min-w-0 flex-1">
+            <h1 className="text-base sm:text-xl font-bold flex items-center gap-2">
+              <Compass className="w-4 h-4 sm:w-5 sm:h-5 text-primary shrink-0" />
+              <span className="truncate">{campaign.name}</span>
             </h1>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>{getTimeEmoji(campaign.time_of_day)} {campaign.time_of_day}</span>
-              <span>·</span>
-              <span>Day {campaign.day_count}</span>
-              <span>·</span>
-              <MapPin className="w-3 h-3" />
-              <span className="truncate">{campaign.current_zone}</span>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs sm:text-sm text-muted-foreground mt-0.5">
+              <span className="whitespace-nowrap">{getTimeEmoji(campaign.time_of_day)} {campaign.time_of_day}</span>
+              <span className="hidden sm:inline">·</span>
+              <span className="whitespace-nowrap">Day {campaign.day_count}</span>
+              <span className="hidden sm:inline">·</span>
+              <span className="flex items-center gap-1 min-w-0">
+                <MapPin className="w-3 h-3 shrink-0" />
+                <span className="truncate max-w-[140px] sm:max-w-[250px]">{campaign.current_zone}</span>
+              </span>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 ml-auto sm:ml-0 shrink-0">
           {isActive && (
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleAmbientMute} title={ambientMuted ? 'Unmute ambient' : 'Mute ambient'}>
               {ambientMuted ? <VolumeX className="w-4 h-4 text-muted-foreground" /> : <Volume2 className="w-4 h-4 text-primary" />}
             </Button>
           )}
-          <Badge className={campaign.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}>
+          <Badge className={`text-[10px] sm:text-xs ${campaign.status === 'active' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
             {campaign.status}
           </Badge>
           <AlertDialog>
