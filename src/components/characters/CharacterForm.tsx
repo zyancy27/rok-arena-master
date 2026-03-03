@@ -620,10 +620,24 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                         </SelectContent>
                       </Select>
                     ) : (
-                      <div className="flex gap-1.5">
-                        <Input placeholder="Celestial" value={formData.race} onChange={(e) => handleChange('race', e.target.value)} className="h-9 flex-1" />
-                        {availableRaces.length > 0 && (
-                          <Button type="button" variant="outline" size="sm" className="h-9 px-2 text-xs" onClick={() => { setUseCustomRace(false); handleChange('race', ''); }}>List</Button>
+                      <div className="space-y-1.5">
+                        <div className="flex gap-1.5">
+                          <Input placeholder="Celestial" value={formData.race} onChange={(e) => handleChange('race', e.target.value)} className="h-9 flex-1" />
+                          {availableRaces.length > 0 && (
+                            <Button type="button" variant="outline" size="sm" className="h-9 px-2 text-xs" onClick={() => { setUseCustomRace(false); handleChange('race', ''); }}>List</Button>
+                          )}
+                        </div>
+                        {formData.race.trim() && availableRaces.some(r => r.name.toLowerCase() === formData.race.trim().toLowerCase()) && (
+                          <button
+                            type="button"
+                            className="flex items-center gap-1.5 text-[11px] text-primary hover:underline"
+                            onClick={() => {
+                              const match = availableRaces.find(r => r.name.toLowerCase() === formData.race.trim().toLowerCase());
+                              if (match) { handleChange('race', match.name); setUseCustomRace(false); }
+                            }}
+                          >
+                            <Check className="w-3 h-3" /> Link to existing "{availableRaces.find(r => r.name.toLowerCase() === formData.race.trim().toLowerCase())?.name}"
+                          </button>
                         )}
                       </div>
                     )}
