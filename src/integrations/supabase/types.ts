@@ -665,6 +665,71 @@ export type Database = {
           },
         ]
       }
+      campaign_trades: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          id: string
+          item_id: string
+          message: string | null
+          receiver_participant_id: string
+          sender_participant_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          id?: string
+          item_id: string
+          message?: string | null
+          receiver_participant_id: string
+          sender_participant_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          item_id?: string
+          message?: string | null
+          receiver_participant_id?: string
+          sender_participant_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_trades_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_trades_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_trades_receiver_participant_id_fkey"
+            columns: ["receiver_participant_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_trades_sender_participant_id_fkey"
+            columns: ["sender_participant_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaigns: {
         Row: {
           average_party_level: number
