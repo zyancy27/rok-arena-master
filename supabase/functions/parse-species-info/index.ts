@@ -6,8 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-// Input validation constants
-const MAX_TEXT_LENGTH = 50000; // 50KB max for text input
+const MAX_TEXT_LENGTH = 50000;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -15,7 +14,6 @@ serve(async (req) => {
   }
 
   try {
-    // Verify JWT authentication
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
@@ -39,7 +37,6 @@ serve(async (req) => {
       );
     }
 
-    // Parse and validate request body
     let body;
     try {
       body = await req.json();
@@ -52,7 +49,6 @@ serve(async (req) => {
 
     const { text } = body;
     
-    // Input validation
     if (!text || typeof text !== 'string') {
       return new Response(
         JSON.stringify({ error: 'Text content is required' }),
@@ -79,19 +75,30 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const systemPrompt = `You are a species/race information extractor for a fantasy/sci-fi roleplay game. 
-Extract species information from the provided text and return structured data using the provided tool.
-Focus on extracting:
-- Species/race name
-- Physical description and biology
-- Common abilities or powers
-- Cultural traits and society
-- Home planet or region
-- Average lifespan
-- General description
+    const systemPrompt = `You are an advanced species/race information extractor for a fantasy/sci-fi roleplay game.
+Your job is to deeply analyze the provided text and extract ALL of the following:
 
-If information is not present in the text, leave that field empty.
-Be concise but thorough. Extract only what is explicitly stated or strongly implied.`;
+1. **Species/Race Info** — name, physiology, abilities, culture, home planet, lifespan, description.
+
+2. **Named Characters** — Any specific named individuals mentioned in the text who belong to or are associated with this species. For each character extract:
+   - name (required)
+   - race/species they belong to
+   - any powers or abilities mentioned
+   - personality traits
+   - lore/backstory details
+   - home planet if mentioned
+   - level estimate (1-100, based on how powerful they seem; default 50)
+   - any weapons or items mentioned
+
+3. **Story Elements** — Any narrative content, legends, historical events, myths, wars, or story arcs described in the text. For each story extract:
+   - title (create a fitting title if none is given)
+   - content (the narrative/story text, retold faithfully)
+   - summary (1-2 sentence summary)
+   - which characters are involved (by name)
+
+4. **Relationships** — How the characters, species, and stories connect to each other.
+
+Be thorough. Extract EVERY named character, even minor ones. Extract EVERY story element, even brief legends or historical references. If a character is only mentioned by name with no details, still include them with just the name and species.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -100,56 +107,80 @@ Be concise but thorough. Extract only what is explicitly stated or strongly impl
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Extract species/race information from this text:\n\n${text}` }
+          { role: 'user', content: `Extract all species, character, and story information from this text:\n\n${text}` }
         ],
         tools: [
           {
             type: 'function',
             function: {
-              name: 'extract_species',
-              description: 'Extract and structure species/race information from text',
+              name: 'extract_species_data',
+              description: 'Extract species info, characters, and story elements from text',
               parameters: {
                 type: 'object',
                 properties: {
-                  name: {
-                    type: 'string',
-                    description: 'The name of the species or race'
+                  species: {
+                    type: 'object',
+                    description: 'The species/race information',
+                    properties: {
+                      name: { type: 'string', description: 'Species name' },
+                      description: { type: 'string', description: 'General description' },
+                      home_planet: { type: 'string', description: 'Home planet or region' },
+                      typical_physiology: { type: 'string', description: 'Physical traits and biology' },
+                      typical_abilities: { type: 'string', description: 'Common abilities' },
+                      cultural_traits: { type: 'string', description: 'Culture and society' },
+                      average_lifespan: { type: 'string', description: 'Typical lifespan' }
+                    },
+                    required: ['name']
                   },
-                  description: {
-                    type: 'string',
-                    description: 'General overview and description of the species'
+                  characters: {
+                    type: 'array',
+                    description: 'Named characters found in the text',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        name: { type: 'string', description: 'Character name' },
+                        race: { type: 'string', description: 'Species/race they belong to' },
+                        powers: { type: 'string', description: 'Powers or abilities' },
+                        abilities: { type: 'string', description: 'Skills and techniques' },
+                        personality: { type: 'string', description: 'Personality traits' },
+                        mentality: { type: 'string', description: 'Mental approach and mindset' },
+                        lore: { type: 'string', description: 'Backstory and lore' },
+                        home_planet: { type: 'string', description: 'Home planet' },
+                        level: { type: 'number', description: 'Power level estimate 1-100' },
+                        weapons_items: { type: 'string', description: 'Weapons or items' }
+                      },
+                      required: ['name']
+                    }
                   },
-                  home_planet: {
-                    type: 'string',
-                    description: 'Home planet, world, or region of origin'
-                  },
-                  typical_physiology: {
-                    type: 'string',
-                    description: 'Physical traits, appearance, and biological characteristics'
-                  },
-                  typical_abilities: {
-                    type: 'string',
-                    description: 'Common powers, abilities, or skills of this species'
-                  },
-                  cultural_traits: {
-                    type: 'string',
-                    description: 'Society, traditions, values, and behavioral norms'
-                  },
-                  average_lifespan: {
-                    type: 'string',
-                    description: 'Typical lifespan (e.g., "500 years", "Immortal", "80 years")'
+                  stories: {
+                    type: 'array',
+                    description: 'Story elements, legends, historical events found in the text',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        title: { type: 'string', description: 'Story title' },
+                        content: { type: 'string', description: 'Full story/narrative content' },
+                        summary: { type: 'string', description: '1-2 sentence summary' },
+                        character_names: {
+                          type: 'array',
+                          items: { type: 'string' },
+                          description: 'Names of characters involved in this story'
+                        }
+                      },
+                      required: ['title', 'content']
+                    }
                   }
                 },
-                required: ['name'],
+                required: ['species'],
                 additionalProperties: false
               }
             }
           }
         ],
-        tool_choice: { type: 'function', function: { name: 'extract_species' } }
+        tool_choice: { type: 'function', function: { name: 'extract_species_data' } }
       }),
     });
 
@@ -174,14 +205,20 @@ Be concise but thorough. Extract only what is explicitly stated or strongly impl
     const data = await response.json();
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     
-    if (!toolCall || toolCall.function.name !== 'extract_species') {
+    if (!toolCall || toolCall.function.name !== 'extract_species_data') {
       throw new Error('AI did not return expected tool call');
     }
 
     const extractedData = JSON.parse(toolCall.function.arguments);
 
+    // Return backward-compatible format plus new fields
     return new Response(
-      JSON.stringify({ success: true, data: extractedData }),
+      JSON.stringify({
+        success: true,
+        data: extractedData.species || extractedData,
+        characters: extractedData.characters || [],
+        stories: extractedData.stories || [],
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

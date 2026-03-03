@@ -35,6 +35,7 @@ import { toast } from 'sonner';
 import { LoreDocumentUpload } from '@/components/lore/LoreDocumentUpload';
 import { useAutoSave } from '@/hooks/use-auto-save';
 import { AutoSaveIndicator } from '@/components/ui/auto-save-indicator';
+import { SpeciesDiscoveryPanel, DiscoveredCharacter, DiscoveredStory } from '@/components/races/SpeciesDiscoveryPanel';
 import { Dna, Plus, Edit, Trash2, Globe, Sparkles, Heart, Clock, ChevronDown, Wand2, Loader2 } from 'lucide-react';
 
 interface Race {
@@ -81,6 +82,8 @@ export default function Races() {
   const [pasteText, setPasteText] = useState('');
   const [isParsing, setIsParsing] = useState(false);
   const [isPasteOpen, setIsPasteOpen] = useState(false);
+  const [discoveredCharacters, setDiscoveredCharacters] = useState<DiscoveredCharacter[]>([]);
+  const [discoveredStories, setDiscoveredStories] = useState<DiscoveredStory[]>([]);
 
   useEffect(() => {
     if (user) {
@@ -128,7 +131,27 @@ export default function Races() {
           cultural_traits: extracted.cultural_traits || formData.cultural_traits,
           average_lifespan: extracted.average_lifespan || formData.average_lifespan,
         });
-        toast.success('Species information extracted!');
+
+        // Set discovered characters and stories
+        const chars: DiscoveredCharacter[] = (data.characters || []).map((c: any) => ({
+          ...c,
+          race: c.race || extracted.name || '',
+          selected: true,
+        }));
+        const storiesData: DiscoveredStory[] = (data.stories || []).map((s: any) => ({
+          ...s,
+          selected: true,
+        }));
+        setDiscoveredCharacters(chars);
+        setDiscoveredStories(storiesData);
+
+        const extras: string[] = [];
+        if (chars.length > 0) extras.push(`${chars.length} character${chars.length > 1 ? 's' : ''}`);
+        if (storiesData.length > 0) extras.push(`${storiesData.length} stor${storiesData.length > 1 ? 'ies' : 'y'}`);
+        
+        toast.success(
+          `Species info extracted!${extras.length > 0 ? ` Also found ${extras.join(' and ')}.` : ''}`
+        );
         setPasteText('');
         setIsPasteOpen(false);
       } else {
@@ -148,6 +171,8 @@ export default function Races() {
     setFormData(emptyForm);
     setPasteText('');
     setIsPasteOpen(false);
+    setDiscoveredCharacters([]);
+    setDiscoveredStories([]);
     setIsDialogOpen(true);
   };
 
@@ -338,6 +363,21 @@ export default function Races() {
                       </p>
                     </CollapsibleContent>
                   </Collapsible>
+                )}
+
+                {/* Discovery Panel for characters & stories found */}
+                {(discoveredCharacters.length > 0 || discoveredStories.length > 0) && (
+                  <SpeciesDiscoveryPanel
+                    characters={discoveredCharacters}
+                    stories={discoveredStories}
+                    speciesName={formData.name || 'Unknown Species'}
+                    onCharactersChange={setDiscoveredCharacters}
+                    onStoriesChange={setDiscoveredStories}
+                    onComplete={() => {
+                      setDiscoveredCharacters([]);
+                      setDiscoveredStories([]);
+                    }}
+                  />
                 )}
 
                 <div className="space-y-2">
