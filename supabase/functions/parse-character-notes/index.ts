@@ -87,8 +87,10 @@ The character sheet has the following fields:
 - sub_race: A sub-category or variant of the race (if mentioned)
 - age: The character's age as a number
 - home_planet: Where the character is from
+- home_moon: The moon the character lives on or is from (if mentioned)
 - powers: Their main supernatural/special power (should be ONE core power)
 - abilities: Specific techniques or skills derived from their power
+- weapons_items: A JSON array of objects/weapons the character carries. Each entry should have a "name" (short item name) and "description" (detailed description of what it does). Example: [{"name":"Flame Sword","description":"A blade wreathed in eternal fire"}]
 - personality: How they act, behave, interact with others
 - mentality: Their mindset, beliefs, motivations, psychological traits
 - lore: Their backstory, history, and origins
@@ -99,7 +101,8 @@ IMPORTANT:
 - Keep powers focused on ONE main power as per game rules
 - Combine related information into cohesive paragraphs
 - If multiple characters are mentioned, focus on the MAIN character being described
-- For power level, estimate based on described abilities (1-3 normal, 4-6 superhuman, 7-9 godlike, 10 omnipotent)`;
+- For power level, estimate based on described abilities (1-3 normal, 4-6 superhuman, 7-9 godlike, 10 omnipotent)
+- For weapons_items, always return a JSON array of {name, description} objects, even for a single item`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -127,8 +130,10 @@ IMPORTANT:
                   sub_race: { type: "string", description: "Sub-race or variant" },
                   age: { type: "string", description: "Character's age" },
                   home_planet: { type: "string", description: "Home world/planet" },
+                  home_moon: { type: "string", description: "Home moon if mentioned" },
                   powers: { type: "string", description: "Main supernatural power" },
                   abilities: { type: "string", description: "Specific techniques and abilities" },
+                  weapons_items: { type: "string", description: "JSON array of {name, description} objects for weapons/items" },
                   personality: { type: "string", description: "Personality traits and behavior" },
                   mentality: { type: "string", description: "Mindset and psychological traits" },
                   lore: { type: "string", description: "Backstory and history" },
