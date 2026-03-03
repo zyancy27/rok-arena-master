@@ -103,6 +103,14 @@ export default {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-3px)" },
         },
+        "combat-pulse-red": {
+          "0%, 100%": { boxShadow: "inset 0 0 0 2px rgba(239, 68, 68, 0.3), 0 0 15px rgba(239, 68, 68, 0.1)" },
+          "50%": { boxShadow: "inset 0 0 0 2px rgba(239, 68, 68, 0.7), 0 0 30px rgba(239, 68, 68, 0.3)" },
+        },
+        "combat-pulse-green": {
+          "0%, 100%": { boxShadow: "inset 0 0 0 2px rgba(34, 197, 94, 0.3), 0 0 15px rgba(34, 197, 94, 0.1)" },
+          "50%": { boxShadow: "inset 0 0 0 2px rgba(34, 197, 94, 0.7), 0 0 30px rgba(34, 197, 94, 0.3)" },
+        },
         "ripple-1": {
           "0%": { transform: "translate(-50%, -50%) scale(1)", opacity: "0.6" },
           "100%": { transform: "translate(-50%, -50%) scale(15)", opacity: "0" },
@@ -126,6 +134,8 @@ export default {
         "ripple-1": "ripple-1 1.5s ease-out forwards",
         "ripple-2": "ripple-2 1.5s ease-out 0.2s forwards",
         "ripple-3": "ripple-3 1.5s ease-out 0.4s forwards",
+        "combat-pulse-red": "combat-pulse-red 1.2s ease-in-out infinite",
+        "combat-pulse-green": "combat-pulse-green 1.2s ease-in-out infinite",
       },
       backgroundImage: {
         "cosmic-radial": "radial-gradient(ellipse at center, hsl(270 30% 15%) 0%, hsl(240 20% 4%) 70%)",

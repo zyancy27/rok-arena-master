@@ -105,6 +105,10 @@ export default function CampaignView() {
   const [pendingDiscoveries, setPendingDiscoveries] = useState<CampaignMechanicDiscovery[]>([]);
   const [narratorTabGlowing, setNarratorTabGlowing] = useState(false);
 
+  // Combat pulse state: 'none' | 'red' | 'green'
+  const [combatPulse, setCombatPulse] = useState<'none' | 'red' | 'green'>('none');
+  const combatPulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // Combat mechanics integration
   const campaignCombat = useCampaignCombat(
     myParticipant?.character ? {
@@ -788,6 +792,22 @@ export default function CampaignView() {
         // Process narrator response for battlefield environment effects
         processEffectMessage(data.narration);
 
+        // Detect combat pulse: enemy encounter (red) or sneak attack success (green)
+        if (data.enemySpawned) {
+          const sneakPatterns = /\b(sneak|stealth|ambush|surprise|undetected|unnoticed|from behind|caught off guard)\b/i;
+          const playerSneaked = sneakPatterns.test(messageText) || sneakPatterns.test(data.narration);
+          const enemyUnaware = /\b(unaware|didn't notice|caught off guard|surprise|from the shadows|before .{0,20} could react)\b/i.test(data.narration);
+
+          if (playerSneaked && enemyUnaware) {
+            setCombatPulse('green');
+          } else {
+            setCombatPulse('red');
+          }
+          // Clear pulse after 8 seconds
+          if (combatPulseTimerRef.current) clearTimeout(combatPulseTimerRef.current);
+          combatPulseTimerRef.current = setTimeout(() => setCombatPulse('none'), 8000);
+        }
+
         await supabase.from('campaign_messages').insert({
           campaign_id: snapshotCampaign.id,
           sender_type: 'narrator',
@@ -1145,7 +1165,9 @@ export default function CampaignView() {
 
       <div className="space-y-4">
         {/* Chat + Narrator */}
-        <Card className="bg-card-gradient border-border flex flex-col h-[70vh]">
+        <Card className={`bg-card-gradient border-border flex flex-col h-[70vh] transition-shadow duration-500 ${
+          combatPulse === 'red' ? 'animate-combat-pulse-red' : combatPulse === 'green' ? 'animate-combat-pulse-green' : ''
+        }`}>
           <Tabs defaultValue="adventure" className="flex flex-col flex-1 min-h-0">
             <div className="border-b border-border px-4">
               <TabsList className="bg-transparent h-auto p-0 gap-4">
