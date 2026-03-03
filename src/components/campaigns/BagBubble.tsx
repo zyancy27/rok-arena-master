@@ -17,6 +17,20 @@ const RARITY_COLORS: Record<string, string> = {
   personal: 'text-foreground',
 };
 
+const RARITY_GLOW: Record<string, string> = {
+  uncommon: 'rgba(74, 222, 128, 0.4)',
+  rare: 'rgba(96, 165, 250, 0.5)',
+  epic: 'rgba(192, 132, 252, 0.5)',
+  legendary: 'rgba(250, 204, 21, 0.6)',
+};
+
+const RARITY_SHIMMER_GRADIENT: Record<string, string> = {
+  uncommon: 'linear-gradient(90deg, transparent 0%, rgba(74,222,128,0.15) 40%, rgba(74,222,128,0.3) 50%, rgba(74,222,128,0.15) 60%, transparent 100%)',
+  rare: 'linear-gradient(90deg, transparent 0%, rgba(96,165,250,0.15) 40%, rgba(96,165,250,0.35) 50%, rgba(96,165,250,0.15) 60%, transparent 100%)',
+  epic: 'linear-gradient(90deg, transparent 0%, rgba(192,132,252,0.15) 40%, rgba(192,132,252,0.35) 50%, rgba(192,132,252,0.15) 60%, transparent 100%)',
+  legendary: 'linear-gradient(90deg, transparent 0%, rgba(250,204,21,0.2) 30%, rgba(255,255,200,0.5) 50%, rgba(250,204,21,0.2) 70%, transparent 100%)',
+};
+
 interface Props {
   bagItems: BagItem[];
   isClosed: boolean;
@@ -24,14 +38,22 @@ interface Props {
 
 export default function BagBubble({ bagItems, isClosed }: Props) {
   const [ready, setReady] = useState(false);
+  const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
-    // Wait a frame so the DOM is fully painted before triggering the open animation
     const raf = requestAnimationFrame(() => setReady(true));
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  // Before ready and not closed, render invisible to avoid a flash
+  // When closed, wait for the close animation to finish before hiding
+  useEffect(() => {
+    if (!isClosed) return;
+    const timer = setTimeout(() => setHidden(true), 700); // bag-close is 0.6s
+    return () => clearTimeout(timer);
+  }, [isClosed]);
+
+  if (hidden) return null;
+
   const shouldAnimate = ready || isClosed;
 
   return (
@@ -117,26 +139,57 @@ export default function BagBubble({ bagItems, isClosed }: Props) {
                 <p className="text-xs text-amber-200/30 italic text-center py-2">Empty — nothing in here.</p>
               ) : (
                 <div className="space-y-1">
-                  {bagItems.map((item, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center gap-1.5 text-xs"
-                      style={{
-                        animation: !shouldAnimate || isClosed ? 'none' : `bag-item-appear 0.3s ease-out ${0.5 + idx * 0.08}s both`,
-                      }}
-                    >
-                      <span className="text-amber-600/50 text-[8px]">◆</span>
-                      <span className={`font-medium ${RARITY_COLORS[item.rarity] || 'text-amber-100/80'}`}>
-                        {item.name}
-                      </span>
-                      {item.equipped && item.rarity !== 'personal' && (
-                        <span className="text-[9px] text-amber-500/50">(equipped)</span>
-                      )}
-                      {item.rarity === 'personal' && (
-                        <span className="text-[9px] text-amber-200/30">(personal)</span>
-                      )}
-                    </div>
-                  ))}
+                  {bagItems.map((item, idx) => {
+                    const glowColor = RARITY_GLOW[item.rarity];
+                    const shimmerGradient = RARITY_SHIMMER_GRADIENT[item.rarity];
+                    const hasEffect = !!glowColor;
+
+                    return (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-1.5 text-xs relative rounded px-1 -mx-1"
+                        style={{
+                          animation: !shouldAnimate || isClosed
+                            ? 'none'
+                            : `bag-item-appear 0.3s ease-out ${0.5 + idx * 0.08}s both`,
+                          ...(hasEffect ? { '--glow-color': glowColor } as React.CSSProperties : {}),
+                        }}
+                      >
+                        {/* Shimmer overlay for uncommon+ */}
+                        {shimmerGradient && !isClosed && (
+                          <div
+                            className="absolute inset-0 rounded pointer-events-none"
+                            style={{
+                              backgroundImage: shimmerGradient,
+                              backgroundSize: '200% 100%',
+                              animation: `rarity-shimmer ${item.rarity === 'legendary' ? '2s' : '3s'} linear infinite`,
+                            }}
+                          />
+                        )}
+                        <span
+                          className="text-[8px] relative z-10"
+                          style={{
+                            color: glowColor || 'rgba(217, 119, 6, 0.5)',
+                            ...(hasEffect ? { animation: 'rarity-glow-pulse 2.5s ease-in-out infinite' } : {}),
+                          }}
+                        >◆</span>
+                        <span
+                          className={`font-medium relative z-10 ${RARITY_COLORS[item.rarity] || 'text-amber-100/80'}`}
+                          style={hasEffect ? {
+                            textShadow: `0 0 6px ${glowColor}`,
+                          } : undefined}
+                        >
+                          {item.name}
+                        </span>
+                        {item.equipped && item.rarity !== 'personal' && (
+                          <span className="text-[9px] text-amber-500/50 relative z-10">(equipped)</span>
+                        )}
+                        {item.rarity === 'personal' && (
+                          <span className="text-[9px] text-amber-200/30 relative z-10">(personal)</span>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
