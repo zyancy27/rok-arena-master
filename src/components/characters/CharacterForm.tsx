@@ -153,9 +153,11 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
   const [availablePlanets, setAvailablePlanets] = useState<{ name: string; display_name: string | null; moon_count?: number | null }[]>([]);
   const [availableMoons, setAvailableMoons] = useState<{ name: string; display_name: string | null; planet_name: string }[]>([]);
   const [availableRaces, setAvailableRaces] = useState<{ id: string; name: string; typical_physiology: string | null; typical_abilities: string | null }[]>([]);
+  const [availableSubRaces, setAvailableSubRaces] = useState<{ id: string; name: string }[]>([]);
   const [useCustomPlanet, setUseCustomPlanet] = useState(false);
   const [useCustomMoon, setUseCustomMoon] = useState(false);
   const [useCustomRace, setUseCustomRace] = useState(false);
+  const [useCustomSubRace, setUseCustomSubRace] = useState(false);
 
   // Section open states — essentials always visible, rest collapsed on create
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -218,6 +220,22 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
     };
     fetchData();
   }, [user, initialData?.home_planet, initialData?.race]);
+
+  // Fetch sub-races when race changes
+  useEffect(() => {
+    const fetchSubRaces = async () => {
+      if (!user || !formData.race.trim()) { setAvailableSubRaces([]); return; }
+      const selectedRace = availableRaces.find(r => r.name === formData.race);
+      if (!selectedRace) { setAvailableSubRaces([]); return; }
+      const { data } = await supabase.from('sub_races').select('id, name').eq('race_id', selectedRace.id).eq('user_id', user.id).order('name');
+      if (data) {
+        setAvailableSubRaces(data);
+        if (formData.sub_race && !data.some(sr => sr.name === formData.sub_race)) setUseCustomSubRace(true);
+        else setUseCustomSubRace(false);
+      }
+    };
+    fetchSubRaces();
+  }, [user, formData.race, availableRaces]);
 
   // Fetch planet data when home_planet changes
   useEffect(() => {
@@ -612,7 +630,28 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Sub-Race</Label>
-                    <Input placeholder="Stormkin" value={formData.sub_race} onChange={(e) => handleChange('sub_race', e.target.value)} className="h-9" />
+                    {availableSubRaces.length > 0 && !useCustomSubRace ? (
+                      <Select
+                        value={formData.sub_race}
+                        onValueChange={(value) => {
+                          if (value === '__custom__') { setUseCustomSubRace(true); handleChange('sub_race', ''); }
+                          else handleChange('sub_race', value);
+                        }}
+                      >
+                        <SelectTrigger className="h-9"><SelectValue placeholder="Select sub-race..." /></SelectTrigger>
+                        <SelectContent>
+                          {availableSubRaces.map((sr) => (<SelectItem key={sr.id} value={sr.name}>{sr.name}</SelectItem>))}
+                          <SelectItem value="__custom__" className="text-muted-foreground border-t mt-1 pt-2">+ Custom...</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="flex gap-1.5">
+                        <Input placeholder="Stormkin" value={formData.sub_race} onChange={(e) => handleChange('sub_race', e.target.value)} className="h-9 flex-1" />
+                        {availableSubRaces.length > 0 && (
+                          <Button type="button" variant="outline" size="sm" className="h-9 px-2 text-xs" onClick={() => { setUseCustomSubRace(false); handleChange('sub_race', ''); }}>List</Button>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Age</Label>
