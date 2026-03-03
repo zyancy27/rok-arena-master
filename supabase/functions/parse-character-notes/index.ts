@@ -6,8 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Input validation constants
-const MAX_NOTES_LENGTH = 50000; // 50KB max for notes input
+const MAX_NOTES_LENGTH = 50000;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -15,7 +14,6 @@ serve(async (req) => {
   }
 
   try {
-    // Authentication check
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
@@ -39,7 +37,6 @@ serve(async (req) => {
       );
     }
 
-    // Parse and validate request body
     let body;
     try {
       body = await req.json();
@@ -50,9 +47,8 @@ serve(async (req) => {
       );
     }
 
-    const { notes } = body;
-    
-    // Input validation
+    const { notes, multi } = body;
+
     if (!notes || typeof notes !== 'string') {
       return new Response(
         JSON.stringify({ error: "Character notes are required" }),
@@ -79,6 +75,118 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    const characterProperties = {
+      name: { type: "string", description: "Character's name" },
+      race: { type: "string", description: "Character's species/race" },
+      sub_race: { type: "string", description: "Sub-race or variant" },
+      age: { type: "string", description: "Character's age" },
+      home_planet: { type: "string", description: "Home world/planet" },
+      home_moon: { type: "string", description: "Home moon if mentioned" },
+      powers: { type: "string", description: "Main supernatural power" },
+      abilities: { type: "string", description: "Specific techniques and abilities" },
+      weapons_items: { type: "string", description: "JSON array of {name, description} objects for weapons/items" },
+      personality: { type: "string", description: "Personality traits and behavior" },
+      mentality: { type: "string", description: "Mindset and psychological traits" },
+      lore: { type: "string", description: "Backstory and history" },
+      level: { type: "number", description: "Power tier 1-10" },
+    };
+
+    // Multi-character extraction mode
+    if (multi) {
+      const systemPrompt = `You are a character sheet parser for a fictional roleplay game. Your job is to extract ALL characters from the provided text. The text may describe one character or many characters.
+
+For EACH character found, extract:
+- name: The character's name (required)
+- race: The species/race
+- sub_race: A sub-race variant if mentioned
+- age: Age as a string
+- home_planet: Where they're from
+- home_moon: Moon they live on if mentioned
+- powers: Their main supernatural/special power (ONE core power per character)
+- abilities: Specific techniques or skills
+- weapons_items: A JSON array of {name, description} objects for weapons/items
+- personality: How they act and behave
+- mentality: Their mindset and beliefs
+- lore: Their backstory and history
+- level: Power tier 1-10 (1=human, 10=omnipotent)
+
+IMPORTANT:
+- Extract EVERY named character, even minor ones mentioned briefly
+- If a character has minimal info, still include them with whatever is available
+- Keep powers focused on ONE main power per character
+- For weapons_items, always use JSON array format`;
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: `Extract ALL characters from this text:\n\n${notes}` },
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "extract_characters",
+                description: "Extract all characters found in the text",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    characters: {
+                      type: "array",
+                      description: "All characters found",
+                      items: {
+                        type: "object",
+                        properties: characterProperties,
+                        required: ["name"],
+                      },
+                    },
+                  },
+                  required: ["characters"],
+                  additionalProperties: false,
+                },
+              },
+            },
+          ],
+          tool_choice: { type: "function", function: { name: "extract_characters" } },
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          return new Response(
+            JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        if (response.status === 402) {
+          return new Response(
+            JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        throw new Error(`AI gateway error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+      if (!toolCall || toolCall.function.name !== "extract_characters") {
+        throw new Error("Failed to parse character notes");
+      }
+
+      const result = JSON.parse(toolCall.function.arguments);
+      return new Response(
+        JSON.stringify({ success: true, characters: result.characters || [] }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Single character mode (backward compatible)
     const systemPrompt = `You are a character sheet parser for a fictional roleplay game. Your job is to extract character information from user notes and fill out a character sheet.
 
 The character sheet has the following fields:
@@ -124,21 +232,7 @@ IMPORTANT:
               description: "Fill out the character sheet with extracted information",
               parameters: {
                 type: "object",
-                properties: {
-                  name: { type: "string", description: "Character's name" },
-                  race: { type: "string", description: "Character's species/race" },
-                  sub_race: { type: "string", description: "Sub-race or variant" },
-                  age: { type: "string", description: "Character's age" },
-                  home_planet: { type: "string", description: "Home world/planet" },
-                  home_moon: { type: "string", description: "Home moon if mentioned" },
-                  powers: { type: "string", description: "Main supernatural power" },
-                  abilities: { type: "string", description: "Specific techniques and abilities" },
-                  weapons_items: { type: "string", description: "JSON array of {name, description} objects for weapons/items" },
-                  personality: { type: "string", description: "Personality traits and behavior" },
-                  mentality: { type: "string", description: "Mindset and psychological traits" },
-                  lore: { type: "string", description: "Backstory and history" },
-                  level: { type: "number", description: "Power tier 1-10" },
-                },
+                properties: characterProperties,
                 required: ["name"],
               },
             },
@@ -165,14 +259,12 @@ IMPORTANT:
     }
 
     const data = await response.json();
-    
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall || toolCall.function.name !== "fill_character_sheet") {
       throw new Error("Failed to parse character notes");
     }
 
     const characterData = JSON.parse(toolCall.function.arguments);
-
     return new Response(
       JSON.stringify({ success: true, data: characterData }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

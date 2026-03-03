@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCharacterGroups } from '@/hooks/use-character-groups';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Select,
   SelectContent,
@@ -24,7 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus, Search, User, Edit, Globe, Sparkles, Users, X } from 'lucide-react';
+import { Plus, Search, User, Edit, Globe, Sparkles, Users, X, Wand2, Loader2, ChevronDown, FileText, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Character {
@@ -42,6 +44,24 @@ interface CharacterMembership {
   group_id: string;
 }
 
+interface DiscoveredCharacter {
+  name: string;
+  race?: string;
+  sub_race?: string;
+  age?: string;
+  home_planet?: string;
+  home_moon?: string;
+  powers?: string;
+  abilities?: string;
+  weapons_items?: string;
+  personality?: string;
+  mentality?: string;
+  lore?: string;
+  level?: number;
+  selected: boolean;
+  existingId?: string;
+}
+
 export default function CharacterList() {
   const { user } = useAuth();
   const { groups, loading: groupsLoading } = useCharacterGroups();
@@ -56,6 +76,13 @@ export default function CharacterList() {
   const [showBatchDialog, setShowBatchDialog] = useState(false);
   const [batchTeamId, setBatchTeamId] = useState<string>('');
   const [batchLoading, setBatchLoading] = useState(false);
+
+  // Batch import state
+  const [importText, setImportText] = useState('');
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [isParsing, setIsParsing] = useState(false);
+  const [discoveredChars, setDiscoveredChars] = useState<DiscoveredCharacter[]>([]);
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -180,6 +207,120 @@ export default function CharacterList() {
     setBatchLoading(false);
   };
 
+  // Batch import: extract multiple characters from text
+  const handleExtractCharacters = async () => {
+    if (!importText.trim()) { toast.error('Paste some text first'); return; }
+    setIsParsing(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-character-notes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ notes: importText, multi: true }),
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Failed to extract');
+      }
+      const result = await response.json();
+      if (result.success && result.characters?.length > 0) {
+        const { data: existing } = await supabase
+          .from('characters')
+          .select('id, name')
+          .eq('user_id', user!.id);
+        const existingMap: Record<string, string> = {};
+        if (existing) for (const e of existing) existingMap[e.name.toLowerCase()] = e.id;
+
+        const chars: DiscoveredCharacter[] = result.characters.map((c: any) => ({
+          ...c,
+          selected: !existingMap[c.name?.toLowerCase()],
+          existingId: existingMap[c.name?.toLowerCase()] || undefined,
+        }));
+        setDiscoveredChars(chars);
+        toast.success(`Found ${chars.length} character${chars.length !== 1 ? 's' : ''}!`);
+        setImportText('');
+        setIsImportOpen(false);
+      } else {
+        toast.info('No characters found in the text');
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to extract characters');
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
+  const handleBatchCreate = async () => {
+    const toCreate = discoveredChars.filter(c => c.selected && !c.existingId && c.name.trim());
+    const toUpdate = discoveredChars.filter(c => c.selected && c.existingId && c.name.trim());
+    if (toCreate.length === 0 && toUpdate.length === 0) { toast.info('No characters selected'); return; }
+
+    setIsCreating(true);
+    let created = 0, updated = 0, errors = 0;
+
+    if (toCreate.length > 0) {
+      const { error } = await supabase.from('characters').insert(
+        toCreate.map(c => ({
+          user_id: user!.id,
+          name: c.name.trim(),
+          level: c.level || 1,
+          race: c.race || null, sub_race: c.sub_race || null,
+          age: c.age ? parseInt(c.age) : null,
+          home_planet: c.home_planet || null, home_moon: c.home_moon || null,
+          powers: c.powers || null, abilities: c.abilities || null,
+          weapons_items: c.weapons_items || null,
+          personality: c.personality || null, mentality: c.mentality || null,
+          lore: c.lore || null,
+        }))
+      );
+      if (error) {
+        for (const c of toCreate) {
+          const { error: singleError } = await supabase.from('characters').insert({
+            user_id: user!.id, name: c.name.trim(), level: c.level || 1,
+            race: c.race || null, sub_race: c.sub_race || null,
+            age: c.age ? parseInt(c.age) : null,
+            home_planet: c.home_planet || null, home_moon: c.home_moon || null,
+            powers: c.powers || null, abilities: c.abilities || null,
+            weapons_items: c.weapons_items || null,
+            personality: c.personality || null, mentality: c.mentality || null,
+            lore: c.lore || null,
+          });
+          if (singleError) errors++; else created++;
+        }
+      } else {
+        created = toCreate.length;
+      }
+    }
+
+    for (const c of toUpdate) {
+      const updateData: Record<string, any> = {};
+      if (c.race) updateData.race = c.race;
+      if (c.sub_race) updateData.sub_race = c.sub_race;
+      if (c.powers) updateData.powers = c.powers;
+      if (c.abilities) updateData.abilities = c.abilities;
+      if (c.personality) updateData.personality = c.personality;
+      if (c.mentality) updateData.mentality = c.mentality;
+      if (c.lore) updateData.lore = c.lore;
+      if (c.home_planet) updateData.home_planet = c.home_planet;
+      if (c.weapons_items) updateData.weapons_items = c.weapons_items;
+      if (Object.keys(updateData).length > 0) {
+        const { error } = await supabase.from('characters').update(updateData).eq('id', c.existingId!);
+        if (error) errors++; else updated++;
+      }
+    }
+
+    const parts: string[] = [];
+    if (created > 0) parts.push(`${created} created`);
+    if (updated > 0) parts.push(`${updated} updated`);
+    if (errors > 0) parts.push(`${errors} failed`);
+    toast.success(`Characters: ${parts.join(', ')}`);
+
+    setDiscoveredChars([]);
+    setIsCreating(false);
+    fetchCharacters();
+  };
+
   if (loading) {
     return (
       <div className="container mx-auto py-6 px-4">
@@ -208,13 +349,133 @@ export default function CharacterList() {
             {characters.length} character{characters.length !== 1 ? 's' : ''} created
           </p>
         </div>
-        <Button asChild>
-          <Link to="/characters/new">
-            <Plus className="w-4 h-4 mr-2" />
-            Create Character
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button asChild>
+            <Link to="/characters/new">
+              <Plus className="w-4 h-4 mr-2" />
+              Create Character
+            </Link>
+          </Button>
+        </div>
       </div>
+
+      {/* Batch Import Section */}
+      <div className="mb-6">
+        <Collapsible open={isImportOpen} onOpenChange={setIsImportOpen}>
+          <CollapsibleTrigger asChild>
+            <Button variant="outline" size="sm" className="w-full sm:w-auto gap-2 border-dashed">
+              <Wand2 className="w-4 h-4" />
+              Batch Import Characters (AI)
+              <ChevronDown className={`w-3 h-3 transition-transform ${isImportOpen ? 'rotate-180' : ''}`} />
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-3 space-y-3 max-w-2xl">
+            <Textarea
+              placeholder="Paste text containing multiple characters — descriptions, wiki entries, lore documents, etc. AI will extract all named characters..."
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+              rows={5}
+              className="text-sm"
+            />
+            <Button
+              type="button"
+              onClick={handleExtractCharacters}
+              disabled={isParsing || !importText.trim()}
+              className="w-full sm:w-auto"
+              size="sm"
+            >
+              {isParsing ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Extracting Characters...</>
+              ) : (
+                <><Sparkles className="w-4 h-4 mr-2" /> Extract All Characters</>
+              )}
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              AI will find every named character in your text and let you create them all at once.
+            </p>
+          </CollapsibleContent>
+        </Collapsible>
+      </div>
+
+      {/* Discovered Characters Panel */}
+      {discoveredChars.length > 0 && (
+        <Card className="mb-6 border-dashed border-primary/30">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Discovered Characters ({discoveredChars.filter(c => c.selected).length}/{discoveredChars.length})
+                </CardTitle>
+                <CardDescription className="text-xs mt-1">
+                  Select characters to create or update. Existing characters will be merged with new info.
+                </CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setDiscoveredChars([])}>
+                  <X className="w-4 h-4 mr-1" /> Dismiss
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleBatchCreate}
+                  disabled={isCreating || discoveredChars.filter(c => c.selected).length === 0}
+                >
+                  {isCreating ? (
+                    <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Creating...</>
+                  ) : (
+                    <><Check className="w-4 h-4 mr-1" /> Create Selected</>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[400px] overflow-y-auto">
+              {discoveredChars.map((char, idx) => (
+                <div
+                  key={idx}
+                  className={`flex items-start gap-2 rounded-md border p-3 transition-colors ${
+                    char.selected ? 'border-primary/40 bg-primary/5' : 'border-border bg-muted/20 opacity-60'
+                  }`}
+                >
+                  <Checkbox
+                    checked={char.selected}
+                    onCheckedChange={() => {
+                      const updated = [...discoveredChars];
+                      updated[idx] = { ...updated[idx], selected: !updated[idx].selected };
+                      setDiscoveredChars(updated);
+                    }}
+                    className="mt-0.5"
+                  />
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm truncate">{char.name}</span>
+                      {char.existingId && (
+                        <Badge variant="outline" className="text-[10px] shrink-0">exists</Badge>
+                      )}
+                      {char.level && (
+                        <Badge variant="secondary" className="text-[10px] shrink-0">Tier {char.level}</Badge>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {char.race && <Badge variant="outline" className="text-[10px]">{char.race}</Badge>}
+                      {char.home_planet && (
+                        <Badge variant="outline" className="text-[10px]">
+                          <Globe className="w-2.5 h-2.5 mr-0.5" />{char.home_planet}
+                        </Badge>
+                      )}
+                      {char.powers && <Badge variant="outline" className="text-[10px]">Powers</Badge>}
+                      {char.lore && <Badge variant="outline" className="text-[10px]">Lore</Badge>}
+                    </div>
+                    {char.lore && <p className="text-xs text-muted-foreground line-clamp-1">{char.lore}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
 
       {/* Search and Filter Row */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
