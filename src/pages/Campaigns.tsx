@@ -261,12 +261,12 @@ export default function Campaigns() {
               New Campaign
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md max-h-[85vh] flex flex-col">
-            <DialogHeader className="shrink-0">
-              <DialogTitle>Create Campaign</DialogTitle>
-              <DialogDescription>Start a new persistent adventure for your party.</DialogDescription>
-            </DialogHeader>
-            <ScrollArea className="flex-1 -mx-6 px-6">
+           <DialogContent className="sm:max-w-md max-h-[85vh] flex flex-col overflow-hidden">
+             <DialogHeader className="shrink-0">
+               <DialogTitle>Create Campaign</DialogTitle>
+               <DialogDescription>Start a new persistent adventure for your party.</DialogDescription>
+             </DialogHeader>
+             <ScrollArea className="flex-1 min-h-0 -mx-6 px-6">
             <div className="space-y-4 pb-2">
               <div>
                 <Label>Campaign Name</Label>
