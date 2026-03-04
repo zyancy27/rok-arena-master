@@ -261,13 +261,13 @@ export default function Campaigns() {
               New Campaign
             </Button>
           </DialogTrigger>
-           <DialogContent className="sm:max-w-md max-h-[85vh] flex flex-col overflow-hidden">
+           <DialogContent className="sm:max-w-md max-h-[90vh] h-[90vh] sm:h-auto flex flex-col overflow-hidden p-4 sm:p-6">
              <DialogHeader className="shrink-0">
                <DialogTitle>Create Campaign</DialogTitle>
                <DialogDescription>Start a new persistent adventure for your party.</DialogDescription>
              </DialogHeader>
-             <ScrollArea className="flex-1 min-h-0 -mx-6 px-6">
-            <div className="space-y-4 pb-2">
+             <div className="flex-1 min-h-0 overflow-y-auto -mx-4 px-4 sm:-mx-6 sm:px-6">
+             <div className="space-y-4 pb-4">
               <div>
                 <Label>Campaign Name</Label>
                 <div className="flex gap-2">
@@ -386,7 +386,7 @@ export default function Campaigns() {
               </>
               )}
             </div>
-            </ScrollArea>
+            </div>
             <DialogFooter className="shrink-0">
               <Button onClick={handleCreate} disabled={creating}>
                 {creating ? 'Creating...' : 'Create Campaign'}
