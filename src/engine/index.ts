@@ -45,3 +45,11 @@ export type { CentralBattleState, BattlePlayer, CreateBattleOptions } from './st
 // ─── Environment ────────────────────────────────────────────────
 export { generateEnvironment, triggerBattleHazard, getHazardNarratorPrompt } from './environment';
 export type { GeneratedEnvironment, EnvironmentGeneratorOptions } from './environment';
+
+// ─── Scenario Brain (Procedural Intelligence) ──────────────────
+export { ScenarioBrain, createScenarioBrain } from './scenarioBrain';
+export type { ComposedScenario, ScenarioContext, ScenarioFingerprint } from './scenarioBrain';
+
+// ─── Chat Effect Brain (Dynamic Visual Effects) ────────────────
+export { ChatEffectBrain, createChatEffectBrain } from './chatEffects';
+export type { ComposedChatEffect, EffectCompositionResult, ChatEffect } from './chatEffects';
