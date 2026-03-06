@@ -177,6 +177,38 @@ export interface BattleEventMap {
     loserId: string | null;
     reason: string;
   };
+
+  /** Zone state changed (stability, threat, hazard) */
+  onZoneChanged: {
+    zoneId: string;
+    zoneLabel: string;
+    changeType: 'stability' | 'threat' | 'hazard' | 'collapse' | 'tactical';
+    description: string;
+  };
+
+  /** Entity moved between zones */
+  onZoneMovement: {
+    entityId: string;
+    fromZoneId: string;
+    toZoneId: string;
+  };
+
+  /** Narrator marker placed */
+  onNarratorMarker: {
+    markerId: string;
+    markerType: string;
+    label: string;
+    zoneId?: string;
+  };
+
+  /** Cinematic moment triggered */
+  onCinematicMoment: {
+    title: string;
+    description: string;
+    emphasis: 'impact' | 'danger' | 'shift' | 'reveal';
+    zoneId?: string;
+    entityId?: string;
+  };
 }
 
 export type BattleEventType = keyof BattleEventMap;
