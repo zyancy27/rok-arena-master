@@ -3,7 +3,7 @@
  * Includes campaign info, party panel, inventory, and private narrator queries.
  */
 
-import { useState, useRef, useEffect, type ReactNode } from 'react';
+import { useState, useRef, useEffect, useMemo, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -16,8 +16,15 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { supabase } from '@/integrations/supabase/client';
 import {
   BookOpen, Send, Sparkles, Lock, Globe, User, Map, Swords,
-  Heart, Zap, Users, ChevronDown, MapPin, RefreshCw, LogOut, Play, Backpack,
+  Heart, Zap, Users, ChevronDown, MapPin, RefreshCw, LogOut, Play, Backpack, Crosshair,
 } from 'lucide-react';
+import CampaignInventoryPanel, { type InventoryItem } from './CampaignInventoryPanel';
+import CampaignTradePanel from './CampaignTradePanel';
+import type { CampaignTrade } from '@/hooks/use-campaign-trades';
+import { getTimeEmoji } from '@/lib/campaign-types';
+import type { CampaignParticipant } from '@/lib/campaign-types';
+import TacticalBattleMap from '@/components/battles/TacticalBattleMap';
+import { generateTacticalMap } from '@/lib/tactical-map-generator';
 import CampaignInventoryPanel, { type InventoryItem } from './CampaignInventoryPanel';
 import CampaignTradePanel from './CampaignTradePanel';
 import type { CampaignTrade } from '@/hooks/use-campaign-trades';
