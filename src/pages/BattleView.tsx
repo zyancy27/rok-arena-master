@@ -91,6 +91,7 @@ import { detectCharacterStatusEffects } from '@/lib/character-status-effects';
 import { shouldSuppressStatus } from '@/lib/battlefield-effects';
 import SaveLocationPrompt from '@/components/battles/SaveLocationPrompt';
 import EnvironmentChatBackground from '@/components/battles/EnvironmentChatBackground';
+import { findLatestSceneShift } from '@/lib/scene-location-tracker';
 import { buildSnapshotFromState, type ThemeSnapshot } from '@/lib/theme-engine';
 import { usePvPCombatMechanics } from '@/hooks/use-pvp-combat-mechanics';
 import SfxToggle from '@/components/battles/SfxToggle';
@@ -401,8 +402,22 @@ export default function BattleView() {
       hydrateBattlefieldEffects(battle.environment_effects);
     }
   }, [battle?.chosen_location, battle?.dynamic_environment]);
-  
-  // Generate character entrances when battle becomes active
+
+  // Dynamic scene location — tracks environment changes mid-battle from messages
+  const [activeSceneLocation, setActiveSceneLocation] = useState<string | null>(null);
+  useEffect(() => {
+    if (!messages.length || battle?.status !== 'active') return;
+    const iuMessages = messages
+      .filter(m => m.channel === 'in_universe')
+      .map(m => ({ content: m.content, role: 'user', channel: 'in_universe' }));
+    if (iuMessages.length < 2) return;
+    const recent = iuMessages.slice(-6);
+    const shift = findLatestSceneShift(recent);
+    if (shift) {
+      setActiveSceneLocation(shift.newLocation);
+    }
+  }, [messages, battle?.status]);
+
   useEffect(() => {
     const generateEntrances = async () => {
       if (
@@ -2730,8 +2745,8 @@ export default function BattleView() {
                 opponentColor="#EF4444"
               >
                 <div className="relative flex flex-col">
-                  {/* Persistent Environment Background tied to battle location */}
-                  <EnvironmentChatBackground location={battle.chosen_location} />
+                  {/* Persistent Environment Background — dynamically tracks scene changes */}
+                  <EnvironmentChatBackground location={activeSceneLocation || battle.chosen_location} />
                   
                   {/* Battlefield Effects Overlay (temporary message-triggered) */}
                   {battlefieldEffects.length > 0 && (
