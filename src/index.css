@@ -3084,3 +3084,125 @@
   0%, 100% { opacity: 0.5; }
   50% { opacity: 0.8; }
 }
+
+/* ── Rules Book ────────────────────────────────────────────── */
+
+.rok-book-container {
+  position: relative;
+  width: 92vw;
+  max-width: 480px;
+  height: 75vh;
+  max-height: 700px;
+  perspective: 1200px;
+}
+
+.rok-book-back {
+  position: absolute;
+  inset: 0;
+  border-radius: 0 0.5rem 0.5rem 0;
+  background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(240 15% 6%) 100%);
+  border: 1px solid hsl(var(--border));
+  box-shadow: -4px 0 12px hsl(0 0% 0% / 0.4), inset 2px 0 6px hsl(0 0% 0% / 0.2);
+}
+
+.rok-book-spine {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  background: linear-gradient(90deg, hsl(0 0% 0% / 0.3), transparent);
+  z-index: 5;
+  pointer-events: none;
+}
+
+.rok-book-page {
+  position: absolute;
+  inset: 4px 4px 4px 12px;
+  background: hsl(var(--card));
+  border-radius: 0 0.375rem 0.375rem 0;
+  display: flex;
+  flex-direction: column;
+  z-index: 10;
+  overflow: hidden;
+  transform-origin: left center;
+  backface-visibility: hidden;
+}
+
+.rok-page-content {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+
+.rok-page-content::-webkit-scrollbar { width: 4px; }
+.rok-page-content::-webkit-scrollbar-track { background: transparent; }
+.rok-page-content::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 2px; }
+
+/* Cover */
+.rok-book-cover {
+  position: absolute;
+  inset: 0;
+  border-radius: 0 0.5rem 0.5rem 0;
+  background: linear-gradient(160deg, hsl(20 15% 12%) 0%, hsl(20 10% 8%) 100%);
+  border: 1px solid hsl(20 10% 18%);
+  box-shadow: 2px 4px 16px hsl(0 0% 0% / 0.5);
+  z-index: 20;
+  transform-origin: left center;
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  backface-visibility: hidden;
+}
+
+.rok-cover-opened {
+  transform: rotateY(-178deg);
+  pointer-events: none;
+}
+
+/* Page flip animations */
+.rok-flip-next {
+  animation: rok-page-flip-next 0.4s ease-in-out;
+}
+.rok-flip-prev {
+  animation: rok-page-flip-prev 0.4s ease-in-out;
+}
+
+@keyframes rok-page-flip-next {
+  0% { transform: rotateY(0deg); }
+  50% { transform: rotateY(-8deg); opacity: 0.7; }
+  100% { transform: rotateY(0deg); }
+}
+
+@keyframes rok-page-flip-prev {
+  0% { transform: rotateY(0deg); }
+  50% { transform: rotateY(8deg); opacity: 0.7; }
+  100% { transform: rotateY(0deg); }
+}
+
+/* Book open state */
+.rok-book-closed .rok-book-page {
+  opacity: 0;
+}
+.rok-book-open .rok-book-page {
+  opacity: 1;
+  transition: opacity 0.4s ease 0.6s;
+}
+
+/* Aged paper texture overlay */
+.rok-book-page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 28px,
+    hsl(var(--border) / 0.06) 28px,
+    hsl(var(--border) / 0.06) 29px
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.rok-book-page > * {
+  position: relative;
+  z-index: 1;
+}
