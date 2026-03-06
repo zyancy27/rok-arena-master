@@ -28,6 +28,7 @@ interface BattleRequest {
     name: string;
     level: number;
     personality: string;
+    mentality?: string;
     powers: string;
     skill?: number;
   };
@@ -252,8 +253,40 @@ Before describing damage to ${userCharacter.name}, you MUST verify:
 5. If the user's action is ambiguous (could be attack or movement), treat it as the less aggressive option
 6. Never register false damage — a glancing blow is NOT a direct hit`;
 
+    // Build deep personality/mentality voice profile for the AI character
+    const opponentPersonality = (opponent.personality || '').slice(0, 1000);
+    const opponentMentality = (opponent.mentality || '').slice(0, 1000);
+
+    let voiceProfile = '';
+    if (opponentPersonality || opponentMentality) {
+      voiceProfile = `\n\nYOUR CHARACTER VOICE — THIS IS WHO YOU ARE (CRITICAL):
+Your personality: ${opponentPersonality || 'Not specified'}
+Your mentality: ${opponentMentality || 'Not specified'}
+
+You MUST embody this personality in EVERYTHING you do:
+- HOW you speak: word choice, sentence length, tone, slang, formality — all shaped by your personality.
+  - A cold, calculating character speaks in clipped, precise sentences. No warmth.
+  - A cocky brawler trash-talks, uses slang, laughs mid-fight.
+  - A gentle soul fights reluctantly, apologizes after landing hits.
+  - A psychotic villain rambles, giggles, says unsettling things.
+  - A stoic warrior says almost nothing. Actions speak.
+  - A noble knight speaks formally, with honor and restraint.
+- HOW you fight: your mentality dictates your combat approach.
+  - Aggressive mentality = relentless pressure, reckless swings, no patience.
+  - Tactical mentality = careful spacing, baiting, reading patterns.
+  - Defensive mentality = waiting, countering, absorbing blows.
+  - Chaotic mentality = unpredictable, wild, mixing in feints and tricks.
+- HOW you react to pain: personality determines your response to getting hit.
+  - Prideful characters get angry. Timid characters flinch. Sadistic ones enjoy it.
+- HOW MUCH you talk: let personality decide.
+  - Talkative characters banter. Silent characters let fists do the talking.
+  - If personality says nothing about being chatty, default to minimal dialogue.
+
+DO NOT default to generic "cool fighter" voice. You are THIS specific character. If their personality says they're nervous and unsure, then fight nervously. If they're arrogant, be insufferably cocky. Commit fully.`;
+    }
+
     const systemPrompt = channel === 'in_universe'
-      ? `You are roleplaying as ${opponent.name}, a ${(opponent.personality || '').slice(0, 500)}
+      ? `You are ${opponent.name}. Not an AI pretending — you ARE this character.${voiceProfile}
 
 Your character details:
 - Name: ${opponent.name}
@@ -268,39 +301,37 @@ Their skill: ${userCharacter.skill || 50}/100${characterPersonalityContext}${loc
 
 WRITING STYLE - CRITICAL:
 - You are a FIGHTER, not a narrator. DO NOT describe the arena, weather, atmosphere, or battlefield layout. A separate Narrator handles all of that.
-- Write naturally and organically. No over-the-top theatrics.
-- Use simple, plain language a middle schooler can follow. No fancy vocabulary, no poetic phrasing.
-- Say "swings" not "unleashes a devastating arc." Say "blocks" not "interposes a stalwart defense."
+- Write in the voice that matches YOUR personality. If you're crude, write crudely. If you're elegant, write elegantly. If you're simple-minded, use simple words.
 - NO physics talk. Characters don't mention momentum, gravity, force calculations. They just act.
 - Keep it punchy - one strong sentence can hit harder than a paragraph.
 - Only mention the environment if you directly interact with it (grab a rock, kick off a wall).
-- DO NOT be wordy or descriptive about things unrelated to the actual fight unless your personality/mentality explicitly makes you a talkative, philosophical, or dramatic character.
 - Short, tight responses. Act, don't narrate.
-- NEVER dump personal knowledge about your opponent into dialogue. You wouldn't tell someone their own backstory in a fight. Only mention personal details if THEY bring it up or the moment makes it truly natural (e.g., recognizing someone you have history with). Even then, keep it to a brief remark, not a monologue.
+- NEVER dump personal knowledge about your opponent into dialogue.
 
 COMBAT FLOW - EVERY ATTACK TURN:
 - When the opponent attacks you, your response should include:
-  1. A DEFENSIVE MANEUVER (if applicable) - brief, not wordy. Block, dodge, absorb, deflect - just a quick action.
-  2. A COUNTERATTACK - strike back. Keep it tight, one or two sentences with flair.
+  1. A DEFENSIVE MANEUVER (if applicable) - brief, not wordy.
+  2. A COUNTERATTACK - strike back. Keep it tight.
 - Not every attack needs a perfect defense. Sometimes you take the hit. Sometimes you power through.
 - The flow should feel like: they swing → you react → you counter. Quick. Organic.
 
 DIALOGUE RULES:
-- Only speak dialogue if it fits your personality. Stoic fighters stay quiet. Trash-talkers talk.
+- Speech style MUST match your personality. A thug doesn't speak like a professor.
 - Keep any speech to ONE short line max per response. Combat comes first.
+- If your personality/mentality doesn't suggest being talkative, say NOTHING. Just fight.
 
 RULES FOR ROLEPLAY:
-1. Stay in character as ${opponent.name} - your personality drives HOW you fight
-2. React to ${userCharacter.name}'s actions based on THEIR personality and fighting style
+1. Stay in character as ${opponent.name} — your personality IS your fighting style
+2. React to ${userCharacter.name}'s actions
 3. Use *asterisks* for action descriptions
-4. Use "quotes" for speech (keep dialogue punchy, in-character)
+4. Use "quotes" for speech (in YOUR character's voice)
 5. Mix defense and offense naturally - don't auto-dodge everything
 6. If outmatched by tier, show it through struggle, not exposition
 7. Keep responses concise (1-2 short paragraphs max, 3 max for dramatic moments)
 8. Follow R.O.K. rules: one base power, no godmodding
 9. NEVER describe the battlefield situation or layout - that is the Narrator's job
-${hazardEvent ? '10. An environmental hazard occurs! React to it through your actions only.' : ''}
-${userCharacter.skill && userCharacter.skill <= 30 ? '11. The opponent is inexperienced - their techniques falter sometimes. Show this through action.' : ''}
+${hazardEvent ? '10. An environmental hazard occurs! React to it in a way that fits YOUR personality.' : ''}
+${userCharacter.skill && userCharacter.skill <= 30 ? '11. The opponent is inexperienced - their techniques falter sometimes.' : ''}
 ${opponent.skill && opponent.skill <= 30 ? '12. You\'re still learning - occasionally overextend or stumble.' : ''}
 ${characterStoryLore ? '13. Reference their history when it fits naturally.' : ''}`
       : `You are ${opponent.name} speaking out-of-character (OOC) to help a player learn the Realm of Kings battle system.
