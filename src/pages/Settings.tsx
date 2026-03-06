@@ -23,7 +23,7 @@ const TABS = [
   { id: 'performance', label: 'Performance', icon: Zap },
   { id: 'battle', label: 'Battle', icon: Swords },
   { id: 'immersion', label: 'RP & Immersion', icon: Theater },
-  { id: 'ai', label: 'AI (PvE)', icon: Bot },
+  { id: 'ai', label: 'Opponents (PvE)', icon: Bot },
   { id: 'social', label: 'Social & Privacy', icon: Users },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'data', label: 'Data & Account', icon: Database },

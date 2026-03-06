@@ -90,7 +90,7 @@ async function syncNoteToCharacterField(
 
     const timestamp = new Date().toLocaleDateString();
     const separator = existingValue.trim() ? '\n\n' : '';
-    const updatedValue = `${existingValue}${separator}[AI Note ${timestamp}] ${noteText.trim()}`;
+    const updatedValue = `${existingValue}${separator}[Character Note ${timestamp}] ${noteText.trim()}`;
 
     await supabase
       .from('characters')
@@ -153,10 +153,10 @@ export default function AICharacterNotePanel({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Brain className="w-5 h-5 text-primary" />
-            AI Notes — {characterName}
+            Character Notes — {characterName}
           </DialogTitle>
           <DialogDescription className="text-xs">
-            Train the AI on how this character thinks, fights, and behaves. Global/future notes are automatically saved to the character's profile.
+            Define how this character thinks, fights, and behaves. The Narrator will follow these instructions. Global/future notes are automatically saved to the character's profile.
           </DialogDescription>
         </DialogHeader>
 

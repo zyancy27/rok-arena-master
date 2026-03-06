@@ -60,12 +60,12 @@ export function useCharacterAINotes(characterId: string | null) {
       .select()
       .single();
     if (error) {
-      toast.error('Failed to save AI note');
+      toast.error('Failed to save character note');
       console.error(error);
       return null;
     }
     setNotes(prev => [data as unknown as CharacterAINote, ...prev]);
-    toast.success('AI character note saved');
+    toast.success('Character note saved');
     return data;
   };
 

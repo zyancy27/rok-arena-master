@@ -209,8 +209,8 @@ export function DeveloperTab() {
           <Button variant="outline" className="w-full justify-start" onClick={() => toast.info('Momentum spike simulated')}>
             <BarChart3 className="w-4 h-4 mr-2" /> Simulate Momentum Spike
           </Button>
-          <Button variant="outline" className="w-full justify-start" onClick={() => toast.info('AI profile override coming soon')}>
-            <Brain className="w-4 h-4 mr-2" /> Override AI Profile
+          <Button variant="outline" className="w-full justify-start" onClick={() => toast.info('Opponent profile override coming soon')}>
+            <Brain className="w-4 h-4 mr-2" /> Override Opponent Profile
           </Button>
           <Button variant="outline" className="w-full justify-start" onClick={() => toast.info('Environmental collapse simulated')}>
             <CloudLightning className="w-4 h-4 mr-2" /> Simulate Environmental Collapse

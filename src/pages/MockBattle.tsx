@@ -3605,13 +3605,13 @@ export default function MockBattle() {
                       setShowAINotePanel(true);
                     }
                   }}
-                  title={opponentType === 'own' ? 'Click to add AI character notes' : undefined}
+                  title={opponentType === 'own' ? 'Click to add character notes' : undefined}
                 >
                   <div className="text-right">
                     <p className="font-medium">{currentOpponent?.name}</p>
                     <Badge variant="outline" className="text-xs">{getTierName(currentOpponent?.level || 1)}</Badge>
                     {opponentType === 'own' && (
-                      <p className="text-[10px] text-primary mt-0.5">📝 Click for AI notes</p>
+                      <p className="text-[10px] text-primary mt-0.5">📝 Click for character notes</p>
                     )}
                   </div>
                   {opponentType === 'own' && selectedOwnCharacter ? (
