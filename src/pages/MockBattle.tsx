@@ -219,10 +219,11 @@ interface AIOpponent {
   name: string;
   level: number;
   personality: string;
+  mentality?: string;
   powers: string;
   category: string;
   skill?: number;
-  tierReason: string; // Explains why this character is at this tier
+  tierReason: string;
 }
 
 interface PlanetData {
@@ -1446,7 +1447,8 @@ export default function MockBattle() {
           id: selectedOwnCharacter.id,
           name: selectedOwnCharacter.name,
           level: selectedOwnCharacter.level,
-          personality: `Your own character ${selectedOwnCharacter.name}. Roleplay based on their abilities and style.`,
+          personality: selectedOwnCharacter.personality || `A fighter known as ${selectedOwnCharacter.name}.`,
+          mentality: selectedOwnCharacter.mentality || undefined,
           powers: selectedOwnCharacter.powers || 'Unknown powers',
           category: 'own',
           skill: selectedOwnCharacter.stat_skill || 50,
