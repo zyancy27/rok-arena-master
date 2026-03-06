@@ -3701,6 +3701,7 @@ export default function MockBattle() {
                   {battleStarted && selectedCharacter ? (
                     <PrivateNarratorChat
                       battleId={`pve-${selectedCharacter.id}`}
+                      characterId={selectedCharacter.id}
                       characterName={selectedCharacter.name}
                       characterPowers={selectedCharacter.powers ?? null}
                       characterAbilities={selectedCharacter.abilities ?? null}
@@ -3716,6 +3717,18 @@ export default function MockBattle() {
                       glowing={narratorGlowing}
                       mechanicDiscoveries={pendingDiscoveries}
                       onDiscoveriesShown={handleDiscoveriesShown}
+                      participants={[
+                        ...(selectedCharacter ? [{ characterId: selectedCharacter.id, name: selectedCharacter.name, isPlayer: true, turnOrder: 0 }] : []),
+                        ...(currentOpponent ? [{ characterId: currentOpponent.id || 'ai-opponent', name: currentOpponent.name, isPlayer: false, turnOrder: 1 }] : []),
+                      ]}
+                      arenaState={arenaState}
+                      terrainTags={battleEnvironment?.terrainFeatures ? [
+                        battleEnvironment.terrainFeatures.primaryBiome,
+                        ...(battleEnvironment.terrainFeatures.hasVolcanoes ? ['volcanic'] : []),
+                        ...(battleEnvironment.terrainFeatures.hasTundra ? ['frozen'] : []),
+                        ...(battleEnvironment.terrainFeatures.oceanCoverage > 0.5 ? ['aquatic'] : []),
+                      ] : []}
+                      constructs={Object.values(constructs).map(c => ({ id: c.id, name: c.name, creatorId: c.creatorId }))}
                     />
                   ) : (
                     <div className="flex items-center justify-center h-[300px] text-center text-muted-foreground">
