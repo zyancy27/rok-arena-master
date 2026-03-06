@@ -5,13 +5,17 @@
  * The narrator only reveals publicly-shared info about opponents.
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { VoiceTextarea } from '@/components/ui/voice-textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { BookOpen, Send, Sparkles, ShieldAlert, Lock } from 'lucide-react';
+import { BookOpen, Send, Sparkles, ShieldAlert, Lock, Map } from 'lucide-react';
+import TacticalBattleMap from './TacticalBattleMap';
+import { generateTacticalMap } from '@/lib/tactical-map-generator';
+import type { ArenaState } from '@/lib/living-arena';
+import type { DistanceZone } from '@/lib/battle-dice';
 
 interface NarratorMessage {
   id: string;
@@ -29,6 +33,7 @@ export interface MechanicDiscoveryMessage {
 interface PrivateNarratorChatProps {
   battleId: string;
   characterName: string;
+  characterId?: string;
   characterPowers: string | null;
   characterAbilities: string | null;
   battleLocation: string | null;
@@ -50,11 +55,18 @@ interface PrivateNarratorChatProps {
   mechanicDiscoveries?: MechanicDiscoveryMessage[];
   /** Called after discoveries are shown */
   onDiscoveriesShown?: () => void;
+  /** Tactical map data */
+  participants?: Array<{ characterId: string; name: string; isPlayer: boolean; turnOrder: number }>;
+  distanceZone?: DistanceZone;
+  arenaState?: ArenaState;
+  terrainTags?: string[];
+  constructs?: Array<{ id: string; name: string; creatorId: string }>;
 }
 
 export default function PrivateNarratorChat({
   battleId,
   characterName,
+  characterId,
   characterPowers,
   characterAbilities,
   battleLocation,
@@ -67,11 +79,30 @@ export default function PrivateNarratorChat({
   glowing = false,
   mechanicDiscoveries = [],
   onDiscoveriesShown,
+  participants,
+  distanceZone,
+  arenaState,
+  terrainTags,
+  constructs,
 }: PrivateNarratorChatProps) {
   const [messages, setMessages] = useState<NarratorMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const tacticalMapData = useMemo(() => {
+    if (!participants || participants.length === 0) return null;
+    return generateTacticalMap({
+      participants,
+      currentPlayerId: characterId ?? '',
+      distanceZone,
+      arenaState,
+      locationName: battleLocation,
+      terrainTags,
+      constructs,
+    });
+  }, [participants, characterId, distanceZone, arenaState, battleLocation, terrainTags, constructs]);
 
   // Show mechanic discovery messages when the user navigates to this tab
   useEffect(() => {
@@ -194,17 +225,35 @@ export default function PrivateNarratorChat({
   };
 
   return (
-    <div className={`flex flex-col h-full transition-all duration-500 ${
+    <div className={`relative flex flex-col h-full transition-all duration-500 ${
       glowing ? 'ring-2 ring-amber-400/60 shadow-[0_0_20px_rgba(251,191,36,0.3)]' : ''
     }`}>
+      {/* Tactical Map Overlay */}
+      {showMap && tacticalMapData && (
+        <TacticalBattleMap data={tacticalMapData} onClose={() => setShowMap(false)} />
+      )}
+
       {/* Header */}
       <div className="flex items-center gap-2 p-3 border-b border-border bg-gradient-to-r from-amber-500/5 to-transparent">
         <BookOpen className="w-4 h-4 text-amber-400" />
         <span className="text-sm font-semibold text-amber-400">Private Narrator</span>
-        <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-300 ml-auto">
-          <Lock className="w-2.5 h-2.5 mr-1" />
-          Only you see this
-        </Badge>
+        <div className="ml-auto flex items-center gap-1.5">
+          {tacticalMapData && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowMap(true)}
+              className="h-7 px-2 text-[10px] gap-1 text-muted-foreground hover:text-foreground"
+            >
+              <Map className="w-3 h-3" />
+              View Battlefield
+            </Button>
+          )}
+          <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-300">
+            <Lock className="w-2.5 h-2.5 mr-1" />
+            Only you see this
+          </Badge>
+        </div>
       </div>
 
       {/* Messages */}
