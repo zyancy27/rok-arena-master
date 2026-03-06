@@ -61,6 +61,21 @@ import BattleTurnColorPicker from '@/components/battles/BattleTurnColorPicker';
 import BattlefieldEffectsOverlay from '@/components/battles/BattlefieldEffectsOverlay';
 import EnvironmentChatBackground from '@/components/battles/EnvironmentChatBackground';
 import { detectSceneShift, findLatestSceneShift, type SceneShift } from '@/lib/scene-location-tracker';
+import { createArenaState, processArenaAction, getArenaContext, type ArenaState } from '@/lib/living-arena';
+import {
+  shouldTriggerWhisper,
+  getWhisperMessage,
+  shouldTriggerNarratorCuriosity,
+  getNarratorCuriosityMessage,
+  detectHiddenInteraction,
+  updateBattlefieldMemory,
+  getBattlefieldMemoryContext,
+  createBattlefieldMemory,
+  type BattlefieldMemory,
+} from '@/lib/immersion-engine';
+import ChatBubbleImmersion from '@/components/battles/ChatBubbleImmersion';
+import AmbientOverlay, { WhisperMessage, NarratorCuriosityMoment } from '@/components/battles/AmbientOverlay';
+import ArenaStatusBar from '@/components/battles/ArenaStatusBar';
 import { CharacterStatusOverlay } from '@/components/battles/CharacterStatusOverlay';
 import { useBattleTurnColor } from '@/hooks/use-battle-turn-color';
 import { useBattlefieldEffects } from '@/components/battles/useBattlefieldEffects';
@@ -1152,6 +1167,11 @@ export default function MockBattle() {
   const [availablePlanets, setAvailablePlanets] = useState<PlanetData[]>([]);
   const [turnNumber, setTurnNumber] = useState(1);
   const [playerArenaDetails, setPlayerArenaDetails] = useState<string[]>([]);
+  // Immersion systems
+  const [arenaState, setArenaState] = useState<ArenaState>(createArenaState());
+  const [battlefieldMemory, setBattlefieldMemory] = useState<BattlefieldMemory>(createBattlefieldMemory());
+  const [whisperMessages, setWhisperMessages] = useState<Array<{ id: string; message: string }>>([]);
+  const [curiosityMoments, setCuriosityMoments] = useState<Array<{ id: string; message: string }>>([]);
   // New states for turn order and physics
   const [turnOrderDetermined, setTurnOrderDetermined] = useState(false);
   const [userGoesFirst, setUserGoesFirst] = useState(true);
@@ -2200,6 +2220,29 @@ export default function MockBattle() {
     if (activeChannel === 'in_universe') {
       processBattlefieldEffect(input);
       
+      // === IMMERSION PROCESSING ===
+      // Update living arena state
+      setArenaState(prev => processArenaAction(prev, input));
+      // Update battlefield memory
+      setBattlefieldMemory(prev => updateBattlefieldMemory(prev, input, turnNumber));
+      // Check for whisper trigger
+      if (shouldTriggerWhisper(turnNumber)) {
+        const wId = `whisper-${Date.now()}`;
+        setWhisperMessages(prev => [...prev, { id: wId, message: getWhisperMessage() }]);
+        setTimeout(() => setWhisperMessages(prev => prev.filter(w => w.id !== wId)), 8000);
+      }
+      // Check for narrator curiosity
+      if (shouldTriggerNarratorCuriosity(input)) {
+        const cId = `curiosity-${Date.now()}`;
+        setCuriosityMoments(prev => [...prev, { id: cId, message: getNarratorCuriosityMessage() }]);
+        setTimeout(() => setCuriosityMoments(prev => prev.filter(c => c.id !== cId)), 6000);
+      }
+      // Check for hidden interaction
+      const hiddenInteraction = detectHiddenInteraction(input);
+      if (hiddenInteraction) {
+        setPlayerArenaDetails(prev => [...prev.slice(-5), `[HIDDEN_INTERACTION:${hiddenInteraction.category}] Player: "${hiddenInteraction.phrase}" — consider revealing a subtle environmental response.`]);
+      }
+      
       // Extract arena details from player message (environmental descriptions)
       const arenaPatterns = /(?:the arena|the ground|the floor|the walls|the ceiling|the sky|nearby|around (?:us|them|here)|there(?:'s| is) a|surrounded by|the (?:air|wind|rain|snow|fog|mist|smoke|light|darkness)|(?:crumbling|burning|frozen|flooded|shattered|cracked|broken) )/i;
       if (arenaPatterns.test(input) && input.length > 20) {
@@ -2635,7 +2678,7 @@ export default function MockBattle() {
             ...currentOpponent,
             skill: opponentSkill,
           },
-          userMessage: input + skillEventNote + playerAttackContext + defenseEnforcementPrompt + overchargeAIContext + momentumAIContext + psychAIContext + adaptiveAIContext + chargeReleaseContext + chargeActiveContext + perceptionContext + hitDetectionContext + (arenaModifiersEnabled ? arenaModifiers.combinedPrompt : '') + (playerArenaDetails.length > 0 ? `\n\n[ARENA DETAILS established by the player (treat as canon): ${playerArenaDetails.slice(-4).join('; ')}]` : ''),
+          userMessage: input + skillEventNote + playerAttackContext + defenseEnforcementPrompt + overchargeAIContext + momentumAIContext + psychAIContext + adaptiveAIContext + chargeReleaseContext + chargeActiveContext + perceptionContext + hitDetectionContext + (arenaModifiersEnabled ? arenaModifiers.combinedPrompt : '') + (playerArenaDetails.length > 0 ? `\n\n[ARENA DETAILS established by the player (treat as canon): ${playerArenaDetails.slice(-4).join('; ')}]` : '') + getArenaContext(arenaState) + getBattlefieldMemoryContext(battlefieldMemory),
           channel: activeChannel,
           messageHistory: messages.slice(-10),
           battleLocation,
@@ -2692,6 +2735,9 @@ export default function MockBattle() {
       // Process battlefield effects from AI message
       if (activeChannel === 'in_universe') {
         processBattlefieldEffect(response.data.response);
+        // === IMMERSION: Process arena & memory from AI action ===
+        setArenaState(prev => processArenaAction(prev, response.data.response));
+        setBattlefieldMemory(prev => updateBattlefieldMemory(prev, response.data.response, turnNumber));
         // Process character status effects from AI response (affects the user)
         processCharacterStatusEffect(response.data.response, true);
         // Process SFX from AI response
@@ -3604,6 +3650,8 @@ export default function MockBattle() {
                 </TabsList>
 
                 <TabsContent value="in_universe" className="mt-0">
+                  {/* Arena Status Bar */}
+                  <ArenaStatusBar arenaState={arenaState} className="mb-2" />
                   <MessageArea 
                     messages={messages.filter(m => m.channel === 'in_universe')}
                     diceRollMessages={diceRollMessages}
@@ -3618,6 +3666,21 @@ export default function MockBattle() {
                     userCharacterName={selectedCharacter?.name}
                     battleLocation={battleLocation}
                     activeSceneLocation={activeSceneLocation}
+                    userCharacterTraits={selectedCharacter ? {
+                      powers: selectedCharacter.powers,
+                      abilities: selectedCharacter.abilities,
+                      personality: selectedCharacter.personality ?? null,
+                      skillStat: selectedCharacter.stat_skill,
+                    } : undefined}
+                    opponentTraits={currentOpponent ? {
+                      powers: currentOpponent.powers,
+                      abilities: currentOpponent.powers,
+                      personality: currentOpponent.personality,
+                      skillStat: currentOpponent.skill,
+                    } : undefined}
+                    whisperMessages={whisperMessages}
+                    curiosityMoments={curiosityMoments}
+                    environmentTags={battleEnvironment?.terrainFeatures ? Object.keys(battleEnvironment.terrainFeatures).filter(k => (battleEnvironment.terrainFeatures as any)?.[k]) : []}
                   />
                 </TabsContent>
                 <TabsContent value="out_of_universe" className="mt-0">
@@ -3878,6 +3941,11 @@ function MessageArea({
   userCharacterName,
   battleLocation,
   activeSceneLocation,
+  userCharacterTraits,
+  opponentTraits,
+  whisperMessages = [],
+  curiosityMoments = [],
+  environmentTags = [],
 }: { 
   messages: Message[]; 
   diceRollMessages?: DiceRollMessage[];
@@ -3892,6 +3960,11 @@ function MessageArea({
   userCharacterName?: string;
   battleLocation?: string;
   activeSceneLocation?: string | null;
+  userCharacterTraits?: { powers: string | null; abilities: string | null; personality: string | null; skillStat?: number | null };
+  opponentTraits?: { powers: string | null; abilities: string | null; personality: string | null; skillStat?: number | null };
+  whisperMessages?: Array<{ id: string; message: string }>;
+  curiosityMoments?: Array<{ id: string; message: string }>;
+  environmentTags?: string[];
 }) {
   return (
     <TurnIndicatorWrapper
@@ -3908,6 +3981,11 @@ function MessageArea({
         {/* Battlefield Effects Overlay - temporary message-triggered effects */}
         {isInUniverse && battlefieldEffects.length > 0 && (
           <BattlefieldEffectsOverlay effects={battlefieldEffects} />
+        )}
+        
+        {/* Ambient Overlay — creatures, sound visualization */}
+        {isInUniverse && (
+          <AmbientOverlay environmentTags={environmentTags} isActive={!!battleLocation} />
         )}
         
         <ScrollArea className="min-h-[300px] h-[50vh] max-h-[60vh] rounded-lg border border-border p-4 relative z-10" ref={scrollRef}>
@@ -3953,43 +4031,50 @@ function MessageArea({
               
               return (
                 <div key={message.id}>
-                  <div
-                    className={`relative p-3 rounded-lg overflow-hidden ${
-                      message.role === 'user'
-                        ? 'bg-primary/20 border-l-4 border-primary ml-8'
-                        : message.role === 'narrator'
-                        ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-l-4 border-purple-500 mx-4 italic'
-                        : message.role === 'system'
-                        ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border-l-4 border-cyan-500 mx-4 text-center'
-                        : 'bg-muted/50 border-l-4 border-accent mr-8'
-                    }`}
+                  <ChatBubbleImmersion
+                    messageText={message.content}
+                    messageRole={message.role}
+                    characterTraits={message.role === 'user' ? userCharacterTraits : opponentTraits}
+                    isInUniverse={isInUniverse}
                   >
-                    {/* Snapshot-based Status Effect Overlay — permanent per message */}
-                    {snapshotEffects.length > 0 && (
-                      <CharacterStatusOverlay 
-                        effects={snapshotEffects} 
-                        className="rounded-lg"
-                      />
-                    )}
-                    
-                    <p className={`text-xs mb-1 relative z-10 ${
-                      message.role === 'narrator' 
-                        ? 'text-purple-400 font-semibold' 
-                        : message.role === 'system'
-                        ? 'text-cyan-400 font-semibold'
-                        : 'text-muted-foreground'
-                    }`}>
-                      {message.characterName}
-                      {/* Perception + Hit Detection indicators */}
-                      {message.perceptionResult && (
-                        <PerceptionIndicator result={message.perceptionResult} />
+                    <div
+                      className={`relative p-3 rounded-lg overflow-hidden ${
+                        message.role === 'user'
+                          ? 'bg-primary/20 border-l-4 border-primary ml-8'
+                          : message.role === 'narrator'
+                          ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-l-4 border-purple-500 mx-4 italic'
+                          : message.role === 'system'
+                          ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border-l-4 border-cyan-500 mx-4 text-center'
+                          : 'bg-muted/50 border-l-4 border-accent mr-8'
+                      }`}
+                    >
+                      {/* Snapshot-based Status Effect Overlay — permanent per message */}
+                      {snapshotEffects.length > 0 && (
+                        <CharacterStatusOverlay 
+                          effects={snapshotEffects} 
+                          className="rounded-lg"
+                        />
                       )}
-                      {message.hitDetectionResult?.shouldTriggerHitCheck && (
-                        <HitDetectionBadge result={message.hitDetectionResult} />
-                      )}
-                    </p>
-                    <p className="whitespace-pre-wrap relative z-10">{message.content}</p>
-                  </div>
+                      
+                      <p className={`text-xs mb-1 relative z-10 ${
+                        message.role === 'narrator' 
+                          ? 'text-purple-400 font-semibold' 
+                          : message.role === 'system'
+                          ? 'text-cyan-400 font-semibold'
+                          : 'text-muted-foreground'
+                      }`}>
+                        {message.characterName}
+                        {/* Perception + Hit Detection indicators */}
+                        {message.perceptionResult && (
+                          <PerceptionIndicator result={message.perceptionResult} />
+                        )}
+                        {message.hitDetectionResult?.shouldTriggerHitCheck && (
+                          <HitDetectionBadge result={message.hitDetectionResult} />
+                        )}
+                      </p>
+                      <p className="whitespace-pre-wrap relative z-10">{message.content}</p>
+                    </div>
+                  </ChatBubbleImmersion>
                   {/* Show construct events after user messages */}
                   {message.role === 'user' && isInUniverse && relevantConstructEvents.length > 0 && (
                     <div className="mt-2 space-y-2">
@@ -4021,6 +4106,14 @@ function MessageArea({
                 </div>
               );
             })}
+            {/* Whisper Messages */}
+            {whisperMessages.map(w => (
+              <WhisperMessage key={w.id} message={w.message} />
+            ))}
+            {/* Narrator Curiosity Moments */}
+            {curiosityMoments.map(c => (
+              <NarratorCuriosityMoment key={c.id} message={c.message} />
+            ))}
             {isLoading && <TypingIndicator opponentName={opponentName} />}
           </div>
         )}
