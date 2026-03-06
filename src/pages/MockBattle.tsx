@@ -60,6 +60,7 @@ import TurnIndicatorWrapper from '@/components/battles/TurnIndicatorWrapper';
 import BattleTurnColorPicker from '@/components/battles/BattleTurnColorPicker';
 import BattlefieldEffectsOverlay from '@/components/battles/BattlefieldEffectsOverlay';
 import EnvironmentChatBackground from '@/components/battles/EnvironmentChatBackground';
+import { detectSceneShift, findLatestSceneShift, type SceneShift } from '@/lib/scene-location-tracker';
 import { CharacterStatusOverlay } from '@/components/battles/CharacterStatusOverlay';
 import { useBattleTurnColor } from '@/hooks/use-battle-turn-color';
 import { useBattlefieldEffects } from '@/components/battles/useBattlefieldEffects';
@@ -1141,6 +1142,8 @@ export default function MockBattle() {
   };
   const [battleStarted, setBattleStarted] = useState(false);
   const [battleLocation, setBattleLocation] = useState('');
+  // Dynamic scene location — updates when messages describe a location change
+  const [activeSceneLocation, setActiveSceneLocation] = useState<string | null>(null);
   const { settings: userSettings } = useUserSettings();
   const dynamicEnvironment = userSettings.battle.dynamicBattlefieldEffects;
   const narratorFrequency = userSettings.battle.narratorFrequency;
@@ -1439,7 +1442,19 @@ export default function MockBattle() {
     }
   }, [selectedPlanetData, dynamicEnvironment]);
 
-  // Get the current opponent (either AI or own character)
+  // Dynamically track scene location from in-universe messages
+  useEffect(() => {
+    if (!battleStarted || messages.length === 0) return;
+    const inUniverseMessages = messages.filter(m => m.channel === 'in_universe');
+    if (inUniverseMessages.length < 2) return; // need at least a couple messages before detecting shifts
+    // Only check the last 6 messages for performance
+    const recent = inUniverseMessages.slice(-6);
+    const shift = findLatestSceneShift(recent);
+    if (shift) {
+      setActiveSceneLocation(shift.newLocation);
+    }
+  }, [messages, battleStarted]);
+
   const currentOpponent = opponentType === 'ai' 
     ? selectedOpponent 
     : selectedOwnCharacter 
@@ -2785,6 +2800,7 @@ export default function MockBattle() {
     setMessages([]);
     setBattleStarted(false);
     setBattleLocation('');
+    setActiveSceneLocation(null);
     setSelectedPlanetData(null);
     setBattleEnvironment(null);
     setUseCustomLocation(false);
@@ -3601,6 +3617,7 @@ export default function MockBattle() {
                     battlefieldEffects={battlefieldEffects}
                     userCharacterName={selectedCharacter?.name}
                     battleLocation={battleLocation}
+                    activeSceneLocation={activeSceneLocation}
                   />
                 </TabsContent>
                 <TabsContent value="out_of_universe" className="mt-0">
@@ -3860,6 +3877,7 @@ function MessageArea({
   battlefieldEffects = [],
   userCharacterName,
   battleLocation,
+  activeSceneLocation,
 }: { 
   messages: Message[]; 
   diceRollMessages?: DiceRollMessage[];
@@ -3873,6 +3891,7 @@ function MessageArea({
   battlefieldEffects?: ActiveBattlefieldEffect[];
   userCharacterName?: string;
   battleLocation?: string;
+  activeSceneLocation?: string | null;
 }) {
   return (
     <TurnIndicatorWrapper
@@ -3881,9 +3900,9 @@ function MessageArea({
       opponentColor="#EF4444"
     >
       <div className="relative">
-        {/* Persistent Environment Background tied to battle location */}
+        {/* Persistent Environment Background — dynamically tracks scene changes */}
         {isInUniverse && battleLocation && (
-          <EnvironmentChatBackground location={battleLocation} />
+          <EnvironmentChatBackground location={activeSceneLocation || battleLocation} />
         )}
         
         {/* Battlefield Effects Overlay - temporary message-triggered effects */}

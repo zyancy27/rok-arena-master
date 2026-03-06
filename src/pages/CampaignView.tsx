@@ -25,6 +25,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import EnvironmentChatBackground from '@/components/battles/EnvironmentChatBackground';
+import { findLatestSceneShift } from '@/lib/scene-location-tracker';
 import DiceRollChatMessage from '@/components/battles/DiceRollChatMessage';
 import HitDetectionBadge from '@/components/battles/HitDetectionBadge';
 import { CharacterStatusOverlay } from '@/components/battles/CharacterStatusOverlay';
@@ -92,7 +93,18 @@ export default function CampaignView() {
   const [myJoinRequest, setMyJoinRequest] = useState<any | null>(null);
   const [campaignEnemies, setCampaignEnemies] = useState<CampaignEnemy[]>([]);
 
-  // Campaign trading between party members
+  // Dynamic scene location from messages
+  const [activeSceneLocation, setActiveSceneLocation] = useState<string | null>(null);
+  useEffect(() => {
+    if (!messages.length) return;
+    const adventureMessages = messages
+      .filter(m => (m.channel as string) === 'adventure' || m.channel === 'in_universe')
+      .map(m => ({ content: m.content, role: m.sender_type, channel: 'in_universe' }));
+    if (adventureMessages.length < 2) return;
+    const shift = findLatestSceneShift(adventureMessages.slice(-6));
+    if (shift) setActiveSceneLocation(shift.newLocation);
+  }, [messages]);
+
   const campaignTrades = useCampaignTrades(campaignId, myParticipant?.id);
 
   // Ambient environment sounds for campaign
@@ -1339,8 +1351,8 @@ export default function CampaignView() {
 
             <TabsContent value="adventure" className="flex-1 flex flex-col mt-0 min-h-0 data-[state=inactive]:hidden">
               <div className="relative flex flex-col flex-1 min-h-0">
-                {/* Persistent Environment Background */}
-                <EnvironmentChatBackground location={campaign.current_zone} />
+                {/* Persistent Environment Background — dynamically tracks scene changes */}
+                <EnvironmentChatBackground location={activeSceneLocation || campaign.current_zone} />
 
                 {/* Battlefield Effects Overlay */}
                 <BattlefieldEffectsOverlay effects={battlefieldEffects} className="z-[1]" />
