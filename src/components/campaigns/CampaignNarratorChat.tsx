@@ -234,16 +234,34 @@ export default function CampaignNarratorChat({
   const inactiveParticipants = participants.filter(p => !p.is_active);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="relative flex flex-col h-full">
+      {/* Tactical Map Overlay */}
+      {showMap && tacticalMapData && (
+        <TacticalBattleMap data={tacticalMapData} onClose={() => setShowMap(false)} />
+      )}
+
       {/* Campaign Info Header */}
       <div className="px-3 pt-3 pb-2 border-b border-border space-y-2">
         <div className="flex items-center gap-2 min-w-0">
           <BookOpen className="w-4 h-4 text-amber-400 shrink-0" />
           <span className="text-xs sm:text-sm font-semibold text-amber-400 truncate">{campaignName}</span>
-          <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-300 ml-auto shrink-0">
-            <Lock className="w-2.5 h-2.5 mr-1" />
-            Private
-          </Badge>
+          <div className="ml-auto flex items-center gap-1.5 shrink-0">
+            {tacticalMapData && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowMap(true)}
+                className="h-6 px-2 text-[10px] gap-1 text-muted-foreground hover:text-foreground"
+              >
+                <Crosshair className="w-3 h-3" />
+                Map
+              </Button>
+            )}
+            <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-300">
+              <Lock className="w-2.5 h-2.5 mr-1" />
+              Private
+            </Badge>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
           <span className="whitespace-nowrap">{getTimeEmoji(timeOfDay as any)} {timeOfDay}</span>
