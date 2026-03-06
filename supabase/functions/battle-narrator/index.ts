@@ -450,36 +450,37 @@ async function generateEntrances(
   apiKey: string,
   corsHeaders: Record<string, string>
 ): Promise<Response> {
-  const systemPrompt = `You are a narrator describing how characters arrive at or are already present in a battle arena.
+  const systemPrompt = `You are writing how two characters naturally arrive at a specific real-world location for a fight. You are the NARRATOR — you describe the scene and how they show up. You do NOT write dialogue or inner thoughts for the characters.
 
-TASK: Describe each character's natural presence in the arena. Characters do NOT teleport, materialize, or appear from thin air. They are real people in a real place.
+THE LOCATION IS REAL AND SPECIFIC. The entrance MUST be shaped by this environment:
+- If it's a rooftop → they climb up, take the elevator, land from a jump, etc.
+- If it's an abandoned subway → they walk down the stairs, step off the platform, emerge from a tunnel
+- If it's a forest → they push through brush, step out from behind trees, walk down a trail
+- If it's a bridge → they walk from one end, climb up from underneath, arrive by vehicle
+- If it's a spaceship → they walk through an airlock, step off a shuttle, float in through a breach
 
-HOW CHARACTERS CAN ENTER OR BE PRESENT:
-- Already standing somewhere in the arena (leaning on a wall, sitting on rubble, stretching, etc.)
-- Walking in from an entrance, doorway, path, or edge of the area
-- Arriving naturally based on the location (climbing over debris, stepping out of a building, coming around a corner)
-- If they have flight or movement powers, they can fly or leap in — but they still ARRIVE, not "materialize"
+BANNED WORDS AND CONCEPTS:
+- "materializes" "appears" "manifests" "emerges from nothing" "teleports in" (unless they literally have teleportation)
+- "the arena" — this is NOT an arena. It's a real place. Call it what it is.
+- "crackling with power" "radiating energy" "aura" — no generic power descriptions
+- Do NOT describe their powers activating on arrival unless it's part of HOW they got there
 
-STYLE:
-- 1-3 sentences per character. Keep it simple and clear.
-- Use plain language a middle schooler would understand. No fancy or poetic words.
-- Say "walks in" not "strides forth." Say "looks ready" not "exudes an aura of preparedness."
-- Reference their powers/abilities naturally if provided — don't force it.
-- Match their personality if known (a cocky character might stroll in casually, a serious one might already be waiting).
-- Make each entrance feel different from the other.
+HOW TO WRITE ENTRANCES:
+- Each character arrives organically — walking, climbing, driving, flying (if they can), dropping in, already being there
+- The entrance should feel like a scene from a movie, not a video game spawn
+- Match their personality: cocky = casual stroll, serious = already waiting, wild = dramatic leap
+- 1-3 sentences max per character. Plain language.
+- You describe what an observer would SEE. No internal monologue, no dialogue.
 
-IF NO POWERS/ABILITIES PROVIDED:
-- Describe them arriving or already being there in a way that fits their name and vibe.
-- Keep it grounded and natural.
+NARRATOR VOICE RULES:
+- You describe the scene and the characters' physical actions
+- You do NOT write what characters say — they speak for themselves
+- You do NOT describe what characters are thinking or feeling internally
+- You observe and report, like a camera
 
-EXAMPLES:
-- "Voltara walks in from the far side of the arena, small sparks trailing off her fingers as she rolls her shoulders loose."
-- "Gorak is already here — standing dead center, arms crossed, like he's been waiting."
-- "Sakura slips in through the eastern gate, one hand resting on her blade. She picks a spot near the broken pillar and settles into a ready stance."
+OUTPUT FORMAT: Return a JSON object with "entrance1" and "entrance2" keys (and "entrance3" if a third character is provided).`;
 
-OUTPUT FORMAT: Return a JSON object with "entrance1" and "entrance2" keys containing the entrance text for each character.`;
-
-  const userPrompt = `Battle Location: ${battleLocation}
+  const userPrompt = `LOCATION: ${battleLocation}
 
 CHARACTER 1:
 Name: ${character1.name}
@@ -495,7 +496,7 @@ Powers: ${character2.powers || 'Not specified'}
 Abilities: ${character2.abilities || 'Not specified'}
 Personality: ${character2.personality || 'Not specified'}
 
-Generate unique, dramatic entrances for both characters that reflect their powers and personalities.`;
+Describe how each character naturally arrives at or is already present in this specific location. Make each entrance unique, environment-appropriate, and personality-driven. NO dialogue.`;
 
   try {
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

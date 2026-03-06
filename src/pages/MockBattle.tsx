@@ -1522,16 +1522,61 @@ export default function MockBattle() {
       characterName: '⚔️ Battle System',
     });
     
-    // Arena setup message
+    // AI character intro line (dialogue only — the narrator handles the scene)
     introMessages.push({
       id: crypto.randomUUID(),
       role: 'ai',
-      content: `*The arena shifts and transforms into ${battleLocation}*\n\n*${currentOpponent.name} materializes in the arena, ${currentOpponent.level <= 2 ? 'radiating calm focus' : currentOpponent.level <= 4 ? 'crackling with power' : 'warping reality around them'}*\n\n"${getOpponentIntro()}"`,
+      content: `"${getOpponentIntro()}"`,
       channel: 'in_universe',
       characterName: currentOpponent.name,
     });
     
     setMessages(introMessages);
+    
+    // Generate AI entrance narration asynchronously (narrator describes arrivals)
+    (async () => {
+      try {
+        const entranceResponse = await supabase.functions.invoke('battle-narrator', {
+          body: {
+            type: 'entrance',
+            character1: {
+              name: selectedCharacter.name,
+              level: selectedCharacter.level,
+              powers: selectedCharacter.powers,
+              abilities: selectedCharacter.abilities,
+              personality: selectedCharacter.personality,
+            },
+            character2: {
+              name: currentOpponent.name,
+              level: currentOpponent.level,
+              powers: currentOpponent.powers,
+              abilities: (currentOpponent as any).abilities || null,
+              personality: currentOpponent.personality || (currentOpponent as any).description || null,
+            },
+            battleLocation,
+          },
+        });
+        if (!entranceResponse.error && entranceResponse.data) {
+          const { entrance1, entrance2 } = entranceResponse.data;
+          const entranceNarration = `${entrance1}\n\n${entrance2}`;
+          const entranceMsg: Message = {
+            id: crypto.randomUUID(),
+            role: 'narrator',
+            content: entranceNarration,
+            channel: 'in_universe',
+            characterName: '🎙️ Narrator',
+          };
+          setMessages(prev => {
+            const copy = [...prev];
+            // Insert entrance narration after the system message (index 1), before AI dialogue
+            copy.splice(1, 0, entranceMsg);
+            return copy;
+          });
+        }
+      } catch (e) {
+        console.error('Entrance narration error:', e);
+      }
+    })();
     
     // Generate battlefield intro narration asynchronously (only when narrator is enabled)
     if (narratorFrequency !== 'off') {
