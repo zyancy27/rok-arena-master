@@ -66,6 +66,7 @@ interface PrivateNarratorChatProps {
 export default function PrivateNarratorChat({
   battleId,
   characterName,
+  characterId,
   characterPowers,
   characterAbilities,
   battleLocation,
@@ -78,11 +79,30 @@ export default function PrivateNarratorChat({
   glowing = false,
   mechanicDiscoveries = [],
   onDiscoveriesShown,
+  participants,
+  distanceZone,
+  arenaState,
+  terrainTags,
+  constructs,
 }: PrivateNarratorChatProps) {
   const [messages, setMessages] = useState<NarratorMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const tacticalMapData = useMemo(() => {
+    if (!participants || participants.length === 0) return null;
+    return generateTacticalMap({
+      participants,
+      currentPlayerId: characterId ?? '',
+      distanceZone,
+      arenaState,
+      locationName: battleLocation,
+      terrainTags,
+      constructs,
+    });
+  }, [participants, characterId, distanceZone, arenaState, battleLocation, terrainTags, constructs]);
 
   // Show mechanic discovery messages when the user navigates to this tab
   useEffect(() => {
