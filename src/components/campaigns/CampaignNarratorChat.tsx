@@ -3,7 +3,7 @@
  * Includes campaign info, party panel, inventory, and private narrator queries.
  */
 
-import { useState, useRef, useEffect, type ReactNode } from 'react';
+import { useState, useRef, useEffect, useMemo, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -16,13 +16,15 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { supabase } from '@/integrations/supabase/client';
 import {
   BookOpen, Send, Sparkles, Lock, Globe, User, Map, Swords,
-  Heart, Zap, Users, ChevronDown, MapPin, RefreshCw, LogOut, Play, Backpack,
+  Heart, Zap, Users, ChevronDown, MapPin, RefreshCw, LogOut, Play, Backpack, Crosshair,
 } from 'lucide-react';
 import CampaignInventoryPanel, { type InventoryItem } from './CampaignInventoryPanel';
 import CampaignTradePanel from './CampaignTradePanel';
 import type { CampaignTrade } from '@/hooks/use-campaign-trades';
 import { getTimeEmoji } from '@/lib/campaign-types';
 import type { CampaignParticipant } from '@/lib/campaign-types';
+import TacticalBattleMap from '@/components/battles/TacticalBattleMap';
+import { generateTacticalMap } from '@/lib/tactical-map-generator';
 
 interface NarratorMessage {
   id: string;
@@ -117,7 +119,24 @@ export default function CampaignNarratorChat({
   const [isLoading, setIsLoading] = useState(false);
   const [partyOpen, setPartyOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const tacticalMapData = useMemo(() => {
+    const mapParticipants = participants.filter(p => p.is_active).map(p => ({
+      characterId: p.character_id,
+      name: p.character?.name || 'Unknown',
+      isPlayer: p.user_id === myParticipant?.user_id,
+      turnOrder: 0,
+    }));
+    if (mapParticipants.length === 0) return null;
+    return generateTacticalMap({
+      participants: mapParticipants,
+      currentPlayerId: myParticipant?.character_id ?? '',
+      locationName: currentZone,
+      terrainTags: environmentTags,
+    });
+  }, [participants, myParticipant, currentZone, environmentTags]);
 
   // Show mechanic discovery messages when queued
   useEffect(() => {
@@ -215,16 +234,34 @@ export default function CampaignNarratorChat({
   const inactiveParticipants = participants.filter(p => !p.is_active);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="relative flex flex-col h-full">
+      {/* Tactical Map Overlay */}
+      {showMap && tacticalMapData && (
+        <TacticalBattleMap data={tacticalMapData} onClose={() => setShowMap(false)} />
+      )}
+
       {/* Campaign Info Header */}
       <div className="px-3 pt-3 pb-2 border-b border-border space-y-2">
         <div className="flex items-center gap-2 min-w-0">
           <BookOpen className="w-4 h-4 text-amber-400 shrink-0" />
           <span className="text-xs sm:text-sm font-semibold text-amber-400 truncate">{campaignName}</span>
-          <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-300 ml-auto shrink-0">
-            <Lock className="w-2.5 h-2.5 mr-1" />
-            Private
-          </Badge>
+          <div className="ml-auto flex items-center gap-1.5 shrink-0">
+            {tacticalMapData && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowMap(true)}
+                className="h-6 px-2 text-[10px] gap-1 text-muted-foreground hover:text-foreground"
+              >
+                <Crosshair className="w-3 h-3" />
+                Map
+              </Button>
+            )}
+            <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-300">
+              <Lock className="w-2.5 h-2.5 mr-1" />
+              Private
+            </Badge>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
           <span className="whitespace-nowrap">{getTimeEmoji(timeOfDay as any)} {timeOfDay}</span>
