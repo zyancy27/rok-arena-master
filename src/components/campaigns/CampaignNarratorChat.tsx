@@ -25,11 +25,6 @@ import { getTimeEmoji } from '@/lib/campaign-types';
 import type { CampaignParticipant } from '@/lib/campaign-types';
 import TacticalBattleMap from '@/components/battles/TacticalBattleMap';
 import { generateTacticalMap } from '@/lib/tactical-map-generator';
-import CampaignInventoryPanel, { type InventoryItem } from './CampaignInventoryPanel';
-import CampaignTradePanel from './CampaignTradePanel';
-import type { CampaignTrade } from '@/hooks/use-campaign-trades';
-import { getTimeEmoji } from '@/lib/campaign-types';
-import type { CampaignParticipant } from '@/lib/campaign-types';
 
 interface NarratorMessage {
   id: string;
