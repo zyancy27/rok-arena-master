@@ -5,13 +5,17 @@
  * The narrator only reveals publicly-shared info about opponents.
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { VoiceTextarea } from '@/components/ui/voice-textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { BookOpen, Send, Sparkles, ShieldAlert, Lock } from 'lucide-react';
+import { BookOpen, Send, Sparkles, ShieldAlert, Lock, Map } from 'lucide-react';
+import TacticalBattleMap from './TacticalBattleMap';
+import { generateTacticalMap } from '@/lib/tactical-map-generator';
+import type { ArenaState } from '@/lib/living-arena';
+import type { DistanceZone } from '@/lib/battle-dice';
 
 interface NarratorMessage {
   id: string;
