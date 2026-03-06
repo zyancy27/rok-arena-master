@@ -2634,3 +2634,453 @@
   0%, 100% { filter: brightness(1) drop-shadow(0 0 0px transparent); }
   50% { filter: brightness(1.2) drop-shadow(0 0 4px var(--glow-color, transparent)); }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   ROK IMMERSIVE INTERACTION SYSTEM
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Character Aura Effects ─────────────────────────────────── */
+
+.aura-fire { background: radial-gradient(ellipse at center, hsl(15 90% 50% / 0.15), transparent 70%); }
+.aura-ice { background: radial-gradient(ellipse at center, hsl(200 80% 70% / 0.12), transparent 70%); }
+.aura-electric { background: radial-gradient(ellipse at center, hsl(55 90% 60% / 0.12), transparent 70%); }
+.aura-dark { background: radial-gradient(ellipse at center, hsl(270 60% 30% / 0.2), transparent 70%); }
+.aura-light { background: radial-gradient(ellipse at center, hsl(45 90% 70% / 0.12), transparent 70%); }
+.aura-nature { background: radial-gradient(ellipse at center, hsl(120 50% 45% / 0.12), transparent 70%); }
+.aura-psychic { background: radial-gradient(ellipse at center, hsl(280 50% 70% / 0.12), transparent 70%); }
+.aura-void { background: radial-gradient(ellipse at center, hsl(240 50% 10% / 0.25), transparent 70%); }
+.aura-cosmic { background: radial-gradient(ellipse at center, hsl(260 40% 60% / 0.12), transparent 70%); }
+.aura-metal { background: radial-gradient(ellipse at center, hsl(200 10% 60% / 0.1), transparent 70%); }
+.aura-water { background: radial-gradient(ellipse at center, hsl(200 70% 55% / 0.12), transparent 70%); }
+.aura-wind { background: radial-gradient(ellipse at center, hsl(180 50% 80% / 0.08), transparent 70%); }
+.aura-toxic { background: radial-gradient(ellipse at center, hsl(100 90% 50% / 0.12), transparent 70%); }
+
+/* ── Emotional Text Effects ─────────────────────────────────── */
+
+.emotion-fear {
+  animation: emotion-tremble 0.15s ease-in-out infinite;
+}
+
+.emotion-anger {
+  text-shadow: 0 0 8px hsl(0 70% 50% / 0.4);
+  animation: emotion-pulse-red 1.5s ease-in-out infinite;
+}
+
+.emotion-confusion {
+  animation: emotion-shift 2s ease-in-out infinite;
+}
+
+.emotion-determination {
+  text-shadow: 0 0 6px hsl(var(--cosmic-gold) / 0.3);
+}
+
+.emotion-sorrow {
+  opacity: 0.85;
+  filter: saturate(0.7);
+}
+
+.emotion-excitement {
+  text-shadow: 0 0 5px hsl(var(--accent) / 0.3);
+}
+
+@keyframes emotion-tremble {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-1px); }
+  75% { transform: translateX(1px); }
+}
+
+@keyframes emotion-pulse-red {
+  0%, 100% { text-shadow: 0 0 4px hsl(0 70% 50% / 0.2); }
+  50% { text-shadow: 0 0 12px hsl(0 70% 50% / 0.5); }
+}
+
+@keyframes emotion-shift {
+  0%, 100% { transform: translateX(0); letter-spacing: normal; }
+  33% { transform: translateX(0.5px); letter-spacing: 0.3px; }
+  66% { transform: translateX(-0.5px); letter-spacing: -0.2px; }
+}
+
+/* ── Dimensional Glitch Effects ─────────────────────────────── */
+
+.glitch-dimensional {
+  animation: glitch-flicker 0.1s ease-in-out 3;
+}
+
+.glitch-temporal {
+  animation: glitch-temporal-stutter 0.3s steps(3) 2;
+}
+
+.glitch-reality {
+  animation: glitch-distort 0.2s ease-in-out 2;
+}
+
+.glitch-digital {
+  animation: glitch-digital-scan 0.15s steps(2) 3;
+}
+
+@keyframes glitch-flicker {
+  0%, 100% { opacity: 1; transform: none; }
+  50% { opacity: 0.7; transform: translateX(2px) skewX(1deg); }
+}
+
+@keyframes glitch-temporal-stutter {
+  0% { clip-path: inset(0 0 0 0); }
+  33% { clip-path: inset(20% 0 60% 0); transform: translateX(-2px); }
+  66% { clip-path: inset(60% 0 10% 0); transform: translateX(2px); }
+  100% { clip-path: inset(0 0 0 0); transform: none; }
+}
+
+@keyframes glitch-distort {
+  0%, 100% { transform: none; filter: none; }
+  25% { transform: skewX(2deg) translateX(1px); filter: hue-rotate(15deg); }
+  75% { transform: skewX(-1deg) translateX(-1px); filter: hue-rotate(-10deg); }
+}
+
+@keyframes glitch-digital-scan {
+  0%, 100% { background: none; }
+  50% { background: repeating-linear-gradient(0deg, transparent, transparent 2px, hsl(180 70% 45% / 0.05) 2px, hsl(180 70% 45% / 0.05) 4px); }
+}
+
+/* ── Environmental Reaction Effects ─────────────────────────── */
+
+.env-react-dust::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 80%, hsl(30 20% 50% / 0.15), transparent 60%);
+  animation: reaction-fade 2s ease-out forwards;
+}
+
+.env-react-sparks::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 70%, hsl(45 90% 60% / 0.2), transparent 40%);
+  animation: reaction-fade 1.5s ease-out forwards;
+}
+
+.env-react-debris::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 90%, hsl(30 15% 40% / 0.1), transparent 50%);
+  animation: env-shake-mini 0.5s ease-out, reaction-fade 2.5s ease-out forwards;
+}
+
+.env-react-shatter::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, hsl(0 0% 90% / 0.1), transparent 40%);
+  animation: reaction-fade 2s ease-out forwards;
+}
+
+.env-react-splash::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 70%, hsl(200 60% 50% / 0.15), transparent 50%);
+  animation: reaction-fade 1.8s ease-out forwards;
+}
+
+@keyframes reaction-fade {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes env-shake-mini {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-2px); }
+  40% { transform: translateX(2px); }
+  60% { transform: translateX(-1px); }
+  80% { transform: translateX(1px); }
+}
+
+/* ── Physical Impact Effects ────────────────────────────────── */
+
+.impact-light { /* No visible effect for light hits */ }
+
+.impact-medium {
+  animation: env-shake-mini 0.3s ease-out;
+}
+
+.impact-heavy {
+  animation: impact-heavy-shake 0.4s ease-out;
+}
+
+.impact-devastating {
+  animation: impact-devastating 0.6s ease-out;
+}
+
+.animate-impact-shake {
+  animation: impact-heavy-shake 0.4s ease-out;
+}
+
+.animate-impact-shockwave::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  border: 2px solid hsl(0 0% 90% / 0.3);
+  animation: shockwave-expand 0.6s ease-out forwards;
+}
+
+.impact-cracks::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cpath d='M30 0 L35 25 L60 30 L35 35 L30 60 L25 35 L0 30 L25 25Z' fill='none' stroke='%23ffffff10' stroke-width='0.5'/%3E%3C/svg%3E") center/contain no-repeat;
+  animation: reaction-fade 3s ease-out forwards;
+  opacity: 0.4;
+}
+
+@keyframes impact-heavy-shake {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-3px, -2px); }
+  30% { transform: translate(3px, 1px); }
+  50% { transform: translate(-2px, 2px); }
+  70% { transform: translate(2px, -1px); }
+  90% { transform: translate(-1px, 1px); }
+}
+
+@keyframes impact-devastating {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  10% { transform: translate(-5px, -3px) scale(1.01); }
+  20% { transform: translate(4px, 2px) scale(0.99); }
+  30% { transform: translate(-3px, 3px) scale(1.01); }
+  40% { transform: translate(3px, -2px); }
+  60% { transform: translate(-2px, 1px); }
+  80% { transform: translate(1px, -1px); }
+}
+
+@keyframes shockwave-expand {
+  0% { transform: scale(0.3); opacity: 0.8; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+/* ── Skill Mastery Visuals ──────────────────────────────────── */
+
+.skill-expert {
+  border-left-color: hsl(var(--cosmic-gold)) !important;
+}
+
+.skill-expert .whitespace-pre-wrap {
+  text-shadow: 0 0 1px hsl(var(--cosmic-gold) / 0.15);
+}
+
+.skill-unstable {
+  animation: skill-flicker 0.8s ease-in-out infinite;
+}
+
+.skill-desperate {
+  animation: skill-desperate-shake 0.3s ease-in-out infinite;
+  opacity: 0.9;
+}
+
+@keyframes skill-flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+@keyframes skill-desperate-shake {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(0.5px); }
+}
+
+/* ── Inventory Display ──────────────────────────────────────── */
+
+.inventory-bag {
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
+}
+
+.inventory-portal {
+  background: linear-gradient(135deg, hsl(270 40% 12%), hsl(240 30% 8%));
+  border-color: hsl(270 50% 40% / 0.5);
+  box-shadow: inset 0 0 20px hsl(270 60% 50% / 0.1);
+}
+
+/* ── Whisper Text ───────────────────────────────────────────── */
+
+.whisper-text {
+  animation: whisper-breathe 3s ease-in-out infinite;
+}
+
+@keyframes whisper-breathe {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+}
+
+/* ── Ambient Creatures ──────────────────────────────────────── */
+
+.ambient-creature {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.creature-fly-across {
+  top: 10%;
+  left: -10%;
+  animation: fly-across 4s linear forwards;
+}
+
+.creature-flutter {
+  top: 20%;
+  right: 10%;
+  animation: flutter 3s ease-in-out forwards;
+}
+
+.creature-drift-glow {
+  bottom: 30%;
+  left: 20%;
+  animation: drift-glow 4s ease-in-out forwards;
+}
+
+.creature-swoop {
+  top: 5%;
+  right: -5%;
+  animation: swoop 3s ease-in-out forwards;
+}
+
+.creature-swim {
+  bottom: 20%;
+  left: -5%;
+  animation: fly-across 5s linear forwards;
+}
+
+.creature-scurry {
+  bottom: 5%;
+  left: -5%;
+  animation: scurry 2.5s ease-in-out forwards;
+}
+
+.creature-descend {
+  top: 0;
+  right: 30%;
+  animation: descend-thread 3.5s ease-in-out forwards;
+}
+
+.creature-circle {
+  top: 10%;
+  left: 50%;
+  animation: circle-fly 4s ease-in-out forwards;
+}
+
+@keyframes fly-across {
+  0% { transform: translateX(0); opacity: 0; }
+  10% { opacity: 0.4; }
+  90% { opacity: 0.4; }
+  100% { transform: translateX(calc(100vw + 50px)); opacity: 0; }
+}
+
+@keyframes flutter {
+  0% { transform: translate(0, 0); opacity: 0; }
+  20% { opacity: 0.4; }
+  50% { transform: translate(-20px, -10px); }
+  80% { opacity: 0.4; }
+  100% { transform: translate(-40px, -30px); opacity: 0; }
+}
+
+@keyframes drift-glow {
+  0% { transform: translateY(0); opacity: 0; }
+  30% { opacity: 0.5; }
+  70% { opacity: 0.5; }
+  100% { transform: translateY(-40px); opacity: 0; }
+}
+
+@keyframes swoop {
+  0% { transform: translate(0, 0); opacity: 0; }
+  20% { opacity: 0.4; }
+  50% { transform: translate(-60px, 40px); }
+  80% { opacity: 0.3; }
+  100% { transform: translate(-100px, -20px); opacity: 0; }
+}
+
+@keyframes scurry {
+  0% { transform: translateX(0); opacity: 0; }
+  10% { opacity: 0.35; }
+  90% { opacity: 0.35; }
+  100% { transform: translateX(200px); opacity: 0; }
+}
+
+@keyframes descend-thread {
+  0% { transform: translateY(0); opacity: 0; }
+  20% { opacity: 0.3; }
+  70% { transform: translateY(50px); opacity: 0.3; }
+  100% { transform: translateY(40px); opacity: 0; }
+}
+
+@keyframes circle-fly {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  20% { opacity: 0.35; }
+  50% { transform: translate(-30px, -15px) rotate(180deg); }
+  80% { opacity: 0.3; }
+  100% { transform: translate(10px, -30px) rotate(360deg); opacity: 0; }
+}
+
+/* ── Ambient Sound Visualizations ───────────────────────────── */
+
+.ambient-sound-wind-streaks::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    -15deg,
+    transparent,
+    transparent 40px,
+    hsl(200 30% 70% / 0.03) 40px,
+    hsl(200 30% 70% / 0.03) 41px
+  );
+  animation: wind-sweep 3s linear infinite;
+}
+
+.ambient-sound-rain-drops::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    170deg,
+    transparent,
+    transparent 20px,
+    hsl(210 40% 60% / 0.04) 20px,
+    hsl(210 40% 60% / 0.04) 21px
+  );
+  animation: rain-fall 1s linear infinite;
+}
+
+.ambient-sound-spark-particles::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(1px 1px at 20% 30%, hsl(55 80% 60% / 0.15), transparent),
+              radial-gradient(1px 1px at 70% 60%, hsl(55 80% 60% / 0.1), transparent),
+              radial-gradient(1px 1px at 40% 80%, hsl(55 80% 60% / 0.12), transparent);
+  animation: spark-flicker 0.8s steps(2) infinite;
+}
+
+@keyframes wind-sweep {
+  0% { transform: translateX(-20px); }
+  100% { transform: translateX(20px); }
+}
+
+@keyframes rain-fall {
+  0% { transform: translateY(-10px); }
+  100% { transform: translateY(10px); }
+}
+
+@keyframes spark-flicker {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* ── Item Personality ───────────────────────────────────────── */
+
+.item-sentient {
+  animation: item-pulse 2s ease-in-out infinite;
+}
+
+@keyframes item-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+}
