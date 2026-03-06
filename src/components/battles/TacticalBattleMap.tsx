@@ -10,10 +10,11 @@
  * - Environmental pressure meter
  * - Tactical focus mode
  * - LOS visualization
+ * - 3D procedural battlefield mode (R3F)
  */
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
-import { X, Eye, Crosshair, Shield, AlertTriangle, Flame, Focus, Layers } from 'lucide-react';
+import { useState, useMemo, useCallback, useEffect, lazy, Suspense } from 'react';
+import { X, Eye, Crosshair, Shield, AlertTriangle, Flame, Focus, Layers, Box, Grid3X3 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { ArenaState } from '@/lib/living-arena';
@@ -34,6 +35,9 @@ import { NarratorMarkersRenderer } from './tactical-map/NarratorMarkersRenderer'
 import { TacticalFocusPanel } from './tactical-map/TacticalFocusPanel';
 import { CinematicFrameOverlay } from './tactical-map/CinematicFrameOverlay';
 import { LOSVisualization } from './tactical-map/LOSVisualization';
+
+// Lazy-load the 3D map to avoid loading R3F when not needed
+const TacticalMap3D = lazy(() => import('./tactical-map/TacticalMap3D').then(m => ({ default: m.TacticalMap3D })));
 
 // ── Types ───────────────────────────────────────────────────────
 
@@ -75,17 +79,11 @@ export interface TacticalMapData {
   arenaName?: string;
   distanceZone?: DistanceZone;
   arenaState?: ArenaState;
-  /** Zone-based battlefield layout */
   zones?: BattlefieldZone[];
-  /** Layered battlefield image */
   imageStack?: StackType;
-  /** Fog of awareness result */
   awareness?: AwarenessResult;
-  /** Active narrator markers */
   narratorMarkers?: NarratorMarker[];
-  /** Active cinematic frame */
   cinematicFrame?: CinematicFrameType | null;
-  /** Predictive movement shadows */
   movementShadows?: MovementShadow[];
 }
 
@@ -136,6 +134,7 @@ export default function TacticalBattleMap({ data, onClose }: TacticalBattleMapPr
   const [selectedZone, setSelectedZone] = useState<BattlefieldZone | null>(null);
   const [focusMode, setFocusMode] = useState(false);
   const [showLayers, setShowLayers] = useState(true);
+  const [viewMode, setViewMode] = useState<'2d' | '3d'>('3d');
   const [activeMarkers, setActiveMarkers] = useState<NarratorMarker[]>(data.narratorMarkers ?? []);
   const [activeShadows, setActiveShadows] = useState<MovementShadow[]>(data.movementShadows ?? []);
 
@@ -172,15 +171,25 @@ export default function TacticalBattleMap({ data, onClose }: TacticalBattleMapPr
     return lines;
   }, []);
 
-  const handleEntityTap = useCallback((entity: MapEntity) => {
-    setSelectedEntity(prev => prev?.id === entity.id ? null : entity);
+  const handleEntityTap = useCallback((entity: MapEntity | string) => {
+    if (typeof entity === 'string') {
+      const found = data.entities.find(e => e.id === entity);
+      setSelectedEntity(prev => prev?.id === entity ? null : found ?? null);
+    } else {
+      setSelectedEntity(prev => prev?.id === entity.id ? null : entity);
+    }
     setSelectedZone(null);
-  }, []);
+  }, [data.entities]);
 
-  const handleZoneClick = useCallback((zone: BattlefieldZone) => {
-    setSelectedZone(prev => prev?.id === zone.id ? null : zone);
+  const handleZoneClick = useCallback((zone: BattlefieldZone | string) => {
+    if (typeof zone === 'string') {
+      const found = data.zones?.find(z => z.id === zone);
+      setSelectedZone(prev => prev?.id === zone ? null : found ?? null);
+    } else {
+      setSelectedZone(prev => prev?.id === zone.id ? null : zone);
+    }
     setSelectedEntity(null);
-  }, []);
+  }, [data.zones]);
 
   // LOS lines from selected entity
   const losLines = useMemo((): LOSLine[] => {
@@ -189,7 +198,6 @@ export default function TacticalBattleMap({ data, onClose }: TacticalBattleMapPr
     for (const other of data.entities) {
       if (other.id === selectedEntity.id) continue;
       if (other.type === 'construct') continue;
-      // Determine LOS using zones
       const fromZone = data.zones.find(z => z.occupants.includes(selectedEntity.id));
       const toZone = data.zones.find(z => z.occupants.includes(other.id));
       if (fromZone && toZone) {
@@ -221,7 +229,6 @@ export default function TacticalBattleMap({ data, onClose }: TacticalBattleMapPr
     );
   }, [selectedZone, data.entities]);
 
-  // Player entity for fog center
   const playerEntity = data.entities.find(e => e.type === 'player');
 
   return (
@@ -239,7 +246,18 @@ export default function TacticalBattleMap({ data, onClose }: TacticalBattleMapPr
           )}
         </div>
         <div className="flex items-center gap-1">
-          {data.imageStack && (
+          {/* 2D/3D toggle */}
+          <Button
+            variant={viewMode === '3d' ? 'secondary' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode(viewMode === '3d' ? '2d' : '3d')}
+            className="h-7 px-2 text-[10px] gap-1"
+            title={viewMode === '3d' ? 'Switch to 2D' : 'Switch to 3D'}
+          >
+            {viewMode === '3d' ? <Grid3X3 className="w-3 h-3" /> : <Box className="w-3 h-3" />}
+            <span className="hidden sm:inline">{viewMode === '3d' ? '2D' : '3D'}</span>
+          </Button>
+          {data.imageStack && viewMode === '2d' && (
             <Button
               variant="ghost" size="sm"
               onClick={() => setShowLayers(!showLayers)}
@@ -274,164 +292,170 @@ export default function TacticalBattleMap({ data, onClose }: TacticalBattleMapPr
       {/* Environmental Pressure Meter */}
       {data.arenaState && <EnvironmentPressureMeter arenaState={data.arenaState} />}
 
-      {/* SVG Map */}
+      {/* Map Content */}
       <div className="flex-1 p-3 overflow-hidden relative">
-        {/* Battlefield image background */}
-        {showLayers && data.imageStack && <BattlefieldImageStack stack={data.imageStack} />}
-
-        <svg viewBox={viewBox} className="w-full h-full max-h-[55vh] relative z-[1]" style={{ touchAction: 'none' }}>
-          {/* Grid */}
-          {gridLines}
-
-          {/* Arena border */}
-          <rect x={1} y={1} width={98} height={98} fill="none" stroke="hsl(var(--border))" strokeWidth="0.4" rx={2} />
-
-          {/* Zones */}
-          {hasZones && (
-            <ZoneRenderer
-              zones={data.zones!}
-              zoneAwareness={data.awareness?.zoneAwareness}
+        {viewMode === '3d' ? (
+          /* ═══ 3D MAP ═══ */
+          <Suspense fallback={
+            <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+              <Box className="w-5 h-5 mr-2 animate-spin" /> Loading 3D Map…
+            </div>
+          }>
+            <TacticalMap3D
+              data={data}
+              selectedEntityId={selectedEntity?.id}
               selectedZoneId={selectedZone?.id}
-              focusedZoneId={focusMode ? selectedZone?.id : undefined}
-              onZoneClick={handleZoneClick}
+              focusMode={focusMode}
+              onEntityTap={(id) => handleEntityTap(id)}
+              onZoneTap={(id) => handleZoneClick(id)}
             />
-          )}
+          </Suspense>
+        ) : (
+          /* ═══ 2D SVG MAP ═══ */
+          <>
+            {showLayers && data.imageStack && <BattlefieldImageStack stack={data.imageStack} />}
 
-          {/* Features (legacy/non-zone mode) */}
-          {!hasZones && data.features.map(f => (
-            <g key={f.id}>
-              <rect
-                x={f.x} y={f.y} width={f.width} height={f.height}
-                fill={FEATURE_COLORS[f.type]}
-                stroke="hsl(var(--border))" strokeWidth="0.2" rx={0.5}
-              />
-              <text
-                x={f.x + f.width / 2} y={f.y + f.height / 2 + 1}
-                textAnchor="middle" fontSize="2.2" fill="hsl(var(--muted-foreground))"
-                className="select-none pointer-events-none"
-              >
-                {f.label}
-              </text>
-            </g>
-          ))}
+            <svg viewBox={viewBox} className="w-full h-full max-h-[55vh] relative z-[1]" style={{ touchAction: 'none' }}>
+              {gridLines}
 
-          {/* Hazard zones */}
-          {data.hazards.map(h => (
-            <g key={h.id}>
-              <circle
-                cx={h.x} cy={h.y} r={h.radius}
-                fill={HAZARD_COLORS[h.type]}
-                stroke={HAZARD_COLORS[h.type].replace(/[\d.]+\)$/, '0.7)')}
-                strokeWidth="0.3" strokeDasharray="1 0.5"
-              >
-                <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite" />
-              </circle>
-              <text
-                x={h.x} y={h.y + 0.8} textAnchor="middle" fontSize="2"
-                fill="hsl(var(--foreground))" className="select-none pointer-events-none"
-              >
-                ⚠
-              </text>
-            </g>
-          ))}
+              <rect x={1} y={1} width={98} height={98} fill="none" stroke="hsl(var(--border))" strokeWidth="0.4" rx={2} />
 
-          {/* Fog of awareness */}
-          {data.awareness && playerEntity && (
-            <FogOverlay
-              awareness={data.awareness}
-              playerX={playerEntity.x}
-              playerY={playerEntity.y}
-            />
-          )}
+              {hasZones && (
+                <ZoneRenderer
+                  zones={data.zones!}
+                  zoneAwareness={data.awareness?.zoneAwareness}
+                  selectedZoneId={selectedZone?.id}
+                  focusedZoneId={focusMode ? selectedZone?.id : undefined}
+                  onZoneClick={(z) => handleZoneClick(z)}
+                />
+              )}
 
-          {/* LOS lines */}
-          {losLines.length > 0 && <LOSVisualization lines={losLines} />}
-
-          {/* Movement arrows */}
-          <defs>
-            <marker id="arrowhead" markerWidth="3" markerHeight="3" refX="3" refY="1.5" orient="auto">
-              <polygon points="0 0, 3 1.5, 0 3" fill="hsl(var(--primary))" />
-            </marker>
-          </defs>
-          {data.entities.filter(e => e.prevX !== undefined && e.prevY !== undefined).map(e => {
-            const dx = e.x - (e.prevX ?? e.x);
-            const dy = e.y - (e.prevY ?? e.y);
-            const len = Math.sqrt(dx * dx + dy * dy);
-            if (len < 1) return null;
-            return (
-              <line
-                key={`arrow-${e.id}`}
-                x1={e.prevX} y1={e.prevY} x2={e.x} y2={e.y}
-                stroke="hsl(var(--primary))" strokeWidth="0.4"
-                strokeDasharray="1.5 0.8" markerEnd="url(#arrowhead)" opacity={0.6}
-              />
-            );
-          })}
-
-          {/* Narrator markers & shadows */}
-          <NarratorMarkersRenderer markers={activeMarkers} shadows={activeShadows} />
-
-          {/* Entities */}
-          {data.entities.map(entity => {
-            const isSelected = selectedEntity?.id === entity.id;
-            const distInfo = getDistanceInfo(entity);
-            const entityAwareness = data.awareness?.entityAwareness?.[entity.id];
-            if (entityAwareness === 'hidden') return null;
-            const dimmed = entityAwareness === 'partial';
-
-            return (
-              <g key={entity.id} onClick={() => handleEntityTap(entity)} className="cursor-pointer" opacity={dimmed ? 0.5 : 1}>
-                {/* Selection ring */}
-                {isSelected && (
-                  <circle cx={entity.x} cy={entity.y} r={4.5} fill="none" stroke="hsl(var(--primary))" strokeWidth="0.3" opacity={0.7}>
-                    <animate attributeName="r" values="4.5;5.5;4.5" dur="1.5s" repeatCount="indefinite" />
-                  </circle>
-                )}
-
-                {/* Entity shape */}
-                {entity.type === 'player' ? (
-                  <circle cx={entity.x} cy={entity.y} r={3}
-                    fill={entity.color || 'hsl(var(--primary))'}
-                    stroke="hsl(var(--primary-foreground))" strokeWidth="0.4"
-                  />
-                ) : entity.type === 'enemy' ? (
-                  <polygon
-                    points={`${entity.x},${entity.y - 3.5} ${entity.x - 3},${entity.y + 2.5} ${entity.x + 3},${entity.y + 2.5}`}
-                    fill={entity.color || 'hsl(var(--destructive))'}
-                    stroke="hsl(var(--destructive-foreground))" strokeWidth="0.4"
-                  />
-                ) : (
+              {!hasZones && data.features.map(f => (
+                <g key={f.id}>
                   <rect
-                    x={entity.x - 2.5} y={entity.y - 2.5} width={5} height={5}
-                    fill={entity.color || 'hsl(var(--accent))'}
-                    stroke="hsl(var(--accent-foreground))" strokeWidth="0.3" rx={0.5}
+                    x={f.x} y={f.y} width={f.width} height={f.height}
+                    fill={FEATURE_COLORS[f.type]}
+                    stroke="hsl(var(--border))" strokeWidth="0.2" rx={0.5}
                   />
-                )}
-
-                {/* Name */}
-                {!dimmed && (
                   <text
-                    x={entity.x} y={entity.y + (entity.type === 'enemy' ? 6 : 5.5)}
-                    textAnchor="middle" fontSize="2.5" fill="hsl(var(--foreground))"
-                    className="select-none pointer-events-none font-semibold"
+                    x={f.x + f.width / 2} y={f.y + f.height / 2 + 1}
+                    textAnchor="middle" fontSize="2.2" fill="hsl(var(--muted-foreground))"
+                    className="select-none pointer-events-none"
                   >
-                    {entity.name.length > 10 ? entity.name.slice(0, 9) + '…' : entity.name}
+                    {f.label}
                   </text>
-                )}
+                </g>
+              ))}
 
-                {/* Distance from selected */}
-                {distInfo && selectedEntity && (
-                  <text
-                    x={entity.x} y={entity.y - 5} textAnchor="middle" fontSize="2"
-                    fill="hsl(var(--primary))" className="select-none pointer-events-none"
+              {data.hazards.map(h => (
+                <g key={h.id}>
+                  <circle
+                    cx={h.x} cy={h.y} r={h.radius}
+                    fill={HAZARD_COLORS[h.type]}
+                    stroke={HAZARD_COLORS[h.type].replace(/[\d.]+\)$/, '0.7)')}
+                    strokeWidth="0.3" strokeDasharray="1 0.5"
                   >
-                    {distInfo.gridDistance}u {distInfo.direction !== 'level' ? `(${distInfo.direction})` : ''}
+                    <animate attributeName="opacity" values="0.6;1;0.6" dur="2s" repeatCount="indefinite" />
+                  </circle>
+                  <text
+                    x={h.x} y={h.y + 0.8} textAnchor="middle" fontSize="2"
+                    fill="hsl(var(--foreground))" className="select-none pointer-events-none"
+                  >
+                    ⚠
                   </text>
-                )}
-              </g>
-            );
-          })}
-        </svg>
+                </g>
+              ))}
+
+              {data.awareness && playerEntity && (
+                <FogOverlay
+                  awareness={data.awareness}
+                  playerX={playerEntity.x}
+                  playerY={playerEntity.y}
+                />
+              )}
+
+              {losLines.length > 0 && <LOSVisualization lines={losLines} />}
+
+              <defs>
+                <marker id="arrowhead" markerWidth="3" markerHeight="3" refX="3" refY="1.5" orient="auto">
+                  <polygon points="0 0, 3 1.5, 0 3" fill="hsl(var(--primary))" />
+                </marker>
+              </defs>
+              {data.entities.filter(e => e.prevX !== undefined && e.prevY !== undefined).map(e => {
+                const dx = e.x - (e.prevX ?? e.x);
+                const dy = e.y - (e.prevY ?? e.y);
+                const len = Math.sqrt(dx * dx + dy * dy);
+                if (len < 1) return null;
+                return (
+                  <line
+                    key={`arrow-${e.id}`}
+                    x1={e.prevX} y1={e.prevY} x2={e.x} y2={e.y}
+                    stroke="hsl(var(--primary))" strokeWidth="0.4"
+                    strokeDasharray="1.5 0.8" markerEnd="url(#arrowhead)" opacity={0.6}
+                  />
+                );
+              })}
+
+              <NarratorMarkersRenderer markers={activeMarkers} shadows={activeShadows} />
+
+              {data.entities.map(entity => {
+                const isSelected = selectedEntity?.id === entity.id;
+                const distInfo = getDistanceInfo(entity);
+                const entityAwareness = data.awareness?.entityAwareness?.[entity.id];
+                if (entityAwareness === 'hidden') return null;
+                const dimmed = entityAwareness === 'partial';
+
+                return (
+                  <g key={entity.id} onClick={() => handleEntityTap(entity)} className="cursor-pointer" opacity={dimmed ? 0.5 : 1}>
+                    {isSelected && (
+                      <circle cx={entity.x} cy={entity.y} r={4.5} fill="none" stroke="hsl(var(--primary))" strokeWidth="0.3" opacity={0.7}>
+                        <animate attributeName="r" values="4.5;5.5;4.5" dur="1.5s" repeatCount="indefinite" />
+                      </circle>
+                    )}
+
+                    {entity.type === 'player' ? (
+                      <circle cx={entity.x} cy={entity.y} r={3}
+                        fill={entity.color || 'hsl(var(--primary))'}
+                        stroke="hsl(var(--primary-foreground))" strokeWidth="0.4"
+                      />
+                    ) : entity.type === 'enemy' ? (
+                      <polygon
+                        points={`${entity.x},${entity.y - 3.5} ${entity.x - 3},${entity.y + 2.5} ${entity.x + 3},${entity.y + 2.5}`}
+                        fill={entity.color || 'hsl(var(--destructive))'}
+                        stroke="hsl(var(--destructive-foreground))" strokeWidth="0.4"
+                      />
+                    ) : (
+                      <rect
+                        x={entity.x - 2.5} y={entity.y - 2.5} width={5} height={5}
+                        fill={entity.color || 'hsl(var(--accent))'}
+                        stroke="hsl(var(--accent-foreground))" strokeWidth="0.3" rx={0.5}
+                      />
+                    )}
+
+                    {!dimmed && (
+                      <text
+                        x={entity.x} y={entity.y + (entity.type === 'enemy' ? 6 : 5.5)}
+                        textAnchor="middle" fontSize="2.5" fill="hsl(var(--foreground))"
+                        className="select-none pointer-events-none font-semibold"
+                      >
+                        {entity.name.length > 10 ? entity.name.slice(0, 9) + '…' : entity.name}
+                      </text>
+                    )}
+
+                    {distInfo && selectedEntity && (
+                      <text
+                        x={entity.x} y={entity.y - 5} textAnchor="middle" fontSize="2"
+                        fill="hsl(var(--primary))" className="select-none pointer-events-none"
+                      >
+                        {distInfo.gridDistance}u {distInfo.direction !== 'level' ? `(${distInfo.direction})` : ''}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+            </svg>
+          </>
+        )}
       </div>
 
       {/* Legend */}
@@ -457,6 +481,9 @@ export default function TacticalBattleMap({ data, onClose }: TacticalBattleMapPr
               <Flame className="w-2.5 h-2.5 text-destructive" /> Danger
             </span>
           </>
+        )}
+        {viewMode === '3d' && (
+          <span className="text-muted-foreground/60 ml-auto">Drag to rotate • Pinch to zoom</span>
         )}
       </div>
 
