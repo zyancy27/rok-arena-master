@@ -3206,3 +3206,27 @@
   position: relative;
   z-index: 1;
 }
+
+/* Living Rulebook - Unread glow */
+.rok-unread-glow {
+  position: relative;
+  background: linear-gradient(90deg, hsl(var(--primary) / 0.08) 0%, transparent 100%);
+}
+.rok-unread-glow::after {
+  content: '';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: hsl(var(--primary));
+  box-shadow: 0 0 6px hsl(var(--primary) / 0.6);
+  animation: rok-unread-pulse 2s ease-in-out infinite;
+}
+
+@keyframes rok-unread-pulse {
+  0%, 100% { opacity: 0.6; box-shadow: 0 0 4px hsl(var(--primary) / 0.4); }
+  50% { opacity: 1; box-shadow: 0 0 10px hsl(var(--primary) / 0.8); }
+}
