@@ -33,6 +33,7 @@ export interface MechanicDiscoveryMessage {
 interface PrivateNarratorChatProps {
   battleId: string;
   characterName: string;
+  characterId?: string;
   characterPowers: string | null;
   characterAbilities: string | null;
   battleLocation: string | null;
@@ -54,6 +55,12 @@ interface PrivateNarratorChatProps {
   mechanicDiscoveries?: MechanicDiscoveryMessage[];
   /** Called after discoveries are shown */
   onDiscoveriesShown?: () => void;
+  /** Tactical map data */
+  participants?: Array<{ characterId: string; name: string; isPlayer: boolean; turnOrder: number }>;
+  distanceZone?: DistanceZone;
+  arenaState?: ArenaState;
+  terrainTags?: string[];
+  constructs?: Array<{ id: string; name: string; creatorId: string }>;
 }
 
 export default function PrivateNarratorChat({
