@@ -119,7 +119,24 @@ export default function CampaignNarratorChat({
   const [isLoading, setIsLoading] = useState(false);
   const [partyOpen, setPartyOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
+  const [showMap, setShowMap] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const tacticalMapData = useMemo(() => {
+    const mapParticipants = participants.filter(p => p.is_active).map(p => ({
+      characterId: p.character_id,
+      name: p.character?.name || 'Unknown',
+      isPlayer: p.user_id === myParticipant?.user_id,
+      turnOrder: 0,
+    }));
+    if (mapParticipants.length === 0) return null;
+    return generateTacticalMap({
+      participants: mapParticipants,
+      currentPlayerId: myParticipant?.character_id ?? '',
+      locationName: currentZone,
+      terrainTags: environmentTags,
+    });
+  }, [participants, myParticipant, currentZone, environmentTags]);
 
   // Show mechanic discovery messages when queued
   useEffect(() => {
