@@ -34,6 +34,7 @@ interface BattleRequest {
   };
   userMessage: string;
   channel: 'in_universe' | 'out_of_universe';
+  isEntrance?: boolean;
   messageHistory: Array<{
     role: 'user' | 'ai';
     content: string;
@@ -113,6 +114,7 @@ serve(async (req) => {
       occCorrections,
       emergencyLocation,
       characterAINotes,
+      isEntrance,
     } = requestData;
 
     // Input validation
@@ -214,7 +216,17 @@ INSTRUCTIONS: You know this about ${userCharacter.name}, but you would NOT rando
 
     // Handle first move when opponent goes first
     let firstMoveContext = '';
-    if (isFirstMove && !userGoesFirst) {
+    if (isEntrance) {
+      firstMoveContext = `\n\nENTRANCE — THIS IS YOUR ARRIVAL:
+You are arriving at ${battleLocation || 'the battlefield'} for the first time. Write how YOUR CHARACTER gets there.
+- Your entrance MUST be shaped by the specific location. If it's a rooftop, you climb up or land. If it's a subway, you walk down stairs. If it's a forest, you push through trees.
+- Your entrance MUST reflect your personality. Cocky? Stroll in casually. Serious? Already waiting. Wild? Crash through something.
+- Write 2-4 sentences of action describing your arrival. You may include ONE short line of dialogue if it fits your personality.
+- Do NOT describe the location itself — the narrator handles that.
+- Do NOT describe the opponent or acknowledge them yet unless your personality demands an immediate taunt.
+- BANNED: "materializes" "appears" "manifests" "teleports in" (unless you literally have teleportation as a power)
+- This is NOT a fight turn. No attacks. Just arrive.`;
+    } else if (isFirstMove && !userGoesFirst) {
       firstMoveContext = `\n\nFIRST MOVE: The initiative roll determined that YOU (${opponent.name}) strike first! Open with an aggressive action or tactical positioning. The opponent must react to your opening move.`;
     }
 

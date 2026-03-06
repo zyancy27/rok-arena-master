@@ -1524,59 +1524,61 @@ export default function MockBattle() {
       characterName: '⚔️ Battle System',
     });
     
-    // AI character intro line (dialogue only — the narrator handles the scene)
+    // System hint for the player to write their own entrance
     introMessages.push({
       id: crypto.randomUUID(),
-      role: 'ai',
-      content: `"${getOpponentIntro()}"`,
+      role: 'system',
+      content: `✍️ Describe how ${selectedCharacter.name} arrives at ${battleLocation}. Walk in, drop down, step out — make it yours.`,
       channel: 'in_universe',
-      characterName: currentOpponent.name,
+      characterName: '⚔️ Battle System',
     });
     
     setMessages(introMessages);
     
-    // Generate AI entrance narration asynchronously (narrator describes arrivals)
+    // Generate AI character's entrance asynchronously (the character writes their own arrival)
     (async () => {
       try {
-        const entranceResponse = await supabase.functions.invoke('battle-narrator', {
+        const entranceResponse = await supabase.functions.invoke('mock-battle-ai', {
           body: {
-            type: 'entrance',
-            character1: {
+            userCharacter: {
               name: selectedCharacter.name,
               level: selectedCharacter.level,
               powers: selectedCharacter.powers,
               abilities: selectedCharacter.abilities,
+              skill: selectedCharacter.stat_skill || 50,
               personality: selectedCharacter.personality,
+              mentality: selectedCharacter.mentality,
             },
-            character2: {
-              name: currentOpponent.name,
-              level: currentOpponent.level,
-              powers: currentOpponent.powers,
-              abilities: (currentOpponent as any).abilities || null,
-              personality: currentOpponent.personality || (currentOpponent as any).description || null,
+            opponent: {
+              ...currentOpponent,
+              skill: currentOpponent.skill || 50,
             },
+            userMessage: '[SYSTEM: Write your character entrance — how you arrive at this location.]',
+            channel: 'in_universe',
+            isEntrance: true,
+            messageHistory: [],
             battleLocation,
+            characterStoryLore: characterStoryLore || undefined,
+            characterAINotes: opponentType === 'own' ? getOpponentNotes() : undefined,
           },
         });
-        if (!entranceResponse.error && entranceResponse.data) {
-          const { entrance1, entrance2 } = entranceResponse.data;
-          const entranceNarration = `${entrance1}\n\n${entrance2}`;
+        if (!entranceResponse.error && entranceResponse.data?.response) {
           const entranceMsg: Message = {
             id: crypto.randomUUID(),
-            role: 'narrator',
-            content: entranceNarration,
+            role: 'ai',
+            content: entranceResponse.data.response,
             channel: 'in_universe',
-            characterName: '🎙️ Narrator',
+            characterName: currentOpponent.name,
           };
           setMessages(prev => {
             const copy = [...prev];
-            // Insert entrance narration after the system message (index 1), before AI dialogue
-            copy.splice(1, 0, entranceMsg);
+            // Insert after the system messages, before any other content
+            copy.splice(2, 0, entranceMsg);
             return copy;
           });
         }
       } catch (e) {
-        console.error('Entrance narration error:', e);
+        console.error('AI entrance error:', e);
       }
     })();
     
@@ -1677,62 +1679,7 @@ export default function MockBattle() {
     }
   };
 
-  const getOpponentIntro = () => {
-    if (!currentOpponent || !selectedCharacter) return 'Prepare yourself, warrior.';
-    
-    // For own characters, generate a generic intro
-    if (opponentType === 'own' && selectedOwnCharacter) {
-      return `So, ${selectedCharacter.name}... we meet in battle at last. Show me what you're truly capable of!`;
-    }
-    
-    switch (currentOpponent.id) {
-      case 'training-bot':
-        return `Warrior ${selectedCharacter?.name}, I have analyzed your potential. Let us begin your training. Show me the depths of your ${selectedCharacter?.powers || 'power'}.`;
-      case 'chaos-imp':
-        return `Ohoho! ${selectedCharacter?.name}, is it? Your aura looks... deliciously chaotic. Let's dance, shall we? *giggles mischievously*`;
-      case 'ancient-guardian':
-        return `${selectedCharacter?.name}... the stars spoke of your coming. Whether you seek wisdom or destruction, you shall find truth in our clash.`;
-      case 'hulk':
-        return `HULK SEES PUNY ${selectedCharacter?.name?.toUpperCase()}! You think you can fight HULK?! HULK WILL SMASH!`;
-      case 'wolverine':
-        return `*snikt* So you're ${selectedCharacter?.name}, huh? Let's see what you got, bub. Don't hold back - I heal fast.`;
-      case 'deadpool':
-        return `Oh em gee! ${selectedCharacter?.name}?! I've been DYING to meet you! Get it? Dying? Because I can't die? ...Tough crowd.`;
-      case 'mr-fantastic':
-        return `Fascinating. ${selectedCharacter?.name}, your abilities seem to defy conventional physics. Allow me to test some hypotheses during our engagement.`;
-      case 'thor':
-        return `Hail, ${selectedCharacter?.name}! I am Thor, Prince of Asgard! Show me thy valor, mortal, and perhaps you shall earn the thunderer's respect!`;
-      case 'magneto':
-        return `${selectedCharacter?.name}... another who would stand in the way of mutant destiny? Very well. Let us see if your conviction matches your power.`;
-      case 'doctor-doom':
-        return `So, ${selectedCharacter?.name} dares face DOOM?! Amusing. Doom shall grant you the honor of witnessing true power before your inevitable defeat.`;
-      case 'spider-man':
-        return `Hey there, ${selectedCharacter?.name}! *sticks to wall* So are we doing the whole hero vs hero misunderstanding thing, or...? Either way, let's keep it friendly, yeah?`;
-      // Anime characters
-      case 'goku':
-        return `Hey! I'm Goku! *stretches excitedly* You're ${selectedCharacter?.name}, right? I can sense you've got some real power! This is gonna be fun! Let's go all out!`;
-      case 'naruto':
-        return `I'm Naruto Uzumaki, and I'm gonna be Hokage someday! Believe it! So you're ${selectedCharacter?.name}? Let's see what you've got, dattebayo!`;
-      case 'ichigo':
-        return `*rests Zangetsu on shoulder* ${selectedCharacter?.name}, huh? I don't know what you want, but if you're looking for a fight... I won't hold back.`;
-      case 'luffy':
-        return `Shishishi! I'm Luffy! The man who'll become King of the Pirates! *cracks knuckles* You look strong, ${selectedCharacter?.name}! Let's fight!`;
-      case 'saitama':
-        return `Oh, another challenger? *scratches head* I'm Saitama, just a hero for fun. Look, ${selectedCharacter?.name}, try to make this interesting, okay?`;
-      case 'vegeta':
-        return `I am Vegeta, Prince of all Saiyans! ${selectedCharacter?.name}... your power level is... acceptable. Now witness the pride of the Saiyan race!`;
-      case 'zoro':
-        return `*draws three swords* Roronoa Zoro. I'm going to be the world's greatest swordsman. ${selectedCharacter?.name}... don't bore me.`;
-      case 'gojo':
-        return `*lifts blindfold slightly* Well well~ ${selectedCharacter?.name}! I'm Gojo Satoru, the strongest. Don't worry, I'll go easy on you... maybe~`;
-      case 'levi':
-        return `Tch. ${selectedCharacter?.name}. *spins blades* I don't have time for games. Come at me with everything you have, or don't bother.`;
-      case 'all-might':
-        return `I AM HERE! *strikes heroic pose* ${selectedCharacter?.name}! Let us clash as heroes! Show me the spirit that burns within you! PLUS ULTRA!`;
-      default:
-        return 'Prepare yourself, warrior.';
-    }
-  };
+  // getOpponentIntro removed — characters now generate their own entrances via AI
 
   // Helper to get character stats for dice rolls
   const getCharacterStats = (char: UserCharacter) => ({
