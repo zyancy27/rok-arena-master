@@ -417,13 +417,13 @@ export default function CharacterList() {
           <CollapsibleTrigger asChild>
             <Button variant="outline" size="sm" className="w-full sm:w-auto gap-2 border-dashed">
               <Wand2 className="w-4 h-4" />
-              Batch Import Characters (AI)
+              Batch Import Characters
               <ChevronDown className={`w-3 h-3 transition-transform ${isImportOpen ? 'rotate-180' : ''}`} />
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-3 space-y-3 max-w-2xl">
             <Textarea
-              placeholder="Paste text containing multiple characters — descriptions, wiki entries, lore documents, etc. AI will extract all named characters..."
+              placeholder="Paste text containing multiple characters — descriptions, wiki entries, lore documents, etc. All named characters will be extracted..."
               value={importText}
               onChange={(e) => setImportText(e.target.value)}
               rows={5}
@@ -468,7 +468,7 @@ export default function CharacterList() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              Paste text or upload a document (PDF, DOCX, TXT, MD) — AI will extract all characters.
+              Paste text or upload a document (PDF, DOCX, TXT, MD) — all characters will be extracted automatically.
             </p>
           </CollapsibleContent>
         </Collapsible>

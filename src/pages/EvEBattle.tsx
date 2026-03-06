@@ -538,7 +538,7 @@ export default function EvEBattle() {
                 <div
                   className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
                   onClick={() => setShowAINotePanel('char1')}
-                  title="Click to add AI character notes"
+                   title="Click to add character notes"
                 >
                   <Avatar className="h-10 w-10 ring-2 ring-primary/30">
                     <AvatarImage src={character1?.image_url || undefined} />
@@ -547,19 +547,19 @@ export default function EvEBattle() {
                   <div>
                     <p className="font-medium">{character1?.name}</p>
                     <Badge variant="outline" className="text-xs">{getTierName(character1?.level || 1)}</Badge>
-                    <p className="text-[10px] text-primary mt-0.5">📝 AI notes</p>
+                    <p className="text-[10px] text-primary mt-0.5">📝 Character notes</p>
                   </div>
                 </div>
                 <Swords className="w-6 h-6 text-primary" />
                 <div
                   className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
                   onClick={() => setShowAINotePanel('char2')}
-                  title="Click to add AI character notes"
+                  title="Click to add character notes"
                 >
                   <div className="text-right">
                     <p className="font-medium">{character2?.name}</p>
                     <Badge variant="outline" className="text-xs">{getTierName(character2?.level || 1)}</Badge>
-                    <p className="text-[10px] text-primary mt-0.5">📝 AI notes</p>
+                    <p className="text-[10px] text-primary mt-0.5">📝 Character notes</p>
                   </div>
                   <Avatar className="h-10 w-10 ring-2 ring-primary/30">
                     <AvatarImage src={character2?.image_url || undefined} />

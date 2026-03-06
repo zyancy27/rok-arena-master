@@ -502,7 +502,7 @@ export default function Races() {
                 </div>
               </DialogHeader>
               <div className="space-y-4 py-4">
-                {/* AI Auto-fill from paste section */}
+                {/* Auto-fill from paste section */}
                 {!editingRace && (
                   <Collapsible open={isPasteOpen} onOpenChange={setIsPasteOpen}>
                     <CollapsibleTrigger asChild>
@@ -541,7 +541,7 @@ export default function Races() {
                         )}
                       </Button>
                       <p className="text-xs text-muted-foreground">
-                        AI will extract species name, physiology, abilities, culture, and more from your text.
+                        Species name, physiology, abilities, culture, and more will be extracted from your text.
                       </p>
                     </CollapsibleContent>
                   </Collapsible>
