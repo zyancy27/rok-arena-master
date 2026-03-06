@@ -1,10 +1,13 @@
 import { ROK_RULES, POWER_TIERS } from './game-constants';
+import type { MechanicKey } from './mechanic-discovery';
+import { buildLivingChapters, type LivingBookChapter, type LivingRuleEntry } from './living-rulebook-registry';
 
 export interface RuleSection {
   title: string;
   content: string;
   examples?: string[];
   expandable?: { label: string; content: string }[];
+  crossRefs?: { label: string; mechanicKey: MechanicKey }[];
 }
 
 export interface BookChapter {
@@ -12,9 +15,14 @@ export interface BookChapter {
   title: string;
   icon: string;
   sections: RuleSection[];
+  isLiving?: boolean;
+  hasUnread?: boolean;
+  livingEntries?: LivingRuleEntry[];
 }
 
-export const BOOK_CHAPTERS: BookChapter[] = [
+// ── Static chapters (always visible) ────────────────────────
+
+const STATIC_CHAPTERS: BookChapter[] = [
   {
     id: 'introduction',
     title: 'Introduction',
@@ -31,6 +39,10 @@ export const BOOK_CHAPTERS: BookChapter[] = [
       {
         title: 'Core Philosophy',
         content: 'Winning isn\'t about who can defeat the other. The winner is decided by who was the most creative and unique in combat. We value creativity, originality, and storytelling above raw power.',
+      },
+      {
+        title: 'The Living Rulebook',
+        content: 'This rulebook evolves as you play. When you encounter a new mechanic for the first time — a dice roll, a charge attack, a construct — a new page will appear here documenting what you\'ve discovered. Look for the ✨ glow on newly unlocked pages.',
       },
     ],
   },
@@ -62,153 +74,13 @@ export const BOOK_CHAPTERS: BookChapter[] = [
     ],
   },
   {
-    id: 'combat-system',
-    title: 'Combat System',
-    icon: '🎲',
-    sections: [
-      {
-        title: 'Dice Combat',
-        content: 'Attacks and defenses use a d20 dice system modified by your character\'s stats. Each attack rolls d20 + stat modifiers vs opponent\'s defense.',
-        examples: [
-          'Higher stats = bigger bonuses on your rolls',
-          'Critical hits and mishaps can occur based on your Skill stat',
-          'You can toggle dice on/off in battle settings',
-          'Watch the dice roll messages in chat — they show exactly how hits are calculated',
-        ],
-      },
-      {
-        title: 'Concentration & Dodge',
-        content: 'When an attack hits you, you can spend a Concentration use to attempt a dodge — but it costs stat power.',
-        examples: [
-          'You start with 3 Concentration uses per battle',
-          'Using Concentration gives a 50% chance to dodge',
-          'Each use applies a stat penalty on your next action',
-          'AI opponents also use Concentration — plan accordingly',
-        ],
-        expandable: [
-          { label: 'When to use Concentration', content: 'Save Concentration for devastating attacks. Small hits are sometimes better to absorb than waste a Concentration charge.' },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'battle-mechanics',
-    title: 'Battle Mechanics',
-    icon: '⚡',
-    sections: [
-      {
-        title: 'Momentum & Edge State',
-        content: 'Landing hits and combos builds Momentum (0–100). At 100, you enter Edge State for 2 turns of enhanced power.',
-        examples: [
-          'Combo chains, counters, and environment plays build momentum',
-          'Getting interrupted or risk misfires drain momentum',
-          'Edge State grants +10% precision and −15% risk chance',
-          'After Edge State expires, momentum drops to 70',
-        ],
-      },
-      {
-        title: 'Overcharge & Risk',
-        content: 'Toggle Overcharge before an attack for 1.5–2× potency — but with a 30% chance of a risk misfire.',
-        examples: [
-          'Toggle the ⚡ Overcharge button before sending your move',
-          'Success = massive damage amplification',
-          'Failure = risk misfire, momentum loss, and psychological penalty',
-          'Edge State reduces risk chance during Overcharge',
-        ],
-        expandable: [
-          { label: 'Risk vs Reward', content: 'Overcharge is high-risk, high-reward. Use it when your momentum is high to minimize risk chance.' },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'status-effects',
-    title: 'Status Effects',
-    icon: '🧠',
-    sections: [
-      {
-        title: 'Psychology System',
-        content: 'Hidden psychological stats (Confidence, Fear, Resolve, Rage) shift during battle and affect your performance.',
-        examples: [
-          'Landing hits boosts confidence; getting hit raises fear',
-          'Subtle emoji indicators show your mental state',
-          'The AI opponent adapts to your fighting patterns every 3 turns',
-          'Vary your tactics to keep the AI guessing',
-        ],
-        expandable: [
-          { label: 'Mental Recovery', content: 'If you see the "Shaken" indicator, consider a defensive turn to recover your mental state.' },
-        ],
-      },
-      {
-        title: 'Arena Modifiers',
-        content: 'Daily and weekly modifiers rotate automatically, adding environmental conditions to every battle.',
-        examples: [
-          'Daily modifiers change the arena conditions (gravity, hazards, etc.)',
-          'Weekly modifiers add global effects that last all week',
-          'Modifier badges appear at the top of the battle — hover for details',
-          'Modifiers affect stats, risk chance, and momentum',
-        ],
-      },
-    ],
-  },
-  {
-    id: 'environment',
-    title: 'Environment Interaction',
-    icon: '🌍',
-    sections: [
-      {
-        title: 'Living Arena',
-        content: 'The battle arena is a living environment that reacts to your actions. Destroying structures, causing explosions, or manipulating terrain will change the battlefield dynamically.',
-        examples: [
-          'Punch a wall → dust particles and structural damage',
-          'Drag weapon on metal → sparks fly',
-          'Heavy landing → debris shakes the arena',
-          'The environment remembers damage throughout the battle',
-        ],
-      },
-      {
-        title: 'Environmental Hazards',
-        content: 'Arenas may contain natural hazards that evolve during battle. Lava flows, collapsing structures, and weather changes can all affect combat.',
-        expandable: [
-          { label: 'Hazard Examples', content: 'Volcanic arenas may have rising lava. Forest arenas may catch fire. Urban arenas may have collapsing buildings. Always be aware of your surroundings.' },
-        ],
-      },
-    ],
-  },
-  {
-    id: 'campaign-mode',
-    title: 'Campaign Mode',
-    icon: '🗺️',
-    sections: [
-      {
-        title: 'Campaign Overview',
-        content: 'Campaign mode allows players to embark on extended adventures with their characters. Progress through zones, fight enemies, discover items, and level up.',
-        examples: [
-          'Campaigns track day count, zones, and world state',
-          'Characters gain XP and level up during campaigns',
-          'NPCs remember your interactions and relationships',
-          'Items found during campaigns persist in your inventory',
-        ],
-      },
-      {
-        title: 'Rare Discoveries',
-        content: 'Very rarely, checking your inventory or environment may reveal unexpected items or clues. Keep exploring!',
-        expandable: [
-          { label: 'Discovery Example', content: 'You reach into your bag… Something unfamiliar is inside. A glowing crystal you don\'t remember picking up.' },
-        ],
-      },
-    ],
-  },
-  {
     id: 'pvp-rules',
     title: 'PvP Rules',
     icon: '🤺',
-    sections: [
-      ...ROK_RULES.map(rule => ({
-        title: `Rule ${rule.id}: ${rule.title}`,
-        content: rule.description,
-      })),
-    ],
+    sections: ROK_RULES.map(rule => ({
+      title: `Rule ${rule.id}: ${rule.title}`,
+      content: rule.description,
+    })),
   },
   {
     id: 'group-battles',
@@ -232,12 +104,12 @@ export const BOOK_CHAPTERS: BookChapter[] = [
     ],
   },
   {
-    id: 'advanced-mechanics',
-    title: 'Advanced Mechanics',
-    icon: '🔬',
+    id: 'power-tiers',
+    title: 'Power Tiers',
+    icon: '👑',
     sections: [
       {
-        title: 'Power Tiers',
+        title: 'Tier System',
         content: 'Characters are ranked by power tier, determining their overall strength and the complexity of abilities they can wield.',
         expandable: POWER_TIERS.map(tier => ({
           label: `Tier ${tier.level}: ${tier.name}`,
@@ -252,7 +124,6 @@ export const BOOK_CHAPTERS: BookChapter[] = [
           'Acknowledge hits and take damage appropriately',
           'Wait for your turn in multi-player battles',
           'Concede gracefully when defeated',
-          'Communicate clearly in the OOC chat',
           'Respect your opponent\'s character and story',
         ],
       },
@@ -272,12 +143,60 @@ export const BOOK_CHAPTERS: BookChapter[] = [
   },
 ];
 
+// ── Build complete book (static + living chapters) ──────────
+
+export function buildBookChapters(): BookChapter[] {
+  const livingChapters = buildLivingChapters();
+  
+  // Convert living chapters to BookChapters
+  const livingBookChapters: BookChapter[] = livingChapters.map(lc => ({
+    id: `living-${lc.chapter.toLowerCase().replace(/\s+/g, '-')}`,
+    title: lc.chapter,
+    icon: lc.icon,
+    isLiving: true,
+    hasUnread: lc.hasUnread,
+    livingEntries: lc.entries,
+    sections: lc.entries.map(entry => ({
+      title: `${entry.icon} ${entry.title}`,
+      content: entry.description,
+      examples: [entry.example],
+      crossRefs: entry.relatedKeys.map(rk => {
+        const related = livingChapters.flatMap(c => c.entries).find(e => e.mechanicKey === rk);
+        return {
+          label: related?.title || rk,
+          mechanicKey: rk,
+        };
+      }),
+    })),
+  }));
+
+  // Interleave: static intro/creation first, then living chapters, then static rules at the end
+  const result: BookChapter[] = [];
+  
+  // Static: Introduction, Character Creation
+  result.push(STATIC_CHAPTERS[0]); // Introduction
+  result.push(STATIC_CHAPTERS[1]); // Character Creation
+  
+  // Living chapters (discovered mechanics)
+  result.push(...livingBookChapters);
+  
+  // Static: PvP Rules, Group Battles, Power Tiers
+  result.push(STATIC_CHAPTERS[2]); // PvP Rules
+  result.push(STATIC_CHAPTERS[3]); // Group Battles
+  result.push(STATIC_CHAPTERS[4]); // Power Tiers
+
+  return result;
+}
+
+// ── Search across all chapters ──────────────────────────────
+
 export function searchChapters(query: string): { chapterId: string; chapterIndex: number; sectionTitle: string } | null {
   const q = query.toLowerCase().trim();
   if (!q) return null;
   
-  for (let i = 0; i < BOOK_CHAPTERS.length; i++) {
-    const chapter = BOOK_CHAPTERS[i];
+  const chapters = buildBookChapters();
+  for (let i = 0; i < chapters.length; i++) {
+    const chapter = chapters[i];
     if (chapter.title.toLowerCase().includes(q)) {
       return { chapterId: chapter.id, chapterIndex: i, sectionTitle: chapter.title };
     }
@@ -291,6 +210,13 @@ export function searchChapters(query: string): { chapterId: string; chapterIndex
       if (section.expandable) {
         for (const exp of section.expandable) {
           if (exp.label.toLowerCase().includes(q) || exp.content.toLowerCase().includes(q)) {
+            return { chapterId: chapter.id, chapterIndex: i, sectionTitle: section.title };
+          }
+        }
+      }
+      if (section.crossRefs) {
+        for (const ref of section.crossRefs) {
+          if (ref.label.toLowerCase().includes(q)) {
             return { chapterId: chapter.id, chapterIndex: i, sectionTitle: section.title };
           }
         }

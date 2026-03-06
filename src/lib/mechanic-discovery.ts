@@ -1,8 +1,11 @@
 /**
  * Mechanic Discovery System
  * Tracks which battle mechanics a player has encountered for the first time.
- * When a new mechanic triggers, it queues a narrator explanation message.
+ * When a new mechanic triggers, it queues a narrator explanation message
+ * and unlocks the corresponding page in the Living Rulebook.
  */
+
+import { markDiscovered as markRulebookDiscovered } from './living-rulebook-registry';
 
 export type MechanicKey =
   | 'dice_roll'
@@ -154,5 +157,7 @@ export function discoverMechanic(
   const seen = getSeenMechanics(userId);
   if (seen.has(key)) return null;
   markSeen(userId, key);
+  // Also unlock in the Living Rulebook
+  markRulebookDiscovered(key);
   return MECHANIC_EXPLANATIONS[key];
 }
