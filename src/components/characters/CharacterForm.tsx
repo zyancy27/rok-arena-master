@@ -142,7 +142,9 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [isParsingNotes, setIsParsingNotes] = useState(false);
+  const [isGeneratingBackground, setIsGeneratingBackground] = useState(false);
   const [characterNotes, setCharacterNotes] = useState('');
+  const [generateTheme, setGenerateTheme] = useState('');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [planetGravity, setPlanetGravity] = useState<number | null>(null);
   const [planetData, setPlanetData] = useState<{
