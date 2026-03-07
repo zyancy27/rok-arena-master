@@ -219,3 +219,22 @@ export type {
   GravityInfluence,
   WorldAcknowledgement,
 } from './storyGravityEngine';
+
+// ── System 16 — Character Perspective Reinforcement ─────────────
+export {
+  createPerspectiveState,
+  shouldReinforce,
+  selectReinforcementKind,
+  generateReinforcement,
+  generateConsistencyFeedback,
+  reframeAction,
+  markDelivered,
+  buildPerspectiveNarratorContext,
+  buildPerspectiveSummary,
+} from './characterPerspectiveReinforcement';
+export type {
+  ReinforcementKind,
+  ReinforcementEntry,
+  ReinforcementConditions,
+  PerspectiveState,
+} from './characterPerspectiveReinforcement';
