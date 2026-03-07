@@ -158,3 +158,11 @@ export function ArenaStructures3D({ zones, features, terrainTags, arenaState, lo
     </group>
   );
 }
+
+/** Expose biomeId for external consumers (e.g. ArenaLighting) */
+ArenaStructures3D.useBiomeId = function useBiomeId(locationName?: string | null, terrainTags?: string[]): string | undefined {
+  const scene: ProceduralScene = useMemo(() => {
+    return buildArenaScene({ locationName, terrainTags, zones: [] });
+  }, [locationName, terrainTags]);
+  return scene.biomeId;
+};
