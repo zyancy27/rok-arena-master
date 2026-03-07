@@ -94,6 +94,10 @@ export {
   attemptDiscovery, forceDiscovery,
   // System 9 — Emotional Environment Pressure
   createPressureMeter, applyPressure, decayPressure, getStandardSource, applyStandardPressure,
+  // System 10 — Narrative Pressure Engine
+  createPressureEngineState, shouldGeneratePressure, selectPressureType,
+  generatePressureEvent, acknowledgePressureEvent, buildPressureNarratorContext,
+  getAcknowledgedPressureEvents, buildPressureMemorySummary,
 } from './narrativeWorld';
 export type {
   BiomeToneTag, BiomeTransitionStep, BiomeTransitionPath,
@@ -105,4 +109,5 @@ export type {
   SignaturePattern, CharacterSignatureProfile, SignatureEnvironmentHint,
   DiscoveryRarity, DiscoveryMoment,
   EmotionalPressureState, EmotionalPressureMeter, PressureUpdateResult, PressureSource,
+  NarrativePressureType, NarrativePressureEvent, PressureConditions, NarrativePressureState,
 } from './narrativeWorld';
