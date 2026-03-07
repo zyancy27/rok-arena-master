@@ -383,8 +383,8 @@ const REACTOR: BiomePreset = {
 // ── Biome Registry ──────────────────────────────────────────────
 
 export const BIOME_PRESETS: Record<string, BiomePreset> = {
-  forest, ruins, industrial, bridge, urban, cave, volcanic, holy,
-  underwater, airship, infested, facility, reactor,
+  forest: FOREST, ruins: RUINS, industrial: INDUSTRIAL, bridge: BRIDGE, urban: URBAN, cave: CAVE, volcanic: VOLCANIC, holy: HOLY,
+  underwater: UNDERWATER, airship: AIRSHIP, infested: INFESTED, facility: FACILITY, reactor: REACTOR,
 };
 
 // Aliases
