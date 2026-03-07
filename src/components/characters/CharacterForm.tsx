@@ -623,6 +623,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
 
             {/* AI Quick Fill — create mode only */}
             {mode === 'create' && (
+              <>
               <Collapsible>
                 <CollapsibleTrigger asChild>
                   <Button type="button" variant="outline" size="sm" className="w-full h-8 text-xs gap-2 border-dashed border-primary/30 text-primary hover:bg-primary/5">
@@ -645,7 +646,6 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                 </CollapsibleContent>
               </Collapsible>
 
-              {/* AI Generate Background — no ideas needed */}
               <Collapsible>
                 <CollapsibleTrigger asChild>
                   <Button type="button" variant="outline" size="sm" className="w-full h-8 text-xs gap-2 border-dashed border-accent/30 text-accent hover:bg-accent/5">
@@ -669,6 +669,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                   </Button>
                 </CollapsibleContent>
               </Collapsible>
+              </>
             )}
           </CardContent>
         </Card>
