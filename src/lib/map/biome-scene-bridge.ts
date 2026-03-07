@@ -213,3 +213,23 @@ function pickMember(members: StructureFamilyMember[], index: number, seed: numbe
   }
   return members[Math.floor(seeded(seed) * members.length)];
 }
+
+/** Convert UrbanPlacedPiece → PlacedStructure for the renderer */
+function urbanPieceToPlaced(p: UrbanPlacedPiece): PlacedStructure {
+  return {
+    id: p.id,
+    label: p.label,
+    geom: p.geom,
+    position: p.position,
+    scale: p.scale,
+    rotation: p.rotation,
+    color: p.color,
+    roughness: p.roughness,
+    metalness: p.metalness,
+    emissive: p.emissive,
+    emissiveColor: p.emissiveColor,
+    opacity: p.opacity,
+    cap: p.cap,
+    category: p.category,
+  };
+}
