@@ -44,10 +44,10 @@ const TRANSITION_TEMPLATES: TransitionTemplate[] = [
     id: 'urban_collapse',
     arc: 'From order to devastation',
     steps: [
-      { biome: 'urban', modifiers: [], tone: 'industrial', hint: 'The city stretches ahead, still and quiet.' },
-      { biome: 'urban', modifiers: ['elevated'], tone: 'desperate', hint: 'Signs of hasty evacuation line the streets.' },
-      { biome: 'urban', modifiers: ['narrow'], tone: 'dangerous', hint: 'Buildings lean and groan overhead.' },
-      { biome: 'ruins', modifiers: ['narrow'], tone: 'chaotic', hint: 'The structures have given way entirely.' },
+      { biome: 'industrial', modifiers: [], tone: 'industrial', hint: 'The city stretches ahead, still and quiet.' },
+      { biome: 'industrial', modifiers: ['abandoned'], tone: 'desperate', hint: 'Signs of hasty evacuation line the streets.' },
+      { biome: 'urban_interior', modifiers: ['collapsed'], tone: 'dangerous', hint: 'Buildings lean and groan overhead.' },
+      { biome: 'ruins', modifiers: ['collapsed'], tone: 'chaotic', hint: 'The structures have given way entirely.' },
     ],
   },
   {
