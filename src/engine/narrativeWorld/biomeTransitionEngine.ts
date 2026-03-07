@@ -64,10 +64,10 @@ const TRANSITION_TEMPLATES: TransitionTemplate[] = [
     id: 'storm_aftermath',
     arc: 'From calm to catastrophe to silence',
     steps: [
-      { biome: 'plains', modifiers: [], tone: 'peaceful', hint: 'Open ground under heavy skies.' },
-      { biome: 'plains', modifiers: ['open'], tone: 'dangerous', hint: 'The storm hits with devastating force.' },
-      { biome: 'plains', modifiers: ['open'], tone: 'chaotic', hint: 'Debris and flooding reshape the landscape.' },
-      { biome: 'plains', modifiers: [], tone: 'desolate', hint: 'Silence follows. The land is changed.' },
+      { biome: 'desert', modifiers: [], tone: 'peaceful', hint: 'Open ground under heavy skies.' },
+      { biome: 'desert', modifiers: ['burning'], tone: 'dangerous', hint: 'The storm hits with devastating force.' },
+      { biome: 'desert', modifiers: ['collapsed'], tone: 'chaotic', hint: 'Debris and flooding reshape the landscape.' },
+      { biome: 'desert', modifiers: [], tone: 'desolate', hint: 'Silence follows. The land is changed.' },
     ],
   },
   {
