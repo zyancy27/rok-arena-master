@@ -1,8 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { assignMaterial, detectBiome, getLightingProfile } from '@/lib/map/visual-identity';
+import { assignMaterial, detectBiomeForVisuals, getLightingProfile } from '@/lib/map/visual-identity';
 import { interpretMutations } from '@/lib/map/mutation/mutation-interpreter';
 import { createMutationMemory, recordMutations } from '@/lib/map/mutation/mutation-memory';
-import { applyMutationPipeline } from '@/lib/map/mutation/mutation-apply';
 import { createMutationEngine, processMutationEvent } from '@/lib/map/mutation/NarratorTerrainMutationEngine';
 
 describe('VisualIdentitySystem', () => {
@@ -15,10 +14,10 @@ describe('VisualIdentitySystem', () => {
   });
 
   it('detects biome from location name', () => {
-    expect(detectBiome('Infested Holy Forest')).toBe('infested');
-    expect(detectBiome('Industrial Dam Complex')).toBe('industrial');
-    expect(detectBiome('Volcanic Crater')).toBe('volcanic');
-    expect(detectBiome('Glass Skybridge')).toBe('urban');
+    expect(detectBiomeForVisuals('Infested Holy Forest')).toBe('holy_ruins');
+    expect(detectBiomeForVisuals('Industrial Dam Complex')).toBe('industrial');
+    expect(detectBiomeForVisuals('Volcanic Crater')).toBe('volcanic');
+    expect(detectBiomeForVisuals('Glass Skybridge')).toBe('bridge');
   });
 
   it('returns lighting profile for each biome', () => {
@@ -39,46 +38,69 @@ describe('NarratorTerrainMutationEngine', () => {
     const mutations = interpretMutations({
       text: 'The bridge begins to crack and the glass shatters',
       source: 'narrator',
+      turnNumber: 1,
+      arenaStability: 80,
+      arenaHazardLevel: 20,
+      arenaEscalation: 0,
       zoneIds: ['zone-1'],
-      zoneLabels: { 'zone-1': 'Glass Bridge' },
+      zoneLabels: ['Glass Bridge'],
     });
     expect(mutations.length).toBeGreaterThanOrEqual(1);
-    expect(mutations.some(m => m.type === 'structure_damage' || m.type === 'terrain_crack')).toBe(true);
+    expect(mutations.some(m => m.type === 'structure_shatter' || m.type === 'terrain_crack')).toBe(true);
   });
 
   it('interprets fire-related text', () => {
     const mutations = interpretMutations({
       text: 'Flames spread across the ground',
       source: 'narrator',
+      turnNumber: 1,
+      arenaStability: 80,
+      arenaHazardLevel: 20,
+      arenaEscalation: 0,
       zoneIds: ['z1'],
-      zoneLabels: {},
+      zoneLabels: ['Center'],
     });
     expect(mutations.some(m => m.type === 'surface_burn')).toBe(true);
   });
 
   it('creates and uses mutation memory', () => {
     const memory = createMutationMemory();
-    expect(memory.log).toHaveLength(0);
+    expect(memory.mutations).toHaveLength(0);
     const mutations = interpretMutations({
       text: 'The floor collapses',
       source: 'narrator',
+      turnNumber: 1,
+      arenaStability: 80,
+      arenaHazardLevel: 20,
+      arenaEscalation: 0,
       zoneIds: ['zone-a'],
-      zoneLabels: {},
+      zoneLabels: ['Main Floor'],
     });
-    const updated = recordMutations(memory, mutations, 1);
-    expect(updated.log.length).toBeGreaterThan(0);
+    const updated = recordMutations(memory, mutations);
+    expect(updated.mutations.length).toBeGreaterThan(0);
   });
 
   it('full engine pipeline processes without error', () => {
     const zones = [
-      { id: 'z1', label: 'Center Bridge', x: 50, y: 50, width: 20, height: 10, terrain: 'bridge' as any, elevation: 'ground' as any },
+      {
+        id: 'z1', label: 'Center Bridge', x: 50, y: 50, width: 20, height: 10,
+        terrain: 'bridge' as any, elevation: 'ground' as any,
+        color: '#555', dangerRating: 3,
+      },
     ];
     const engine = createMutationEngine(zones as any);
     const result = processMutationEvent(engine, {
       text: 'The support cables snap and the bridge buckles',
       source: 'narrator',
       turnNumber: 3,
-      arenaState: { stability: 40, hazardPressure: 60, momentum: 50, environmentalPressure: 55 },
+      arenaState: {
+        stability: 40,
+        hazardLevel: 60,
+        environmentalPressure: 55,
+        escalationStage: 2,
+        conditionTags: [],
+        isCritical: false,
+      },
     });
     expect(result.output.hadMutations).toBe(true);
     expect(result.output.zones).toBeDefined();
