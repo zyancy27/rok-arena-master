@@ -105,7 +105,7 @@ export default function CampaignNarratorChat({
   characterName, characterPowers, characterAbilities, characterWeapons,
   characterLevel, campaignLevel, campaignHp, campaignHpMax,
   currentZone, timeOfDay, dayCount, campaignDescription,
-  worldState, storyContext, environmentTags = [],
+  worldState, storyContext, environmentTags = [], chosenLocation,
   partyMembers, participants, isSolo,
   inventory, onInventoryUpdate, isInventoryActive,
   mechanicDiscoveries = [], onDiscoveriesShown,
