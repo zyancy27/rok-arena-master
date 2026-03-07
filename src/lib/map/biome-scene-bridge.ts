@@ -86,6 +86,7 @@ export function biomeSceneToProceduralScene(
     const member = family?.members.find(m => m.role === 'primary') ?? family?.members[0];
 
     if (member) {
+      const lmMat = assignMaterial(biomeId, lm.name, 'landmark', s + 700);
       placed.push({
         id: nextId('lm'),
         label: lm.name,
@@ -97,12 +98,12 @@ export function biomeSceneToProceduralScene(
           member.baseScale[2] * lm.scale * 1.3,
         ],
         rotation: [0, seeded(s) * Math.PI * 2, 0],
-        color: plan.palette.structures,
-        emissive: member.emissive,
-        emissiveColor: member.emissiveColor ?? plan.palette.emissive,
+        color: lmMat.color,
+        emissive: lmMat.emissive ?? member.emissive,
+        emissiveColor: lmMat.emissiveColor ?? member.emissiveColor ?? plan.palette.emissive,
         opacity: 1,
-        roughness: 0.85,
-        metalness: 0.05,
+        roughness: lmMat.roughness,
+        metalness: lmMat.metalness,
         cap: member.cap,
         category: 'landmark',
       });
