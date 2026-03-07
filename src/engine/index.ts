@@ -53,3 +53,7 @@ export type { ComposedScenario, ScenarioContext, ScenarioFingerprint } from './s
 // ─── Chat Effect Brain (Dynamic Visual Effects) ────────────────
 export { ChatEffectBrain, createChatEffectBrain } from './chatEffects';
 export type { ComposedChatEffect, EffectCompositionResult, ChatEffect } from './chatEffects';
+
+// ─── BiomeComposer (Procedural Arena Generation) ────────────────
+export { composeBiomeScene, detectBiome, analyzeDensity } from './biomeComposer';
+export type { BiomeScenePlan, BiomeComposerInput, BiomeIdentity } from './biomeComposer';
