@@ -389,9 +389,9 @@ export const BIOME_PRESETS: Record<string, BiomePreset> = {
 
 // Aliases
 const ALIASES: Record<string, string> = {
-  jungle: 'forest', woods: 'forest', grove: 'forest', canopy: 'forest',
+  jungle: 'forest', woods: 'forest', grove: 'forest', canopy: 'forest', wilderness: 'forest', wild: 'forest',
   temple: 'holy', church: 'holy', shrine: 'holy', sacred: 'holy', cathedral: 'holy', chapel: 'holy',
-  city: 'urban', rooftop: 'urban', street: 'urban', alley: 'urban', mall: 'urban', plaza: 'urban', market: 'urban', station: 'urban', terminal: 'urban', 'high-rise': 'urban', highrise: 'urban', tower: 'urban', skyscraper: 'urban',
+  city: 'urban', rooftop: 'urban', street: 'urban', alley: 'urban', mall: 'urban', plaza: 'urban', market: 'urban', station: 'urban', terminal: 'urban', 'high-rise': 'urban', highrise: 'urban', tower: 'urban', skyscraper: 'urban', village: 'urban', town: 'urban', settlement: 'urban',
   factory: 'industrial', plant: 'industrial', warehouse: 'industrial', dam: 'industrial', turbine: 'industrial', generator: 'industrial', refinery: 'industrial', foundry: 'industrial', pump: 'industrial', crane: 'industrial', mill: 'industrial',
   canyon: 'cave', gorge: 'cave', tunnel: 'cave', mine: 'cave', underground: 'cave', sewer: 'cave', catacombs: 'cave',
   lava: 'volcanic', magma: 'volcanic', caldera: 'volcanic', molten: 'volcanic',
@@ -400,9 +400,12 @@ const ALIASES: Record<string, string> = {
   corruption: 'infested', plague: 'infested', hive: 'infested', parasite: 'infested', swarm: 'infested',
   lab: 'facility', laboratory: 'facility', research: 'facility', bunker: 'facility', compound: 'facility',
   nuclear: 'reactor', meltdown: 'reactor', containment: 'reactor',
-  ancient: 'ruins', crumbl: 'ruins', collapsed: 'ruins', derelict: 'ruins', abandoned: 'ruins',
+  ancient: 'ruins', crumbl: 'ruins', collapsed: 'ruins', derelict: 'ruins', abandoned: 'ruins', dungeon: 'ruins', crypt: 'ruins', tomb: 'ruins',
   suspension: 'bridge', overpass: 'bridge', viaduct: 'bridge',
   descent: 'urban', freefall: 'urban',
+  mountain: 'cave', peak: 'cave', summit: 'cave', cliff: 'cave',
+  swamp: 'forest', bog: 'forest', marsh: 'forest', wetland: 'forest',
+  desert: 'volcanic', sand: 'volcanic', dune: 'volcanic', arid: 'volcanic',
 };
 
 /** Resolve a tag to a biome preset key */

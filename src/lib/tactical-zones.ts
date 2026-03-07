@@ -158,6 +158,41 @@ const TERRAIN_ZONE_TEMPLATES: Record<string, Partial<BattlefieldZone>[]> = {
     { label: 'Lower Landing', elevation: 'ground', tactical: defaultTactical({ difficultFooting: true }) },
     { label: 'Freefall Zone', elevation: 'aerial', tactical: defaultTactical({ isUnstable: true }) },
   ],
+  wilderness: [
+    { label: 'Open Field', elevation: 'ground', tactical: defaultTactical({}) },
+    { label: 'Tree Cover', elevation: 'ground', tactical: defaultTactical({ hasCover: true, poorVisibility: true }) },
+    { label: 'Rocky Outcrop', elevation: 'elevated', tactical: defaultTactical({ isHighGround: true, hasCover: true }) },
+    { label: 'Creek Bed', elevation: 'ground', tactical: defaultTactical({ difficultFooting: true }), colorHint: 'water' },
+  ],
+  village: [
+    { label: 'Town Square', elevation: 'ground', tactical: defaultTactical({}) },
+    { label: 'Market Stalls', elevation: 'ground', tactical: defaultTactical({ hasCover: true, destructibleTerrain: true }) },
+    { label: 'Rooftops', elevation: 'elevated', tactical: defaultTactical({ isHighGround: true }) },
+    { label: 'Alleyway', elevation: 'ground', tactical: defaultTactical({ narrowMovement: true, hasCover: true }) },
+  ],
+  dungeon: [
+    { label: 'Entry Hall', elevation: 'ground', tactical: defaultTactical({ hasCover: true }) },
+    { label: 'Chamber', elevation: 'ground', tactical: defaultTactical({ poorVisibility: true }) },
+    { label: 'Corridor', elevation: 'ground', tactical: defaultTactical({ narrowMovement: true }) },
+    { label: 'Pit', elevation: 'underground', tactical: defaultTactical({ difficultFooting: true, poorVisibility: true }) },
+  ],
+  mountain: [
+    { label: 'Summit', elevation: 'high', tactical: defaultTactical({ isHighGround: true }) },
+    { label: 'Mountain Path', elevation: 'elevated', tactical: defaultTactical({ narrowMovement: true, difficultFooting: true }) },
+    { label: 'Cliff Face', elevation: 'elevated', tactical: defaultTactical({ isUnstable: true, isHighGround: true }) },
+    { label: 'Base Camp', elevation: 'ground', tactical: defaultTactical({ hasCover: true }) },
+  ],
+  swamp: [
+    { label: 'Mudflats', elevation: 'ground', tactical: defaultTactical({ difficultFooting: true, flooding: true }) },
+    { label: 'Raised Ground', elevation: 'ground', tactical: defaultTactical({ hasCover: true }) },
+    { label: 'Deep Bog', elevation: 'underground', tactical: defaultTactical({ flooding: true, poorVisibility: true, difficultFooting: true }), colorHint: 'water' },
+  ],
+  desert: [
+    { label: 'Dune Crest', elevation: 'elevated', tactical: defaultTactical({ isHighGround: true }) },
+    { label: 'Sand Valley', elevation: 'ground', tactical: defaultTactical({ difficultFooting: true }) },
+    { label: 'Rock Formation', elevation: 'ground', tactical: defaultTactical({ hasCover: true }) },
+    { label: 'Oasis', elevation: 'ground', tactical: defaultTactical({}), colorHint: 'water' },
+  ],
 };
 
 function defaultTactical(overrides: Partial<ZoneTacticalProperties> = {}): ZoneTacticalProperties {
