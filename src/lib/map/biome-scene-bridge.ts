@@ -13,6 +13,7 @@ import type { PlacedStructure, ProceduralScene } from './procedural-structures';
 import { seeded, vary } from '@/engine/biomeComposer/utils';
 import { isUrbanScene, composeUrbanScene } from '@/engine/urbanComposer';
 import type { UrbanPlacedPiece } from '@/engine/urbanComposer';
+import { assignMaterial } from './visual-identity';
 
 /**
  * Convert a BiomeScenePlan to a ProceduralScene for the 3D renderer.
