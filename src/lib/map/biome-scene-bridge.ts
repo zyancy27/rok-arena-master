@@ -176,6 +176,11 @@ function placeFamily(
       const pz = cz + Math.sin(angle) * dist;
       const elevBias = member.tall ? 0 : 0;
 
+      // Apply VisualIdentitySystem material
+      const viMat = biomeId
+        ? assignMaterial(biomeId, family.name + ' ' + member.role, i === 0 ? 'structure' : 'prop', is + 500)
+        : null;
+
       placed.push({
         id: nextId('sf'),
         label: family.name,
@@ -191,12 +196,12 @@ function placeFamily(
           seeded(is + 20) * Math.PI * 2,
           member.tall ? 0 : (seeded(is + 21) - 0.5) * 0.1,
         ],
-        color: member.color,
-        emissive: member.emissive,
-        emissiveColor: member.emissiveColor,
-        opacity: 1,
-        roughness: member.geom === 'sphere' ? 0.95 : 0.85,
-        metalness: 0.02,
+        color: viMat?.color ?? member.color,
+        emissive: viMat?.emissive ?? member.emissive,
+        emissiveColor: viMat?.emissiveColor ?? member.emissiveColor,
+        opacity: viMat?.opacity ?? 1,
+        roughness: viMat?.roughness ?? (member.geom === 'sphere' ? 0.95 : 0.85),
+        metalness: viMat?.metalness ?? 0.02,
         cap: member.cap,
         category: i === 0 ? 'structure' : 'prop',
       });
