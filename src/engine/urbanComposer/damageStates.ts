@@ -76,10 +76,10 @@ export function applyDamage(
         if (roll < 0.4) {
           return {
             ...p,
-            scale: [p.scale[0] * 1.3, p.scale[1] * 0.15, p.scale[2] * 1.3],
-            position: [p.position[0], 0.05, p.position[2]],
-            rotation: [0, p.rotation[1], 0],
-            damageState: 'collapsed',
+            scale: [p.scale[0] * 1.3, p.scale[1] * 0.15, p.scale[2] * 1.3] as [number, number, number],
+            position: [p.position[0], 0.05, p.position[2]] as [number, number, number],
+            rotation: [0, p.rotation[1], 0] as [number, number, number],
+            damageState: 'collapsed' as const,
           };
         }
         if (roll < 0.6) {
