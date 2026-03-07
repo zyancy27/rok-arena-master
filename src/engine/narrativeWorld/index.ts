@@ -122,3 +122,23 @@ export type {
   PressureConditions,
   NarrativePressureState,
 } from './narrativePressureEngine';
+
+// ── System 11 — Character Discovery Sync ────────────────────────
+export {
+  createDiscoverySyncState,
+  classifyField,
+  formatDiscoveryEntry,
+  discoverFromPressureResponse,
+  discoverFromSignaturePattern,
+  discoverFromMoment,
+  discoverFromDialogue,
+  getPendingDiscoveries,
+  buildFieldUpdates,
+  markSynced,
+} from './characterDiscoverySync';
+export type {
+  DiscoverableField,
+  CharacterDiscovery,
+  DiscoverySource,
+  DiscoverySyncState,
+} from './characterDiscoverySync';
