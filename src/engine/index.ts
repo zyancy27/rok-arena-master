@@ -46,3 +46,28 @@ export type { BiomeScenePlan, BiomeComposerInput, BiomeIdentity } from './biomeC
 // ─── UrbanStructureComposer (Urban Environment Generation) ──────
 export { composeUrbanScene, isUrbanScene } from './urbanComposer';
 export type { UrbanScenePlan, UrbanComposerInput } from './urbanComposer';
+
+// ─── NarratorTerrainMutationEngine (Dynamic Battlefield Mutation) ─
+export {
+  createMutationEngine,
+  processMutationEvent,
+  drainSceneInstructions,
+  getEngineNarratorContext,
+  isZoneCollapsed,
+  getZoneDamageLevel,
+} from '@/lib/map/mutation/NarratorTerrainMutationEngine';
+export type {
+  MutationEngineState,
+  MutationEvent,
+  MutationEngineOutput,
+} from '@/lib/map/mutation/NarratorTerrainMutationEngine';
+export type {
+  TerrainMutation,
+  MutationType,
+  MutationIntensity,
+  MutationCategory,
+  MutationSource,
+  MutationResult,
+  SceneMutationInstruction,
+  SceneMutationOp,
+} from '@/lib/map/mutation/mutation-types';
