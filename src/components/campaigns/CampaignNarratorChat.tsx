@@ -132,13 +132,15 @@ export default function CampaignNarratorChat({
       turnOrder: 0,
     }));
     if (mapParticipants.length === 0) return null;
+    // Use the best available location name for map generation
+    const mapLocationName = chosenLocation || currentZone || campaignName;
     return generateTacticalMap({
       participants: mapParticipants,
       currentPlayerId: myParticipant?.character_id ?? '',
-      locationName: currentZone,
+      locationName: mapLocationName,
       terrainTags: environmentTags,
     });
-  }, [participants, myParticipant, currentZone, environmentTags]);
+  }, [participants, myParticipant, currentZone, environmentTags, chosenLocation, campaignName]);
 
   // Show mechanic discovery messages when queued
   useEffect(() => {

@@ -1604,6 +1604,7 @@ export default function CampaignView() {
                   worldState={campaign.world_state}
                   storyContext={campaign.story_context}
                   environmentTags={campaign.environment_tags}
+                  chosenLocation={activeSceneLocation || campaign.chosen_location}
                   partyMembers={participants.filter(p => p.is_active).map(p => p.character?.name || 'Unknown')}
                   participants={participants}
                   isSolo={isSoloMode}
