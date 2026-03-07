@@ -28,7 +28,7 @@ const SCENARIOS = [
 ];
 
 function ArenaPreview({ title, locationName, terrainTags }: typeof SCENARIOS[number]) {
-  const zones = generateZonesForTerrain(terrainTags);
+  const zones = generateZones(terrainTags, locationName);
 
   return (
     <div className="flex flex-col gap-2">
