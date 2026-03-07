@@ -155,6 +155,7 @@ function placeFamily(
   placed: PlacedStructure[],
   nextId: (prefix: string) => string,
   seed: number,
+  biomeId?: string,
 ): void {
   for (let c = 0; c < family.clusterCount; c++) {
     const cs = seed + c * 200;
