@@ -4,13 +4,15 @@
  * Converts a BiomeScenePlan into a ProceduralScene that the
  * existing ArenaStructures3D component can render.
  * 
- * This is the integration layer between BiomeComposer (logic)
- * and the 3D renderer (visual).
+ * Urban biomes are handled by UrbanStructureComposer for
+ * coherent architectural environments.
  */
 
 import type { BiomeScenePlan, StructureFamily, StructureFamilyMember } from '@/engine/biomeComposer/types';
 import type { PlacedStructure, ProceduralScene } from './procedural-structures';
 import { seeded, vary } from '@/engine/biomeComposer/utils';
+import { isUrbanScene, composeUrbanScene } from '@/engine/urbanComposer';
+import type { UrbanPlacedPiece } from '@/engine/urbanComposer';
 
 /**
  * Convert a BiomeScenePlan to a ProceduralScene for the 3D renderer.
