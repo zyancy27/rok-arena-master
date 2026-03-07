@@ -644,6 +644,31 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                   </Button>
                 </CollapsibleContent>
               </Collapsible>
+
+              {/* AI Generate Background — no ideas needed */}
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <Button type="button" variant="outline" size="sm" className="w-full h-8 text-xs gap-2 border-dashed border-accent/30 text-accent hover:bg-accent/5">
+                    <Wand2 className="w-3.5 h-3.5" />
+                    No Ideas? Generate a Character (AI)
+                    <ChevronDown className="w-3 h-3 ml-auto" />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-3 space-y-2">
+                  <p className="text-[11px] text-muted-foreground">
+                    The AI will create an original character for you. Optionally describe a vibe or theme below, or leave it blank for a complete surprise.
+                  </p>
+                  <Input
+                    placeholder="e.g. space pirate, ancient warrior, mysterious healer... (optional)"
+                    value={generateTheme}
+                    onChange={(e) => setGenerateTheme(e.target.value)}
+                    className="h-9 text-sm"
+                  />
+                  <Button type="button" variant="secondary" size="sm" onClick={handleGenerateBackground} disabled={isGeneratingBackground} className="w-full h-8 text-xs">
+                    {isGeneratingBackground ? <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Generating...</> : <><Wand2 className="w-3.5 h-3.5 mr-1.5" /> Generate Character</>}
+                  </Button>
+                </CollapsibleContent>
+              </Collapsible>
             )}
           </CardContent>
         </Card>
