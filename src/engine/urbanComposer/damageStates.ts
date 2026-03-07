@@ -49,8 +49,8 @@ export function applyDamage(
         if (roll < 0.3) {
           return {
             ...p,
-            rotation: [p.rotation[0] + (seeded(s + 1) - 0.5) * 0.08, p.rotation[1], p.rotation[2] + (seeded(s + 2) - 0.5) * 0.06],
-            damageState: 'cracked',
+            rotation: [p.rotation[0] + (seeded(s + 1) - 0.5) * 0.08, p.rotation[1], p.rotation[2] + (seeded(s + 2) - 0.5) * 0.06] as [number, number, number],
+            damageState: 'cracked' as const,
           };
         }
         return p;
