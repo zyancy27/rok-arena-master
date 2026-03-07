@@ -71,7 +71,7 @@ export function applyDamage(
       case 'collapsed':
         // 40% flattened, 20% removed (opacity 0), 20% heavily tilted
         if (roll < 0.2) {
-          return { ...p, opacity: 0, damageState: 'destroyed' }; // effectively removed
+          return { ...p, opacity: 0, damageState: 'destroyed' as const };
         }
         if (roll < 0.4) {
           return {
