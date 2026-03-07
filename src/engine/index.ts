@@ -98,6 +98,11 @@ export {
   createPressureEngineState, shouldGeneratePressure, selectPressureType,
   generatePressureEvent, acknowledgePressureEvent, buildPressureNarratorContext,
   getAcknowledgedPressureEvents, buildPressureMemorySummary,
+  // System 11 — Character Discovery Sync
+  createDiscoverySyncState, classifyField, formatDiscoveryEntry,
+  discoverFromPressureResponse, discoverFromSignaturePattern,
+  discoverFromMoment, discoverFromDialogue,
+  getPendingDiscoveries, buildFieldUpdates, markSynced,
 } from './narrativeWorld';
 export type {
   BiomeToneTag, BiomeTransitionStep, BiomeTransitionPath,
@@ -110,4 +115,5 @@ export type {
   DiscoveryRarity, DiscoveryMoment,
   EmotionalPressureState, EmotionalPressureMeter, PressureUpdateResult, PressureSource,
   NarrativePressureType, NarrativePressureEvent, PressureConditions, NarrativePressureState,
+  DiscoverableField, CharacterDiscovery, DiscoverySource, DiscoverySyncState,
 } from './narrativeWorld';
