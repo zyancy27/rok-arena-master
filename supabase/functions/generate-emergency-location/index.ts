@@ -237,6 +237,14 @@ ${dedupConstraint}
 URGENCY TIER:
 ${urgencyInstruction}
 
+DIVERSITY RULES — CRITICAL:
+- Every generated emergency MUST feel drastically different from the last.
+- Vary the location type (don't repeat bridges, reactors, buildings, etc. back to back).
+- Vary the threat type (don't repeat flooding, collapsing, exploding, etc. back to back).
+- Vary the mood (panic vs. eerie calm vs. chaotic vs. methodical countdown).
+- Mix industrial, natural, urban, transport, and exotic settings across generations.
+- Names should be vivid and specific — not generic ("Collapsing Bridge" → "Shearing Suspension Span Over Acid River").
+
 MODULAR CONSTRUCTION — Build the emergency from these components:
 1. BASE LOCATION TYPE: facility, vehicle, structure, terrain zone, natural formation, urban center, industrial complex
 2. IMMEDIATE THREAT TRIGGER: countdown, collapse, overload, breach, eruption, derailment, rupture, meltdown

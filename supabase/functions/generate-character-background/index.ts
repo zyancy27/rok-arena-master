@@ -86,7 +86,16 @@ Guidelines:
 - Lore: A 2-4 paragraph backstory with at least one defining event, a conflict, and a goal
 - Level: Power tier 1-10 (1=human, 4-6=superhuman, 7-9=godlike, 10=omnipotent). Default to 3-5 range unless specified.
 
-${hintsBlock}`;
+DIVERSITY RULES — CRITICAL:
+- Every generated character MUST be wildly different from the last.
+- Vary the species concept (don't repeat insectoid, reptilian, humanoid, etc. back to back).
+- Vary the power type (don't repeat elemental, psychic, physical, etc. back to back).
+- Vary the personality archetype (don't repeat stoic warrior, curious explorer, etc. back to back).
+- Vary the home planet aesthetic (don't repeat frozen worlds, jungle worlds, etc. back to back).
+- Names should span different linguistic styles — some alien, some regal, some gritty, some melodic.
+- Push for unexpected combinations: a pacifist berserker species, a blind navigator race, a joyful death-world survivor.
+
+${hintsBlock}${dedupBlock}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
