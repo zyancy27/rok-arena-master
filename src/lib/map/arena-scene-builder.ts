@@ -47,11 +47,11 @@ export function buildArenaScene(input: ArenaSceneInput): ProceduralScene {
 // ── Tag Inference ───────────────────────────────────────────────
 
 const INFERENCE_KEYWORDS: Record<string, string[]> = {
-  forest: ['forest', 'woods', 'grove', 'jungle', 'treeline', 'canopy'],
-  ruins: ['ruins', 'ancient', 'crumbl', 'collapsed', 'temple', 'derelict', 'abandoned'],
+  forest: ['forest', 'woods', 'grove', 'jungle', 'treeline', 'canopy', 'wilderness', 'wild'],
+  ruins: ['ruins', 'ancient', 'crumbl', 'collapsed', 'temple', 'derelict', 'abandoned', 'dungeon', 'crypt', 'tomb'],
   industrial: ['factory', 'warehouse', 'plant', 'industrial', 'assembly', 'smelting', 'dam', 'turbine', 'generator', 'pump', 'crane', 'refinery', 'foundry', 'mill'],
   bridge: ['bridge', 'suspension', 'overpass', 'viaduct', 'crossing'],
-  urban: ['city', 'rooftop', 'street', 'alley', 'downtown', 'district', 'mall', 'plaza', 'market', 'station', 'terminal', 'high-rise', 'highrise', 'tower', 'skyscraper', 'apartment', 'office'],
+  urban: ['city', 'rooftop', 'street', 'alley', 'downtown', 'district', 'mall', 'plaza', 'market', 'station', 'terminal', 'high-rise', 'highrise', 'tower', 'skyscraper', 'apartment', 'office', 'village', 'town', 'settlement'],
   cave: ['cave', 'cavern', 'canyon', 'gorge', 'tunnel', 'mine', 'underground', 'sewer', 'catacombs'],
   volcanic: ['volcanic', 'lava', 'magma', 'caldera', 'volcano', 'basalt', 'molten'],
   holy: ['holy', 'sacred', 'shrine', 'temple', 'cathedral', 'blessed', 'divine', 'chapel', 'monastery'],

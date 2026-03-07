@@ -57,6 +57,8 @@ interface CampaignNarratorChatProps {
   worldState: Record<string, unknown>;
   storyContext: Record<string, unknown>;
   environmentTags?: string[];
+  /** Chosen / active scene location from narrator descriptions */
+  chosenLocation?: string | null;
   partyMembers: string[];
   participants: CampaignParticipant[];
   isSolo: boolean;
@@ -103,7 +105,7 @@ export default function CampaignNarratorChat({
   characterName, characterPowers, characterAbilities, characterWeapons,
   characterLevel, campaignLevel, campaignHp, campaignHpMax,
   currentZone, timeOfDay, dayCount, campaignDescription,
-  worldState, storyContext, environmentTags = [],
+  worldState, storyContext, environmentTags = [], chosenLocation,
   partyMembers, participants, isSolo,
   inventory, onInventoryUpdate, isInventoryActive,
   mechanicDiscoveries = [], onDiscoveriesShown,
@@ -130,13 +132,15 @@ export default function CampaignNarratorChat({
       turnOrder: 0,
     }));
     if (mapParticipants.length === 0) return null;
+    // Use the best available location name for map generation
+    const mapLocationName = chosenLocation || currentZone || campaignName;
     return generateTacticalMap({
       participants: mapParticipants,
       currentPlayerId: myParticipant?.character_id ?? '',
-      locationName: currentZone,
+      locationName: mapLocationName,
       terrainTags: environmentTags,
     });
-  }, [participants, myParticipant, currentZone, environmentTags]);
+  }, [participants, myParticipant, currentZone, environmentTags, chosenLocation, campaignName]);
 
   // Show mechanic discovery messages when queued
   useEffect(() => {
