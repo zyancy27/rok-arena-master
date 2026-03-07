@@ -83,6 +83,7 @@ export function buildArenaScene(input: ArenaSceneInput): ProceduralScene {
       ambientColor: biomeScene.ambientColor,
       ambientIntensity: biomeScene.ambientIntensity,
       terrainBumps: [...biomeScene.terrainBumps, ...legacyScene.terrainBumps],
+      biomeId: biomeScene.biomeId,
     };
   }
 

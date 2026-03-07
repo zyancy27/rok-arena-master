@@ -13,6 +13,7 @@ import type { PlacedStructure, ProceduralScene } from './procedural-structures';
 import { seeded, vary } from '@/engine/biomeComposer/utils';
 import { isUrbanScene, composeUrbanScene } from '@/engine/urbanComposer';
 import type { UrbanPlacedPiece } from '@/engine/urbanComposer';
+import { assignMaterial } from './visual-identity';
 
 /**
  * Convert a BiomeScenePlan to a ProceduralScene for the 3D renderer.
@@ -57,10 +58,11 @@ export function biomeSceneToProceduralScene(
       ambientColor: urbanPlan.palette.ambientTint,
       ambientIntensity: plan.atmosphere.ambientIntensity,
       terrainBumps,
+      biomeId: plan.biome.primary,
     };
   }
 
-  // ── Standard biome path ──────────────────────────────────────
+  const biomeId = plan.biome.primary;
 
   // ── Terrain bumps from terrain features ───────────────────────
   const terrainBumps = plan.terrainFeatures.map(f => ({
@@ -73,7 +75,7 @@ export function biomeSceneToProceduralScene(
 
   // ── Structure families → placed structures ────────────────────
   for (const family of plan.structureFamilies) {
-    placeFamily(family, placed, nextId, baseSeed + idCounter * 7);
+    placeFamily(family, placed, nextId, baseSeed + idCounter * 7, biomeId);
   }
 
   // ── Landmarks → placed landmark structures ────────────────────
@@ -84,6 +86,7 @@ export function biomeSceneToProceduralScene(
     const member = family?.members.find(m => m.role === 'primary') ?? family?.members[0];
 
     if (member) {
+      const lmMat = assignMaterial(biomeId, lm.name, 'landmark', s + 700);
       placed.push({
         id: nextId('lm'),
         label: lm.name,
@@ -95,12 +98,12 @@ export function biomeSceneToProceduralScene(
           member.baseScale[2] * lm.scale * 1.3,
         ],
         rotation: [0, seeded(s) * Math.PI * 2, 0],
-        color: plan.palette.structures,
-        emissive: member.emissive,
-        emissiveColor: member.emissiveColor ?? plan.palette.emissive,
+        color: lmMat.color,
+        emissive: lmMat.emissive ?? member.emissive,
+        emissiveColor: lmMat.emissiveColor ?? member.emissiveColor ?? plan.palette.emissive,
         opacity: 1,
-        roughness: 0.85,
-        metalness: 0.05,
+        roughness: lmMat.roughness,
+        metalness: lmMat.metalness,
         cap: member.cap,
         category: 'landmark',
       });
@@ -143,6 +146,7 @@ export function biomeSceneToProceduralScene(
     ambientColor: plan.atmosphere.ambientColor,
     ambientIntensity: plan.atmosphere.ambientIntensity,
     terrainBumps,
+    biomeId: plan.biome.primary,
   };
 }
 
@@ -152,6 +156,7 @@ function placeFamily(
   placed: PlacedStructure[],
   nextId: (prefix: string) => string,
   seed: number,
+  biomeId?: string,
 ): void {
   for (let c = 0; c < family.clusterCount; c++) {
     const cs = seed + c * 200;
@@ -172,6 +177,11 @@ function placeFamily(
       const pz = cz + Math.sin(angle) * dist;
       const elevBias = member.tall ? 0 : 0;
 
+      // Apply VisualIdentitySystem material
+      const viMat = biomeId
+        ? assignMaterial(biomeId, family.name + ' ' + member.role, i === 0 ? 'structure' : 'prop', is + 500)
+        : null;
+
       placed.push({
         id: nextId('sf'),
         label: family.name,
@@ -187,12 +197,12 @@ function placeFamily(
           seeded(is + 20) * Math.PI * 2,
           member.tall ? 0 : (seeded(is + 21) - 0.5) * 0.1,
         ],
-        color: member.color,
-        emissive: member.emissive,
-        emissiveColor: member.emissiveColor,
-        opacity: 1,
-        roughness: member.geom === 'sphere' ? 0.95 : 0.85,
-        metalness: 0.02,
+        color: viMat?.color ?? member.color,
+        emissive: viMat?.emissive ?? member.emissive,
+        emissiveColor: viMat?.emissiveColor ?? member.emissiveColor,
+        opacity: viMat?.opacity ?? 1,
+        roughness: viMat?.roughness ?? (member.geom === 'sphere' ? 0.95 : 0.85),
+        metalness: viMat?.metalness ?? 0.02,
         cap: member.cap,
         category: i === 0 ? 'structure' : 'prop',
       });

@@ -46,6 +46,8 @@ export interface ProceduralScene {
   ambientIntensity: number;
   /** Terrain height bumps for ground variation */
   terrainBumps: Array<{ x: number; z: number; height: number; radius: number; color: string }>;
+  /** Detected biome identifier for lighting/material systems */
+  biomeId?: string;
 }
 
 // ── Density Calculation ─────────────────────────────────────────

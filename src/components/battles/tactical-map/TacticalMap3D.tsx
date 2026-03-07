@@ -99,8 +99,8 @@ export function TacticalMap3D({
             target={[0, 0, 0]}
           />
 
-          {/* Lighting — driven by arena state */}
-          <ArenaLighting arenaState={data.arenaState} />
+          {/* Lighting — driven by arena state + biome */}
+          <ArenaLighting arenaState={data.arenaState} locationName={data.arenaName} />
 
           {/* ═══ Procedural Arena Structures ═══ */}
           <ArenaStructures3D

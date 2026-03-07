@@ -1,23 +1,33 @@
 /**
- * ArenaLighting — Dynamic lighting that responds to arena state
+ * ArenaLighting — Biome-aware procedural lighting director
+ *
+ * Adapts key, fill, rim, and accent lights to the detected biome
+ * using the VisualIdentitySystem's lighting profiles.
  */
 
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import type { PointLight } from 'three';
 import type { ArenaState } from '@/lib/living-arena';
+import { getLightingProfile, detectBiomeForVisuals } from '@/lib/map/visual-identity';
 
 interface ArenaLightingProps {
   arenaState?: ArenaState;
+  locationName?: string | null;
+  biomeId?: string;
 }
 
-export function ArenaLighting({ arenaState }: ArenaLightingProps) {
+export function ArenaLighting({ arenaState, locationName, biomeId }: ArenaLightingProps) {
   const hazardLightRef = useRef<PointLight>(null);
 
   const isCritical = arenaState?.isCritical ?? false;
   const hazardLevel = arenaState?.hazardLevel ?? 0;
   const hasFire = arenaState?.conditionTags?.includes('burning');
   const hasElectric = arenaState?.conditionTags?.includes('spatial_distortion');
+
+  // Resolve biome and get lighting profile
+  const resolvedBiome = biomeId ?? detectBiomeForVisuals(locationName);
+  const profile = useMemo(() => getLightingProfile(resolvedBiome), [resolvedBiome]);
 
   // Flickering hazard light
   useFrame((state) => {
@@ -30,39 +40,49 @@ export function ArenaLighting({ arenaState }: ArenaLightingProps) {
     }
   });
 
-  // Base ambient color shifts with arena state
-  const ambientColor = isCritical ? '#331111' 
-    : hazardLevel > 60 ? '#2a1a0a'
-    : '#1a1a2e';
-
-  const ambientIntensity = isCritical ? 1.0 : 1.4;
+  // Override ambient in critical state
+  const ambientColor = isCritical ? '#331111' : profile.ambientColor;
+  const ambientIntensity = isCritical ? 1.0 : profile.ambientIntensity;
+  const keyColor = isCritical ? '#ff8866' : profile.keyColor;
 
   return (
     <>
-      {/* Main ambient */}
+      {/* Main ambient — biome-tinted */}
       <ambientLight color={ambientColor} intensity={ambientIntensity} />
 
-      {/* Key light (slightly warm) */}
+      {/* Key light — biome-directed */}
       <directionalLight
-        position={[5, 10, 3]}
-        intensity={1.2}
-        color={isCritical ? '#ff8866' : '#ccd4ee'}
+        position={profile.keyPosition}
+        intensity={profile.keyIntensity}
+        color={keyColor}
         castShadow={false}
       />
 
-      {/* Fill light */}
+      {/* Fill light — biome-tinted */}
       <directionalLight
         position={[-3, 6, -4]}
-        intensity={0.6}
-        color="#8899bb"
+        intensity={profile.fillIntensity}
+        color={profile.fillColor}
       />
 
-      {/* Rim light from behind for depth */}
+      {/* Rim light — biome-tinted for depth */}
       <directionalLight
         position={[-2, 4, -8]}
-        intensity={0.35}
-        color="#99aacc"
+        intensity={profile.rimIntensity}
+        color={profile.rimColor}
       />
+
+      {/* Biome accent lights */}
+      {profile.accents.map((accent, i) => (
+        <pointLight
+          key={`accent-${i}`}
+          position={accent.position}
+          color={accent.color}
+          intensity={accent.intensity}
+          distance={accent.distance}
+          decay={2}
+        />
+      ))}
 
       {/* Hazard warning light */}
       <pointLight
