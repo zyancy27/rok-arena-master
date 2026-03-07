@@ -120,6 +120,10 @@ export {
   ingestFromReflection, ingestFromDialogue, evaluateGravity,
   getGravityInfluences, applyGravityBias, checkWorldAcknowledgement,
   buildGravityNarratorContext, buildGravitySummary,
+  // System 16 — Character Perspective Reinforcement
+  createPerspectiveState, shouldReinforce, selectReinforcementKind,
+  generateReinforcement, generateConsistencyFeedback, reframeAction,
+  markDelivered, buildPerspectiveNarratorContext, buildPerspectiveSummary,
 } from './narrativeWorld';
 export type {
   BiomeToneTag, BiomeTransitionStep, BiomeTransitionPath,
@@ -138,4 +142,5 @@ export type {
   DeviationType, ConsciencePrompt, ConscienceContext, ConscienceState,
   StoryTheme, ThemeEvolution, ThemeWeight, StoryGravityState,
   InfluenceCategory, GravityInfluence, WorldAcknowledgement,
+  ReinforcementKind, ReinforcementEntry, ReinforcementConditions, PerspectiveState,
 } from './narrativeWorld';
