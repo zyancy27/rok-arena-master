@@ -156,3 +156,7 @@ export type { EchoType, EchoFragment, EchoTriggerContext, EchoSurfaceResult, Ech
 // ── System 13 — Character Reflection Engine ─────────────────────
 
 export type { ReflectionTrigger, ReflectionPrompt, ReflectionConditions, ReflectionState } from './characterReflectionEngine';
+
+// ── System 14 — Character Conscience System ─────────────────────
+
+export type { DeviationType, ConsciencePrompt, ConscienceContext, ConscienceState } from './characterConscienceSystem';

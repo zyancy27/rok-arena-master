@@ -110,6 +110,11 @@ export {
   createReflectionState, shouldGenerateReflection, selectReflectionTrigger,
   generateReflection, answerReflection, getAnsweredReflections,
   buildReflectionNarratorContext,
+  // System 14 — Character Conscience System
+  createConscienceState, evaluateConscience, resolveConsciencePrompt,
+  getResolvedPrompts, getPendingConsciencePrompts,
+  buildConscienceNarratorContext, buildConscienceMentalityNote,
+  buildConscienceMemorySummary,
 } from './narrativeWorld';
 export type {
   BiomeToneTag, BiomeTransitionStep, BiomeTransitionPath,
@@ -125,4 +130,5 @@ export type {
   DiscoverableField, CharacterDiscovery, DiscoverySource, DiscoverySyncState,
   EchoType, EchoFragment, EchoTriggerContext, EchoSurfaceResult, EchoMemoryState,
   ReflectionTrigger, ReflectionPrompt, ReflectionConditions, ReflectionState,
+  DeviationType, ConsciencePrompt, ConscienceContext, ConscienceState,
 } from './narrativeWorld';

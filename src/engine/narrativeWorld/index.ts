@@ -176,3 +176,21 @@ export type {
   ReflectionConditions,
   ReflectionState,
 } from './characterReflectionEngine';
+
+// ── System 14 — Character Conscience System ─────────────────────
+export {
+  createConscienceState,
+  evaluateConscience,
+  resolveConsciencePrompt,
+  getResolvedPrompts,
+  getPendingConsciencePrompts,
+  buildConscienceNarratorContext,
+  buildConscienceMentalityNote,
+  buildConscienceMemorySummary,
+} from './characterConscienceSystem';
+export type {
+  DeviationType,
+  ConsciencePrompt,
+  ConscienceContext,
+  ConscienceState,
+} from './characterConscienceSystem';
