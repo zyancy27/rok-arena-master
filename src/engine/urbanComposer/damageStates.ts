@@ -61,9 +61,9 @@ export function applyDamage(
           const tiltAmt = 0.15;
           return {
             ...p,
-            rotation: [p.rotation[0] + (seeded(s + 1) - 0.5) * tiltAmt, p.rotation[1], p.rotation[2] + (seeded(s + 2) - 0.5) * tiltAmt],
-            scale: roll < 0.2 ? [p.scale[0] * 0.7, p.scale[1] * 0.6, p.scale[2] * 0.7] : p.scale,
-            damageState: 'buckling',
+            rotation: [p.rotation[0] + (seeded(s + 1) - 0.5) * tiltAmt, p.rotation[1], p.rotation[2] + (seeded(s + 2) - 0.5) * tiltAmt] as [number, number, number],
+            scale: roll < 0.2 ? [p.scale[0] * 0.7, p.scale[1] * 0.6, p.scale[2] * 0.7] as [number, number, number] : p.scale,
+            damageState: 'buckling' as const,
           };
         }
         return p;
