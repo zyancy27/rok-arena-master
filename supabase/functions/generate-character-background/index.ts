@@ -56,6 +56,14 @@ serve(async (req) => {
     if (theme) hintLines.push(`Theme/vibe the user wants: ${theme}`);
     if (powerTier) hintLines.push(`Power tier (1-10): ${powerTier}`);
 
+    let dedupBlock = "";
+    if (previousNames && Array.isArray(previousNames) && previousNames.length > 0) {
+      dedupBlock = `\n\nDEDUPLICATION — CRITICAL:
+The following characters have ALREADY been generated. You MUST NOT reuse similar names, races, planets, powers, or backstory themes.
+Generate something DRASTICALLY different in species, aesthetic, personality, and origin.
+Previously generated: ${previousNames.join(", ")}`;
+    }
+
     const hintsBlock = hintLines.length > 0
       ? `The user provided these optional hints:\n${hintLines.join("\n")}\n\nUse these as starting points but feel free to expand creatively.`
       : "The user has no ideas at all. Generate a completely original and interesting character from scratch.";
