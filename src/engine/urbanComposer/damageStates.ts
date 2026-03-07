@@ -99,10 +99,10 @@ export function applyDamage(
         }
         return {
           ...p,
-          scale: [p.scale[0] * (0.5 + seeded(s + 5) * 0.8), p.scale[1] * 0.1, p.scale[2] * (0.5 + seeded(s + 6) * 0.8)],
-          position: [p.position[0] + (seeded(s + 3) - 0.5) * 0.6, 0.03, p.position[2] + (seeded(s + 4) - 0.5) * 0.6],
-          rotation: [seeded(s + 1) * 0.3, seeded(s + 7) * Math.PI * 2, seeded(s + 2) * 0.3],
-          damageState: 'destroyed',
+          scale: [p.scale[0] * (0.5 + seeded(s + 5) * 0.8), p.scale[1] * 0.1, p.scale[2] * (0.5 + seeded(s + 6) * 0.8)] as [number, number, number],
+          position: [p.position[0] + (seeded(s + 3) - 0.5) * 0.6, 0.03, p.position[2] + (seeded(s + 4) - 0.5) * 0.6] as [number, number, number],
+          rotation: [seeded(s + 1) * 0.3, seeded(s + 7) * Math.PI * 2, seeded(s + 2) * 0.3] as [number, number, number],
+          damageState: 'destroyed' as const,
         };
 
       default:
