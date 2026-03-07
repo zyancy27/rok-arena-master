@@ -28,7 +28,7 @@ interface MutationPattern {
 const MUTATION_PATTERNS: MutationPattern[] = [
   // ─── Terrain ──────────────────────
   { pattern: /\b(crack|fracture|split|fissure)s?\b/i, type: 'terrain_crack', category: 'terrain', baseIntensity: 'minor', baseMagnitude: 0.3, description: 'Cracks appear in the terrain' },
-  { pattern: /\b(collaps|cave.?in|sink.?hole|gives?\s*way)\b/i, type: 'terrain_collapse', category: 'terrain', baseIntensity: 'severe', baseMagnitude: 0.7, description: 'Section of ground collapses' },
+  { pattern: /\b(collaps|cave.?in|sink.?hole|gives?\s*way)/i, type: 'terrain_collapse', category: 'terrain', baseIntensity: 'severe', baseMagnitude: 0.7, description: 'Section of ground collapses' },
   { pattern: /\b(landslide|avalanche|rock.?fall|debris.?slide)\b/i, type: 'terrain_landslide', category: 'terrain', baseIntensity: 'severe', baseMagnitude: 0.7, description: 'Landslide reshapes the terrain' },
   { pattern: /\b(crater|impact.?zone|blast.?hole|gouge)\b/i, type: 'terrain_crater', category: 'terrain', baseIntensity: 'moderate', baseMagnitude: 0.5, description: 'A crater forms in the ground' },
   { pattern: /\b(freeze|frozen|ice.?over|frost.?spread|glacial)\b/i, type: 'terrain_frozen', category: 'terrain', baseIntensity: 'moderate', baseMagnitude: 0.4, description: 'Surface freezes over' },
