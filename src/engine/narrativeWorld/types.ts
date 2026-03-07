@@ -148,3 +148,11 @@ export interface EmotionalPressureMeter {
 // ── System 10 — Narrative Pressure Engine ───────────────────────
 
 export type { NarrativePressureType, NarrativePressureEvent, PressureConditions, NarrativePressureState } from './narrativePressureEngine';
+
+// ── System 12 — Character Echo System ───────────────────────────
+
+export type { EchoType, EchoFragment, EchoTriggerContext, EchoSurfaceResult, EchoMemoryState } from './characterEchoSystem';
+
+// ── System 13 — Character Reflection Engine ─────────────────────
+
+export type { ReflectionTrigger, ReflectionPrompt, ReflectionConditions, ReflectionState } from './characterReflectionEngine';
