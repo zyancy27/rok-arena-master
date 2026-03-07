@@ -43,7 +43,7 @@ serve(async (req) => {
     }
 
     // Optional hints the user can provide
-    const { name, race, theme, powerTier } = body;
+    const { name, race, theme, powerTier, previousNames } = body;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -55,6 +55,14 @@ serve(async (req) => {
     if (race) hintLines.push(`Race/species: ${race}`);
     if (theme) hintLines.push(`Theme/vibe the user wants: ${theme}`);
     if (powerTier) hintLines.push(`Power tier (1-10): ${powerTier}`);
+
+    let dedupBlock = "";
+    if (previousNames && Array.isArray(previousNames) && previousNames.length > 0) {
+      dedupBlock = `\n\nDEDUPLICATION — CRITICAL:
+The following characters have ALREADY been generated. You MUST NOT reuse similar names, races, planets, powers, or backstory themes.
+Generate something DRASTICALLY different in species, aesthetic, personality, and origin.
+Previously generated: ${previousNames.join(", ")}`;
+    }
 
     const hintsBlock = hintLines.length > 0
       ? `The user provided these optional hints:\n${hintLines.join("\n")}\n\nUse these as starting points but feel free to expand creatively.`
@@ -78,7 +86,16 @@ Guidelines:
 - Lore: A 2-4 paragraph backstory with at least one defining event, a conflict, and a goal
 - Level: Power tier 1-10 (1=human, 4-6=superhuman, 7-9=godlike, 10=omnipotent). Default to 3-5 range unless specified.
 
-${hintsBlock}`;
+DIVERSITY RULES — CRITICAL:
+- Every generated character MUST be wildly different from the last.
+- Vary the species concept (don't repeat insectoid, reptilian, humanoid, etc. back to back).
+- Vary the power type (don't repeat elemental, psychic, physical, etc. back to back).
+- Vary the personality archetype (don't repeat stoic warrior, curious explorer, etc. back to back).
+- Vary the home planet aesthetic (don't repeat frozen worlds, jungle worlds, etc. back to back).
+- Names should span different linguistic styles — some alien, some regal, some gritty, some melodic.
+- Push for unexpected combinations: a pacifist berserker species, a blind navigator race, a joyful death-world survivor.
+
+${hintsBlock}${dedupBlock}`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
