@@ -71,3 +71,38 @@ export type {
   SceneMutationInstruction,
   SceneMutationOp,
 } from '@/lib/map/mutation/mutation-types';
+
+// ─── Narrative-Aware World Systems ──────────────────────────────
+export {
+  // System 1 — Biome Transition Engine
+  getTransitionTemplates, buildTransitionPath, suggestNextBiome, generateTransitionClues,
+  // System 2 — Structural Stress Simulation
+  createStressRecord, applyStress, applyEnvironmentalPressure, getNarratorDescription,
+  // System 3 — Environmental Story Clues
+  generateStoryClues, clueNarratorSummary,
+  // System 4 — Character Discovery Prompts
+  generateDiscoveryPrompt, shouldGeneratePrompt,
+  // System 5 — Environment Memory
+  createEnvironmentMemory, recordChange, getZoneHistory, getPersistentChanges,
+  buildNarratorMemoryContext, buildFullMemorySummary,
+  // System 6 — Narrative Landmark Awareness
+  createLandmarkRegistry, registerLandmark, referenceLandmark, destroyLandmark,
+  getZoneLandmarks, getActiveLandmarks, buildLandmarkNarratorContext, findLandmarkByName,
+  // System 7 — Character Signature Interactions
+  createSignatureProfile, recordAction, analyzePlayerAction, getEnvironmentHint, getTopPatterns,
+  // System 8 — Discovery Moments
+  attemptDiscovery, forceDiscovery,
+  // System 9 — Emotional Environment Pressure
+  createPressureMeter, applyPressure, decayPressure, getStandardSource, applyStandardPressure,
+} from './narrativeWorld';
+export type {
+  BiomeToneTag, BiomeTransitionStep, BiomeTransitionPath,
+  StressState, StructuralStressRecord, StressUpdateResult,
+  ClueCategory, EnvironmentalClue,
+  DiscoveryPromptType, CharacterDiscoveryPrompt,
+  EnvironmentChange, EnvironmentMemoryState,
+  TrackedLandmark, LandmarkRegistry,
+  SignaturePattern, CharacterSignatureProfile, SignatureEnvironmentHint,
+  DiscoveryRarity, DiscoveryMoment,
+  EmotionalPressureState, EmotionalPressureMeter, PressureUpdateResult, PressureSource,
+} from './narrativeWorld';
