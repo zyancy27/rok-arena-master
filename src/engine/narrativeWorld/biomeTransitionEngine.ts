@@ -33,11 +33,11 @@ const TRANSITION_TEMPLATES: TransitionTemplate[] = [
     id: 'corruption_spread',
     arc: 'From natural peace to corrupted menace',
     steps: [
-      { biome: 'forest', modifiers: ['dense'], tone: 'peaceful', hint: 'The forest is thick and quiet.' },
-      { biome: 'forest', modifiers: ['dense', 'overgrown'], tone: 'mysterious', hint: 'Strange growths cling to the trees.' },
-      { biome: 'forest', modifiers: ['overgrown'], tone: 'corrupted', hint: 'The vegetation pulses with unnatural color.' },
-      { biome: 'ruins', modifiers: ['overgrown'], tone: 'ancient', hint: 'Ruins emerge from the corrupted growth.' },
-      { biome: 'ruins', modifiers: [], tone: 'sacred', hint: 'An ancient structure stands amid the decay.' },
+      { biome: 'forest', modifiers: ['overgrown'], tone: 'peaceful', hint: 'The forest is thick and quiet.' },
+      { biome: 'forest', modifiers: ['overgrown', 'infested'], tone: 'mysterious', hint: 'Strange growths cling to the trees.' },
+      { biome: 'forest', modifiers: ['corrupted'], tone: 'corrupted', hint: 'The vegetation pulses with unnatural color.' },
+      { biome: 'ruins', modifiers: ['corrupted'], tone: 'ancient', hint: 'Ruins emerge from the corrupted growth.' },
+      { biome: 'holy_ruins', modifiers: ['ancient'], tone: 'sacred', hint: 'An ancient structure stands amid the decay.' },
     ],
   },
   {
