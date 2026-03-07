@@ -59,37 +59,42 @@ export interface BiomePreset {
 // ── Biome Definitions ───────────────────────────────────────────
 
 const FOREST: BiomePreset = {
-  groundColor: '#1a2e12',
+  groundColor: '#1e3315',
   fogColor: '#2a4a2a',
   fogDensity: 0.4,
   ambientColor: '#1a3a1a',
-  ambientIntensity: 0.7,
+  ambientIntensity: 0.75,
   structures: [
     // Tree (trunk + canopy)
     {
-      label: 'Tree', geom: 'cylinder', color: '#3d2b1a', baseScale: [0.15, 1.6, 0.15], tall: true, instanceable: true,
-      cap: { geom: 'sphere', color: '#1a4a12', offset: [0, 1.1, 0], scale: [0.7, 0.9, 0.7] },
+      label: 'Tree', geom: 'cylinder', color: '#4e342e', baseScale: [0.15, 1.6, 0.15], tall: true, instanceable: true,
+      cap: { geom: 'sphere', color: '#2e7d32', offset: [0, 1.1, 0], scale: [0.7, 0.9, 0.7] },
     },
     // Dead tree
     {
-      label: 'Dead Tree', geom: 'cylinder', color: '#2a2018', baseScale: [0.12, 1.3, 0.12], tall: true, instanceable: true,
-      cap: { geom: 'cone', color: '#3a3020', offset: [0, 0.8, 0], scale: [0.3, 0.6, 0.3] },
+      label: 'Dead Tree', geom: 'cylinder', color: '#3a2a1e', baseScale: [0.12, 1.3, 0.12], tall: true, instanceable: true,
+      cap: { geom: 'cone', color: '#4a3a28', offset: [0, 0.8, 0], scale: [0.3, 0.6, 0.3] },
     },
     // Root cluster
-    { label: 'Roots', geom: 'torus', color: '#3d2b1a', baseScale: [0.5, 0.12, 0.5], instanceable: true },
+    { label: 'Roots', geom: 'torus', color: '#4e342e', baseScale: [0.5, 0.12, 0.5], instanceable: true },
     // Fallen log
-    { label: 'Fallen Log', geom: 'cylinder', color: '#2d1f10', baseScale: [0.12, 1.2, 0.12] },
+    { label: 'Fallen Log', geom: 'cylinder', color: '#3e2a15', baseScale: [0.12, 1.2, 0.12] },
+    // Thick trunk
+    { label: 'Ancient Tree', geom: 'cylinder', color: '#5d4037', baseScale: [0.25, 2.0, 0.25], tall: true,
+      cap: { geom: 'sphere', color: '#1b5e20', offset: [0, 1.4, 0], scale: [1.0, 1.1, 1.0] } },
   ],
   props: [
-    { label: 'Stone', geom: 'sphere', color: '#4a4a4a', baseScale: [0.15, 0.12, 0.15], instanceable: true },
-    { label: 'Bush', geom: 'sphere', color: '#1d3d12', baseScale: [0.3, 0.22, 0.3], instanceable: true },
-    { label: 'Mushroom', geom: 'cone', color: '#6a3020', baseScale: [0.08, 0.12, 0.08], instanceable: true },
+    { label: 'Stone', geom: 'sphere', color: '#6d6d6d', baseScale: [0.15, 0.12, 0.15], instanceable: true },
+    { label: 'Bush', geom: 'sphere', color: '#2e7d32', baseScale: [0.3, 0.22, 0.3], instanceable: true },
+    { label: 'Mushroom', geom: 'cone', color: '#8d6e63', baseScale: [0.08, 0.12, 0.08], instanceable: true },
+    { label: 'Moss Rock', geom: 'sphere', color: '#3e8f55', baseScale: [0.2, 0.15, 0.2], instanceable: true },
+    { label: 'Fern', geom: 'cone', color: '#388e3c', baseScale: [0.15, 0.1, 0.15], instanceable: true },
   ],
   landmarks: [
-    { label: 'Ancient Stump', geom: 'cylinder', color: '#3d2b1a', baseScale: [0.5, 0.4, 0.5] },
-    { label: 'Moss Boulder', geom: 'sphere', color: '#3a5a2a', baseScale: [0.6, 0.45, 0.6] },
-    { label: 'Hollow Tree', geom: 'cylinder', color: '#2a1f10', baseScale: [0.35, 1.8, 0.35], tall: true,
-      cap: { geom: 'sphere', color: '#0d2a0a', offset: [0, 1.2, 0], scale: [0.9, 0.7, 0.9] } },
+    { label: 'Ancient Stump', geom: 'cylinder', color: '#5d4037', baseScale: [0.5, 0.4, 0.5] },
+    { label: 'Moss Boulder', geom: 'sphere', color: '#4a7a3a', baseScale: [0.6, 0.45, 0.6] },
+    { label: 'Hollow Tree', geom: 'cylinder', color: '#3e2a15', baseScale: [0.35, 1.8, 0.35], tall: true,
+      cap: { geom: 'sphere', color: '#1b5e20', offset: [0, 1.2, 0], scale: [0.9, 0.7, 0.9] } },
   ],
 };
 
@@ -325,29 +330,34 @@ const AIRSHIP: BiomePreset = {
 };
 
 const INFESTED: BiomePreset = {
-  groundColor: '#15121a',
-  fogColor: '#2a1a2a',
-  fogDensity: 0.45,
+  groundColor: '#1a1520',
+  fogColor: '#2a1a30',
+  fogDensity: 0.5,
   ambientColor: '#1a121a',
-  ambientIntensity: 0.5,
+  ambientIntensity: 0.55,
   structures: [
-    { label: 'Corrupted Growth', geom: 'cone', color: '#2a1a2a', baseScale: [0.2, 0.8, 0.2], tall: true, instanceable: true },
-    { label: 'Pustule', geom: 'sphere', color: '#4a2a3a', baseScale: [0.25, 0.2, 0.25],
-      emissive: true, emissiveColor: '#6a2a4a', instanceable: true },
-    { label: 'Tendril', geom: 'cylinder', color: '#2a1520', baseScale: [0.06, 1.2, 0.06], tall: true, instanceable: true },
-    { label: 'Nest Mass', geom: 'sphere', color: '#1a1018', baseScale: [0.6, 0.35, 0.5] },
+    { label: 'Corrupted Growth', geom: 'cone', color: '#3a1f3a', baseScale: [0.2, 0.8, 0.2], tall: true, instanceable: true },
+    { label: 'Pustule', geom: 'sphere', color: '#5a3050',
+      emissive: true, emissiveColor: '#7a3a5a', baseScale: [0.25, 0.2, 0.25], instanceable: true },
+    { label: 'Tendril', geom: 'cylinder', color: '#3a1a2a', baseScale: [0.06, 1.2, 0.06], tall: true, instanceable: true },
+    { label: 'Nest Mass', geom: 'sphere', color: '#2a1825', baseScale: [0.6, 0.35, 0.5] },
+    { label: 'Fungal Tower', geom: 'cylinder', color: '#3a2535', baseScale: [0.15, 1.4, 0.15], tall: true,
+      cap: { geom: 'sphere', color: '#5a3a50', offset: [0, 0.9, 0], scale: [0.45, 0.3, 0.45] } },
+    { label: 'Toxic Pit', geom: 'cylinder', color: '#1a3a25', baseScale: [0.6, 0.04, 0.6],
+      emissive: true, emissiveColor: '#3aff6a' },
   ],
   props: [
-    { label: 'Spore', geom: 'sphere', color: '#6a4a5a', baseScale: [0.05, 0.05, 0.05],
-      emissive: true, emissiveColor: '#8a4a6a', instanceable: true },
-    { label: 'Slime Patch', geom: 'box', color: '#2a1a25', baseScale: [0.25, 0.03, 0.25], instanceable: true },
+    { label: 'Spore', geom: 'sphere', color: '#6aff9e', baseScale: [0.05, 0.05, 0.05],
+      emissive: true, emissiveColor: '#6aff9e', instanceable: true },
+    { label: 'Slime Patch', geom: 'box', color: '#3bb273', baseScale: [0.25, 0.03, 0.25], instanceable: true },
+    { label: 'Dead Vine', geom: 'cylinder', color: '#2a1a20', baseScale: [0.03, 0.6, 0.03], instanceable: true },
   ],
   landmarks: [
-    { label: 'Hive Core', geom: 'sphere', color: '#2a1520', baseScale: [0.7, 0.6, 0.7],
-      emissive: true, emissiveColor: '#5a1a3a' },
-    { label: 'Corruption Pillar', geom: 'cylinder', color: '#2a1a25', baseScale: [0.3, 2.0, 0.3], tall: true,
-      emissive: true, emissiveColor: '#4a1a3a' },
-    { label: 'Egg Cluster', geom: 'sphere', color: '#3a2030', baseScale: [0.4, 0.3, 0.35] },
+    { label: 'Hive Core', geom: 'sphere', color: '#3a2030', baseScale: [0.7, 0.6, 0.7],
+      emissive: true, emissiveColor: '#6a2a4a' },
+    { label: 'Corruption Pillar', geom: 'cylinder', color: '#3a1f30', baseScale: [0.3, 2.0, 0.3], tall: true,
+      emissive: true, emissiveColor: '#5a2a4a' },
+    { label: 'Egg Cluster', geom: 'sphere', color: '#4a2a3a', baseScale: [0.4, 0.3, 0.35] },
   ],
 };
 

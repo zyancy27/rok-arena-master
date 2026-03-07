@@ -293,7 +293,7 @@ export default function TacticalBattleMap({ data, onClose }: TacticalBattleMapPr
       {data.arenaState && <EnvironmentPressureMeter arenaState={data.arenaState} />}
 
       {/* Map Content */}
-      <div className="flex-1 p-3 overflow-hidden relative">
+      <div className="flex-1 overflow-hidden relative">
         {viewMode === '3d' ? (
           /* ═══ 3D MAP ═══ */
           <Suspense fallback={

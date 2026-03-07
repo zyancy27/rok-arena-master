@@ -75,11 +75,15 @@ export function TacticalMap3D({
   }, [data.arenaName]);
 
   return (
-    <div className="w-full h-full" style={{ touchAction: 'none' }}>
+    <div className="w-full h-full relative" style={{ touchAction: 'none' }}>
+      {/* Soft edge fade overlay */}
+      <div className="absolute inset-0 z-10 pointer-events-none" style={{
+        boxShadow: 'inset 0 0 40px 20px hsl(var(--background))',
+      }} />
       <Canvas
         dpr={[1, 1.5]}
         gl={{ antialias: true, alpha: false, powerPreference: 'low-power' }}
-        style={{ background: 'transparent' }}
+        style={{ background: '#0a0a12' }}
       >
         <Suspense fallback={null}>
           {/* Camera */}
@@ -108,7 +112,7 @@ export function TacticalMap3D({
           />
 
           {/* Subtle grid overlay (faint, under structures) */}
-          <gridHelper args={[20, 20, '#2a2a4a', '#1e1e38']} position={[0, 0.01, 0]} />
+          <gridHelper args={[20, 20, '#1a1a2a', '#12121e']} position={[0, 0.01, 0]} material-opacity={0.05} material-transparent={true} />
 
           {/* Zones */}
           {hasZones && data.zones!.map(zone => (
