@@ -798,6 +798,10 @@ export default function CampaignView() {
         /\bwhat do i have\b/i,
         /\bmy (items|inventory|stuff|gear|belongings)\b/i,
         /\b(check|look at) (my |what i ).{0,10}(have|carry|got)\b/i,
+        /\b(use|equip|unequip|drink|eat|consume|apply|wear|wield|put on|take off)\b.{0,20}\b(potion|sword|shield|item|weapon|armor|ring|amulet|scroll|herb|food|bandage)\b/i,
+        /\b(pick up|grab|take|pocket|collect|loot|gather)\b.{0,20}\b(item|loot|treasure|gold|coin|gem|weapon|armor|potion|herb|key|scroll)\b/i,
+        /\b(drop|discard|throw away|toss|get rid of)\b.{0,15}\b(item|weapon|potion|armor)\b/i,
+        /\b(pick up|grab|take|pocket|collect|loot)\b/i,
       ];
       const isInventoryCheck = INVENTORY_CHECK_PATTERNS.some(p => p.test(messageText));
 
@@ -1109,11 +1113,29 @@ export default function CampaignView() {
           fetchEnemies();
         }
 
-        // Inline bag bubble when player checked inventory
-        if (isInventoryCheck) {
-          const allItems = inventory;
+        // Show the bag whenever the player interacted with inventory:
+        // explicit check, items found, items used, or equip/use intent in their message
+        const inventoryInteracted =
+          isInventoryCheck ||
+          (data.itemsFound && Array.isArray(data.itemsFound) && data.itemsFound.length > 0) ||
+          (data.itemsUsed && Array.isArray(data.itemsUsed) && data.itemsUsed.length > 0);
+
+        if (inventoryInteracted) {
+          // Re-fetch inventory so the bag reflects the latest state (items just found/used)
+          const { data: freshInv } = await supabase
+            .from('campaign_inventory')
+            .select('*')
+            .eq('campaign_id', snapshotCampaign.id)
+            .eq('user_id', user!.id)
+            .order('created_at', { ascending: false });
+          const latestItems = (freshInv || []).map((i: any) => ({
+            ...i,
+            stat_bonus: (i.stat_bonus || {}) as Record<string, number>,
+          })) as InventoryItem[];
+          setInventory(latestItems);
+
           const charWeapons = snapshotParticipant.character?.weapons_items;
-          const bagContent = buildBagContent(allItems, charWeapons || null);
+          const bagContent = buildBagContent(latestItems, charWeapons || null);
           await supabase.from('campaign_messages').insert({
             campaign_id: snapshotCampaign.id,
             sender_type: 'system',
