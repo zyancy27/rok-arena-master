@@ -57,6 +57,8 @@ interface CampaignNarratorChatProps {
   worldState: Record<string, unknown>;
   storyContext: Record<string, unknown>;
   environmentTags?: string[];
+  /** Chosen / active scene location from narrator descriptions */
+  chosenLocation?: string | null;
   partyMembers: string[];
   participants: CampaignParticipant[];
   isSolo: boolean;
