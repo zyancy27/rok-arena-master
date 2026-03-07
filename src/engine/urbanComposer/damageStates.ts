@@ -90,7 +90,7 @@ export function applyDamage(
             damageState: 'collapsed' as const,
           };
         }
-        return { ...p, damageState: 'cracked' };
+        return { ...p, damageState: 'cracked' as const };
 
       case 'destroyed':
         // 50% removed, rest flattened to debris
