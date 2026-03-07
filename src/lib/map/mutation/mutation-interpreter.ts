@@ -59,7 +59,7 @@ const MUTATION_PATTERNS: MutationPattern[] = [
   { pattern: /\b(smoke|fog|mist)\s*.{0,10}(clear|dissipat|thin|lift|fade)/i, type: 'visibility_improve', category: 'atmosphere', baseIntensity: 'minor', baseMagnitude: 0.3, description: 'Visibility improves' },
 
   // ─── Electrical ───────────────────
-  { pattern: /\b(electric|spark|arc|shock|surge|lightning|current)\b/i, type: 'electrical_surge', category: 'hazard', baseIntensity: 'moderate', baseMagnitude: 0.5, description: 'Electrical surge' },
+  { pattern: /\b(electric|spark|arc|shock|surge|lightning|current)/i, type: 'electrical_surge', category: 'hazard', baseIntensity: 'moderate', baseMagnitude: 0.5, description: 'Electrical surge' },
 
   // ─── Debris ───────────────────────
   { pattern: /\b(debris|rubble|wreckage|shrapnel)\s*.{0,10}(fall|rain|scatter|shower|spray)/i, type: 'debris_spawn', category: 'terrain', baseIntensity: 'minor', baseMagnitude: 0.3, description: 'Debris falls' },
