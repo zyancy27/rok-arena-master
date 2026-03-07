@@ -62,7 +62,7 @@ export function biomeSceneToProceduralScene(
     };
   }
 
-  // ── Standard biome path ──────────────────────────────────────
+  const biomeId = plan.biome.primary;
 
   // ── Terrain bumps from terrain features ───────────────────────
   const terrainBumps = plan.terrainFeatures.map(f => ({
@@ -75,7 +75,7 @@ export function biomeSceneToProceduralScene(
 
   // ── Structure families → placed structures ────────────────────
   for (const family of plan.structureFamilies) {
-    placeFamily(family, placed, nextId, baseSeed + idCounter * 7);
+    placeFamily(family, placed, nextId, baseSeed + idCounter * 7, biomeId);
   }
 
   // ── Landmarks → placed landmark structures ────────────────────
