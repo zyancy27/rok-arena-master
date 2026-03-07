@@ -56,9 +56,11 @@ export function buildArenaScene(input: ArenaSceneInput): ProceduralScene {
   // Generate the biome scene plan
   const plan = composeBiomeScene(composerInput);
 
-  // Convert to ProceduralScene for the renderer
+  // Convert to ProceduralScene for the renderer (with urban detection)
   const seed = hashString(composerInput.seed ?? 'default');
-  const biomeScene = biomeSceneToProceduralScene(plan, seed);
+  const biomeScene = biomeSceneToProceduralScene(
+    plan, seed, input.locationName, input.terrainTags, input.arenaState?.stability,
+  );
 
   // Also generate legacy structures for zones that need them
   // (zone landmarks and zone-specific placements)

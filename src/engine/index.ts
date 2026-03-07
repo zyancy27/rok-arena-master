@@ -1,4 +1,14 @@
 /**
+ * R.O.K. Engine — Public API
+ */
+
+// BiomeComposer
+export { composeBiomeScene } from './biomeComposer';
+export type { BiomeComposerInput, BiomeScenePlan } from './biomeComposer';
+
+// UrbanStructureComposer
+export { composeUrbanScene, isUrbanScene } from './urbanComposer';
+export type { UrbanScenePlan, UrbanComposerInput } from './urbanComposer';
  * R.O.K. Combat Engine — Top-Level API
  *
  * This is the single import point for the entire combat engine.
