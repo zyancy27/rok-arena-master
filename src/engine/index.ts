@@ -142,4 +142,5 @@ export type {
   DeviationType, ConsciencePrompt, ConscienceContext, ConscienceState,
   StoryTheme, ThemeEvolution, ThemeWeight, StoryGravityState,
   InfluenceCategory, GravityInfluence, WorldAcknowledgement,
+  ReinforcementKind, ReinforcementEntry, ReinforcementConditions, PerspectiveState,
 } from './narrativeWorld';
