@@ -136,4 +136,6 @@ export type {
   EchoType, EchoFragment, EchoTriggerContext, EchoSurfaceResult, EchoMemoryState,
   ReflectionTrigger, ReflectionPrompt, ReflectionConditions, ReflectionState,
   DeviationType, ConsciencePrompt, ConscienceContext, ConscienceState,
+  StoryTheme, ThemeEvolution, ThemeWeight, StoryGravityState,
+  InfluenceCategory, GravityInfluence, WorldAcknowledgement,
 } from './narrativeWorld';
