@@ -142,3 +142,37 @@ export type {
   DiscoverySource,
   DiscoverySyncState,
 } from './characterDiscoverySync';
+
+// ── System 12 — Character Echo System ───────────────────────────
+export {
+  createEchoMemory,
+  recordEcho,
+  findRelevantEcho,
+  markEchoSurfaced,
+  getCharacterEchoes,
+  buildEchoNarratorContext,
+} from './characterEchoSystem';
+export type {
+  EchoType,
+  EchoFragment,
+  EchoTriggerContext,
+  EchoSurfaceResult,
+  EchoMemoryState,
+} from './characterEchoSystem';
+
+// ── System 13 — Character Reflection Engine ─────────────────────
+export {
+  createReflectionState,
+  shouldGenerateReflection,
+  selectReflectionTrigger,
+  generateReflection,
+  answerReflection,
+  getAnsweredReflections,
+  buildReflectionNarratorContext,
+} from './characterReflectionEngine';
+export type {
+  ReflectionTrigger,
+  ReflectionPrompt,
+  ReflectionConditions,
+  ReflectionState,
+} from './characterReflectionEngine';

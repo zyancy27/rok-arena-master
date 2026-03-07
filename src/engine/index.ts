@@ -103,6 +103,13 @@ export {
   discoverFromPressureResponse, discoverFromSignaturePattern,
   discoverFromMoment, discoverFromDialogue,
   getPendingDiscoveries, buildFieldUpdates, markSynced,
+  // System 12 — Character Echo System
+  createEchoMemory, recordEcho, findRelevantEcho, markEchoSurfaced,
+  getCharacterEchoes, buildEchoNarratorContext,
+  // System 13 — Character Reflection Engine
+  createReflectionState, shouldGenerateReflection, selectReflectionTrigger,
+  generateReflection, answerReflection, getAnsweredReflections,
+  buildReflectionNarratorContext,
 } from './narrativeWorld';
 export type {
   BiomeToneTag, BiomeTransitionStep, BiomeTransitionPath,
@@ -116,4 +123,6 @@ export type {
   EmotionalPressureState, EmotionalPressureMeter, PressureUpdateResult, PressureSource,
   NarrativePressureType, NarrativePressureEvent, PressureConditions, NarrativePressureState,
   DiscoverableField, CharacterDiscovery, DiscoverySource, DiscoverySyncState,
+  EchoType, EchoFragment, EchoTriggerContext, EchoSurfaceResult, EchoMemoryState,
+  ReflectionTrigger, ReflectionPrompt, ReflectionConditions, ReflectionState,
 } from './narrativeWorld';
