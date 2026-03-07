@@ -54,10 +54,10 @@ const TRANSITION_TEMPLATES: TransitionTemplate[] = [
     id: 'descent_into_unknown',
     arc: 'From familiar ground to alien landscape',
     steps: [
-      { biome: 'rocky', modifiers: [], tone: 'desolate', hint: 'Bare rock stretches to the horizon.' },
-      { biome: 'rocky', modifiers: ['narrow'], tone: 'mysterious', hint: 'Crevasses open into darkness below.' },
-      { biome: 'cave', modifiers: ['narrow'], tone: 'oppressive', hint: 'The passage narrows and light fades.' },
-      { biome: 'cave', modifiers: ['dense'], tone: 'ancient', hint: 'Vast caverns echo with forgotten sounds.' },
+      { biome: 'canyon', modifiers: [], tone: 'desolate', hint: 'Bare rock stretches to the horizon.' },
+      { biome: 'canyon', modifiers: ['vertical'], tone: 'mysterious', hint: 'Crevasses open into darkness below.' },
+      { biome: 'cave', modifiers: ['underground'], tone: 'oppressive', hint: 'The passage narrows and light fades.' },
+      { biome: 'cave', modifiers: ['ancient'], tone: 'ancient', hint: 'Vast caverns echo with forgotten sounds.' },
     ],
   },
   {
