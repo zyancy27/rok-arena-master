@@ -39,7 +39,7 @@ export function applyDamage(
 ): UrbanPlacedPiece[] {
   if (damageState === 'intact') return pieces;
 
-  return pieces.map((p, i) => {
+  return pieces.map((p, i): UrbanPlacedPiece => {
     const s = seed + i * 37;
     const roll = seeded(s);
 
