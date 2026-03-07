@@ -209,13 +209,19 @@ function createZone(
   };
 }
 
-/** Generate zones from terrain tags */
+/** Generate zones from terrain tags and/or location name */
 export function generateZones(terrainTags: string[], locationName?: string | null): BattlefieldZone[] {
   const zones: BattlefieldZone[] = [];
   const matched = new Set<string>();
 
-  for (const tag of terrainTags) {
-    const norm = tag.toLowerCase();
+  // Combine explicit tags with tokens from location name for broader matching
+  const allTokens = [...terrainTags];
+  if (locationName) {
+    allTokens.push(...locationName.toLowerCase().split(/[\s\-_]+/));
+  }
+
+  for (const token of allTokens) {
+    const norm = token.toLowerCase();
     for (const [key, templates] of Object.entries(TERRAIN_ZONE_TEMPLATES)) {
       if (norm.includes(key) && !matched.has(key)) {
         matched.add(key);

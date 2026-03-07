@@ -49,17 +49,17 @@ export function buildArenaScene(input: ArenaSceneInput): ProceduralScene {
 const INFERENCE_KEYWORDS: Record<string, string[]> = {
   forest: ['forest', 'woods', 'grove', 'jungle', 'treeline', 'canopy'],
   ruins: ['ruins', 'ancient', 'crumbl', 'collapsed', 'temple', 'derelict', 'abandoned'],
-  industrial: ['factory', 'warehouse', 'plant', 'industrial', 'assembly', 'smelting'],
+  industrial: ['factory', 'warehouse', 'plant', 'industrial', 'assembly', 'smelting', 'dam', 'turbine', 'generator', 'pump', 'crane', 'refinery', 'foundry', 'mill'],
   bridge: ['bridge', 'suspension', 'overpass', 'viaduct', 'crossing'],
-  urban: ['city', 'rooftop', 'street', 'alley', 'downtown', 'district'],
-  cave: ['cave', 'cavern', 'canyon', 'gorge', 'tunnel', 'mine', 'underground'],
-  volcanic: ['volcanic', 'lava', 'magma', 'caldera', 'volcano', 'basalt'],
-  holy: ['holy', 'sacred', 'shrine', 'temple', 'cathedral', 'blessed', 'divine'],
-  underwater: ['underwater', 'ocean', 'deep sea', 'aquatic', 'abyss', 'coral'],
-  airship: ['airship', 'vessel', 'ship', 'deck', 'zeppelin', 'frigate'],
-  infested: ['infested', 'corrupt', 'plague', 'hive', 'parasite', 'tainted', 'blight'],
-  facility: ['facility', 'lab', 'laboratory', 'research', 'complex'],
-  reactor: ['reactor', 'nuclear', 'meltdown', 'power station', 'cooling'],
+  urban: ['city', 'rooftop', 'street', 'alley', 'downtown', 'district', 'mall', 'plaza', 'market', 'station', 'terminal', 'high-rise', 'highrise', 'tower', 'skyscraper', 'apartment', 'office'],
+  cave: ['cave', 'cavern', 'canyon', 'gorge', 'tunnel', 'mine', 'underground', 'sewer', 'catacombs'],
+  volcanic: ['volcanic', 'lava', 'magma', 'caldera', 'volcano', 'basalt', 'molten'],
+  holy: ['holy', 'sacred', 'shrine', 'temple', 'cathedral', 'blessed', 'divine', 'chapel', 'monastery'],
+  underwater: ['underwater', 'ocean', 'deep sea', 'aquatic', 'abyss', 'coral', 'submerged'],
+  airship: ['airship', 'vessel', 'ship', 'deck', 'zeppelin', 'frigate', 'carrier', 'aircraft'],
+  infested: ['infested', 'corrupt', 'plague', 'hive', 'parasite', 'tainted', 'blight', 'swarm'],
+  facility: ['facility', 'lab', 'laboratory', 'research', 'complex', 'bunker', 'base', 'compound'],
+  reactor: ['reactor', 'nuclear', 'meltdown', 'power station', 'cooling', 'containment'],
 };
 
 function inferTagsFromName(name?: string | null): string[] {
