@@ -130,4 +130,5 @@ export type {
   DiscoverableField, CharacterDiscovery, DiscoverySource, DiscoverySyncState,
   EchoType, EchoFragment, EchoTriggerContext, EchoSurfaceResult, EchoMemoryState,
   ReflectionTrigger, ReflectionPrompt, ReflectionConditions, ReflectionState,
+  DeviationType, ConsciencePrompt, ConscienceContext, ConscienceState,
 } from './narrativeWorld';
