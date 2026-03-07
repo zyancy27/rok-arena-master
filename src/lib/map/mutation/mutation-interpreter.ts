@@ -47,7 +47,7 @@ const MUTATION_PATTERNS: MutationPattern[] = [
 
   // ─── Surface / spread ─────────────
   { pattern: /\b(fire|flame|burn|blaze|ignit|incinerat|scorch|ember)/i, type: 'surface_burn', category: 'hazard', baseIntensity: 'moderate', baseMagnitude: 0.5, description: 'Fire spreads across the surface' },
-  { pattern: /\b(corrupt|taint|infest|spread.{0,10}dark|blight|decay)\b/i, type: 'surface_corruption', category: 'hazard', baseIntensity: 'moderate', baseMagnitude: 0.4, description: 'Corruption grows' },
+  { pattern: /\b(corrupt|taint|infest|spread.{0,10}dark|blight|decay)/i, type: 'surface_corruption', category: 'hazard', baseIntensity: 'moderate', baseMagnitude: 0.4, description: 'Corruption grows' },
   { pattern: /\b(mud|sludge|mire)\s*.{0,10}(spread|expand|seep|ooze)/i, type: 'surface_mud_spread', category: 'terrain', baseIntensity: 'minor', baseMagnitude: 0.3, description: 'Mud spreads' },
 
   // ─── Fluid ────────────────────────
