@@ -4,24 +4,63 @@
  * Converts a BiomeScenePlan into a ProceduralScene that the
  * existing ArenaStructures3D component can render.
  * 
- * This is the integration layer between BiomeComposer (logic)
- * and the 3D renderer (visual).
+ * Urban biomes are handled by UrbanStructureComposer for
+ * coherent architectural environments.
  */
 
 import type { BiomeScenePlan, StructureFamily, StructureFamilyMember } from '@/engine/biomeComposer/types';
 import type { PlacedStructure, ProceduralScene } from './procedural-structures';
 import { seeded, vary } from '@/engine/biomeComposer/utils';
+import { isUrbanScene, composeUrbanScene } from '@/engine/urbanComposer';
+import type { UrbanPlacedPiece } from '@/engine/urbanComposer';
 
 /**
  * Convert a BiomeScenePlan to a ProceduralScene for the 3D renderer.
+ * Urban biomes are routed through UrbanStructureComposer.
  */
 export function biomeSceneToProceduralScene(
   plan: BiomeScenePlan,
   baseSeed: number,
+  locationName?: string | null,
+  terrainTags?: string[],
+  arenaStability?: number,
 ): ProceduralScene {
   const placed: PlacedStructure[] = [];
   let idCounter = 0;
   const nextId = (prefix: string) => `${prefix}-${idCounter++}`;
+
+  // ── Check if urban scene → use UrbanStructureComposer ────────
+  if (isUrbanScene(locationName, terrainTags)) {
+    const urbanPlan = composeUrbanScene({
+      locationName,
+      terrainTags,
+      arenaStability,
+      seed: locationName ?? terrainTags?.join('-') ?? 'urban',
+    });
+
+    // Convert urban pieces to PlacedStructure
+    const urbanStructures: PlacedStructure[] = urbanPlan.pieces.map(p => urbanPieceToPlaced(p));
+
+    // Still use biome atmosphere/terrain from BiomeComposer
+    const terrainBumps = plan.terrainFeatures.map(f => ({
+      x: f.x, z: f.z,
+      height: Math.abs(f.elevation) * 0.5, // less bumpy for urban
+      radius: f.radius,
+      color: f.color,
+    }));
+
+    return {
+      structures: urbanStructures,
+      groundColor: plan.palette.ground,
+      fogColor: plan.atmosphere.fogColor,
+      fogDensity: plan.atmosphere.fogDensity,
+      ambientColor: urbanPlan.palette.ambientTint,
+      ambientIntensity: plan.atmosphere.ambientIntensity,
+      terrainBumps,
+    };
+  }
+
+  // ── Standard biome path ──────────────────────────────────────
 
   // ── Terrain bumps from terrain features ───────────────────────
   const terrainBumps = plan.terrainFeatures.map(f => ({
@@ -173,4 +212,24 @@ function pickMember(members: StructureFamilyMember[], index: number, seed: numbe
     return scatterMembers[Math.floor(seeded(seed) * scatterMembers.length)];
   }
   return members[Math.floor(seeded(seed) * members.length)];
+}
+
+/** Convert UrbanPlacedPiece → PlacedStructure for the renderer */
+function urbanPieceToPlaced(p: UrbanPlacedPiece): PlacedStructure {
+  return {
+    id: p.id,
+    label: p.label,
+    geom: p.geom,
+    position: p.position,
+    scale: p.scale,
+    rotation: p.rotation,
+    color: p.color,
+    roughness: p.roughness,
+    metalness: p.metalness,
+    emissive: p.emissive,
+    emissiveColor: p.emissiveColor,
+    opacity: p.opacity,
+    cap: p.cap,
+    category: p.category,
+  };
 }

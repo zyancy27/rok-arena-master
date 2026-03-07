@@ -3,21 +3,6 @@
  *
  * This is the single import point for the entire combat engine.
  * All combat modes (PvP, PvPvP, PvE, EvE, Campaign) use this engine.
- *
- * Architecture:
- *   Player Move Text
- *        ↓
- *   Intent Layer (interpret + classify + detect targets)
- *        ↓
- *   Rule Engine (validate via trigger/execute rules)
- *        ↓
- *   Combat Resolver (dice + hit detection + modifiers)
- *        ↓
- *   Event Bus (emit events to listeners)
- *        ↓
- *   State Manager (update central battle state)
- *        ↓
- *   Narrator (consumes events + context → AI output)
  */
 
 // ─── Combat Engine ──────────────────────────────────────────────
@@ -57,3 +42,7 @@ export type { ComposedChatEffect, EffectCompositionResult, ChatEffect } from './
 // ─── BiomeComposer (Procedural Arena Generation) ────────────────
 export { composeBiomeScene, detectBiome, analyzeDensity } from './biomeComposer';
 export type { BiomeScenePlan, BiomeComposerInput, BiomeIdentity } from './biomeComposer';
+
+// ─── UrbanStructureComposer (Urban Environment Generation) ──────
+export { composeUrbanScene, isUrbanScene } from './urbanComposer';
+export type { UrbanScenePlan, UrbanComposerInput } from './urbanComposer';
