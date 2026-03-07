@@ -194,3 +194,28 @@ export type {
   ConscienceContext,
   ConscienceState,
 } from './characterConscienceSystem';
+
+// ── System 15 — Story Gravity Engine ────────────────────────────
+export {
+  createStoryGravity,
+  ingestFromSignature,
+  ingestFromPressure,
+  ingestFromEcho,
+  ingestFromReflection,
+  ingestFromDialogue,
+  evaluateGravity,
+  getGravityInfluences,
+  applyGravityBias,
+  checkWorldAcknowledgement,
+  buildGravityNarratorContext,
+  buildGravitySummary,
+} from './storyGravityEngine';
+export type {
+  StoryTheme,
+  ThemeEvolution,
+  ThemeWeight,
+  StoryGravityState,
+  InfluenceCategory,
+  GravityInfluence,
+  WorldAcknowledgement,
+} from './storyGravityEngine';

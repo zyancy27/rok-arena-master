@@ -115,6 +115,11 @@ export {
   getResolvedPrompts, getPendingConsciencePrompts,
   buildConscienceNarratorContext, buildConscienceMentalityNote,
   buildConscienceMemorySummary,
+  // System 15 — Story Gravity Engine
+  createStoryGravity, ingestFromSignature, ingestFromPressure, ingestFromEcho,
+  ingestFromReflection, ingestFromDialogue, evaluateGravity,
+  getGravityInfluences, applyGravityBias, checkWorldAcknowledgement,
+  buildGravityNarratorContext, buildGravitySummary,
 } from './narrativeWorld';
 export type {
   BiomeToneTag, BiomeTransitionStep, BiomeTransitionPath,
@@ -131,4 +136,6 @@ export type {
   EchoType, EchoFragment, EchoTriggerContext, EchoSurfaceResult, EchoMemoryState,
   ReflectionTrigger, ReflectionPrompt, ReflectionConditions, ReflectionState,
   DeviationType, ConsciencePrompt, ConscienceContext, ConscienceState,
+  StoryTheme, ThemeEvolution, ThemeWeight, StoryGravityState,
+  InfluenceCategory, GravityInfluence, WorldAcknowledgement,
 } from './narrativeWorld';
