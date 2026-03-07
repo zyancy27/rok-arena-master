@@ -35,7 +35,7 @@ export function ArenaLighting({ arenaState }: ArenaLightingProps) {
     : hazardLevel > 60 ? '#2a1a0a'
     : '#1a1a2e';
 
-  const ambientIntensity = isCritical ? 0.6 : 0.8;
+  const ambientIntensity = isCritical ? 1.0 : 1.4;
 
   return (
     <>
@@ -45,16 +45,23 @@ export function ArenaLighting({ arenaState }: ArenaLightingProps) {
       {/* Key light (slightly warm) */}
       <directionalLight
         position={[5, 10, 3]}
-        intensity={0.5}
-        color={isCritical ? '#ff8866' : '#aabbdd'}
+        intensity={1.2}
+        color={isCritical ? '#ff8866' : '#ccd4ee'}
         castShadow={false}
       />
 
       {/* Fill light */}
       <directionalLight
         position={[-3, 6, -4]}
-        intensity={0.2}
-        color="#6677aa"
+        intensity={0.6}
+        color="#8899bb"
+      />
+
+      {/* Rim light from behind for depth */}
+      <directionalLight
+        position={[-2, 4, -8]}
+        intensity={0.35}
+        color="#99aacc"
       />
 
       {/* Hazard warning light */}
