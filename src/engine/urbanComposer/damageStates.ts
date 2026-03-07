@@ -95,7 +95,7 @@ export function applyDamage(
       case 'destroyed':
         // 50% removed, rest flattened to debris
         if (roll < 0.5) {
-          return { ...p, opacity: 0, damageState: 'destroyed' };
+          return { ...p, opacity: 0, damageState: 'destroyed' as const };
         }
         return {
           ...p,
