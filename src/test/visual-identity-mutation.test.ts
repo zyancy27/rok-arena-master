@@ -15,7 +15,7 @@ describe('VisualIdentitySystem', () => {
 
   it('detects biome from location name', () => {
     expect(detectBiomeForVisuals('Infested Holy Forest')).toBe('holy_ruins');
-    expect(detectBiomeForVisuals('Industrial Dam Complex')).toBe('industrial');
+    expect(detectBiomeForVisuals('Industrial Dam Complex')).toBe('dam');
     expect(detectBiomeForVisuals('Volcanic Crater')).toBe('volcanic');
     expect(detectBiomeForVisuals('Glass Skybridge')).toBe('bridge');
   });
