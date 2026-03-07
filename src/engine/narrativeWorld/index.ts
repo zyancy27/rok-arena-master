@@ -238,3 +238,29 @@ export type {
   ReinforcementConditions,
   PerspectiveState,
 } from './characterPerspectiveReinforcement';
+
+// ── System 17 — Character Identity Engine ───────────────────────
+export {
+  createIdentityProfile,
+  ingestIdentitySignal,
+  decayIdentityTraits,
+  ingestFromConscience,
+  syncMotivations,
+  updateSpeechStyle,
+  shouldShowIdentityFeedback,
+  generateIdentityFeedback,
+  getConfirmedTraits,
+  getTraitBreakdown,
+  buildIdentityNarratorContext,
+  buildIdentitySummary,
+} from './characterIdentityEngine';
+export type {
+  IdentityTrait,
+  MoralTendency,
+  EmotionalTendency,
+  SpeechStyle,
+  TraitEvidence,
+  IdentityProfile,
+  IdentitySignal,
+  IdentityFeedback,
+} from './characterIdentityEngine';

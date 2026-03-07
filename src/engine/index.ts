@@ -148,4 +148,6 @@ export type {
   StoryTheme, ThemeEvolution, ThemeWeight, StoryGravityState,
   InfluenceCategory, GravityInfluence, WorldAcknowledgement,
   ReinforcementKind, ReinforcementEntry, ReinforcementConditions, PerspectiveState,
+  IdentityTrait, MoralTendency, EmotionalTendency, SpeechStyle,
+  TraitEvidence, IdentityProfile, IdentitySignal, IdentityFeedback,
 } from './narrativeWorld';
