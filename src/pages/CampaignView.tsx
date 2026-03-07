@@ -798,6 +798,10 @@ export default function CampaignView() {
         /\bwhat do i have\b/i,
         /\bmy (items|inventory|stuff|gear|belongings)\b/i,
         /\b(check|look at) (my |what i ).{0,10}(have|carry|got)\b/i,
+        /\b(use|equip|unequip|drink|eat|consume|apply|wear|wield|put on|take off)\b.{0,20}\b(potion|sword|shield|item|weapon|armor|ring|amulet|scroll|herb|food|bandage)\b/i,
+        /\b(pick up|grab|take|pocket|collect|loot|gather)\b.{0,20}\b(item|loot|treasure|gold|coin|gem|weapon|armor|potion|herb|key|scroll)\b/i,
+        /\b(drop|discard|throw away|toss|get rid of)\b.{0,15}\b(item|weapon|potion|armor)\b/i,
+        /\b(pick up|grab|take|pocket|collect|loot)\b/i,
       ];
       const isInventoryCheck = INVENTORY_CHECK_PATTERNS.some(p => p.test(messageText));
 
