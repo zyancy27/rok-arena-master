@@ -372,6 +372,49 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
     }
   };
 
+  // AI Generate Background from scratch
+  const handleGenerateBackground = async () => {
+    setIsGeneratingBackground(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-character-background`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          name: formData.name.trim() || undefined,
+          race: formData.race.trim() || undefined,
+          theme: generateTheme.trim() || undefined,
+          powerTier: formData.level || undefined,
+        }),
+      });
+      if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.error || 'Failed to generate character'); }
+      const result = await response.json();
+      if (result.success && result.data) {
+        const parsed = result.data;
+        setFormData(prev => ({
+          ...prev,
+          name: parsed.name || prev.name, race: parsed.race || prev.race, sub_race: parsed.sub_race || prev.sub_race,
+          age: parsed.age?.toString() || prev.age, home_planet: parsed.home_planet || prev.home_planet,
+          home_moon: parsed.home_moon || prev.home_moon,
+          powers: parsed.powers || prev.powers, abilities: parsed.abilities || prev.abilities,
+          weapons_items: parsed.weapons_items || prev.weapons_items,
+          personality: parsed.personality || prev.personality, mentality: parsed.mentality || prev.mentality,
+          lore: parsed.lore || prev.lore, level: parsed.level || prev.level,
+        }));
+        if (parsed.race && !availableRaces.find(r => r.name === parsed.race)) setUseCustomRace(true);
+        if (parsed.home_planet && !availablePlanets.find(p => p.name === parsed.home_planet)) setUseCustomPlanet(true);
+        setOpenSections({ identity: true, powers: true, personality: true, stats: false });
+        toast.success('Character generated! Review and adjust as needed.');
+      }
+    } catch (error: any) {
+      console.error('Generate background error:', error);
+      toast.error(error.message || 'Failed to generate character background');
+    } finally {
+      setIsGeneratingBackground(false);
+    }
+  };
+
   // Auto-save for edit mode
   const autoSaveData = useMemo(() => ({ formData, stats }), [formData, stats]);
   const handleAutoSave = useCallback(async (data: { formData: CharacterFormData; stats: CharacterStats }) => {
