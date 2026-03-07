@@ -16,14 +16,51 @@ import type { UrbanPlacedPiece } from '@/engine/urbanComposer';
 
 /**
  * Convert a BiomeScenePlan to a ProceduralScene for the 3D renderer.
+ * Urban biomes are routed through UrbanStructureComposer.
  */
 export function biomeSceneToProceduralScene(
   plan: BiomeScenePlan,
   baseSeed: number,
+  locationName?: string | null,
+  terrainTags?: string[],
+  arenaStability?: number,
 ): ProceduralScene {
   const placed: PlacedStructure[] = [];
   let idCounter = 0;
   const nextId = (prefix: string) => `${prefix}-${idCounter++}`;
+
+  // ── Check if urban scene → use UrbanStructureComposer ────────
+  if (isUrbanScene(locationName, terrainTags)) {
+    const urbanPlan = composeUrbanScene({
+      locationName,
+      terrainTags,
+      arenaStability,
+      seed: locationName ?? terrainTags?.join('-') ?? 'urban',
+    });
+
+    // Convert urban pieces to PlacedStructure
+    const urbanStructures: PlacedStructure[] = urbanPlan.pieces.map(p => urbanPieceToPlaced(p));
+
+    // Still use biome atmosphere/terrain from BiomeComposer
+    const terrainBumps = plan.terrainFeatures.map(f => ({
+      x: f.x, z: f.z,
+      height: Math.abs(f.elevation) * 0.5, // less bumpy for urban
+      radius: f.radius,
+      color: f.color,
+    }));
+
+    return {
+      structures: urbanStructures,
+      groundColor: plan.palette.ground,
+      fogColor: plan.atmosphere.fogColor,
+      fogDensity: plan.atmosphere.fogDensity,
+      ambientColor: urbanPlan.palette.ambientTint,
+      ambientIntensity: plan.atmosphere.ambientIntensity,
+      terrainBumps,
+    };
+  }
+
+  // ── Standard biome path ──────────────────────────────────────
 
   // ── Terrain bumps from terrain features ───────────────────────
   const terrainBumps = plan.terrainFeatures.map(f => ({
