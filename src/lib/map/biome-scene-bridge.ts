@@ -58,6 +58,7 @@ export function biomeSceneToProceduralScene(
       ambientColor: urbanPlan.palette.ambientTint,
       ambientIntensity: plan.atmosphere.ambientIntensity,
       terrainBumps,
+      biomeId: plan.biome.primary,
     };
   }
 
