@@ -112,7 +112,7 @@ export function TacticalMap3D({
           />
 
           {/* Subtle grid overlay (faint, under structures) */}
-          <gridHelper args={[20, 20, '#2a2a4a', '#1e1e38']} position={[0, 0.01, 0]} />
+          <gridHelper args={[20, 20, '#1a1a2a', '#12121e']} position={[0, 0.01, 0]} material-opacity={0.05} material-transparent={true} />
 
           {/* Zones */}
           {hasZones && data.zones!.map(zone => (
