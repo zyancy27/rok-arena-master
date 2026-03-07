@@ -75,11 +75,15 @@ export function TacticalMap3D({
   }, [data.arenaName]);
 
   return (
-    <div className="w-full h-full" style={{ touchAction: 'none' }}>
+    <div className="w-full h-full relative" style={{ touchAction: 'none' }}>
+      {/* Soft edge fade overlay */}
+      <div className="absolute inset-0 z-10 pointer-events-none" style={{
+        boxShadow: 'inset 0 0 40px 20px hsl(var(--background))',
+      }} />
       <Canvas
         dpr={[1, 1.5]}
         gl={{ antialias: true, alpha: false, powerPreference: 'low-power' }}
-        style={{ background: 'transparent' }}
+        style={{ background: '#0a0a12' }}
       >
         <Suspense fallback={null}>
           {/* Camera */}
