@@ -124,6 +124,11 @@ export {
   createPerspectiveState, shouldReinforce, selectReinforcementKind,
   generateReinforcement, generateConsistencyFeedback, reframeAction,
   markDelivered, buildPerspectiveNarratorContext, buildPerspectiveSummary,
+  // System 17 — Character Identity Engine
+  createIdentityProfile, ingestIdentitySignal, decayIdentityTraits,
+  ingestFromConscience, syncMotivations, updateSpeechStyle,
+  shouldShowIdentityFeedback, generateIdentityFeedback, getConfirmedTraits,
+  getTraitBreakdown, buildIdentityNarratorContext, buildIdentitySummary,
 } from './narrativeWorld';
 export type {
   BiomeToneTag, BiomeTransitionStep, BiomeTransitionPath,
