@@ -7,7 +7,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import { ArenaStructures3D } from '@/components/battles/tactical-map/ArenaStructures3D';
 import { ArenaLighting } from '@/components/battles/tactical-map/ArenaLighting';
-import { generateZonesForTerrain } from '@/lib/tactical-zones';
+import { generateZones } from '@/lib/tactical-zones';
 
 const SCENARIOS = [
   {
