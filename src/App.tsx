@@ -36,6 +36,7 @@ import CampaignView from "@/pages/CampaignView";
 import NotFound from "@/pages/NotFound";
 import ResetPassword from "@/pages/ResetPassword";
 
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/rules" element={<Rules />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            
             <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
               <Route path="/hub" element={<Hub />} />
               <Route path="/characters" element={<CharacterDirectory />} />
