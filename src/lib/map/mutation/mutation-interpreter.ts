@@ -28,7 +28,7 @@ interface MutationPattern {
 const MUTATION_PATTERNS: MutationPattern[] = [
   // ─── Terrain ──────────────────────
   { pattern: /\b(crack|fracture|split|fissure)s?\b/i, type: 'terrain_crack', category: 'terrain', baseIntensity: 'minor', baseMagnitude: 0.3, description: 'Cracks appear in the terrain' },
-  { pattern: /\b(collaps|cave.?in|sink.?hole|gives?\s*way)\b/i, type: 'terrain_collapse', category: 'terrain', baseIntensity: 'severe', baseMagnitude: 0.7, description: 'Section of ground collapses' },
+  { pattern: /\b(collaps|cave.?in|sink.?hole|gives?\s*way)/i, type: 'terrain_collapse', category: 'terrain', baseIntensity: 'severe', baseMagnitude: 0.7, description: 'Section of ground collapses' },
   { pattern: /\b(landslide|avalanche|rock.?fall|debris.?slide)\b/i, type: 'terrain_landslide', category: 'terrain', baseIntensity: 'severe', baseMagnitude: 0.7, description: 'Landslide reshapes the terrain' },
   { pattern: /\b(crater|impact.?zone|blast.?hole|gouge)\b/i, type: 'terrain_crater', category: 'terrain', baseIntensity: 'moderate', baseMagnitude: 0.5, description: 'A crater forms in the ground' },
   { pattern: /\b(freeze|frozen|ice.?over|frost.?spread|glacial)\b/i, type: 'terrain_frozen', category: 'terrain', baseIntensity: 'moderate', baseMagnitude: 0.4, description: 'Surface freezes over' },
@@ -46,8 +46,8 @@ const MUTATION_PATTERNS: MutationPattern[] = [
   { pattern: /\b(floor|ground)\s*.{0,15}buckle/i, type: 'structure_buckle', category: 'structure', baseIntensity: 'moderate', baseMagnitude: 0.5, description: 'Floor buckles under pressure' },
 
   // ─── Surface / spread ─────────────
-  { pattern: /\b(fire|flame|burn|blaze|ignit|incinerat|scorch|ember)\b/i, type: 'surface_burn', category: 'hazard', baseIntensity: 'moderate', baseMagnitude: 0.5, description: 'Fire spreads across the surface' },
-  { pattern: /\b(corrupt|taint|infest|spread.{0,10}dark|blight|decay)\b/i, type: 'surface_corruption', category: 'hazard', baseIntensity: 'moderate', baseMagnitude: 0.4, description: 'Corruption grows' },
+  { pattern: /\b(fire|flame|burn|blaze|ignit|incinerat|scorch|ember)/i, type: 'surface_burn', category: 'hazard', baseIntensity: 'moderate', baseMagnitude: 0.5, description: 'Fire spreads across the surface' },
+  { pattern: /\b(corrupt|taint|infest|spread.{0,10}dark|blight|decay)/i, type: 'surface_corruption', category: 'hazard', baseIntensity: 'moderate', baseMagnitude: 0.4, description: 'Corruption grows' },
   { pattern: /\b(mud|sludge|mire)\s*.{0,10}(spread|expand|seep|ooze)/i, type: 'surface_mud_spread', category: 'terrain', baseIntensity: 'minor', baseMagnitude: 0.3, description: 'Mud spreads' },
 
   // ─── Fluid ────────────────────────
@@ -59,7 +59,7 @@ const MUTATION_PATTERNS: MutationPattern[] = [
   { pattern: /\b(smoke|fog|mist)\s*.{0,10}(clear|dissipat|thin|lift|fade)/i, type: 'visibility_improve', category: 'atmosphere', baseIntensity: 'minor', baseMagnitude: 0.3, description: 'Visibility improves' },
 
   // ─── Electrical ───────────────────
-  { pattern: /\b(electric|spark|arc|shock|surge|lightning|current)\b/i, type: 'electrical_surge', category: 'hazard', baseIntensity: 'moderate', baseMagnitude: 0.5, description: 'Electrical surge' },
+  { pattern: /\b(electric|spark|arc|shock|surge|lightning|current)/i, type: 'electrical_surge', category: 'hazard', baseIntensity: 'moderate', baseMagnitude: 0.5, description: 'Electrical surge' },
 
   // ─── Debris ───────────────────────
   { pattern: /\b(debris|rubble|wreckage|shrapnel)\s*.{0,10}(fall|rain|scatter|shower|spray)/i, type: 'debris_spawn', category: 'terrain', baseIntensity: 'minor', baseMagnitude: 0.3, description: 'Debris falls' },
