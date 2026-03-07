@@ -1,13 +1,13 @@
 /**
  * TacticalMap3D — React Three Fiber battlefield renderer
- * 
+ *
  * Procedurally generates a 3D arena from zone data, terrain tags,
  * and arena state. Lightweight low-poly aesthetic.
  */
 
-import { Suspense, useMemo, useCallback, useState } from 'react';
+import { Suspense, useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, PerspectiveCamera, Environment } from '@react-three/drei';
+import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import type { TacticalMapData } from '@/components/battles/TacticalBattleMap';
 import { ZonePlate3D } from './ZonePlate3D';
 import { Entity3D } from './Entity3D';
@@ -51,7 +51,7 @@ export function TacticalMap3D({
 }: TacticalMap3DProps) {
   const hasZones = data.zones && data.zones.length > 0;
 
-  // Build zone elevation map for entity placement
+  // Build entity positions with elevation
   const entityPositions = useMemo(() => {
     return data.entities.map(e => {
       const zone = data.zones?.find(z => z.id === e.zoneId);
@@ -62,9 +62,17 @@ export function TacticalMap3D({
   }, [data.entities, data.zones]);
 
   const playerEntity = data.entities.find(e => e.type === 'player');
-  const awarenessRadius = data.awareness?.awarenessRadius 
-    ? (data.awareness.awarenessRadius * 0.2) 
+  const awarenessRadius = data.awareness?.awarenessRadius
+    ? (data.awareness.awarenessRadius * 0.2)
     : undefined;
+
+  // Extract terrain tags from arenaName for the structure layer
+  const terrainTags = useMemo(() => {
+    // Collect tags from zones, arena name, and image stack
+    const tags: string[] = [];
+    if (data.arenaName) tags.push(data.arenaName);
+    return tags;
+  }, [data.arenaName]);
 
   return (
     <div className="w-full h-full" style={{ touchAction: 'none' }}>
@@ -87,23 +95,20 @@ export function TacticalMap3D({
             target={[0, 0, 0]}
           />
 
-          {/* Lighting */}
+          {/* Lighting — driven by arena state */}
           <ArenaLighting arenaState={data.arenaState} />
 
-          {/* Ground plane */}
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]} receiveShadow>
-            <planeGeometry args={[22, 22]} />
-            <meshStandardMaterial color="#1a1a2e" roughness={0.9} />
-          </mesh>
+          {/* ═══ Procedural Arena Structures ═══ */}
+          <ArenaStructures3D
+            zones={data.zones ?? []}
+            features={data.features}
+            terrainTags={terrainTags}
+            arenaState={data.arenaState}
+            locationName={data.arenaName}
+          />
 
-          {/* Grid lines */}
+          {/* Subtle grid overlay (faint, under structures) */}
           <gridHelper args={[20, 20, '#2a2a4a', '#1e1e38']} position={[0, 0.01, 0]} />
-
-          {/* Arena border */}
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
-            <ringGeometry args={[9.8, 10, 4]} />
-            <meshBasicMaterial color="#3a3a5e" transparent opacity={0.5} />
-          </mesh>
 
           {/* Zones */}
           {hasZones && data.zones!.map(zone => (
@@ -117,15 +122,7 @@ export function TacticalMap3D({
             />
           ))}
 
-          {/* Structures */}
-          <ArenaStructures3D
-            zones={data.zones ?? []}
-            features={data.features}
-            terrainTags={[]}
-            arenaState={data.arenaState}
-          />
-
-          {/* Hazards */}
+          {/* Hazard effects */}
           <HazardEffects3D
             hazards={data.hazards}
             zones={data.zones}
@@ -191,7 +188,6 @@ export function TacticalMap3D({
                   <octahedronGeometry args={[0.15, 0]} />
                   <meshBasicMaterial color={color} transparent opacity={0.8} />
                 </mesh>
-                {/* Beacon line */}
                 <mesh position={[0, -1.2, 0]}>
                   <cylinderGeometry args={[0.01, 0.01, 2.4, 4]} />
                   <meshBasicMaterial color={color} transparent opacity={0.3} />
