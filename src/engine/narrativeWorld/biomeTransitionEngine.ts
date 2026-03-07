@@ -74,10 +74,10 @@ const TRANSITION_TEMPLATES: TransitionTemplate[] = [
     id: 'sacred_approach',
     arc: 'From wild terrain to reverent ground',
     steps: [
-      { biome: 'forest', modifiers: ['dense'], tone: 'mysterious', hint: 'Ancient trees guard an unseen path.' },
+      { biome: 'forest', modifiers: ['mystical'], tone: 'mysterious', hint: 'Ancient trees guard an unseen path.' },
       { biome: 'forest', modifiers: [], tone: 'hopeful', hint: 'Light breaks through the canopy ahead.' },
-      { biome: 'ruins', modifiers: [], tone: 'ancient', hint: 'Stone pillars rise from the earth.' },
-      { biome: 'ruins', modifiers: ['elevated'], tone: 'sacred', hint: 'A temple stands, untouched by time.' },
+      { biome: 'ruins', modifiers: ['ancient'], tone: 'ancient', hint: 'Stone pillars rise from the earth.' },
+      { biome: 'holy_ruins', modifiers: ['holy'], tone: 'sacred', hint: 'A temple stands, untouched by time.' },
     ],
   },
 ];
