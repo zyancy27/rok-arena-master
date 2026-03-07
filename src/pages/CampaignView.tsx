@@ -1601,9 +1601,9 @@ export default function CampaignView() {
                   timeOfDay={campaign.time_of_day}
                   dayCount={campaign.day_count}
                   campaignDescription={campaign.description}
-                  worldState={campaign.world_state}
-                  storyContext={campaign.story_context}
-                  environmentTags={campaign.environment_tags}
+                  worldState={(campaign.world_state ?? {}) as Record<string, unknown>}
+                  storyContext={(campaign.story_context ?? {}) as Record<string, unknown>}
+                  environmentTags={Array.isArray(campaign.environment_tags) ? campaign.environment_tags as string[] : []}
                   chosenLocation={activeSceneLocation || campaign.chosen_location}
                   partyMembers={participants.filter(p => p.is_active).map(p => p.character?.name || 'Unknown')}
                   participants={participants}
