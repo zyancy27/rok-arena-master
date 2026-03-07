@@ -43,7 +43,7 @@ serve(async (req) => {
     }
 
     // Optional hints the user can provide
-    const { name, race, theme, powerTier } = body;
+    const { name, race, theme, powerTier, previousNames } = body;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
