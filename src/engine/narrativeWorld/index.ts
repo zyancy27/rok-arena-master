@@ -104,3 +104,21 @@ export {
   applyStandardPressure,
 } from './emotionalEnvironmentPressure';
 export type { PressureUpdateResult, PressureSource } from './emotionalEnvironmentPressure';
+
+// ── System 10 — Narrative Pressure Engine ───────────────────────
+export {
+  createPressureEngineState,
+  shouldGeneratePressure,
+  selectPressureType,
+  generatePressureEvent,
+  acknowledgePressureEvent,
+  buildPressureNarratorContext,
+  getAcknowledgedPressureEvents,
+  buildPressureMemorySummary,
+} from './narrativePressureEngine';
+export type {
+  NarrativePressureType,
+  NarrativePressureEvent,
+  PressureConditions,
+  NarrativePressureState,
+} from './narrativePressureEngine';

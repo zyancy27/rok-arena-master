@@ -144,3 +144,7 @@ export interface EmotionalPressureMeter {
   /** Narrator context for current state */
   narratorHint: string;
 }
+
+// ── System 10 — Narrative Pressure Engine ───────────────────────
+
+export type { NarrativePressureType, NarrativePressureEvent, PressureConditions, NarrativePressureState } from './narrativePressureEngine';
