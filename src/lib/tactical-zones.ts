@@ -108,6 +108,56 @@ const TERRAIN_ZONE_TEMPLATES: Record<string, Partial<BattlefieldZone>[]> = {
     { label: 'Ash Field', elevation: 'ground', tactical: defaultTactical({ poorVisibility: true, difficultFooting: true }) },
     { label: 'Stable Plateau', elevation: 'ground', tactical: defaultTactical({ hasCover: true }) },
   ],
+  // ── Extended templates ────────────────────────────────────────
+  industrial: [
+    { label: 'Main Floor', elevation: 'ground', tactical: defaultTactical({ hasCover: true, destructibleTerrain: true }) },
+    { label: 'Catwalk', elevation: 'elevated', tactical: defaultTactical({ isHighGround: true, narrowMovement: true, isUnstable: true }) },
+    { label: 'Storage Bay', elevation: 'ground', tactical: defaultTactical({ hasCover: true }) },
+    { label: 'Machine Room', elevation: 'ground', tactical: defaultTactical({ electricHazard: true, poorVisibility: true }) },
+  ],
+  dam: [
+    { label: 'Turbine Platform', elevation: 'elevated', tactical: defaultTactical({ isHighGround: true, electricHazard: true, isUnstable: true }) },
+    { label: 'Maintenance Catwalk', elevation: 'high', tactical: defaultTactical({ narrowMovement: true, isHighGround: true }) },
+    { label: 'Dam Wall', elevation: 'elevated', tactical: defaultTactical({ hasCover: true, destructibleTerrain: true }) },
+    { label: 'Water Intake', elevation: 'underground', tactical: defaultTactical({ flooding: true, difficultFooting: true, poorVisibility: true }), colorHint: 'water' },
+    { label: 'Generator Hall', elevation: 'ground', tactical: defaultTactical({ hasCover: true, electricHazard: true }) },
+  ],
+  mall: [
+    { label: 'Atrium', elevation: 'ground', tactical: defaultTactical({ destructibleTerrain: true }) },
+    { label: 'Upper Gallery', elevation: 'elevated', tactical: defaultTactical({ isHighGround: true, hasCover: true }) },
+    { label: 'Escalator Zone', elevation: 'ground', tactical: defaultTactical({ narrowMovement: true, isUnstable: true }) },
+    { label: 'Shop Front', elevation: 'ground', tactical: defaultTactical({ hasCover: true, destructibleTerrain: true }) },
+    { label: 'Parking Level', elevation: 'underground', tactical: defaultTactical({ poorVisibility: true, hasCover: true }) },
+  ],
+  cave: [
+    { label: 'Cavern Mouth', elevation: 'ground', tactical: defaultTactical({ hasCover: true }) },
+    { label: 'Deep Chamber', elevation: 'underground', tactical: defaultTactical({ poorVisibility: true, difficultFooting: true }) },
+    { label: 'Ledge', elevation: 'elevated', tactical: defaultTactical({ isHighGround: true, narrowMovement: true }) },
+  ],
+  urban: [
+    { label: 'Rooftop', elevation: 'high', tactical: defaultTactical({ isHighGround: true }) },
+    { label: 'Street Level', elevation: 'ground', tactical: defaultTactical({ hasCover: true, destructibleTerrain: true }) },
+    { label: 'Alley', elevation: 'ground', tactical: defaultTactical({ narrowMovement: true, hasCover: true, poorVisibility: true }) },
+    { label: 'Overpass', elevation: 'elevated', tactical: defaultTactical({ isHighGround: true, isUnstable: true }) },
+  ],
+  facility: [
+    { label: 'Lab Floor', elevation: 'ground', tactical: defaultTactical({ hasCover: true }) },
+    { label: 'Observation Deck', elevation: 'elevated', tactical: defaultTactical({ isHighGround: true }) },
+    { label: 'Server Room', elevation: 'ground', tactical: defaultTactical({ electricHazard: true, narrowMovement: true }) },
+    { label: 'Loading Dock', elevation: 'ground', tactical: defaultTactical({ hasCover: true, destructibleTerrain: true }) },
+  ],
+  airship: [
+    { label: 'Main Deck', elevation: 'high', tactical: defaultTactical({ isHighGround: true }) },
+    { label: 'Cargo Hold', elevation: 'ground', tactical: defaultTactical({ hasCover: true, narrowMovement: true }) },
+    { label: 'Engine Room', elevation: 'ground', tactical: defaultTactical({ electricHazard: true, isUnstable: true }) },
+    { label: 'Observation Bow', elevation: 'high', tactical: defaultTactical({ isHighGround: true }) },
+  ],
+  descent: [
+    { label: 'Upper Level', elevation: 'high', tactical: defaultTactical({ isHighGround: true }) },
+    { label: 'Mid Drop', elevation: 'elevated', tactical: defaultTactical({ isUnstable: true, narrowMovement: true }) },
+    { label: 'Lower Landing', elevation: 'ground', tactical: defaultTactical({ difficultFooting: true }) },
+    { label: 'Freefall Zone', elevation: 'aerial', tactical: defaultTactical({ isUnstable: true }) },
+  ],
 };
 
 function defaultTactical(overrides: Partial<ZoneTacticalProperties> = {}): ZoneTacticalProperties {
@@ -159,13 +209,19 @@ function createZone(
   };
 }
 
-/** Generate zones from terrain tags */
+/** Generate zones from terrain tags and/or location name */
 export function generateZones(terrainTags: string[], locationName?: string | null): BattlefieldZone[] {
   const zones: BattlefieldZone[] = [];
   const matched = new Set<string>();
 
-  for (const tag of terrainTags) {
-    const norm = tag.toLowerCase();
+  // Combine explicit tags with tokens from location name for broader matching
+  const allTokens = [...terrainTags];
+  if (locationName) {
+    allTokens.push(...locationName.toLowerCase().split(/[\s\-_]+/));
+  }
+
+  for (const token of allTokens) {
+    const norm = token.toLowerCase();
     for (const [key, templates] of Object.entries(TERRAIN_ZONE_TEMPLATES)) {
       if (norm.includes(key) && !matched.has(key)) {
         matched.add(key);

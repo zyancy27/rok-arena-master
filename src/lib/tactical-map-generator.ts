@@ -207,14 +207,20 @@ function generateHazards(arenaState?: ArenaState): TacticalMapData['hazards'] {
 
 export function generateTacticalMap(opts: GenerateMapOptions): TacticalMapData {
   const tags = opts.terrainTags ?? [];
-  const useZones = tags.length > 0;
+  // Always use zones when we have a location name OR terrain tags
+  const useZones = tags.length > 0 || !!opts.locationName;
 
   // Generate zones
   let zones: BattlefieldZone[] | undefined;
   let entities: TacticalMapData['entities'];
 
   if (useZones) {
-    zones = generateZones(tags, opts.locationName);
+    // Merge explicit tags with tokens extracted from location name
+    const allTags = [...tags];
+    if (opts.locationName) {
+      allTags.push(...opts.locationName.toLowerCase().split(/[\s\-_]+/));
+    }
+    zones = generateZones(allTags, opts.locationName);
     if (opts.arenaState) {
       zones = updateZonesFromArenaState(zones, opts.arenaState);
     }

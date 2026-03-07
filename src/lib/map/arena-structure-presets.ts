@@ -389,19 +389,20 @@ export const BIOME_PRESETS: Record<string, BiomePreset> = {
 
 // Aliases
 const ALIASES: Record<string, string> = {
-  jungle: 'forest', woods: 'forest', grove: 'forest',
-  temple: 'holy', church: 'holy', shrine: 'holy', sacred: 'holy', cathedral: 'holy',
-  city: 'urban', rooftop: 'urban', street: 'urban', alley: 'urban',
-  factory: 'industrial', plant: 'industrial', warehouse: 'industrial',
-  canyon: 'cave', gorge: 'cave', tunnel: 'cave', mine: 'cave', underground: 'cave',
-  lava: 'volcanic', magma: 'volcanic', caldera: 'volcanic',
-  ocean: 'underwater', deep: 'underwater', abyss: 'underwater', aquatic: 'underwater',
-  ship: 'airship', vessel: 'airship', deck: 'airship',
-  corruption: 'infested', plague: 'infested', hive: 'infested', parasite: 'infested',
-  lab: 'facility', laboratory: 'facility', research: 'facility',
-  nuclear: 'reactor', power: 'reactor', meltdown: 'reactor',
-  ancient: 'ruins', crumbl: 'ruins', collapsed: 'ruins', derelict: 'ruins',
+  jungle: 'forest', woods: 'forest', grove: 'forest', canopy: 'forest',
+  temple: 'holy', church: 'holy', shrine: 'holy', sacred: 'holy', cathedral: 'holy', chapel: 'holy',
+  city: 'urban', rooftop: 'urban', street: 'urban', alley: 'urban', mall: 'urban', plaza: 'urban', market: 'urban', station: 'urban', terminal: 'urban', 'high-rise': 'urban', highrise: 'urban', tower: 'urban', skyscraper: 'urban',
+  factory: 'industrial', plant: 'industrial', warehouse: 'industrial', dam: 'industrial', turbine: 'industrial', generator: 'industrial', refinery: 'industrial', foundry: 'industrial', pump: 'industrial', crane: 'industrial', mill: 'industrial',
+  canyon: 'cave', gorge: 'cave', tunnel: 'cave', mine: 'cave', underground: 'cave', sewer: 'cave', catacombs: 'cave',
+  lava: 'volcanic', magma: 'volcanic', caldera: 'volcanic', molten: 'volcanic',
+  ocean: 'underwater', deep: 'underwater', abyss: 'underwater', aquatic: 'underwater', submerged: 'underwater',
+  ship: 'airship', vessel: 'airship', deck: 'airship', carrier: 'airship', aircraft: 'airship',
+  corruption: 'infested', plague: 'infested', hive: 'infested', parasite: 'infested', swarm: 'infested',
+  lab: 'facility', laboratory: 'facility', research: 'facility', bunker: 'facility', compound: 'facility',
+  nuclear: 'reactor', meltdown: 'reactor', containment: 'reactor',
+  ancient: 'ruins', crumbl: 'ruins', collapsed: 'ruins', derelict: 'ruins', abandoned: 'ruins',
   suspension: 'bridge', overpass: 'bridge', viaduct: 'bridge',
+  descent: 'urban', freefall: 'urban',
 };
 
 /** Resolve a tag to a biome preset key */
