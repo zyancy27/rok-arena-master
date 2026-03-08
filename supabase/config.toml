@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.generate-emergency-location]
 verify_jwt = false
+
+[functions.npc-dialogue]
+verify_jwt = false
