@@ -1700,6 +1700,25 @@ export default function CampaignView() {
                       <Button type="submit" disabled={sending || !inputMessage.trim()} size="sm" className="gap-1.5">
                         <Send className="w-4 h-4" />
                       </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={narratorTyping || sending}
+                              onClick={handleAdvanceCampaign}
+                              className="gap-1.5 shrink-0"
+                            >
+                              <FastForward className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            <p>Move the story forward</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </form>
                   </div>
                 )}
