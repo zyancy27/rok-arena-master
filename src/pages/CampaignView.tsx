@@ -1686,8 +1686,7 @@ export default function CampaignView() {
                   </div>
                 </ScrollArea>
 
-                {/* Active Enemy Tracker */}
-                <CampaignEnemyTracker enemies={campaignEnemies} />
+                {/* Enemy tracker moved to top — remove from here */}
 
                 {/* Status Effects Overlay on input area */}
                 {isActive && myParticipant?.is_active && campaignCombat.statusEffects.activeEffects.length > 0 && (
