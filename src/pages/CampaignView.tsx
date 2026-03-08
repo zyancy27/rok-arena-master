@@ -1400,7 +1400,7 @@ export default function CampaignView() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4">
+    <div className="max-w-4xl mx-auto flex flex-col h-[100dvh] overflow-hidden px-2 sm:px-0">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
         <div className="flex items-start sm:items-center gap-2 sm:gap-3 min-w-0">
