@@ -1296,7 +1296,11 @@ NPC MOVEMENT & PRESENCE RULES:
 
 When writing dialogue for KNOWN NPCs, stay consistent with their established personality and relationship. An NPC who is "hostile" should not suddenly be friendly without reason.
 
-CONTEXT:
+${isMultiplayer ? `⛔ FINAL CHECK — MULTIPLAYER (re-read before responding):
+1. Replace ALL "you"/"your" with "${playerCharacter.name}" or "${playerCharacter.name}'s"
+2. Delete ANY sentence where ${partyNames.filter((n: string) => n !== playerCharacter.name).join(' or ')} speaks, acts, moves, reacts, or emotes
+3. Only describe: environment + NPCs + consequences of ${playerCharacter.name}'s action
+` : ''}CONTEXT:
 Zone: ${currentZone}
 Party: ${partyContext}
 Campaign: ${campaignDescription || 'An ongoing adventure'}
