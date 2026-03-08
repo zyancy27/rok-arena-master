@@ -1753,7 +1753,7 @@ export default function CampaignView() {
 
                 {/* Input */}
                 {isActive && myParticipant?.is_active && (
-                  <div className="p-3 border-t border-border relative z-10 shrink-0">
+                  <div className="p-3 border-t border-border relative z-10 shrink-0 space-y-2">
                     <form onSubmit={e => { e.preventDefault(); handleSendMessage(); }} className="flex gap-2">
                       <VoiceTextarea
                         placeholder={isSoloMode ? "Describe your solo action..." : "Describe your action..."}
@@ -1761,11 +1761,14 @@ export default function CampaignView() {
                         onValueChange={setInputMessage}
                         disabled={sending}
                         className="flex-1"
+                        style={{ maxHeight: '300px' }}
                         onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
                       />
-                      <Button type="submit" disabled={sending || !inputMessage.trim()} size="sm" className="gap-1.5">
+                      <Button type="submit" disabled={sending || !inputMessage.trim()} size="sm" className="gap-1.5 self-end">
                         <Send className="w-4 h-4" />
                       </Button>
+                    </form>
+                    <div className="flex gap-2">
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -1775,9 +1778,10 @@ export default function CampaignView() {
                               size="sm"
                               disabled={narratorTyping || sending}
                               onClick={handleAdvanceCampaign}
-                              className="gap-1.5 shrink-0"
+                              className="gap-1.5 flex-1 h-8 text-xs"
                             >
-                              <FastForward className="w-4 h-4" />
+                              <FastForward className="w-3.5 h-3.5" />
+                              Progress Story
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent side="top">
@@ -1797,9 +1801,10 @@ export default function CampaignView() {
                                 await fetchMessages();
                                 toast.success('Chat refreshed');
                               }}
-                              className="gap-1.5 shrink-0"
+                              className="gap-1.5 flex-1 h-8 text-xs"
                             >
-                              <RefreshCw className="w-4 h-4" />
+                              <RefreshCw className="w-3.5 h-3.5" />
+                              Refresh Chat
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent side="top">
@@ -1807,7 +1812,7 @@ export default function CampaignView() {
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
-                    </form>
+                    </div>
                   </div>
                 )}
 
