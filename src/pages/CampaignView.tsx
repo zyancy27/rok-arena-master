@@ -93,6 +93,9 @@ export default function CampaignView() {
   const [myJoinRequest, setMyJoinRequest] = useState<any | null>(null);
   const [campaignEnemies, setCampaignEnemies] = useState<CampaignEnemy[]>([]);
 
+  // Ref to avoid stale closure in realtime callbacks
+  const participantsRef = useRef<CampaignParticipant[]>([]);
+
   // Dynamic scene location from messages
   const [activeSceneLocation, setActiveSceneLocation] = useState<string | null>(null);
   useEffect(() => {
