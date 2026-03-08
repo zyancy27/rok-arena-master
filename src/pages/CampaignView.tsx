@@ -1407,8 +1407,11 @@ export default function CampaignView() {
                       const isMe = isPlayer && msg.character_id === myParticipant?.character_id;
 
                       if (isSystem) {
-                        // Bag bubble for inventory checks
+                        // Bag bubble for inventory checks — only visible to the owning player
                         if (msg.content.startsWith('__BAG__')) {
+                          const bagOwnerId = (msg.metadata as any)?.owner_user_id;
+                          if (bagOwnerId && bagOwnerId !== user?.id) return null;
+
                           let bagItems: { name: string; type: string; rarity: string; equipped: boolean }[] = [];
                           try { bagItems = JSON.parse(msg.content.slice(7)); } catch {}
 
