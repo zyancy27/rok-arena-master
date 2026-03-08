@@ -1,6 +1,8 @@
 // Move validation system for PvP battles
 // Ensures players use moves consistent with their character's abilities
 
+import { disambiguateText } from './element-disambiguation';
+
 export interface CharacterAbilities {
   powers: string | null;
   abilities: string | null;
