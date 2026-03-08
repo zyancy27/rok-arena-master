@@ -1719,6 +1719,28 @@ export default function CampaignView() {
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={sending}
+                              onClick={async () => {
+                                await fetchMessages();
+                                toast.success('Chat refreshed');
+                              }}
+                              className="gap-1.5 shrink-0"
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            <p>Refresh chat</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </form>
                   </div>
                 )}
