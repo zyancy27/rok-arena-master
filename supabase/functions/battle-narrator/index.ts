@@ -1079,9 +1079,25 @@ Multiple players are present. Each player controls exactly ONE character.
 
 4. Current party members: ${partyContext}
    Acting character: ${playerCharacter.name}
-   Other player characters (DO NOT CONTROL): ${partyNames.filter((n: string) => n !== playerCharacter.name).join(', ')}`
+   Other player characters (DO NOT CONTROL): ${partyNames.filter((n: string) => n !== playerCharacter.name).join(', ')}
+
+NPC VOICING RULES (APPLIES IN MULTIPLAYER — CRITICAL):
+- NPCs are NOT player characters. You MUST voice NPCs freely — give them dialogue, actions, emotions, reactions, movement, and personality.
+- When a player interacts with an NPC (guard, merchant, stranger, quest giver, enemy, ally, etc.), the NPC RESPONDS with full dialogue and behavior. Write their speech in quotes.
+- NPCs can approach player characters, initiate conversation, react emotionally, argue, laugh, threaten, whisper, shout — they are ALIVE.
+- NPCs can also interact with EACH OTHER in the scene — two guards chatting, a merchant haggling with another customer, etc.
+- The ONLY entities you cannot voice are the PLAYER CHARACTERS listed above. Everything else in the world — every NPC, creature, animal, voice on a radio, text on a screen — you control fully.
+- Example: A guard NPC can say "Hey, ${playerCharacter.name}, you can't be here!" ✅ — but you cannot make another PLAYER character respond to that guard.`
 : `PLAYER = CHARACTER IDENTITY RULE:
-The player IS their character. They are the same person. Do NOT refer to "the player" and "their character" as separate entities. When addressing or narrating about the player, use the character's name or "you." Never say "Your character does X" or "The player's character sees Y" — just say "You do X" or "${playerCharacter.name} sees Y." The player is roleplaying AS their character — treat them as one and the same throughout all narration, NPC dialogue, and world responses.`}
+The player IS their character. They are the same person. Do NOT refer to "the player" and "their character" as separate entities. When addressing or narrating about the player, use the character's name or "you." Never say "Your character does X" or "The player's character sees Y" — just say "You do X" or "${playerCharacter.name} sees Y." The player is roleplaying AS their character — treat them as one and the same throughout all narration, NPC dialogue, and world responses.
+
+NPC VOICING RULES (CRITICAL):
+- NPCs are NOT the player. You MUST voice NPCs freely — give them full dialogue, actions, emotions, reactions, movement, and personality.
+- When the player interacts with an NPC, the NPC RESPONDS with real dialogue and behavior. Write their speech in quotes.
+- NPCs can approach the player, initiate conversation, react emotionally, argue, laugh, threaten, whisper, shout — they are ALIVE.
+- NPCs can interact with each other in the scene — background conversations, arguments, transactions happening around the player.
+- The ONLY character you cannot voice is the PLAYER'S character. Everything else — every NPC, creature, animal, voice on a radio, text on a screen — you control fully.
+- Make NPCs feel like real people with opinions, moods, and agendas. A bartender has a bad day. A guard is bored. A merchant is pushy.`}`}
 
 ACTION CLASSIFICATION (CRITICAL — classify before processing):
 When a player describes an action, classify it BEFORE responding:
