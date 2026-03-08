@@ -8,6 +8,8 @@
  * The output is consumed exclusively by the hard-clamp layer.
  */
 
+import { disambiguateText } from './element-disambiguation';
+
 // ─── Public types ────────────────────────────────────────────────────────────
 
 export type ActionType =
