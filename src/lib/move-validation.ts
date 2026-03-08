@@ -41,15 +41,15 @@ export function extractAbilityTypes(powers: string | null, abilities: string | n
   
   // Combat styles
   const stylePatterns: Record<string, RegExp> = {
-    martial: /martial|combat|fighting|karate|kung fu|boxing|wrestling|judo/i,
-    sword: /sword|blade|katana|rapier|saber|slash|cut|cleave/i,
-    ranged: /gun|bow|arrow|sniper|shoot|projectile|bullet/i,
-    stealth: /stealth|ninja|assassin|shadow|sneak|invisible/i,
-    magic: /magic|spell|sorcery|wizard|mage|arcane|mystic/i,
-    tech: /tech|robot|cyber|machine|mechanical|gadget|device/i,
-    beast: /beast|animal|creature|wild|feral|transform/i,
-    divine: /divine|god|deity|sacred|holy|blessing/i,
-    demonic: /demon|devil|infernal|hellfire|curse|corruption/i,
+    martial: /\b(martial|karate|kung fu|boxing|wrestling|judo)\b/i,
+    sword: /\b(sword|blade|katana|rapier|saber|cleave)\b/i,
+    ranged: /\b(gun|bow|arrow|sniper|shoot|projectile|bullet)\b/i,
+    stealth: /\b(stealth|ninja|assassin|invisible)\b/i,
+    magic: /\b(magic|spell|sorcery|wizard|mage|arcane|mystic)\b/i,
+    tech: /\b(tech|robot|cyber|mechanical|gadget)\b/i,
+    beast: /\b(beast|feral|transform|shapeshift)\b/i,
+    divine: /\b(divine|deity|sacred|blessing)\b/i,
+    demonic: /\b(demon|devil|infernal|hellfire|curse|corruption)\b/i,
   };
   
   Object.entries(elementPatterns).forEach(([element, pattern]) => {
