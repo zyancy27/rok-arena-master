@@ -304,6 +304,10 @@ export default function CampaignView() {
         theme_snapshot: m.theme_snapshot as Record<string, unknown> | null,
         character: Array.isArray(m.character) ? m.character[0] : m.character,
       })) as CampaignMessage[]);
+      // Scroll to bottom after loading messages (e.g. on page refresh)
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      }, 150);
     }
   };
 
