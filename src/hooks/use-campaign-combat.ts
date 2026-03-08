@@ -110,7 +110,7 @@ export function useCampaignCombat(character: CampaignCharacterContext | null, pa
     }));
 
     return validation;
-  }, [character]);
+  }, [character, partyNames]);
 
   /**
    * Process a player message for combat mechanics.
