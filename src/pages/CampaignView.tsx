@@ -1111,7 +1111,7 @@ export default function CampaignView() {
             // Grant XP for defeating enemies
             if (newStatus === 'defeated' && enemy.status !== 'defeated') {
               const defeatXp = Math.min(50, enemy.tier * 10 + 5);
-              const currentXp = snapshotParticipant.campaign_xp + (data.xpGained || 0);
+              totalXpGained += defeatXp;
               await supabase.from('campaign_messages').insert({
                 campaign_id: snapshotCampaign.id,
                 sender_type: 'system',
