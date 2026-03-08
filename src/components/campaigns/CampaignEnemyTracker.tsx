@@ -54,7 +54,7 @@ export default function CampaignEnemyTracker({ enemies }: CampaignEnemyTrackerPr
   if (activeEnemies.length === 0 && recentDefeated.length === 0) return null;
 
   return (
-    <div className="mx-3 mb-2 space-y-1.5 relative z-10">
+    <div className="space-y-1.5 relative z-10">
       {/* Active enemies */}
       {activeEnemies.map(enemy => {
         const hpPercent = Math.max(0, (enemy.hp / enemy.hp_max) * 100);
@@ -72,13 +72,13 @@ export default function CampaignEnemyTracker({ enemies }: CampaignEnemyTrackerPr
                 : 'border-red-500/40 bg-red-500/5 animate-combat-pulse-red'
             }`}
           >
-            <div className="flex items-center gap-2 mb-1">
-              <Skull className={`w-3.5 h-3.5 ${isHiding ? 'text-purple-400' : 'text-red-400'}`} />
-              <span className="text-sm font-semibold truncate">{enemy.name}</span>
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
+              <Skull className={`w-3.5 h-3.5 ${isHiding ? 'text-purple-400' : 'text-red-400'} shrink-0`} />
+              <span className="text-sm font-semibold break-words">{enemy.name}</span>
               {enemy.count > 1 && (
                 <Badge variant="outline" className="text-[9px] border-red-500/30 text-red-300">×{enemy.count}</Badge>
               )}
-              <Badge variant="outline" className={`text-[9px] ${statusStyle.bg} ${statusStyle.text} border-0 ml-auto`}>
+              <Badge variant="outline" className={`text-[9px] ${statusStyle.bg} ${statusStyle.text} border-0`}>
                 {statusStyle.label}
               </Badge>
               <Badge variant="outline" className="text-[9px]">T{enemy.tier}</Badge>
@@ -104,20 +104,27 @@ export default function CampaignEnemyTracker({ enemies }: CampaignEnemyTrackerPr
             )}
 
             {/* Info row */}
-            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-              <BehaviorIcon className={`w-3 h-3 ${behavior.color}`} />
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground flex-wrap">
+              <BehaviorIcon className={`w-3 h-3 ${behavior.color} shrink-0`} />
               <span>{behavior.label}</span>
               {enemy.weakness && (
                 <>
                   <span className="text-muted-foreground/40">·</span>
-                  <span className="italic text-amber-400/70 truncate">Weakness: {enemy.weakness}</span>
+                  <span className="italic text-amber-400/70 break-words">Weakness: {enemy.weakness}</span>
                 </>
               )}
             </div>
 
+            {/* Description */}
+            {enemy.description && (
+              <p className="text-[10px] text-muted-foreground/80 mt-0.5 break-words whitespace-pre-wrap">
+                {enemy.description}
+              </p>
+            )}
+
             {/* Last action */}
             {enemy.last_action && (
-              <p className="text-[10px] text-muted-foreground/70 italic mt-0.5 truncate">
+              <p className="text-[10px] text-muted-foreground/70 italic mt-0.5 break-words whitespace-pre-wrap">
                 Last: {enemy.last_action}
               </p>
             )}
