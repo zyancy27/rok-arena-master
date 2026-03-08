@@ -1211,7 +1211,7 @@ export default function CampaignView() {
     }
   };
 
-  const handleSendMessage = async () => {
+   const handleSendMessage = async () => {
     if (!inputMessage.trim() || !myParticipant || !campaign) return;
     const messageText = inputMessage.trim();
 
@@ -1231,6 +1231,36 @@ export default function CampaignView() {
       // Process combat mechanics (hit detection, dice rolls)
       const combatResult = campaignCombat.processCombatAction(messageText);
 
+      // If concentration is available, pause sending and wait for player choice
+      if (combatResult.concentrationAvailable) {
+        pendingSendRef.current = { messageText, soloIntent, participant: myParticipant, campaign };
+        triggerDiscovery('dice_roll' as MechanicKey);
+        setSending(false);
+        return;
+      }
+
+      // Continue with normal send
+      await continueSend(messageText, soloIntent, combatResult, myParticipant, campaign);
+
+    } catch (err) {
+      console.error('Campaign message error:', err);
+      toast.error('Failed to send message');
+      setSending(false);
+    }
+  };
+
+  /**
+   * Continue sending after concentration is resolved (or skipped).
+   */
+  const continueSend = async (
+    messageText: string,
+    soloIntent: 'go_solo' | 'rejoin' | null,
+    combatResult: ReturnType<typeof campaignCombat.processCombatAction>,
+    participant: CampaignParticipant,
+    campaignSnap: Campaign,
+  ) => {
+    setSending(true);
+    try {
       // Build dice metadata for the message
       const diceResult = combatResult.diceMetadata
         ? combatResult.diceMetadata as Record<string, unknown>
@@ -1240,8 +1270,8 @@ export default function CampaignView() {
       const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const optimisticMessage: CampaignMessage = {
         id: tempId,
-        campaign_id: campaign.id,
-        character_id: myParticipant.character_id,
+        campaign_id: campaignSnap.id,
+        character_id: participant.character_id,
         sender_type: 'player',
         channel: 'in_universe',
         content: messageText,
@@ -1250,16 +1280,16 @@ export default function CampaignView() {
         metadata: {},
         created_at: new Date().toISOString(),
         isPending: true,
-        character: myParticipant.character
-          ? { name: myParticipant.character.name, image_url: myParticipant.character.image_url }
+        character: participant.character
+          ? { name: participant.character.name, image_url: participant.character.image_url }
           : undefined,
       };
       setMessages(prev => [...prev, optimisticMessage]);
 
       // Insert player message
       const { error: insertError } = await supabase.from('campaign_messages').insert({
-        campaign_id: campaign.id,
-        character_id: myParticipant.character_id,
+        campaign_id: campaignSnap.id,
+        character_id: participant.character_id,
         sender_type: 'player',
         content: messageText,
         channel: 'in_universe',
@@ -1282,13 +1312,31 @@ export default function CampaignView() {
       setSending(false);
 
       // Fire narrator response in background (non-blocking)
-      fireNarratorResponse(messageText, soloIntent, combatResult, myParticipant, campaign);
-
+      fireNarratorResponse(messageText, soloIntent, combatResult, participant, campaignSnap);
     } catch (err) {
       console.error('Campaign message error:', err);
       toast.error('Failed to send message');
       setSending(false);
     }
+  };
+
+  /**
+   * Handle concentration result (offensive or defensive), then continue send.
+   */
+  const handleConcentrationResult = (updatedCombatResult: ReturnType<typeof campaignCombat.processCombatAction> | null) => {
+    const pending = pendingSendRef.current;
+    pendingSendRef.current = null;
+    if (!pending || !updatedCombatResult) return;
+    triggerDiscovery('concentration' as MechanicKey);
+    continueSend(pending.messageText, pending.soloIntent, updatedCombatResult, pending.participant, pending.campaign);
+  };
+
+  const handleConcentrationSkip = () => {
+    const result = campaignCombat.skipConcentration();
+    const pending = pendingSendRef.current;
+    pendingSendRef.current = null;
+    if (!pending || !result) return;
+    continueSend(pending.messageText, pending.soloIntent, result as any, pending.participant, pending.campaign);
   };
 
   const handleAdvanceCampaign = async () => {
