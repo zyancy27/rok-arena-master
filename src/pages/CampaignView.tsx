@@ -1159,7 +1159,8 @@ export default function CampaignView() {
             sender_type: 'system',
             content: `__BAG__${JSON.stringify(bagContent)}`,
             channel: 'in_universe',
-          });
+            metadata: { owner_user_id: user!.id },
+          } as any);
         }
       }
 
