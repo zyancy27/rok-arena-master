@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Compass, Heart, LogOut, MapPin, Play, Send,
   Shield, Swords, Users, Zap, Clock, Sun, Moon, Backpack,
-  Volume2, VolumeX, RefreshCw, BookOpen, Sparkles, Dices, Trash2, UserCheck,
+  Volume2, VolumeX, RefreshCw, BookOpen, Sparkles, Dices, Trash2, UserCheck, FastForward,
 } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
