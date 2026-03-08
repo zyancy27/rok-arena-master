@@ -1261,6 +1261,94 @@ export default function CampaignView() {
     }
   };
 
+  const handleAdvanceCampaign = async () => {
+    if (!myParticipant || !campaign || narratorTyping) return;
+    setNarratorTyping(true);
+    try {
+      const activeParty = participants.filter(p => p.is_active);
+      const partyCtx = activeParty.map(p =>
+        `${p.character?.name} (Campaign Lv.${p.campaign_level}, HP: ${p.campaign_hp}/${p.campaign_hp_max})`
+      ).join(', ');
+
+      const { data: recentMsgs } = await supabase
+        .from('campaign_messages')
+        .select('sender_type, content, character_id')
+        .eq('campaign_id', campaign.id)
+        .eq('channel', 'in_universe')
+        .order('created_at', { ascending: false })
+        .limit(20);
+      const history = (recentMsgs || []).reverse().map((m: any) => ({
+        role: m.sender_type === 'player' ? 'player' : 'world',
+        content: m.content,
+      }));
+
+      const { data, error } = await supabase.functions.invoke('battle-narrator', {
+        body: {
+          type: 'campaign_narration',
+          campaignId: campaign.id,
+          playerAction: `[ADVANCE STORY] The party is idle. Move the campaign forward organically — introduce a new event, encounter, discovery, environmental change, NPC interaction, or plot development that fits the current situation and keeps things interesting. Do NOT wait for player input; make something happen in the world around them.`,
+          currentZone: campaign.current_zone,
+          timeOfDay: campaign.time_of_day,
+          dayCount: campaign.day_count,
+          worldState: campaign.world_state,
+          storyContext: campaign.story_context,
+          campaignDescription: campaign.description,
+          environmentTags: campaign.environment_tags,
+          conversationHistory: history,
+          partyContext: partyCtx,
+          playerCharacter: { name: myParticipant.character?.name },
+          isMultiplayer: !isSoloCampaign,
+          partyNames: allPartyNames,
+        },
+      });
+
+      if (!error && data?.narration) {
+        await supabase.from('campaign_messages').insert({
+          campaign_id: campaign.id,
+          sender_type: 'narrator',
+          content: data.narration,
+          channel: 'in_universe',
+        });
+
+        if (data.advanceTime) {
+          const { time: newTime, newDay } = advanceTime(campaign.time_of_day, data.advanceTime);
+          await supabase.from('campaigns').update({
+            time_of_day: newTime,
+            day_count: newDay ? campaign.day_count + 1 : campaign.day_count,
+          }).eq('id', campaign.id);
+        }
+        if (data.newZone) {
+          await supabase.from('campaigns').update({ current_zone: data.newZone }).eq('id', campaign.id);
+        }
+        if (data.enemySpawned) {
+          await supabase.from('campaign_enemies' as any).insert({
+            campaign_id: campaign.id,
+            name: data.enemySpawned.name,
+            tier: data.enemySpawned.tier || 1,
+            hp: data.enemySpawned.hp || 50,
+            hp_max: data.enemySpawned.hp || 50,
+            description: data.enemySpawned.description || null,
+            abilities: data.enemySpawned.abilities || null,
+            weakness: data.enemySpawned.weakness || null,
+            count: data.enemySpawned.count || 1,
+            status: 'active',
+            behavior_profile: data.enemySpawned.behaviorProfile || 'aggressive',
+            spawned_at_zone: campaign.current_zone,
+            spawned_at_day: campaign.day_count,
+          });
+          fetchEnemies();
+        }
+      }
+      fetchCampaign();
+      fetchMessages();
+    } catch (err) {
+      console.error('Advance campaign error:', err);
+      toast.error('Failed to advance the campaign');
+    } finally {
+      setNarratorTyping(false);
+    }
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center min-h-[50vh]"><div className="animate-pulse text-muted-foreground">Loading campaign...</div></div>;
   }
