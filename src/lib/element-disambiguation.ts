@@ -48,7 +48,7 @@ const MUNDANE_PHRASES: { pattern: RegExp; replacement: string }[] = [
 
   // ── "fire" used as verb meaning shoot/launch/dismiss ──
   { pattern: /\bfire(s|d)?\s+(back|off|away|a retort|a reply|a response|a question|a look|a glance|a warning|a shot)\b/gi, replacement: 'launch$1 $2' },
-  { pattern: /\bfire(d|s)?\s+at\b/gi, replacement: 'shoot$1 at' },
+  { pattern: /\b(he|she|they|it|who|then)\s+fire(d|s)?\s+at\b/gi, replacement: '$1 shoot$2 at' },
   { pattern: /\bopen(s|ed)? fire\b/gi, replacement: 'open$1 attack' },
   { pattern: /\bcatch(es|ing)? fire\b/gi, replacement: 'ignit$1e' },
   { pattern: /\bunder fire\b/gi, replacement: 'under attack' },
