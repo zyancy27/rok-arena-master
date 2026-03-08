@@ -1213,18 +1213,22 @@ ENEMY COMBAT LOOP (CRITICAL — when ACTIVE ENEMIES exist):
 - When the player attacks an active enemy, you MUST include an enemyUpdates entry with the enemy's id and a negative hpChange.
 - Damage should be proportional to the attack type, dice result, and tier difference. A powerful hit on a weak enemy does more.
 - If dice say HIT: apply meaningful damage (10-40% of their max HP depending on attack power). If dice say MISS: hpChange = 0.
-- Each turn, active enemies ALSO ACT. Describe their attack/defense/movement in your narration. If an enemy attacks the player, apply negative hpChange to the PLAYER.
+- ENEMY RETALIATION IS MANDATORY: After EVERY player attack (whether hit or miss), the enemy MUST counter-attack or take an aggressive action in the SAME turn. Describe the enemy striking back, lunging, retaliating, charging, or making a threatening move. Apply negative hpChange to the PLAYER for enemy attacks. Enemies do NOT passively take hits — they always fight back.
+- The enemy's counter-attack damage should scale with their tier: T1=2-5, T2=4-8, T3=6-12, T4=8-16, T5=10-20, T6=12-25, T7=15-30.
+- Even if the player's attack missed, the enemy still acts aggressively — they press the advantage, taunt, reposition for a better strike, or launch their own attack.
+- Enemies should feel DANGEROUS. Players should fear engaging them. Make every combat exchange feel like a real fight where both sides are actively trying to win.
 - ENEMY BEHAVIOR by profile:
-  • "aggressive" — attacks relentlessly, never flees, fights to the death
-  • "defensive" — blocks/dodges a lot, counterattacks, retreats at low HP (<20%)
-  • "cowardly" — flees when HP drops below 40%, may drop loot while running
-  • "ambusher" — attacks from stealth, if HP drops below 30% goes to "hiding" status to attack again later
-  • "tactical" — adapts strategy, may flee at <25% HP if losing, regroups with allies
+  • "aggressive" — attacks relentlessly, ALWAYS counter-attacks with full force, never flees, fights to the death. Hits HARD.
+  • "defensive" — blocks/dodges first, then counter-attacks. Still retaliates every turn. Retreats at low HP (<20%).
+  • "cowardly" — weaker counter-attacks but still fights back. Flees when HP drops below 40%, may drop loot while running.
+  • "ambusher" — hits hard from stealth, if HP drops below 30% goes to "hiding" status to attack again later with a surprise strike.
+  • "tactical" — adapts strategy, flanks, uses the environment. Counter-attacks intelligently. May flee at <25% HP if losing, regroups with allies.
 - When an enemy's HP reaches 0 or below, set status to "defeated". Give XP for the kill.
 - When an enemy flees, set status to "fled". They're gone from combat but may reappear later.
 - When an enemy hides, set status to "hiding". They disappear but will ambush later. The narrator should bring them back after 2-4 player turns.
 - Hiding enemies should re-emerge naturally: "A shadow moves in the rafters" → enemy attacks from hiding on next turn.
 - When ALL active enemies are defeated/fled, combat ends. Describe the aftermath and any loot.
+- If the player does ANYTHING other than fight while active enemies are present, the enemies STILL ACT — they attack the player, move closer, try to flank, or take advantage of the distraction. Enemies don't wait politely.
 
 ITEM PICKUP RULES (CRITICAL):
 - When a player says they grab, pick up, take, pocket, collect, loot, or acquire ANYTHING — add it to itemsFound. This includes:
