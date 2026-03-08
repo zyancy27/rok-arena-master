@@ -202,7 +202,7 @@ export default function CampaignView() {
               theme_snapshot: msg.theme_snapshot as Record<string, unknown> | null,
               isPending: false,
               character: (() => {
-                const participant = participants.find(p => p.character_id === msg.character_id);
+                const participant = participantsRef.current.find(p => p.character_id === msg.character_id);
                 return participant?.character
                   ? { name: participant.character.name, image_url: participant.character.image_url }
                   : msg.character || null;
