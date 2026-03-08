@@ -100,6 +100,13 @@ export default function CampaignView() {
   const [showStatAllocation, setShowStatAllocation] = useState(false);
   const userIsNearBottomRef = useRef(true);
   const [showNewMsgIndicator, setShowNewMsgIndicator] = useState(false);
+  // Pending send context held while concentration prompt is active
+  const pendingSendRef = useRef<{
+    messageText: string;
+    soloIntent: 'go_solo' | 'rejoin' | null;
+    participant: CampaignParticipant;
+    campaign: Campaign;
+  } | null>(null);
 
   // Ref to avoid stale closure in realtime callbacks
   const participantsRef = useRef<CampaignParticipant[]>([]);
