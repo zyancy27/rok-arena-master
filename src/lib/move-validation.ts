@@ -75,14 +75,28 @@ export function extractAbilityTypes(powers: string | null, abilities: string | n
 function isBasicAction(moveText: string): boolean {
   const text = moveText.toLowerCase();
   
-  // Common basic action verbs
+  // Common basic action verbs — expanded for campaign RP
   const basicVerbs = /\b(walk|run|jog|sprint|climb|jump|crawl|swim|sit|stand|crouch|kneel|lie|lean|step|move|go|come|approach|leave|enter|exit|open|close|shut|grab|pick up|put down|drop|throw|catch|hold|carry|push|pull|drag|lift|place|set down|look|watch|see|observe|inspect|examine|check|search|explore|scan|glance|stare|peer|read|listen|hear|smell|sniff|taste|touch|feel|tap|poke|knock|wave|nod|shake|point|gesture|bow|stretch|turn|spin|roll|dodge|duck|hide|sneak|tip-?toe|eat|drink|cook|sleep|rest|wake|wash|dress|wear|remove|take off|talk|say|speak|tell|ask|answer|reply|respond|call|shout|yell|whisper|scream|cry|laugh|smile|frown|sigh|groan|hum|sing|chant|pray|meditate|think|remember|recall|consider|decide|agree|disagree|refuse|accept|wait|pause|stop|continue|follow|lead|guide|gather|collect|draw|write|sketch|build|craft|fix|repair|trade|buy|sell|give|offer|share|lend|borrow|return|thank|greet|introduce|meet|hug|handshake|farewell|goodbye)\b/i;
   
-  // If the text contains a basic verb, likely a basic action
+  // Social / dialogue intent patterns — should NEVER trigger power warnings
+  const socialPatterns = /\b(asks?|tells?|says?|speaks?|responds?|replies?|answers?|questions?|greets?|introduces?|chats?|converses?|discusses?|mentions?|explains?|requests?|suggests?|advises?|warns?|informs?|announces?|whispers?|shouts?|calls? (out|to|over)|turns? to|looks? at|faces?|addresses?|talks? (to|with|about)|what .{0,20} (think|going on|happened|doing|want|need)|how .{0,15} (doing|are|is|feeling))\b/i;
+  
+  // Movement / approach intent — walking toward someone, moving around
+  const movementPatterns = /\b(approaches?|walks? (toward|to|over|up|into|through|around|along|down|across|past|by|behind)|moves? (toward|to|closer|next to|over|past|around|into|through)|steps? (toward|to|closer|forward|back|inside|outside|aside)|heads? (toward|to|for|over|back|inside)|goes? (to|toward|over|inside|outside|near|up|down)|comes? (over|closer|near|to)|runs? (to|toward|over)|follows?|leads?|wanders?|strolls?|paces?|marches?|creeps?|tiptoes?|rushes? (to|toward|over|inside)|hurries? (to|toward|over))\b/i;
+  
+  // Physical interaction — picking things up, opening things, basic object interactions
+  const interactionPatterns = /\b(picks? up|puts? down|grabs?|takes?|opens?|closes?|lifts?|carries?|holds?|touches?|feels?|pokes?|taps?|knocks?|rings?|flips?|presses?|pushes?|pulls?|drags?|leans? (on|against)|sits? (on|down|in)|stands? (up|on)|kneels?|crouches?|lies? down|reaches? (for|into|toward|out)|extends?|offers?|hands?|passes?|places?|sets? down|tries? (to|the)|attempts?)\b/i;
+  
+  // Observation / perception — looking, examining, scanning
+  const observationPatterns = /\b(looks? (at|around|for|into|over|up|down|through)|watches?|observes?|inspects?|examines?|studies?|checks?|scans?|peers?|gazes?|glances?|surveys?|notices?|spots?|sees?|listens? (to|for|carefully)|hears?|smells?|sniffs?)\b/i;
+  
+  // If ANY of these basic patterns match and NO power indicators present, it's basic
+  const isBasic = basicVerbs.test(text) || socialPatterns.test(text) || movementPatterns.test(text) || interactionPatterns.test(text) || observationPatterns.test(text);
+  
   const words = text.split(/\s+/);
-  if (words.length <= 40 && basicVerbs.test(text)) {
+  if (words.length <= 60 && isBasic) {
     // Check it does NOT also contain clear power/ability keywords
-    const powerIndicators = /\b(cast|summon|conjure|enchant|invoke|channel|unleash|activate|transform|morph|blast|beam|bolt|surge|pulse|explode|detonate|disintegrate|teleport|levitate|fly|phase|warp|absorb|drain|corrupt|curse|bless|heal|resurrect|animate|necro|manifest|ki[-\s]?blast|energy[-\s]?blast|force[-\s]?push)\b/i;
+    const powerIndicators = /\b(cast|summon|conjure|enchant|invoke|channel|unleash|activate|transform|morph|blast|beam|bolt|surge|pulse|explode|detonate|disintegrate|teleport|levitate|fly|phase|warp|absorb|drain|corrupt|curse|bless|heal|resurrect|animate|necro|manifest|ki[-\s]?blast|energy[-\s]?blast|force[-\s]?push|chi[-\s]?strike|mana|spell|incantation|ritual)\b/i;
     if (!powerIndicators.test(text)) {
       return true;
     }

@@ -124,6 +124,8 @@ export default function CampaignNarratorChat({
   const [showMap, setShowMap] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Force tactical map regeneration when zone/location changes
+  const mapLocationKey = chosenLocation || currentZone || campaignName;
   const tacticalMapData = useMemo(() => {
     const mapParticipants = participants.filter(p => p.is_active).map(p => ({
       characterId: p.character_id,
@@ -132,15 +134,13 @@ export default function CampaignNarratorChat({
       turnOrder: 0,
     }));
     if (mapParticipants.length === 0) return null;
-    // Use the best available location name for map generation
-    const mapLocationName = chosenLocation || currentZone || campaignName;
     return generateTacticalMap({
       participants: mapParticipants,
       currentPlayerId: myParticipant?.character_id ?? '',
-      locationName: mapLocationName,
+      locationName: mapLocationKey,
       terrainTags: environmentTags,
     });
-  }, [participants, myParticipant, currentZone, environmentTags, chosenLocation, campaignName]);
+  }, [participants, myParticipant, mapLocationKey, environmentTags]);
 
   // Show mechanic discovery messages when queued
   useEffect(() => {
@@ -245,10 +245,10 @@ export default function CampaignNarratorChat({
       )}
 
       {/* Campaign Info Header */}
-      <div className="px-3 pt-3 pb-2 border-b border-border space-y-2">
+      <div className="px-3 pt-3 pb-2 border-b border-border space-y-2 shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           <BookOpen className="w-4 h-4 text-amber-400 shrink-0" />
-          <span className="text-xs sm:text-sm font-semibold text-amber-400 truncate">{campaignName}</span>
+          <span className="text-xs sm:text-sm font-semibold text-amber-400 break-words line-clamp-2">{campaignName}</span>
           <div className="ml-auto flex items-center gap-1.5 shrink-0">
             {tacticalMapData && (
               <Button
@@ -267,10 +267,13 @@ export default function CampaignNarratorChat({
             </Badge>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
           <span className="whitespace-nowrap">{getTimeEmoji(timeOfDay as any)} {timeOfDay}</span>
           <span className="whitespace-nowrap">Day {dayCount}</span>
-          <span className="flex items-center gap-1 min-w-0"><MapPin className="w-3 h-3 shrink-0" /><span className="truncate max-w-[140px] sm:max-w-[200px]">{currentZone}</span></span>
+          <span className="flex items-center gap-1 min-w-0">
+            <MapPin className="w-3 h-3 shrink-0" />
+            <span className="break-words line-clamp-2">{currentZone}</span>
+          </span>
         </div>
 
         {/* Collapsible Party */}
@@ -409,7 +412,7 @@ export default function CampaignNarratorChat({
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 min-h-[180px] max-h-[35vh] p-3">
+      <ScrollArea className="flex-1 min-h-0 p-3">
         {messages.length === 0 && !isLoading ? (
           <div className="flex flex-col items-center justify-center h-full gap-2 text-center py-6">
             <Sparkles className="w-6 h-6 text-amber-400/50" />
