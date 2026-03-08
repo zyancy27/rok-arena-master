@@ -179,11 +179,15 @@ export default function CampaignView() {
 
   // Smart auto-scroll: only scroll if user is near the bottom
   useEffect(() => {
-    if (!userIsNearBottomRef.current) return;
-    const timer = setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 50);
-    return () => clearTimeout(timer);
+    if (userIsNearBottomRef.current) {
+      setShowNewMsgIndicator(false);
+      const timer = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
+      return () => clearTimeout(timer);
+    } else {
+      setShowNewMsgIndicator(true);
+    }
   }, [messages, narratorTyping]);
 
   // Show stat allocation when points are available after level-up
