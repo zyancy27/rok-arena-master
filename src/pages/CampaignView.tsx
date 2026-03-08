@@ -320,14 +320,16 @@ export default function CampaignView() {
   };
 
   const fetchMessages = async () => {
+    // Fetch the LATEST 200 messages (descending) then reverse to chronological order
     const { data } = await supabase
       .from('campaign_messages')
       .select('*, character:characters(name, image_url)')
       .eq('campaign_id', campaignId!)
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: false })
       .limit(200);
     if (data) {
-      setMessages(data.map(m => ({
+      const chronological = data.reverse();
+      setMessages(chronological.map(m => ({
         ...m,
         metadata: (m.metadata || {}) as Record<string, unknown>,
         dice_result: m.dice_result as Record<string, unknown> | null,
