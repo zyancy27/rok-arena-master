@@ -174,7 +174,11 @@ export default function CampaignView() {
   }, [user, campaignId]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Small delay to ensure DOM has updated before scrolling
+    const timer = setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 50);
+    return () => clearTimeout(timer);
   }, [messages, narratorTyping]);
 
   const setupRealtime = () => {
