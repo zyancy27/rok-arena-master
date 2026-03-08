@@ -412,7 +412,7 @@ export default function CampaignNarratorChat({
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 min-h-[180px] max-h-[35vh] p-3">
+      <ScrollArea className="flex-1 min-h-0 p-3">
         {messages.length === 0 && !isLoading ? (
           <div className="flex flex-col items-center justify-center h-full gap-2 text-center py-6">
             <Sparkles className="w-6 h-6 text-amber-400/50" />
