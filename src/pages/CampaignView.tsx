@@ -1732,9 +1732,26 @@ export default function CampaignView() {
                   </div>
                 )}
 
+                {/* New messages indicator */}
+                {showNewMsgIndicator && (
+                  <div className="flex justify-center py-1 relative z-10">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                        setShowNewMsgIndicator(false);
+                        userIsNearBottomRef.current = true;
+                      }}
+                      className="text-xs bg-primary/90 text-primary-foreground px-3 py-1 rounded-full shadow-lg animate-bounce"
+                    >
+                      New messages ↓
+                    </button>
+                  </div>
+                )}
+
                 {/* Input */}
                 {isActive && myParticipant?.is_active && (
-                  <div className="p-3 border-t border-border relative z-10">
+                  <div className="p-3 border-t border-border relative z-10 shrink-0">
                     <form onSubmit={e => { e.preventDefault(); handleSendMessage(); }} className="flex gap-2">
                       <VoiceTextarea
                         placeholder={isSoloMode ? "Describe your solo action..." : "Describe your action..."}
