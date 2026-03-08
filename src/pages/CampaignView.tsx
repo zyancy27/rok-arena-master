@@ -93,6 +93,9 @@ export default function CampaignView() {
   const [myJoinRequest, setMyJoinRequest] = useState<any | null>(null);
   const [campaignEnemies, setCampaignEnemies] = useState<CampaignEnemy[]>([]);
 
+  // Ref to avoid stale closure in realtime callbacks
+  const participantsRef = useRef<CampaignParticipant[]>([]);
+
   // Dynamic scene location from messages
   const [activeSceneLocation, setActiveSceneLocation] = useState<string | null>(null);
   useEffect(() => {
@@ -171,7 +174,11 @@ export default function CampaignView() {
   }, [user, campaignId]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Small delay to ensure DOM has updated before scrolling
+    const timer = setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 50);
+    return () => clearTimeout(timer);
   }, [messages, narratorTyping]);
 
   const setupRealtime = () => {
@@ -199,7 +206,7 @@ export default function CampaignView() {
               theme_snapshot: msg.theme_snapshot as Record<string, unknown> | null,
               isPending: false,
               character: (() => {
-                const participant = participants.find(p => p.character_id === msg.character_id);
+                const participant = participantsRef.current.find(p => p.character_id === msg.character_id);
                 return participant?.character
                   ? { name: participant.character.name, image_url: participant.character.image_url }
                   : msg.character || null;
@@ -291,6 +298,7 @@ export default function CampaignView() {
         character: Array.isArray(p.character) ? p.character[0] : p.character,
       })) as CampaignParticipant[];
       setParticipants(parsed);
+      participantsRef.current = parsed;
       setMyParticipant(parsed.find(p => p.user_id === user!.id && p.is_active) || null);
     }
   };
