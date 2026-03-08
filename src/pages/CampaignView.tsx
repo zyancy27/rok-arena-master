@@ -44,6 +44,7 @@ import { useCampaignCombat } from '@/hooks/use-campaign-combat';
 import type { CampaignMechanicDiscovery } from '@/components/campaigns/CampaignNarratorChat';
 import BagBubble from '@/components/campaigns/BagBubble';
 import CampaignEnemyTracker, { type CampaignEnemy } from '@/components/campaigns/CampaignEnemyTracker';
+import CampaignStatAllocation from '@/components/campaigns/CampaignStatAllocation';
 import { useCampaignTrades } from '@/hooks/use-campaign-trades';
 // Helper: build bag content for the inline backpack bubble
 function buildBagContent(campaignItems: InventoryItem[], characterWeapons: string | null) {
