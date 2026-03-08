@@ -17,6 +17,7 @@
 
 import type { MoveIntent, IntentCategory, Posture } from './intent-interpreter';
 import type { CharacterStats } from './character-stats';
+import { disambiguateText } from './element-disambiguation';
 
 // ─── Public types ────────────────────────────────────────────────────────────
 
