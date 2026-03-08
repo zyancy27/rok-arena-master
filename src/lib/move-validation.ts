@@ -91,7 +91,9 @@ function isBasicAction(moveText: string): boolean {
 
 export function validateMove(
   moveText: string,
-  characterAbilities: CharacterAbilities
+  characterAbilities: CharacterAbilities,
+  /** Optional list of party member / character names to exclude from ability scanning */
+  partyNames?: string[],
 ): MoveValidationResult {
   const move = moveText.toLowerCase();
   
@@ -105,8 +107,18 @@ export function validateMove(
     characterAbilities.abilities
   );
   
-  // Extract what type of move the player is attempting
-  const moveTypes = extractAbilityTypes(move, null);
+  // Strip character/party names from move text before scanning for ability types
+  // This prevents names like "Mochi" from matching patterns like "chi"
+  let sanitizedMove = move;
+  const namesToStrip = [...(partyNames || []), characterAbilities.name];
+  for (const name of namesToStrip) {
+    if (name) {
+      sanitizedMove = sanitizedMove.replace(new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '');
+    }
+  }
+  
+  // Extract what type of move the player is attempting (from sanitized text)
+  const moveTypes = extractAbilityTypes(sanitizedMove, null);
   
   // Check for conflicting elements
   const conflictingPairs: [string, string][] = [
