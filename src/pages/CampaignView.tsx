@@ -95,6 +95,7 @@ export default function CampaignView() {
   const [campaignEnemies, setCampaignEnemies] = useState<CampaignEnemy[]>([]);
   const [showStatAllocation, setShowStatAllocation] = useState(false);
   const userIsNearBottomRef = useRef(true);
+  const [showNewMsgIndicator, setShowNewMsgIndicator] = useState(false);
 
   // Ref to avoid stale closure in realtime callbacks
   const participantsRef = useRef<CampaignParticipant[]>([]);
@@ -178,11 +179,15 @@ export default function CampaignView() {
 
   // Smart auto-scroll: only scroll if user is near the bottom
   useEffect(() => {
-    if (!userIsNearBottomRef.current) return;
-    const timer = setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 50);
-    return () => clearTimeout(timer);
+    if (userIsNearBottomRef.current) {
+      setShowNewMsgIndicator(false);
+      const timer = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
+      return () => clearTimeout(timer);
+    } else {
+      setShowNewMsgIndicator(true);
+    }
   }, [messages, narratorTyping]);
 
   // Show stat allocation when points are available after level-up
@@ -1400,9 +1405,9 @@ export default function CampaignView() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4">
+    <div className="max-w-4xl mx-auto flex flex-col h-[100dvh] overflow-hidden px-2 sm:px-0">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 py-2 shrink-0">
         <div className="flex items-start sm:items-center gap-2 sm:gap-3 min-w-0">
           <Button variant="ghost" size="sm" className="shrink-0 mt-0.5 sm:mt-0" onClick={() => navigate('/campaigns')}>
             <ArrowLeft className="w-4 h-4" />
@@ -1459,9 +1464,9 @@ export default function CampaignView() {
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="flex-1 min-h-0 flex flex-col gap-2">
         {/* Chat + Narrator */}
-        <Card className={`bg-card-gradient border-border flex flex-col h-[70vh] transition-shadow duration-500 ${
+        <Card className={`bg-card-gradient border-border flex flex-col flex-1 min-h-0 transition-shadow duration-500 ${
           combatPulse === 'red' ? 'animate-combat-pulse-red' : combatPulse === 'green' ? 'animate-combat-pulse-green' : ''
         }`}>
           <Tabs defaultValue="adventure" className="flex flex-col flex-1 min-h-0">
@@ -1727,9 +1732,26 @@ export default function CampaignView() {
                   </div>
                 )}
 
+                {/* New messages indicator */}
+                {showNewMsgIndicator && (
+                  <div className="flex justify-center py-1 relative z-10">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                        setShowNewMsgIndicator(false);
+                        userIsNearBottomRef.current = true;
+                      }}
+                      className="text-xs bg-primary/90 text-primary-foreground px-3 py-1 rounded-full shadow-lg animate-bounce"
+                    >
+                      New messages ↓
+                    </button>
+                  </div>
+                )}
+
                 {/* Input */}
                 {isActive && myParticipant?.is_active && (
-                  <div className="p-3 border-t border-border relative z-10">
+                  <div className="p-3 border-t border-border relative z-10 shrink-0">
                     <form onSubmit={e => { e.preventDefault(); handleSendMessage(); }} className="flex gap-2">
                       <VoiceTextarea
                         placeholder={isSoloMode ? "Describe your solo action..." : "Describe your action..."}
