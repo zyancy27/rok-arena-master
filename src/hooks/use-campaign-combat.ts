@@ -70,7 +70,7 @@ function buildCampaignStats(char: CampaignCharacterContext): CharacterStats {
   return baseStats;
 }
 
-export function useCampaignCombat(character: CampaignCharacterContext | null) {
+export function useCampaignCombat(character: CampaignCharacterContext | null, partyNames?: string[]) {
   const [combatState, setCombatState] = useState<CampaignCombatState>({
     lastHitResult: null,
     lastDefenseResult: null,
@@ -100,7 +100,7 @@ export function useCampaignCombat(character: CampaignCharacterContext | null) {
       powers: character.powers,
       abilities: character.abilities,
       name: character.name,
-    });
+    }, partyNames);
 
     setCombatState(prev => ({
       ...prev,
@@ -110,7 +110,7 @@ export function useCampaignCombat(character: CampaignCharacterContext | null) {
     }));
 
     return validation;
-  }, [character]);
+  }, [character, partyNames]);
 
   /**
    * Process a player message for combat mechanics.

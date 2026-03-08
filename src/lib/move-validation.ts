@@ -76,11 +76,11 @@ function isBasicAction(moveText: string): boolean {
   // Common basic action verbs
   const basicVerbs = /\b(walk|run|jog|sprint|climb|jump|crawl|swim|sit|stand|crouch|kneel|lie|lean|step|move|go|come|approach|leave|enter|exit|open|close|shut|grab|pick up|put down|drop|throw|catch|hold|carry|push|pull|drag|lift|place|set down|look|watch|see|observe|inspect|examine|check|search|explore|scan|glance|stare|peer|read|listen|hear|smell|sniff|taste|touch|feel|tap|poke|knock|wave|nod|shake|point|gesture|bow|stretch|turn|spin|roll|dodge|duck|hide|sneak|tip-?toe|eat|drink|cook|sleep|rest|wake|wash|dress|wear|remove|take off|talk|say|speak|tell|ask|answer|reply|respond|call|shout|yell|whisper|scream|cry|laugh|smile|frown|sigh|groan|hum|sing|chant|pray|meditate|think|remember|recall|consider|decide|agree|disagree|refuse|accept|wait|pause|stop|continue|follow|lead|guide|gather|collect|draw|write|sketch|build|craft|fix|repair|trade|buy|sell|give|offer|share|lend|borrow|return|thank|greet|introduce|meet|hug|handshake|farewell|goodbye)\b/i;
   
-  // If the text is short and contains a basic verb, likely a basic action
+  // If the text contains a basic verb, likely a basic action
   const words = text.split(/\s+/);
-  if (words.length <= 25 && basicVerbs.test(text)) {
+  if (words.length <= 40 && basicVerbs.test(text)) {
     // Check it does NOT also contain clear power/ability keywords
-    const powerIndicators = /\b(cast|summon|conjure|enchant|invoke|channel|unleash|activate|transform|morph|blast|beam|bolt|surge|pulse|explode|detonate|disintegrate|teleport|levitate|fly|phase|warp|absorb|drain|corrupt|curse|bless|heal|resurrect|animate|necro|manifest)\b/i;
+    const powerIndicators = /\b(cast|summon|conjure|enchant|invoke|channel|unleash|activate|transform|morph|blast|beam|bolt|surge|pulse|explode|detonate|disintegrate|teleport|levitate|fly|phase|warp|absorb|drain|corrupt|curse|bless|heal|resurrect|animate|necro|manifest|ki[-\s]?blast|energy[-\s]?blast|force[-\s]?push)\b/i;
     if (!powerIndicators.test(text)) {
       return true;
     }
@@ -91,7 +91,9 @@ function isBasicAction(moveText: string): boolean {
 
 export function validateMove(
   moveText: string,
-  characterAbilities: CharacterAbilities
+  characterAbilities: CharacterAbilities,
+  /** Optional list of party member / character names to exclude from ability scanning */
+  partyNames?: string[],
 ): MoveValidationResult {
   const move = moveText.toLowerCase();
   
@@ -105,8 +107,18 @@ export function validateMove(
     characterAbilities.abilities
   );
   
-  // Extract what type of move the player is attempting
-  const moveTypes = extractAbilityTypes(move, null);
+  // Strip character/party names from move text before scanning for ability types
+  // This prevents names like "Mochi" from matching patterns like "chi"
+  let sanitizedMove = move;
+  const namesToStrip = [...(partyNames || []), characterAbilities.name];
+  for (const name of namesToStrip) {
+    if (name) {
+      sanitizedMove = sanitizedMove.replace(new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '');
+    }
+  }
+  
+  // Extract what type of move the player is attempting (from sanitized text)
+  const moveTypes = extractAbilityTypes(sanitizedMove, null);
   
   // Check for conflicting elements
   const conflictingPairs: [string, string][] = [

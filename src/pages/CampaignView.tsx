@@ -127,6 +127,11 @@ export default function CampaignView() {
   const [combatPulse, setCombatPulse] = useState<'none' | 'red' | 'green'>('none');
   const combatPulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Collect all party member names for move validation name exclusion
+  const allPartyNames = participants
+    .map(p => p.character?.name)
+    .filter((n): n is string => !!n);
+
   // Combat mechanics integration
   const campaignCombat = useCampaignCombat(
     myParticipant?.character ? {
@@ -136,7 +141,8 @@ export default function CampaignView() {
       campaignLevel: myParticipant.campaign_level,
       powers: myParticipant.character.powers || null,
       abilities: myParticipant.character.abilities || null,
-    } : null
+    } : null,
+    allPartyNames
   );
 
   // Battlefield environment effects (fire, ice, storm, etc.)
