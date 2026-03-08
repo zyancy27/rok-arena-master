@@ -69,11 +69,37 @@ export function extractAbilityTypes(powers: string | null, abilities: string | n
 }
 
 // Check if a move aligns with character abilities
+// Detect if a move is a basic/mundane action that should never trigger ability validation
+function isBasicAction(moveText: string): boolean {
+  const text = moveText.toLowerCase();
+  
+  // Common basic action verbs
+  const basicVerbs = /\b(walk|run|jog|sprint|climb|jump|crawl|swim|sit|stand|crouch|kneel|lie|lean|step|move|go|come|approach|leave|enter|exit|open|close|shut|grab|pick up|put down|drop|throw|catch|hold|carry|push|pull|drag|lift|place|set down|look|watch|see|observe|inspect|examine|check|search|explore|scan|glance|stare|peer|read|listen|hear|smell|sniff|taste|touch|feel|tap|poke|knock|wave|nod|shake|point|gesture|bow|stretch|turn|spin|roll|dodge|duck|hide|sneak|tip-?toe|eat|drink|cook|sleep|rest|wake|wash|dress|wear|remove|take off|talk|say|speak|tell|ask|answer|reply|respond|call|shout|yell|whisper|scream|cry|laugh|smile|frown|sigh|groan|hum|sing|chant|pray|meditate|think|remember|recall|consider|decide|agree|disagree|refuse|accept|wait|pause|stop|continue|follow|lead|guide|gather|collect|draw|write|sketch|build|craft|fix|repair|trade|buy|sell|give|offer|share|lend|borrow|return|thank|greet|introduce|meet|hug|handshake|farewell|goodbye)\b/i;
+  
+  // If the text is short and contains a basic verb, likely a basic action
+  const words = text.split(/\s+/);
+  if (words.length <= 25 && basicVerbs.test(text)) {
+    // Check it does NOT also contain clear power/ability keywords
+    const powerIndicators = /\b(cast|summon|conjure|enchant|invoke|channel|unleash|activate|transform|morph|blast|beam|bolt|surge|pulse|explode|detonate|disintegrate|teleport|levitate|fly|phase|warp|absorb|drain|corrupt|curse|bless|heal|resurrect|animate|necro|manifest)\b/i;
+    if (!powerIndicators.test(text)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
 export function validateMove(
   moveText: string,
   characterAbilities: CharacterAbilities
 ): MoveValidationResult {
   const move = moveText.toLowerCase();
+  
+  // SHORT-CIRCUIT: Basic actions (walking, talking, grabbing) never trigger warnings
+  if (isBasicAction(move)) {
+    return { isValid: true, warningMessage: null, suggestedFix: null, violationType: null };
+  }
+  
   const characterTypes = extractAbilityTypes(
     characterAbilities.powers, 
     characterAbilities.abilities
@@ -86,7 +112,7 @@ export function validateMove(
   const conflictingPairs: [string, string][] = [
     ['fire', 'ice'],
     ['light', 'dark'],
-    ['water', 'lightning'], // special case - water + lightning can be dangerous to self
+    ['water', 'lightning'],
   ];
   
   // Find if the move uses an element the character doesn't have
@@ -94,14 +120,12 @@ export function validateMove(
   const conflictElements: string[] = [];
   
   moveTypes.forEach(moveType => {
-    // Check if character has this ability type
     const hasAbility = characterTypes.includes(moveType) || 
-      characterTypes.includes('magic') || // Magic users can do anything
-      characterTypes.includes('energy') || // Energy manipulators are versatile
-      moveType === 'physical'; // Everyone can do physical
+      characterTypes.includes('magic') ||
+      characterTypes.includes('energy') ||
+      moveType === 'physical';
     
     if (!hasAbility) {
-      // Check for direct conflicts (ice user using fire, etc.)
       const hasConflict = conflictingPairs.some(([a, b]) => {
         return (characterTypes.includes(a) && moveType === b) ||
                (characterTypes.includes(b) && moveType === a);
