@@ -71,7 +71,7 @@ interface CampaignCharacterContext {
  * Uses actual character stats if available, otherwise derives from tier.
  * Applies campaign-level scaling (power reset dampening).
  */
-function buildCampaignStats(char: CampaignCharacterContext): CharacterStats {
+export function buildCampaignStats(char: CampaignCharacterContext): CharacterStats {
   const baseStats = char.stats
     ? { ...DEFAULT_STATS, ...char.stats }
     : TIER_BASE_STATS[char.level] || DEFAULT_STATS;
