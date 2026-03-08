@@ -143,30 +143,23 @@ export function resolveCombatAction(
     };
   }
 
+  // Determine combat mode from battle state
+  const battleMode = stateManager.getState().mode ?? 'pvp';
+
+  const combatInput = {
+    action: combatAction,
+    attackerId: input.characterId,
+    defenderId: input.targetId ?? null,
+    clampResult,
+    overchargeActive: input.overchargeActive ?? false,
+    mode: battleMode as 'pvp' | 'pvpvp' | 'pve' | 'eve' | 'campaign',
+  };
+
   // Resolve combat
-  const combatResult = resolveCombat(
-    {
-      action: combatAction,
-      attackerId: input.characterId,
-      defenderId: input.targetId ?? null,
-      clampResult,
-      overchargeActive: input.overchargeActive ?? false,
-    },
-    stateManager,
-  );
+  const combatResult = resolveCombat(combatInput, stateManager);
 
   // Emit events
-  emitCombatEvents(
-    {
-      action: combatAction,
-      attackerId: input.characterId,
-      defenderId: input.targetId ?? null,
-      clampResult,
-      overchargeActive: input.overchargeActive ?? false,
-    },
-    combatResult,
-    eventBus,
-  );
+  emitCombatEvents(combatInput, combatResult, eventBus);
 
   mutations.push({
     system: 'combat',

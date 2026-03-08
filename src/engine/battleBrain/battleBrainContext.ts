@@ -22,7 +22,7 @@ import type { CentralBattleState } from '../state/BattleState';
 import type { BattleStateManager } from '../state/BattleStateManager';
 import { classifyAction } from '../intent/classifyAction';
 import { interpretMove } from '@/lib/intent-interpreter';
-import { hardClamp, type ClampResult } from '@/lib/hard-clamp';
+import { applyHardClamp, type ClampResult, type CharacterProfile } from '@/lib/hard-clamp';
 import type {
   IdentityProfile,
   CharacterSignatureProfile,
