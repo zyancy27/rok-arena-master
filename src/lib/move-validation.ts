@@ -21,22 +21,22 @@ export function extractAbilityTypes(powers: string | null, abilities: string | n
   
   // Element types
   const elementPatterns: Record<string, RegExp> = {
-    fire: /fire|flame|burn|heat|inferno|blaze|magma|lava|combustion|pyro/i,
-    ice: /ice|freeze|frost|cold|snow|blizzard|cryo|frozen|winter|glacial/i,
-    water: /water|aqua|ocean|sea|wave|flood|hydro|liquid|rain|tide/i,
-    lightning: /lightning|thunder|electric|shock|volt|static|storm/i,
-    earth: /earth|rock|stone|ground|terra|metal|mineral|seismic/i,
-    wind: /wind|air|gust|tornado|hurricane|breeze|aero|cyclone/i,
-    light: /light|holy|radiant|solar|sun|divine|celestial|luminous/i,
-    dark: /dark|shadow|void|abyss|night|black|umbra|shade/i,
-    psychic: /psychic|mental|mind|telekinesis|telepathy|psionic|brain/i,
-    poison: /poison|toxic|venom|acid|corrosive|noxious/i,
-    nature: /nature|plant|forest|wood|vine|leaf|organic|bio/i,
-    gravity: /gravity|weight|mass|force|pull|crush/i,
-    time: /time|temporal|chrono|speed|slow|fast|age/i,
-    space: /space|dimension|portal|warp|teleport|void/i,
-    sound: /sound|sonic|music|noise|vibration|echo|frequency/i,
-    energy: /energy|ki|chi|chakra|aura|power|force/i,
+    fire: /\b(fire|flame|burn|heat|inferno|blaze|magma|lava|combustion|pyro)\b/i,
+    ice: /\b(ice|freeze|frost|cold|snow|blizzard|cryo|frozen|winter|glacial)\b/i,
+    water: /\b(water|aqua|ocean|sea|wave|flood|hydro|liquid|rain|tide)\b/i,
+    lightning: /\b(lightning|thunder|electric|shock|volt|static|storm)\b/i,
+    earth: /\b(earth|rock|stone|ground|terra|metal|mineral|seismic)\b/i,
+    wind: /\b(wind|air|gust|tornado|hurricane|breeze|aero|cyclone)\b/i,
+    light: /\b(light|holy|radiant|solar|sun|divine|celestial|luminous)\b/i,
+    dark: /\b(dark|shadow|void|abyss|night|black|umbra|shade)\b/i,
+    psychic: /\b(psychic|mental|mind|telekinesis|telepathy|psionic|brain)\b/i,
+    poison: /\b(poison|toxic|venom|acid|corrosive|noxious)\b/i,
+    nature: /\b(nature|plant|forest|wood|vine|leaf|organic|bio)\b/i,
+    gravity: /\b(gravity|weight|mass|gravitational|pull|crush)\b/i,
+    time: /\b(temporal|chrono|time[-\s]?warp|time[-\s]?stop|time[-\s]?manipulation)\b/i,
+    space: /\b(dimension|portal|warp|teleport|spatial)\b/i,
+    sound: /\b(sonic|soundwave|vibration|echo|frequency)\b/i,
+    energy: /\b(energy[-\s]?blast|ki\b|chakra|aura[-\s]?blast|force[-\s]?push|force[-\s]?field)\b/i,
   };
   
   // Combat styles
