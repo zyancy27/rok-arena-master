@@ -1149,7 +1149,7 @@ CORE RULES:
 
 OUTPUT FORMAT (JSON):
 {
-  "narration": "Your world response (1-3 short paragraphs, mostly NPC dialogue and world reactions — keep language simple)",
+  "narration": "World response (1-3 short paragraphs, mostly NPC dialogue and world reactions — keep language simple).${isMultiplayer ? ` MULTIPLAYER: NEVER use 'you' or 'your'. Always use character names (${partyNames.join(', ')}).` : ''}",
   "xpGained": <number 0-50 based on action significance>,
   "hpChange": <number, negative for damage, positive for healing, 0 for none>,
   "advanceTime": <number 0-2, how many time periods to advance>,
