@@ -294,6 +294,7 @@ export default function CampaignView() {
         character: Array.isArray(p.character) ? p.character[0] : p.character,
       })) as CampaignParticipant[];
       setParticipants(parsed);
+      participantsRef.current = parsed;
       setMyParticipant(parsed.find(p => p.user_id === user!.id && p.is_active) || null);
     }
   };
