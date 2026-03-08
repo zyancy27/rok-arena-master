@@ -8,6 +8,8 @@
  * The output is consumed exclusively by the hard-clamp layer.
  */
 
+import { disambiguateText } from './element-disambiguation';
+
 // ─── Public types ────────────────────────────────────────────────────────────
 
 export type ActionType =
@@ -243,10 +245,11 @@ export function interpretMove(moveText: string): MoveIntent {
     posture = 'SAFE';
   }
 
-  // 9. Detected elements
+  // 9. Detected elements (use disambiguated text to avoid false positives)
+  const disambiguated = disambiguateText(text);
   const detectedElements: string[] = [];
   for (const [element, regex] of Object.entries(ELEMENT_KEYWORDS)) {
-    if (regex.test(text)) detectedElements.push(element);
+    if (regex.test(disambiguated)) detectedElements.push(element);
   }
 
   return {

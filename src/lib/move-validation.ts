@@ -1,6 +1,8 @@
 // Move validation system for PvP battles
 // Ensures players use moves consistent with their character's abilities
 
+import { disambiguateText } from './element-disambiguation';
+
 export interface CharacterAbilities {
   powers: string | null;
   abilities: string | null;
@@ -116,6 +118,9 @@ export function validateMove(
       sanitizedMove = sanitizedMove.replace(new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '');
     }
   }
+  
+  // Disambiguate mundane word usage before element scanning
+  sanitizedMove = disambiguateText(sanitizedMove);
   
   // Extract what type of move the player is attempting (from sanitized text)
   const moveTypes = extractAbilityTypes(sanitizedMove, null);

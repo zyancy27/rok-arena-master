@@ -17,6 +17,7 @@
 
 import type { MoveIntent, IntentCategory, Posture } from './intent-interpreter';
 import type { CharacterStats } from './character-stats';
+import { disambiguateText } from './element-disambiguation';
 
 // ─── Public types ────────────────────────────────────────────────────────────
 
@@ -101,7 +102,10 @@ const ELEMENT_PATTERNS: Record<string, RegExp> = {
 };
 
 function extractCharacterElements(powers: string | null, abilities: string | null): string[] {
-  const text = `${powers || ''} ${abilities || ''}`.toLowerCase();
+  const raw = `${powers || ''} ${abilities || ''}`.toLowerCase();
+  // Disambiguate before scanning so character descriptions with mundane
+  // phrases (e.g. "moves with light steps") don't create false element matches.
+  const text = disambiguateText(raw);
   const found: string[] = [];
   for (const [element, regex] of Object.entries(ELEMENT_PATTERNS)) {
     if (regex.test(text)) found.push(element);
