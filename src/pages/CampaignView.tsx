@@ -1459,9 +1459,9 @@ export default function CampaignView() {
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="flex-1 min-h-0 flex flex-col gap-2">
         {/* Chat + Narrator */}
-        <Card className={`bg-card-gradient border-border flex flex-col h-[70vh] transition-shadow duration-500 ${
+        <Card className={`bg-card-gradient border-border flex flex-col flex-1 min-h-0 transition-shadow duration-500 ${
           combatPulse === 'red' ? 'animate-combat-pulse-red' : combatPulse === 'green' ? 'animate-combat-pulse-green' : ''
         }`}>
           <Tabs defaultValue="adventure" className="flex flex-col flex-1 min-h-0">
