@@ -21,35 +21,35 @@ export function extractAbilityTypes(powers: string | null, abilities: string | n
   
   // Element types
   const elementPatterns: Record<string, RegExp> = {
-    fire: /fire|flame|burn|heat|inferno|blaze|magma|lava|combustion|pyro/i,
-    ice: /ice|freeze|frost|cold|snow|blizzard|cryo|frozen|winter|glacial/i,
-    water: /water|aqua|ocean|sea|wave|flood|hydro|liquid|rain|tide/i,
-    lightning: /lightning|thunder|electric|shock|volt|static|storm/i,
-    earth: /earth|rock|stone|ground|terra|metal|mineral|seismic/i,
-    wind: /wind|air|gust|tornado|hurricane|breeze|aero|cyclone/i,
-    light: /light|holy|radiant|solar|sun|divine|celestial|luminous/i,
-    dark: /dark|shadow|void|abyss|night|black|umbra|shade/i,
-    psychic: /psychic|mental|mind|telekinesis|telepathy|psionic|brain/i,
-    poison: /poison|toxic|venom|acid|corrosive|noxious/i,
-    nature: /nature|plant|forest|wood|vine|leaf|organic|bio/i,
-    gravity: /gravity|weight|mass|force|pull|crush/i,
-    time: /time|temporal|chrono|speed|slow|fast|age/i,
-    space: /space|dimension|portal|warp|teleport|void/i,
-    sound: /sound|sonic|music|noise|vibration|echo|frequency/i,
-    energy: /energy|ki|chi|chakra|aura|power|force/i,
+    fire: /\b(fire|flame|burn|heat|inferno|blaze|magma|lava|combustion|pyro)\b/i,
+    ice: /\b(ice|freeze|frost|cold|snow|blizzard|cryo|frozen|winter|glacial)\b/i,
+    water: /\b(water|aqua|ocean|sea|wave|flood|hydro|liquid|rain|tide)\b/i,
+    lightning: /\b(lightning|thunder|electric|shock|volt|static|storm)\b/i,
+    earth: /\b(earth|rock|stone|ground|terra|metal|mineral|seismic)\b/i,
+    wind: /\b(wind|air|gust|tornado|hurricane|breeze|aero|cyclone)\b/i,
+    light: /\b(light|holy|radiant|solar|sun|divine|celestial|luminous)\b/i,
+    dark: /\b(dark|shadow|void|abyss|night|black|umbra|shade)\b/i,
+    psychic: /\b(psychic|mental|mind|telekinesis|telepathy|psionic|brain)\b/i,
+    poison: /\b(poison|toxic|venom|acid|corrosive|noxious)\b/i,
+    nature: /\b(nature|plant|forest|wood|vine|leaf|organic|bio)\b/i,
+    gravity: /\b(gravity|weight|mass|gravitational|pull|crush)\b/i,
+    time: /\b(temporal|chrono|time[-\s]?warp|time[-\s]?stop|time[-\s]?manipulation)\b/i,
+    space: /\b(dimension|portal|warp|teleport|spatial)\b/i,
+    sound: /\b(sonic|soundwave|vibration|echo|frequency)\b/i,
+    energy: /\b(energy[-\s]?blast|ki\b|chakra|aura[-\s]?blast|force[-\s]?push|force[-\s]?field)\b/i,
   };
   
   // Combat styles
   const stylePatterns: Record<string, RegExp> = {
-    martial: /martial|combat|fighting|karate|kung fu|boxing|wrestling|judo/i,
-    sword: /sword|blade|katana|rapier|saber|slash|cut|cleave/i,
-    ranged: /gun|bow|arrow|sniper|shoot|projectile|bullet/i,
-    stealth: /stealth|ninja|assassin|shadow|sneak|invisible/i,
-    magic: /magic|spell|sorcery|wizard|mage|arcane|mystic/i,
-    tech: /tech|robot|cyber|machine|mechanical|gadget|device/i,
-    beast: /beast|animal|creature|wild|feral|transform/i,
-    divine: /divine|god|deity|sacred|holy|blessing/i,
-    demonic: /demon|devil|infernal|hellfire|curse|corruption/i,
+    martial: /\b(martial|karate|kung fu|boxing|wrestling|judo)\b/i,
+    sword: /\b(sword|blade|katana|rapier|saber|cleave)\b/i,
+    ranged: /\b(gun|bow|arrow|sniper|shoot|projectile|bullet)\b/i,
+    stealth: /\b(stealth|ninja|assassin|invisible)\b/i,
+    magic: /\b(magic|spell|sorcery|wizard|mage|arcane|mystic)\b/i,
+    tech: /\b(tech|robot|cyber|mechanical|gadget)\b/i,
+    beast: /\b(beast|feral|transform|shapeshift)\b/i,
+    divine: /\b(divine|deity|sacred|blessing)\b/i,
+    demonic: /\b(demon|devil|infernal|hellfire|curse|corruption)\b/i,
   };
   
   Object.entries(elementPatterns).forEach(([element, pattern]) => {
@@ -69,11 +69,37 @@ export function extractAbilityTypes(powers: string | null, abilities: string | n
 }
 
 // Check if a move aligns with character abilities
+// Detect if a move is a basic/mundane action that should never trigger ability validation
+function isBasicAction(moveText: string): boolean {
+  const text = moveText.toLowerCase();
+  
+  // Common basic action verbs
+  const basicVerbs = /\b(walk|run|jog|sprint|climb|jump|crawl|swim|sit|stand|crouch|kneel|lie|lean|step|move|go|come|approach|leave|enter|exit|open|close|shut|grab|pick up|put down|drop|throw|catch|hold|carry|push|pull|drag|lift|place|set down|look|watch|see|observe|inspect|examine|check|search|explore|scan|glance|stare|peer|read|listen|hear|smell|sniff|taste|touch|feel|tap|poke|knock|wave|nod|shake|point|gesture|bow|stretch|turn|spin|roll|dodge|duck|hide|sneak|tip-?toe|eat|drink|cook|sleep|rest|wake|wash|dress|wear|remove|take off|talk|say|speak|tell|ask|answer|reply|respond|call|shout|yell|whisper|scream|cry|laugh|smile|frown|sigh|groan|hum|sing|chant|pray|meditate|think|remember|recall|consider|decide|agree|disagree|refuse|accept|wait|pause|stop|continue|follow|lead|guide|gather|collect|draw|write|sketch|build|craft|fix|repair|trade|buy|sell|give|offer|share|lend|borrow|return|thank|greet|introduce|meet|hug|handshake|farewell|goodbye)\b/i;
+  
+  // If the text is short and contains a basic verb, likely a basic action
+  const words = text.split(/\s+/);
+  if (words.length <= 25 && basicVerbs.test(text)) {
+    // Check it does NOT also contain clear power/ability keywords
+    const powerIndicators = /\b(cast|summon|conjure|enchant|invoke|channel|unleash|activate|transform|morph|blast|beam|bolt|surge|pulse|explode|detonate|disintegrate|teleport|levitate|fly|phase|warp|absorb|drain|corrupt|curse|bless|heal|resurrect|animate|necro|manifest)\b/i;
+    if (!powerIndicators.test(text)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
 export function validateMove(
   moveText: string,
   characterAbilities: CharacterAbilities
 ): MoveValidationResult {
   const move = moveText.toLowerCase();
+  
+  // SHORT-CIRCUIT: Basic actions (walking, talking, grabbing) never trigger warnings
+  if (isBasicAction(move)) {
+    return { isValid: true, warningMessage: null, suggestedFix: null, violationType: null };
+  }
+  
   const characterTypes = extractAbilityTypes(
     characterAbilities.powers, 
     characterAbilities.abilities
@@ -86,7 +112,7 @@ export function validateMove(
   const conflictingPairs: [string, string][] = [
     ['fire', 'ice'],
     ['light', 'dark'],
-    ['water', 'lightning'], // special case - water + lightning can be dangerous to self
+    ['water', 'lightning'],
   ];
   
   // Find if the move uses an element the character doesn't have
@@ -94,14 +120,12 @@ export function validateMove(
   const conflictElements: string[] = [];
   
   moveTypes.forEach(moveType => {
-    // Check if character has this ability type
     const hasAbility = characterTypes.includes(moveType) || 
-      characterTypes.includes('magic') || // Magic users can do anything
-      characterTypes.includes('energy') || // Energy manipulators are versatile
-      moveType === 'physical'; // Everyone can do physical
+      characterTypes.includes('magic') ||
+      characterTypes.includes('energy') ||
+      moveType === 'physical';
     
     if (!hasAbility) {
-      // Check for direct conflicts (ice user using fire, etc.)
       const hasConflict = conflictingPairs.some(([a, b]) => {
         return (characterTypes.includes(a) && moveType === b) ||
                (characterTypes.includes(b) && moveType === a);
