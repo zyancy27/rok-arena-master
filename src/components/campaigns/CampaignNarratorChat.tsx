@@ -124,6 +124,8 @@ export default function CampaignNarratorChat({
   const [showMap, setShowMap] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Force tactical map regeneration when zone/location changes
+  const mapLocationKey = chosenLocation || currentZone || campaignName;
   const tacticalMapData = useMemo(() => {
     const mapParticipants = participants.filter(p => p.is_active).map(p => ({
       characterId: p.character_id,
@@ -132,15 +134,13 @@ export default function CampaignNarratorChat({
       turnOrder: 0,
     }));
     if (mapParticipants.length === 0) return null;
-    // Use the best available location name for map generation
-    const mapLocationName = chosenLocation || currentZone || campaignName;
     return generateTacticalMap({
       participants: mapParticipants,
       currentPlayerId: myParticipant?.character_id ?? '',
-      locationName: mapLocationName,
+      locationName: mapLocationKey,
       terrainTags: environmentTags,
     });
-  }, [participants, myParticipant, currentZone, environmentTags, chosenLocation, campaignName]);
+  }, [participants, myParticipant, mapLocationKey, environmentTags]);
 
   // Show mechanic discovery messages when queued
   useEffect(() => {
