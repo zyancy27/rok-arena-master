@@ -105,6 +105,8 @@ export function useCampaignCombat(character: CampaignCharacterContext | null, pa
     lastMoveValidation: null,
     pendingValidation: false,
     pendingMessage: null,
+    concentrationPrompt: null,
+    concentrationUsesLeft: MAX_CONCENTRATION_USES,
   });
 
   // Status effects
@@ -142,6 +144,8 @@ export function useCampaignCombat(character: CampaignCharacterContext | null, pa
   /**
    * Process a player message for combat mechanics.
    * Detects hits, rolls dice, returns context for the narrator.
+   * If concentration is available, sets concentrationPrompt and returns results
+   * that the caller should hold until concentration is resolved.
    */
   const processCombatAction = useCallback((messageText: string): {
     hitDetection: HitDetectionResult;
@@ -149,13 +153,14 @@ export function useCampaignCombat(character: CampaignCharacterContext | null, pa
     defenseResult: DefenseDetermination | null;
     narratorDiceContext: Record<string, unknown> | null;
     diceMetadata: Record<string, unknown> | null;
+    concentrationAvailable: boolean;
   } => {
     if (!character) {
       const emptyDetection: HitDetectionResult = {
         detected: false, intent: 'none', matchedVerbs: [], isRanged: false,
         hasTarget: false, shouldTriggerHitCheck: false, shouldTriggerDefenseCheck: false, confidence: 0,
       };
-      return { hitDetection: emptyDetection, hitResult: null, defenseResult: null, narratorDiceContext: null, diceMetadata: null };
+      return { hitDetection: emptyDetection, hitResult: null, defenseResult: null, narratorDiceContext: null, diceMetadata: null, concentrationAvailable: false };
     }
 
     const hitDetection = detectDirectInteraction(messageText);
@@ -173,6 +178,7 @@ export function useCampaignCombat(character: CampaignCharacterContext | null, pa
     let defenseResult: DefenseDetermination | null = null;
     let narratorDiceContext: Record<string, unknown> | null = null;
     let diceMetadata: Record<string, unknown> | null = null;
+    let concentrationAvailable = false;
 
     if (hitDetection.shouldTriggerHitCheck) {
       const isMental = isMentalAttack(messageText);
@@ -198,6 +204,24 @@ export function useCampaignCombat(character: CampaignCharacterContext | null, pa
         gap: hitResult.gap,
         isMental,
       };
+
+      // Check if concentration is available for a near-miss (offensive)
+      const absGap = Math.abs(hitResult.gap);
+      if (!hitResult.wouldHit && absGap <= CONCENTRATION_GAP_THRESHOLD && combatState.concentrationUsesLeft > 0) {
+        concentrationAvailable = true;
+        setCombatState(prev => ({
+          ...prev,
+          lastHitResult: hitResult,
+          lastHitDetection: hitDetection,
+          concentrationPrompt: {
+            mode: 'offense',
+            hitDetermination: hitResult!,
+            messageText,
+            combatResult: { hitDetection, hitResult, defenseResult, narratorDiceContext, diceMetadata },
+          },
+        }));
+        return { hitDetection, hitResult, defenseResult, narratorDiceContext, diceMetadata, concentrationAvailable };
+      }
 
       // Reset penalty after use
       penaltyRef.current = 0;
@@ -230,6 +254,32 @@ export function useCampaignCombat(character: CampaignCharacterContext | null, pa
         defenseType: defType,
       };
 
+      // Check if concentration is available for a close hit (defensive)
+      const absGap = Math.abs(defenseResult.gap);
+      if (!defenseResult.defenseSuccess && absGap <= CONCENTRATION_GAP_THRESHOLD && combatState.concentrationUsesLeft > 0) {
+        // Build a HitDetermination from the defense result for the ConcentrationButton
+        const hitDet: HitDetermination = {
+          attackRoll: defenseResult.incomingAttackPotency,
+          defenseRoll: defenseResult.defenseRoll,
+          wouldHit: true, // attack hit, defense failed
+          gap: defenseResult.gap,
+          isMentalAttack: false,
+        };
+        concentrationAvailable = true;
+        setCombatState(prev => ({
+          ...prev,
+          lastDefenseResult: defenseResult,
+          lastHitDetection: hitDetection,
+          concentrationPrompt: {
+            mode: 'defense',
+            hitDetermination: hitDet,
+            messageText,
+            combatResult: { hitDetection, hitResult, defenseResult, narratorDiceContext, diceMetadata },
+          },
+        }));
+        return { hitDetection, hitResult, defenseResult, narratorDiceContext, diceMetadata, concentrationAvailable };
+      }
+
       penaltyRef.current = 0;
     }
 
@@ -238,10 +288,108 @@ export function useCampaignCombat(character: CampaignCharacterContext | null, pa
       lastHitResult: hitResult,
       lastDefenseResult: defenseResult,
       lastHitDetection: hitDetection,
+      concentrationPrompt: null,
     }));
 
-    return { hitDetection, hitResult, defenseResult, narratorDiceContext, diceMetadata };
-  }, [character]);
+    return { hitDetection, hitResult, defenseResult, narratorDiceContext, diceMetadata, concentrationAvailable };
+  }, [character, combatState.concentrationUsesLeft]);
+
+  /**
+   * Apply offensive concentration result — updates dice data and returns updated combat result.
+   */
+  const applyOffensiveConcentration = useCallback((result: OffensiveConcentrationResult) => {
+    if (!combatState.concentrationPrompt) return null;
+    const prompt = combatState.concentrationPrompt;
+
+    // Apply penalty for next move
+    penaltyRef.current = result.statPenalty;
+
+    const updatedDiceMetadata = {
+      ...prompt.combatResult.diceMetadata,
+      hit: result.hitSuccess,
+      concentrated: true,
+      concentrationBonus: result.bonusRoll,
+      attackRoll: {
+        ...(prompt.combatResult.diceMetadata as any)?.attackRoll,
+        total: result.newAttackTotal,
+      },
+    };
+
+    const updatedNarratorContext = {
+      diceResult: {
+        ...(prompt.combatResult.narratorDiceContext as any)?.diceResult,
+        hit: result.hitSuccess,
+        attackTotal: result.newAttackTotal,
+        concentrated: true,
+        concentrationBonus: result.bonusRoll,
+      },
+    };
+
+    setCombatState(prev => ({
+      ...prev,
+      concentrationPrompt: null,
+      concentrationUsesLeft: prev.concentrationUsesLeft - 1,
+    }));
+
+    return {
+      ...prompt.combatResult,
+      diceMetadata: updatedDiceMetadata,
+      narratorDiceContext: updatedNarratorContext,
+    };
+  }, [combatState.concentrationPrompt]);
+
+  /**
+   * Apply defensive concentration result — updates dice data and returns updated combat result.
+   */
+  const applyDefensiveConcentration = useCallback((result: ConcentrationResult) => {
+    if (!combatState.concentrationPrompt) return null;
+    const prompt = combatState.concentrationPrompt;
+
+    // Apply penalty for next move
+    penaltyRef.current = result.statPenalty;
+
+    const updatedDiceMetadata = {
+      ...prompt.combatResult.diceMetadata,
+      success: result.dodgeSuccess,
+      concentrated: true,
+      concentrationBonus: result.bonusRoll,
+      defenseRoll: {
+        ...(prompt.combatResult.diceMetadata as any)?.defenseRoll,
+        total: result.newDefenseTotal,
+      },
+    };
+
+    const updatedNarratorContext = {
+      defenseResult: {
+        ...(prompt.combatResult.narratorDiceContext as any)?.defenseResult,
+        success: result.dodgeSuccess,
+        defenseTotal: result.newDefenseTotal,
+        concentrated: true,
+        concentrationBonus: result.bonusRoll,
+      },
+    };
+
+    setCombatState(prev => ({
+      ...prev,
+      concentrationPrompt: null,
+      concentrationUsesLeft: prev.concentrationUsesLeft - 1,
+    }));
+
+    return {
+      ...prompt.combatResult,
+      diceMetadata: updatedDiceMetadata,
+      narratorDiceContext: updatedNarratorContext,
+    };
+  }, [combatState.concentrationPrompt]);
+
+  /**
+   * Skip concentration — proceed with original result.
+   */
+  const skipConcentration = useCallback(() => {
+    const prompt = combatState.concentrationPrompt;
+    setCombatState(prev => ({ ...prev, concentrationPrompt: null }));
+    return prompt?.combatResult ?? null;
+  }, [combatState.concentrationPrompt]);
 
   /**
    * Process a narrator response for status effects.
@@ -284,5 +432,8 @@ export function useCampaignCombat(character: CampaignCharacterContext | null, pa
     processNarratorResponse,
     clearPendingValidation,
     acceptPendingValidation,
+    applyOffensiveConcentration,
+    applyDefensiveConcentration,
+    skipConcentration,
   };
 }
