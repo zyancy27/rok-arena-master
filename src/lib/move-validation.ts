@@ -119,6 +119,9 @@ export function validateMove(
     }
   }
   
+  // Disambiguate mundane word usage before element scanning
+  sanitizedMove = disambiguateText(sanitizedMove);
+  
   // Extract what type of move the player is attempting (from sanitized text)
   const moveTypes = extractAbilityTypes(sanitizedMove, null);
   
