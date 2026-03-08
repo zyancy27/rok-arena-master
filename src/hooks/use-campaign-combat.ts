@@ -6,12 +6,35 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { detectDirectInteraction, classifyInteraction, type HitDetectionResult } from '@/lib/battle-hit-detection';
-import { determineHit, determineMentalHit, determineDefenseSuccess, type HitDetermination, type DefenseDetermination } from '@/lib/battle-dice';
+import {
+  determineHit, determineMentalHit, determineDefenseSuccess,
+  useConcentration, useOffensiveConcentration,
+  CONCENTRATION_GAP_THRESHOLD,
+  type HitDetermination, type DefenseDetermination,
+  type ConcentrationResult, type OffensiveConcentrationResult,
+} from '@/lib/battle-dice';
 import { validateMove, isMentalAttack, type MoveValidationResult } from '@/lib/move-validation';
 import { useCharacterStatusEffects } from '@/hooks/use-character-status-effects';
 import type { CharacterStats } from '@/lib/character-stats';
 import { TIER_BASE_STATS, DEFAULT_STATS } from '@/lib/character-stats';
 import { CAMPAIGN_STARTING_ABILITIES } from '@/lib/campaign-types';
+
+const MAX_CONCENTRATION_USES = 3;
+
+export interface CampaignConcentrationPrompt {
+  mode: 'offense' | 'defense';
+  hitDetermination: HitDetermination;
+  /** The original message text that triggered the roll */
+  messageText: string;
+  /** The combat result from processCombatAction */
+  combatResult: {
+    hitDetection: HitDetectionResult;
+    hitResult: HitDetermination | null;
+    defenseResult: DefenseDetermination | null;
+    narratorDiceContext: Record<string, unknown> | null;
+    diceMetadata: Record<string, unknown> | null;
+  };
+}
 
 export interface CampaignCombatState {
   /** Latest dice roll result (attack) */
@@ -26,6 +49,10 @@ export interface CampaignCombatState {
   pendingValidation: boolean;
   /** The message text waiting for validation approval */
   pendingMessage: string | null;
+  /** Concentration prompt (null if none pending) */
+  concentrationPrompt: CampaignConcentrationPrompt | null;
+  /** Concentration uses remaining this campaign session */
+  concentrationUsesLeft: number;
 }
 
 interface CampaignCharacterContext {
