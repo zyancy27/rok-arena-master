@@ -93,6 +93,8 @@ export default function CampaignView() {
   const [joinRequests, setJoinRequests] = useState<any[]>([]);
   const [myJoinRequest, setMyJoinRequest] = useState<any | null>(null);
   const [campaignEnemies, setCampaignEnemies] = useState<CampaignEnemy[]>([]);
+  const [showStatAllocation, setShowStatAllocation] = useState(false);
+  const userIsNearBottomRef = useRef(true);
 
   // Ref to avoid stale closure in realtime callbacks
   const participantsRef = useRef<CampaignParticipant[]>([]);
