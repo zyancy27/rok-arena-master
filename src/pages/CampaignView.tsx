@@ -1794,7 +1794,50 @@ export default function CampaignView() {
                   </div>
                 )}
 
-                {/* New messages indicator */}
+                {/* Concentration Prompt */}
+                {isActive && myParticipant?.is_active && campaignCombat.combatState.concentrationPrompt && (
+                  <div className="px-3 pb-2 relative z-10">
+                    <ConcentrationButton
+                      hitDetermination={campaignCombat.combatState.concentrationPrompt.hitDetermination}
+                      attackerStats={myParticipant.character ? {
+                        stat_intelligence: myParticipant.character.stat_intelligence ?? 50,
+                        stat_strength: myParticipant.character.stat_strength ?? 50,
+                        stat_power: myParticipant.character.stat_power ?? 50,
+                        stat_speed: myParticipant.character.stat_speed ?? 50,
+                        stat_durability: myParticipant.character.stat_durability ?? 50,
+                        stat_stamina: myParticipant.character.stat_stamina ?? 50,
+                        stat_skill: myParticipant.character.stat_skill ?? 50,
+                        stat_luck: myParticipant.character.stat_luck ?? 50,
+                        stat_battle_iq: myParticipant.character.stat_battle_iq ?? 50,
+                      } as CharacterStats : undefined}
+                      defenderStats={myParticipant.character ? {
+                        stat_intelligence: myParticipant.character.stat_intelligence ?? 50,
+                        stat_strength: myParticipant.character.stat_strength ?? 50,
+                        stat_power: myParticipant.character.stat_power ?? 50,
+                        stat_speed: myParticipant.character.stat_speed ?? 50,
+                        stat_durability: myParticipant.character.stat_durability ?? 50,
+                        stat_stamina: myParticipant.character.stat_stamina ?? 50,
+                        stat_skill: myParticipant.character.stat_skill ?? 50,
+                        stat_luck: myParticipant.character.stat_luck ?? 50,
+                        stat_battle_iq: myParticipant.character.stat_battle_iq ?? 50,
+                      } as CharacterStats : undefined}
+                      usesRemaining={campaignCombat.combatState.concentrationUsesLeft}
+                      mode={campaignCombat.combatState.concentrationPrompt.mode === 'offense' ? 'offense' : 'defense'}
+                      onUseConcentration={(result) => {
+                        const updated = campaignCombat.applyDefensiveConcentration(result);
+                        handleConcentrationResult(updated as any);
+                      }}
+                      onUseOffensiveConcentration={(result) => {
+                        const updated = campaignCombat.applyOffensiveConcentration(result);
+                        handleConcentrationResult(updated as any);
+                      }}
+                      onSkip={handleConcentrationSkip}
+                      characterName={myParticipant.character?.name}
+                      opponentName="Enemy"
+                    />
+                  </div>
+                )}
+
                 {showNewMsgIndicator && (
                   <div className="flex justify-center py-1 relative z-10">
                     <button
