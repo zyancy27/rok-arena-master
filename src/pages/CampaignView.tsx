@@ -95,6 +95,7 @@ export default function CampaignView() {
   const [campaignEnemies, setCampaignEnemies] = useState<CampaignEnemy[]>([]);
   const [showStatAllocation, setShowStatAllocation] = useState(false);
   const userIsNearBottomRef = useRef(true);
+  const [showNewMsgIndicator, setShowNewMsgIndicator] = useState(false);
 
   // Ref to avoid stale closure in realtime callbacks
   const participantsRef = useRef<CampaignParticipant[]>([]);
