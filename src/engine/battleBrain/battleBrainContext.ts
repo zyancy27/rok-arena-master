@@ -164,13 +164,13 @@ export function buildUnifiedContext(
   // Build clamp result
   const battleState = subsystems.battleStateManager?.getState() ?? null;
   const actor = battleState?.players[input.characterId] ?? null;
-  const clampResult: ClampResult = hardClamp(
-    input.rawText,
-    actor?.stats ?? null,
-    actor?.tier ?? 3,
-    actor?.powers ?? null,
-    actor?.abilities ?? null,
-  );
+  const characterProfile: CharacterProfile = {
+    name: actor?.name ?? 'Unknown',
+    tier: actor?.tier ?? 3,
+    powers: actor?.powers ?? null,
+    abilities: actor?.abilities ?? null,
+  };
+  const clampResult: ClampResult = applyHardClamp(intent, characterProfile);
 
   const actionCtx: ActionContext = {
     input,
