@@ -151,3 +151,16 @@ export type {
   IdentityTrait, MoralTendency, EmotionalTendency, SpeechStyle,
   TraitEvidence, IdentityProfile, IdentitySignal, IdentityFeedback,
 } from './narrativeWorld';
+
+// ─── ComprehensiveBattleBrain (Unified Orchestration) ───────────
+export { ComprehensiveBattleBrain, createBattleBrain } from './battleBrain';
+export type {
+  BrainInput, BrainOutput, BattleBrainConfig,
+  ContextMode, ActionClassification,
+  StateMutation, UISignal, UISignalType, TraceEntry,
+  CharacterNarrativeProfile, UnifiedContext,
+} from './battleBrain';
+export { BattleBrainDispatcher, createBattleBrainDispatcher } from './battleBrain';
+export { evaluateBrainRules, getActiveSubsystems, detectContextMode } from './battleBrain';
+export { classifyActionType } from './battleBrain';
+export type { SubsystemStates, InvalidationEvent, InvalidationCategory } from './battleBrain';
