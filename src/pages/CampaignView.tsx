@@ -1799,28 +1799,34 @@ export default function CampaignView() {
                   <div className="px-3 pb-2 relative z-10">
                     <ConcentrationButton
                       hitDetermination={campaignCombat.combatState.concentrationPrompt.hitDetermination}
-                      attackerStats={myParticipant.character ? {
-                        stat_intelligence: myParticipant.character.stat_intelligence ?? 50,
-                        stat_strength: myParticipant.character.stat_strength ?? 50,
-                        stat_power: myParticipant.character.stat_power ?? 50,
-                        stat_speed: myParticipant.character.stat_speed ?? 50,
-                        stat_durability: myParticipant.character.stat_durability ?? 50,
-                        stat_stamina: myParticipant.character.stat_stamina ?? 50,
-                        stat_skill: myParticipant.character.stat_skill ?? 50,
-                        stat_luck: myParticipant.character.stat_luck ?? 50,
-                        stat_battle_iq: myParticipant.character.stat_battle_iq ?? 50,
-                      } as CharacterStats : undefined}
-                      defenderStats={myParticipant.character ? {
-                        stat_intelligence: myParticipant.character.stat_intelligence ?? 50,
-                        stat_strength: myParticipant.character.stat_strength ?? 50,
-                        stat_power: myParticipant.character.stat_power ?? 50,
-                        stat_speed: myParticipant.character.stat_speed ?? 50,
-                        stat_durability: myParticipant.character.stat_durability ?? 50,
-                        stat_stamina: myParticipant.character.stat_stamina ?? 50,
-                        stat_skill: myParticipant.character.stat_skill ?? 50,
-                        stat_luck: myParticipant.character.stat_luck ?? 50,
-                        stat_battle_iq: myParticipant.character.stat_battle_iq ?? 50,
-                      } as CharacterStats : undefined}
+                      attackerStats={(() => {
+                        const c = myParticipant.character as any;
+                        return c ? {
+                          stat_intelligence: c.stat_intelligence ?? 50,
+                          stat_strength: c.stat_strength ?? 50,
+                          stat_power: c.stat_power ?? 50,
+                          stat_speed: c.stat_speed ?? 50,
+                          stat_durability: c.stat_durability ?? 50,
+                          stat_stamina: c.stat_stamina ?? 50,
+                          stat_skill: c.stat_skill ?? 50,
+                          stat_luck: c.stat_luck ?? 50,
+                          stat_battle_iq: c.stat_battle_iq ?? 50,
+                        } as CharacterStats : undefined;
+                      })()}
+                      defenderStats={(() => {
+                        const c = myParticipant.character as any;
+                        return c ? {
+                          stat_intelligence: c.stat_intelligence ?? 50,
+                          stat_strength: c.stat_strength ?? 50,
+                          stat_power: c.stat_power ?? 50,
+                          stat_speed: c.stat_speed ?? 50,
+                          stat_durability: c.stat_durability ?? 50,
+                          stat_stamina: c.stat_stamina ?? 50,
+                          stat_skill: c.stat_skill ?? 50,
+                          stat_luck: c.stat_luck ?? 50,
+                          stat_battle_iq: c.stat_battle_iq ?? 50,
+                        } as CharacterStats : undefined;
+                      })()}
                       usesRemaining={campaignCombat.combatState.concentrationUsesLeft}
                       mode={campaignCombat.combatState.concentrationPrompt.mode === 'offense' ? 'offense' : 'defense'}
                       onUseConcentration={(result) => {
