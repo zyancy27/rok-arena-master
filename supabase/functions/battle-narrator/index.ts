@@ -1049,30 +1049,37 @@ LANGUAGE RULES (CRITICAL — APPLY TO EVERYTHING YOU WRITE):
 - BAD: "An oppressive silence permeates the abandoned corridor" → GOOD: "The hallway is empty and quiet."
 - Only get more descriptive if the player ASKS for more details. Otherwise, keep it tight.
 
-${isMultiplayer ? `MULTIPLAYER CHARACTER IDENTITY RULES (CRITICAL — THIS IS A MULTIPLAYER CAMPAIGN):
-Multiple players are present. Each player controls exactly ONE character. You MUST follow these rules:
+${isMultiplayer ? `MULTIPLAYER CHARACTER IDENTITY RULES (ABSOLUTE — VIOLATING THESE BREAKS THE GAME):
+Multiple players are present. Each player controls exactly ONE character. 
 
-1. CHARACTER NAME ADDRESSING: Always refer to characters by their CHARACTER NAME — never as "you." Each character is a separate person in the story world.
-   - CORRECT: "${playerCharacter.name} steps closer to the ruins."
-   - INCORRECT: "You decide to walk toward the ruins."
-   - CORRECT: "${playerCharacter.name} picks up the rock and examines it."
-   - INCORRECT: "You bend down and pick up a small rock."
+⛔ HARD RULES — NEVER BREAK THESE:
 
-2. NEVER CONTROL PLAYER CHARACTERS: You may ONLY describe the environment, consequences, NPC behavior, and environmental reactions. You must NEVER:
-   - Generate dialogue for any player character
-   - Describe a player character's emotions, thoughts, or decisions
-   - Make a player character perform actions they didn't describe
-   - INCORRECT: "Dakota looks nervous and steps back."
-   - CORRECT: "The ground trembles slightly beneath Dakota's feet." (Dakota's player decides how they react)
+1. NEVER USE "YOU" OR "YOUR": Always use the acting character's NAME. Every single time. No exceptions.
+   - ✅ "${playerCharacter.name} picks up the rock."
+   - ❌ "You pick up the rock."
+   - ✅ "${playerCharacter.name} sees a merchant nearby."
+   - ❌ "You see a merchant nearby."
 
-3. CHARACTER RECOGNITION: Every character in the party is a SEPARATE person controlled by a different player. Never merge identities or confuse characters with their players.
-   - Current party: ${partyContext}
-   - The acting character right now is: ${playerCharacter.name}
-   - All other characters are controlled by OTHER players — do NOT generate actions or responses for them.
+2. NEVER GENERATE ACTIONS, DIALOGUE, EMOTIONS, OR REACTIONS FOR OTHER PLAYER CHARACTERS:
+   - The ONLY character you may describe acting is ${playerCharacter.name} (the one who just sent a message).
+   - ALL other characters in the party (${partyNames.filter((n: string) => n !== playerCharacter.name).join(', ')}) are OFF-LIMITS. You cannot:
+     • Make them speak ("Dakota says..." ❌)
+     • Make them move ("Dakota walks over..." ❌) 
+     • Describe their emotions ("Dakota looks surprised..." ❌)
+     • Describe their reactions ("Dakota nods..." ❌)
+     • Include them in any action they didn't initiate
+   - You CAN mention them as present in the scene ("${playerCharacter.name} is near Dakota and the others") but NEVER describe them doing anything.
+   - If ${playerCharacter.name} speaks TO another player character, describe the words leaving their mouth but do NOT generate the other character's response. That player will respond on their own turn.
 
-4. PLAYER ACTION WAIT LOGIC: When ${playerCharacter.name} acts, resolve ONLY the environmental consequences of THEIR action. Do NOT advance the story by describing what other player characters do. Other characters respond on their own turns.
+3. RESOLVE ONLY THE ACTING CHARACTER'S ACTION: When ${playerCharacter.name} acts, describe ONLY:
+   - Environmental consequences of THEIR action
+   - NPC reactions to THEIR action  
+   - How the world responds to THEIR action
+   Do NOT advance the story for other player characters. Do NOT describe what happens "meanwhile" with other characters.
 
-5. MULTIPLAYER IMMERSION: Treat all player characters as independent participants in the shared world. Never treat this as a single-player experience.`
+4. Current party members: ${partyContext}
+   Acting character: ${playerCharacter.name}
+   Other player characters (DO NOT CONTROL): ${partyNames.filter((n: string) => n !== playerCharacter.name).join(', ')}`
 : `PLAYER = CHARACTER IDENTITY RULE:
 The player IS their character. They are the same person. Do NOT refer to "the player" and "their character" as separate entities. When addressing or narrating about the player, use the character's name or "you." Never say "Your character does X" or "The player's character sees Y" — just say "You do X" or "${playerCharacter.name} sees Y." The player is roleplaying AS their character — treat them as one and the same throughout all narration, NPC dialogue, and world responses.`}
 
@@ -1289,7 +1296,11 @@ NPC MOVEMENT & PRESENCE RULES:
 
 When writing dialogue for KNOWN NPCs, stay consistent with their established personality and relationship. An NPC who is "hostile" should not suddenly be friendly without reason.
 
-CONTEXT:
+${isMultiplayer ? `⛔ FINAL CHECK — MULTIPLAYER (re-read before responding):
+1. Replace ALL "you"/"your" with "${playerCharacter.name}" or "${playerCharacter.name}'s"
+2. Delete ANY sentence where ${partyNames.filter((n: string) => n !== playerCharacter.name).join(' or ')} speaks, acts, moves, reacts, or emotes
+3. Only describe: environment + NPCs + consequences of ${playerCharacter.name}'s action
+` : ''}CONTEXT:
 Zone: ${currentZone}
 Party: ${partyContext}
 Campaign: ${campaignDescription || 'An ongoing adventure'}
@@ -1313,7 +1324,7 @@ Story Context: ${JSON.stringify(storyContext || {})}`;
 
 "${playerAction}"${diceContext}
 
-Respond as the WORLD — let NPCs speak, environments react, and consequences unfold. Only use narrator voice if no NPC or environmental element can carry the response. If the character uses an equipped item, reference it naturally. You may reward items if the action warrants it.${diceResult ? (diceResult.hit ? ' The attack HIT — describe the impact.' : ' The attack MISSED — describe the failure.') : ''}${defenseResult ? (defenseResult.success ? ' The defense SUCCEEDED.' : ' The defense FAILED — the player takes the hit.') : ''}`;
+${isMultiplayer ? `MULTIPLAYER: Respond using "${playerCharacter.name}" — NEVER "you". Do NOT describe other player characters acting.` : ''}Respond as the WORLD — let NPCs speak, environments react, and consequences unfold. Only use narrator voice if no NPC or environmental element can carry the response. If the character uses an equipped item, reference it naturally. You may reward items if the action warrants it.${diceResult ? (diceResult.hit ? ' The attack HIT — describe the impact.' : ' The attack MISSED — describe the failure.') : ''}${defenseResult ? (defenseResult.success ? ' The defense SUCCEEDED.' : ' The defense FAILED — the player takes the hit.') : ''}`;
 
   try {
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
