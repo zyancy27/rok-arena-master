@@ -177,14 +177,6 @@ export default function CampaignView() {
     };
   }, [user, campaignId]);
 
-  // Polling fallback: refetch messages every 15s to catch any missed realtime events
-  useEffect(() => {
-    if (!campaignId || !user) return;
-    const interval = setInterval(() => {
-      fetchMessages();
-    }, 15000);
-    return () => clearInterval(interval);
-  }, [campaignId, user]);
 
   // Smart auto-scroll: only scroll if user is near the bottom
   useEffect(() => {
