@@ -164,11 +164,14 @@ export function buildUnifiedContext(
   // Build clamp result
   const battleState = subsystems.battleStateManager?.getState() ?? null;
   const actor = battleState?.players[input.characterId] ?? null;
+  const defaultStats = { intelligence: 50, strength: 50, power: 50, speed: 50, durability: 50, stamina: 50, skill: 50, luck: 50, battleIQ: 50 };
   const characterProfile: CharacterProfile = {
     name: actor?.name ?? 'Unknown',
     tier: actor?.tier ?? 3,
+    stats: actor?.stats ?? defaultStats as any,
     powers: actor?.powers ?? null,
     abilities: actor?.abilities ?? null,
+    consecutiveHighForceTurns: actor?.consecutiveHighForceTurns ?? 0,
   };
   const clampResult: ClampResult = applyHardClamp(intent, characterProfile);
 
