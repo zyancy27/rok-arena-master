@@ -930,30 +930,11 @@ export default function CampaignView() {
           channel: 'in_universe',
         });
 
-        // Handle XP / HP changes from narrator response
+        // Accumulate all XP from this turn and apply level-ups immediately
+        let totalXpGained = 0;
         if (data.xpGained) {
           triggerDiscovery('campaign_xp');
-          const newXp = snapshotParticipant.campaign_xp + data.xpGained;
-          const xpNeeded = CAMPAIGN_STARTING_ABILITIES.xpForLevel(snapshotParticipant.campaign_level + 1);
-          const levelUp = newXp >= xpNeeded;
-
-          await supabase.from('campaign_participants')
-            .update({
-              campaign_xp: levelUp ? newXp - xpNeeded : newXp,
-              campaign_level: levelUp ? snapshotParticipant.campaign_level + 1 : snapshotParticipant.campaign_level,
-              available_stat_points: levelUp ? snapshotParticipant.available_stat_points + 3 : snapshotParticipant.available_stat_points,
-            })
-            .eq('id', snapshotParticipant.id);
-
-          if (levelUp) {
-            triggerDiscovery('campaign_level_up');
-            await supabase.from('campaign_messages').insert({
-              campaign_id: snapshotCampaign.id,
-              sender_type: 'system',
-              content: `🎉 **${snapshotParticipant.character?.name}** leveled up to Campaign Level ${snapshotParticipant.campaign_level + 1}!`,
-              channel: 'in_universe',
-            });
-          }
+          totalXpGained += data.xpGained;
         }
 
         if (data.hpChange && data.hpChange !== 0) {
@@ -1130,7 +1111,7 @@ export default function CampaignView() {
             // Grant XP for defeating enemies
             if (newStatus === 'defeated' && enemy.status !== 'defeated') {
               const defeatXp = Math.min(50, enemy.tier * 10 + 5);
-              const currentXp = snapshotParticipant.campaign_xp + (data.xpGained || 0);
+              totalXpGained += defeatXp;
               await supabase.from('campaign_messages').insert({
                 campaign_id: snapshotCampaign.id,
                 sender_type: 'system',
@@ -1160,7 +1141,42 @@ export default function CampaignView() {
           fetchEnemies();
         }
 
-        // Show the bag whenever the player interacted with inventory:
+        // ─── Unified level-up check (handles XP from narrator + enemy defeats, supports multi-level) ───
+        if (totalXpGained > 0) {
+          let currentXp = snapshotParticipant.campaign_xp + totalXpGained;
+          let currentLevel = snapshotParticipant.campaign_level;
+          let earnedStatPoints = 0;
+          let levelsGained = 0;
+
+          // Loop to handle multi-level jumps from large XP gains
+          let xpNeeded = CAMPAIGN_STARTING_ABILITIES.xpForLevel(currentLevel + 1);
+          while (currentXp >= xpNeeded) {
+            currentXp -= xpNeeded;
+            currentLevel += 1;
+            earnedStatPoints += 3;
+            levelsGained += 1;
+            xpNeeded = CAMPAIGN_STARTING_ABILITIES.xpForLevel(currentLevel + 1);
+          }
+
+          await supabase.from('campaign_participants')
+            .update({
+              campaign_xp: currentXp,
+              campaign_level: currentLevel,
+              available_stat_points: snapshotParticipant.available_stat_points + earnedStatPoints,
+            })
+            .eq('id', snapshotParticipant.id);
+
+          if (levelsGained > 0) {
+            triggerDiscovery('campaign_level_up');
+            await supabase.from('campaign_messages').insert({
+              campaign_id: snapshotCampaign.id,
+              sender_type: 'system',
+              content: `🎉 **${snapshotParticipant.character?.name}** leveled up to Campaign Level ${currentLevel}! (+${earnedStatPoints} stat points to allocate)`,
+              channel: 'in_universe',
+            });
+          }
+        }
+
         // explicit check, items found, items used, or equip/use intent in their message
         const inventoryInteracted =
           isInventoryCheck ||
