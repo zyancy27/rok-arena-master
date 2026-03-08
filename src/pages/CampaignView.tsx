@@ -18,7 +18,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Compass, Heart, LogOut, MapPin, Play, Send,
   Shield, Swords, Users, Zap, Clock, Sun, Moon, Backpack,
-  Volume2, VolumeX, RefreshCw, BookOpen, Sparkles, Dices, Trash2, UserCheck,
+  Volume2, VolumeX, RefreshCw, BookOpen, Sparkles, Dices, Trash2, UserCheck, FastForward,
 } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -1159,7 +1159,8 @@ export default function CampaignView() {
             sender_type: 'system',
             content: `__BAG__${JSON.stringify(bagContent)}`,
             channel: 'in_universe',
-          });
+            metadata: { owner_user_id: user!.id },
+          } as any);
         }
       }
 
@@ -1257,6 +1258,94 @@ export default function CampaignView() {
       console.error('Campaign message error:', err);
       toast.error('Failed to send message');
       setSending(false);
+    }
+  };
+
+  const handleAdvanceCampaign = async () => {
+    if (!myParticipant || !campaign || narratorTyping) return;
+    setNarratorTyping(true);
+    try {
+      const activeParty = participants.filter(p => p.is_active);
+      const partyCtx = activeParty.map(p =>
+        `${p.character?.name} (Campaign Lv.${p.campaign_level}, HP: ${p.campaign_hp}/${p.campaign_hp_max})`
+      ).join(', ');
+
+      const { data: recentMsgs } = await supabase
+        .from('campaign_messages')
+        .select('sender_type, content, character_id')
+        .eq('campaign_id', campaign.id)
+        .eq('channel', 'in_universe')
+        .order('created_at', { ascending: false })
+        .limit(20);
+      const history = (recentMsgs || []).reverse().map((m: any) => ({
+        role: m.sender_type === 'player' ? 'player' : 'world',
+        content: m.content,
+      }));
+
+      const { data, error } = await supabase.functions.invoke('battle-narrator', {
+        body: {
+          type: 'campaign_narration',
+          campaignId: campaign.id,
+          playerAction: `[ADVANCE STORY] The party is idle. Move the campaign forward organically — introduce a new event, encounter, discovery, environmental change, NPC interaction, or plot development that fits the current situation and keeps things interesting. Do NOT wait for player input; make something happen in the world around them.`,
+          currentZone: campaign.current_zone,
+          timeOfDay: campaign.time_of_day,
+          dayCount: campaign.day_count,
+          worldState: campaign.world_state,
+          storyContext: campaign.story_context,
+          campaignDescription: campaign.description,
+          environmentTags: campaign.environment_tags,
+          conversationHistory: history,
+          partyContext: partyCtx,
+          playerCharacter: { name: myParticipant.character?.name },
+          isMultiplayer: !isSoloCampaign,
+          partyNames: allPartyNames,
+        },
+      });
+
+      if (!error && data?.narration) {
+        await supabase.from('campaign_messages').insert({
+          campaign_id: campaign.id,
+          sender_type: 'narrator',
+          content: data.narration,
+          channel: 'in_universe',
+        });
+
+        if (data.advanceTime) {
+          const { time: newTime, newDay } = advanceTime(campaign.time_of_day, data.advanceTime);
+          await supabase.from('campaigns').update({
+            time_of_day: newTime,
+            day_count: newDay ? campaign.day_count + 1 : campaign.day_count,
+          }).eq('id', campaign.id);
+        }
+        if (data.newZone) {
+          await supabase.from('campaigns').update({ current_zone: data.newZone }).eq('id', campaign.id);
+        }
+        if (data.enemySpawned) {
+          await supabase.from('campaign_enemies' as any).insert({
+            campaign_id: campaign.id,
+            name: data.enemySpawned.name,
+            tier: data.enemySpawned.tier || 1,
+            hp: data.enemySpawned.hp || 50,
+            hp_max: data.enemySpawned.hp || 50,
+            description: data.enemySpawned.description || null,
+            abilities: data.enemySpawned.abilities || null,
+            weakness: data.enemySpawned.weakness || null,
+            count: data.enemySpawned.count || 1,
+            status: 'active',
+            behavior_profile: data.enemySpawned.behaviorProfile || 'aggressive',
+            spawned_at_zone: campaign.current_zone,
+            spawned_at_day: campaign.day_count,
+          });
+          fetchEnemies();
+        }
+      }
+      fetchCampaign();
+      fetchMessages();
+    } catch (err) {
+      console.error('Advance campaign error:', err);
+      toast.error('Failed to advance the campaign');
+    } finally {
+      setNarratorTyping(false);
     }
   };
 
@@ -1406,8 +1495,11 @@ export default function CampaignView() {
                       const isMe = isPlayer && msg.character_id === myParticipant?.character_id;
 
                       if (isSystem) {
-                        // Bag bubble for inventory checks
+                        // Bag bubble for inventory checks — only visible to the owning player
                         if (msg.content.startsWith('__BAG__')) {
+                          const bagOwnerId = (msg.metadata as any)?.owner_user_id;
+                          if (bagOwnerId && bagOwnerId !== user?.id) return null;
+
                           let bagItems: { name: string; type: string; rarity: string; equipped: boolean }[] = [];
                           try { bagItems = JSON.parse(msg.content.slice(7)); } catch {}
 
@@ -1608,6 +1700,25 @@ export default function CampaignView() {
                       <Button type="submit" disabled={sending || !inputMessage.trim()} size="sm" className="gap-1.5">
                         <Send className="w-4 h-4" />
                       </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={narratorTyping || sending}
+                              onClick={handleAdvanceCampaign}
+                              className="gap-1.5 shrink-0"
+                            >
+                              <FastForward className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            <p>Move the story forward</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </form>
                   </div>
                 )}
