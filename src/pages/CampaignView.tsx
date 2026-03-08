@@ -176,13 +176,21 @@ export default function CampaignView() {
     };
   }, [user, campaignId]);
 
+  // Smart auto-scroll: only scroll if user is near the bottom
   useEffect(() => {
-    // Small delay to ensure DOM has updated before scrolling
+    if (!userIsNearBottomRef.current) return;
     const timer = setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, 50);
     return () => clearTimeout(timer);
   }, [messages, narratorTyping]);
+
+  // Show stat allocation when points are available after level-up
+  useEffect(() => {
+    if (myParticipant && myParticipant.available_stat_points > 0) {
+      setShowStatAllocation(true);
+    }
+  }, [myParticipant?.available_stat_points]);
 
   const setupRealtime = () => {
     supabase
