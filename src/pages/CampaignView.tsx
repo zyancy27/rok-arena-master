@@ -47,6 +47,9 @@ import BagBubble from '@/components/campaigns/BagBubble';
 import CampaignEnemyTracker, { type CampaignEnemy } from '@/components/campaigns/CampaignEnemyTracker';
 import CampaignStatAllocation from '@/components/campaigns/CampaignStatAllocation';
 import { useCampaignTrades } from '@/hooks/use-campaign-trades';
+import ConcentrationButton from '@/components/battles/ConcentrationButton';
+import { useConcentration, useOffensiveConcentration, type ConcentrationResult, type OffensiveConcentrationResult } from '@/lib/battle-dice';
+import { buildCampaignStats } from '@/hooks/use-campaign-combat';
 // Helper: build bag content for the inline backpack bubble
 function buildBagContent(campaignItems: InventoryItem[], characterWeapons: string | null) {
   const items: { name: string; type: string; rarity: string; equipped: boolean }[] = [];
