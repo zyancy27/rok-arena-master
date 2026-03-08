@@ -1497,7 +1497,39 @@ export default function CampaignView() {
                 {/* Battlefield Effects Overlay */}
                 <BattlefieldEffectsOverlay effects={battlefieldEffects} className="z-[1]" />
 
-                <ScrollArea className="flex-1 p-4 relative z-10" style={{ minHeight: 0 }}>
+                {/* Enemy Tracker — above chat for visibility */}
+                {campaignEnemies.length > 0 && (
+                  <div className="px-3 pt-3 pb-1 relative z-10">
+                    <CampaignEnemyTracker enemies={campaignEnemies} />
+                  </div>
+                )}
+
+                {/* Stat Allocation Panel — shown on level up */}
+                {showStatAllocation && myParticipant && myParticipant.available_stat_points > 0 && (
+                  <div className="px-3 pt-2 relative z-10">
+                    <CampaignStatAllocation
+                      participantId={myParticipant.id}
+                      characterName={myParticipant.character?.name || 'Character'}
+                      campaignLevel={myParticipant.campaign_level}
+                      availablePoints={myParticipant.available_stat_points}
+                      currentOverrides={myParticipant.stat_overrides}
+                      onComplete={() => { setShowStatAllocation(false); fetchParticipants(); }}
+                      onClose={() => setShowStatAllocation(false)}
+                    />
+                  </div>
+                )}
+
+                <ScrollArea
+                  className="flex-1 p-4 relative z-10"
+                  style={{ minHeight: 0 }}
+                  onScrollCapture={(e) => {
+                    const el = e.currentTarget.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+                    if (el) {
+                      const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+                      userIsNearBottomRef.current = distFromBottom < 120;
+                    }
+                  }}
+                >
                   <div className="space-y-4">
                     {messages.map(msg => {
                       const isPlayer = msg.sender_type === 'player';
