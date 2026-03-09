@@ -1446,6 +1446,11 @@ export default function CampaignView() {
           channel: 'in_universe',
         });
 
+        // Update tactical map from narrator scene data
+        if (data.sceneMap && typeof data.sceneMap === 'object' && Array.isArray(data.sceneMap.zones)) {
+          setSceneMap(data.sceneMap as NarratorSceneMap);
+        }
+
         if (data.advanceTime) {
           const { time: newTime, newDay } = advanceTime(campaign.time_of_day, data.advanceTime);
           await supabase.from('campaigns').update({
