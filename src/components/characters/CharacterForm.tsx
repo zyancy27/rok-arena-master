@@ -193,12 +193,19 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
   // Section open states — essentials always visible, rest collapsed on create
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     identity: mode === 'edit',
+    lore: false,
     powers: mode === 'edit',
     personality: mode === 'edit',
     stats: false,
+  });
+
+  // Sub-sections inside Lore
+  const [openLoreSubs, setOpenLoreSubs] = useState<Record<string, boolean>>({
+    background: false,
     appearance: false,
     timeline: false,
   });
+  const toggleLoreSub = (key: string) => setOpenLoreSubs(prev => ({ ...prev, [key]: !prev[key] }));
 
   const toggleSection = (key: string) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
 
