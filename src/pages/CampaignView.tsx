@@ -1197,6 +1197,21 @@ export default function CampaignView() {
           }
         }
 
+        // Feed narrator response back into narrative subsystems
+        campaignNarrative.ingestNarratorResponse(
+          data.narration,
+          data.encounterType || null,
+          snapshotCampaign.current_zone,
+          snapshotCampaign.day_count,
+          snapshotCampaign.time_of_day,
+          snapshotCampaign.description || '',
+          snapshotCampaign.story_context as Record<string, unknown> || {},
+          snapshotCampaign.world_state as Record<string, unknown> || {},
+          (knownNpcs || []).length,
+          activeEnemiesList.length,
+          messageText,
+        );
+
         // explicit check, items found, items used, or equip/use intent in their message
         const inventoryInteracted =
           isInventoryCheck ||
