@@ -167,12 +167,37 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
   const [useCustomRace, setUseCustomRace] = useState(false);
   const [useCustomSubRace, setUseCustomSubRace] = useState(false);
 
+  const [appearance, setAppearance] = useState<AppearanceData>(() => {
+    if (initialData) {
+      const d = initialData as any;
+      return {
+        appearance_height: d.appearance_height || '',
+        appearance_build: d.appearance_build || '',
+        appearance_hair: d.appearance_hair || '',
+        appearance_eyes: d.appearance_eyes || '',
+        appearance_distinct_features: d.appearance_distinct_features || '',
+        appearance_clothing_style: d.appearance_clothing_style || '',
+        appearance_aura: d.appearance_aura || '',
+        appearance_description: d.appearance_description || '',
+        appearance_posture: d.appearance_posture || '',
+        appearance_voice: d.appearance_voice || '',
+        appearance_movement_style: d.appearance_movement_style || '',
+        appearance_typical_expression: d.appearance_typical_expression || '',
+      };
+    }
+    return { ...DEFAULT_APPEARANCE };
+  });
+
+  const [timelineEventsLocal, setTimelineEventsLocal] = useState<any[]>([]);
+
   // Section open states — essentials always visible, rest collapsed on create
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     identity: mode === 'edit',
     powers: mode === 'edit',
     personality: mode === 'edit',
     stats: false,
+    appearance: false,
+    timeline: false,
   });
 
   const toggleSection = (key: string) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));

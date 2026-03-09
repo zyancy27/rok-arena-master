@@ -337,3 +337,16 @@ export type {
   NpcWorldState,
   WorldContinuityState,
 } from './narratorWorldContinuity';
+
+// ── System 23 — Timeline Integration ────────────────────────────
+export {
+  analyzeCharacterTimeline,
+  analyzePartyTimelines,
+  buildTimelineNarratorPrompt,
+  buildPartyTimelineNarratorPrompt,
+} from './timelineIntegration';
+export type {
+  TimelineEvent as NarrativeTimelineEvent,
+  TimelineAnalysis,
+  PartyTimelineAnalysis,
+} from './timelineIntegration';
