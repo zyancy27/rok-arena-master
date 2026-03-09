@@ -264,3 +264,76 @@ export type {
   IdentitySignal,
   IdentityFeedback,
 } from './characterIdentityEngine';
+
+// ── System 18 — Narrator Principles Engine ──────────────────────
+export {
+  createCampaignNarrativeModel,
+  createNarratorPrinciplesState,
+  classifyScene,
+  determinePacing,
+  addStoryHook,
+  resolveHook,
+  getActiveHooks,
+  getWorldAlivenessDetails,
+  buildPrincipleInstructions,
+  buildNarratorGuidance,
+  updatePrinciplesState,
+  buildNarratorPrinciplesPromptBlock,
+} from './narratorPrinciplesEngine';
+export type {
+  SceneType,
+  PacingNeed,
+  StoryHook,
+  CampaignNarrativeModel,
+  NarratorPrinciplesState,
+  CharacterNarrativeProfile,
+  NarratorGuidance,
+} from './narratorPrinciplesEngine';
+
+// ── System 19 — Narrator Campaign Planner ───────────────────────
+export {
+  detectThreadsFromAction,
+  generateContextualHooks,
+  calculateStoryPressure,
+  buildCampaignPlannerContext,
+  updateModelFromResponse,
+} from './narratorCampaignPlanner';
+export type { CampaignPlannerInput } from './narratorCampaignPlanner';
+
+// ── System 20 — Narrator Scene Director ─────────────────────────
+export {
+  directScene,
+  buildSceneDirectorPromptBlock,
+} from './narratorSceneDirector';
+export type {
+  NarratorBehavior,
+  SceneDirective,
+} from './narratorSceneDirector';
+
+// ── System 21 — Narrator Guidance Logic ─────────────────────────
+export {
+  assembleNarrativeContext,
+  getActiveSystemPriorities,
+} from './narratorGuidanceLogic';
+export type {
+  NarrativeSystemInputs,
+  NarrativeSystemConditions,
+  AssembledNarrativeContext,
+} from './narratorGuidanceLogic';
+
+// ── System 22 — Narrator World Continuity ───────────────────────
+export {
+  createWorldContinuity,
+  recordWorldFact,
+  supersedeFact,
+  updateNpcWorldState,
+  recordZoneChange,
+  addOffScreenEvent,
+  consumeOffScreenEvents,
+  buildContinuityContext,
+} from './narratorWorldContinuity';
+export type {
+  WorldFact,
+  NpcWorldState,
+  WorldContinuityState,
+} from './narratorWorldContinuity';
