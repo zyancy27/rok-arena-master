@@ -37,10 +37,10 @@ export default function MyBook() {
     if (!user) return;
     (async () => {
       const [charsRes, racesRes, groupsRes, storiesRes, systemsRes, campaignsRes] = await Promise.all([
-        supabase.from('characters').select('id, name, level, race, home_planet, image_url').eq('user_id', user.id).order('updated_at', { ascending: false }),
-        supabase.from('races').select('id, name, description, home_planet').eq('user_id', user.id).order('name'),
+        fromDecrypted('characters').select('id, name, level, race, home_planet, image_url').eq('user_id', user.id).order('updated_at', { ascending: false }),
+        fromDecrypted('races').select('id, name, description, home_planet').eq('user_id', user.id).order('name'),
         supabase.from('character_groups').select('id, name, description, color').eq('user_id', user.id).order('name'),
-        supabase.from('stories').select('id, title, summary, character_id, updated_at').eq('user_id', user.id).order('updated_at', { ascending: false }).limit(20),
+        fromDecrypted('stories').select('id, title, summary, character_id, updated_at').eq('user_id', user.id).order('updated_at', { ascending: false }).limit(20),
         supabase.from('solar_systems').select('id, name').eq('user_id', user.id),
         supabase.from('campaign_participants').select('campaign_id, campaigns(id, name, status, description)').eq('user_id', user.id),
       ]);
