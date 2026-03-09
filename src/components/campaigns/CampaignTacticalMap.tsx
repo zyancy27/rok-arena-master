@@ -367,7 +367,7 @@ export default function CampaignTacticalMap({ sceneMap, onClose }: CampaignTacti
             </div>
           }>
             <TacticalMap3D
-              data={tacticalMapData}
+              data={tacticalMapData as any}
               selectedEntityId={selectedEntityId}
               onEntityTap={id => setSelectedEntityId(id === selectedEntityId ? null : id)}
             />
