@@ -696,6 +696,7 @@ async function handlePrivateQuery(
     pendingMove,
     pendingWarning,
     conversationHistory,
+    narrativeSystemsContext,
   } = body;
 
   if (!query || typeof query !== 'string') {
