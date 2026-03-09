@@ -78,11 +78,18 @@ export async function syncStoryToTimeline(
  * Remove timeline events that were synced from a deleted story.
  */
 export async function removeStoryTimelineEvents(storyId: string) {
-  await supabase
+  const { data: allEvents } = await supabase
     .from('character_timeline_events')
-    .delete()
-    .eq('origin_type' as any, 'story')
-    .eq('origin_id' as any, storyId);
+    .select('id, origin_type, origin_id')
+    .eq('origin_type' as any, 'story');
+  
+  const toDelete = (allEvents || []).filter(
+    (e: any) => e.origin_id === storyId
+  );
+  
+  for (const ev of toDelete) {
+    await supabase.from('character_timeline_events').delete().eq('id', ev.id);
+  }
 }
 
 /**
