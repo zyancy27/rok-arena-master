@@ -18,12 +18,10 @@ import {
   type IdentitySignal,
   // Gravity
   createStoryGravity,
-  ingestFromSignature,
   ingestFromDialogue as gravityIngestFromDialogue,
   type StoryGravityState,
   // Echo
   createEchoMemory,
-  recordEcho,
   type EchoMemoryState,
   // Reflection
   createReflectionState,
@@ -35,11 +33,11 @@ import {
   createConscienceState,
   type ConscienceState,
   // Principles
-  createCampaignNarrativeModel,
   createNarratorPrinciplesState,
   classifyScene,
   determinePacing,
   updatePrinciplesState,
+  buildNarratorGuidance,
   buildNarratorPrinciplesPromptBlock,
   type NarratorPrinciplesState,
   type SceneType,
@@ -52,6 +50,7 @@ import {
   // Campaign Planner
   buildCampaignPlannerContext,
   updateModelFromResponse,
+  type CampaignPlannerInput,
 } from '@/engine/narrativeWorld';
 
 export interface NarrativeStateRef {
@@ -80,10 +79,6 @@ export function useCampaignNarrative(opts: UseCampaignNarrativeOptions | null) {
   const getState = useCallback((): NarrativeStateRef | null => {
     if (!opts) return null;
     if (!stateRef.current || stateRef.current.identity.characterId !== opts.characterId) {
-      const model = createCampaignNarrativeModel(
-        opts.campaignId,
-        opts.campaignDescription || 'An adventure awaits.',
-      );
       stateRef.current = {
         identity: createIdentityProfile(opts.characterId),
         gravity: createStoryGravity(opts.characterId),
@@ -91,7 +86,7 @@ export function useCampaignNarrative(opts: UseCampaignNarrativeOptions | null) {
         reflection: createReflectionState(),
         pressure: createPressureEngineState(),
         conscience: createConscienceState(),
-        principles: createNarratorPrinciplesState(model),
+        principles: createNarratorPrinciplesState(opts.campaignId, opts.campaignDescription || undefined),
         turnNumber: 0,
         inCombat: false,
       };
@@ -105,34 +100,33 @@ export function useCampaignNarrative(opts: UseCampaignNarrativeOptions | null) {
    */
   const buildNarrativeBlock = useCallback((
     playerAction: string,
-    encounterType: string | null,
+    hasActiveEnemies: boolean,
     currentZone: string,
   ): string => {
     const state = getState();
     if (!state || !opts) return '';
 
     state.turnNumber += 1;
-    state.inCombat = encounterType === 'combat';
+    state.inCombat = hasActiveEnemies;
 
     // 1. Ingest signal into Identity Engine
     const signal: IdentitySignal = {
-      action: playerAction,
-      context: currentZone,
-      timestamp: Date.now(),
+      source: state.inCombat ? 'combat' : 'dialogue',
+      content: playerAction,
+      turnNumber: state.turnNumber,
     };
     ingestIdentitySignal(state.identity, signal);
 
     // 2. Feed gravity from dialogue
-    gravityIngestFromDialogue(state.gravity, playerAction);
+    state.gravity = gravityIngestFromDialogue(state.gravity, playerAction, state.turnNumber);
 
     // 3. Classify scene & determine pacing
-    const sceneType: SceneType = state.inCombat
-      ? 'combat'
-      : classifyScene(playerAction, encounterType || 'exploration');
-    const pacing = determinePacing(state.principles, sceneType);
+    const recentScenes = state.principles.campaignModel.recentSceneTypes;
+    const sceneType: SceneType = classifyScene(playerAction, hasActiveEnemies, recentScenes);
+    const pacing = determinePacing(recentScenes, state.principles.campaignModel.storyPressure, hasActiveEnemies);
 
     // 4. Update principles state
-    updatePrinciplesState(state.principles, sceneType);
+    state.principles = updatePrinciplesState(state.principles, sceneType, pacing);
 
     // 5. Assemble narrative subsystem contexts
     const assembled: AssembledNarrativeContext = assembleNarrativeContext(
@@ -158,16 +152,26 @@ export function useCampaignNarrative(opts: UseCampaignNarrativeOptions | null) {
     );
 
     // 6. Build scene director note
-    const directive = directScene(sceneType, pacing, {
-      hasActiveHooks: state.principles.campaignModel.activeHooks.filter(h => h.active).length > 0,
-      hasNearbyNpcs: true,
-      recentCombatTurns: state.inCombat ? 1 : 0,
-      unresolvedConsequences: state.principles.campaignModel.unresolvedThreads.length,
-    });
+    const activeHooks = state.principles.campaignModel.activeHooks.filter(h => h.active);
+    const directive = directScene(sceneType, pacing, activeHooks.length > 0, true);
     const directorBlock = buildSceneDirectorPromptBlock(directive);
 
-    // 7. Build principles prompt
-    const principlesBlock = buildNarratorPrinciplesPromptBlock(state.principles, sceneType);
+    // 7. Build guidance via the full buildNarratorGuidance flow
+    const guidance = buildNarratorGuidance(
+      state.principles,
+      playerAction,
+      hasActiveEnemies,
+      opts.characterId,
+      {
+        identity: assembled.identity,
+        gravity: assembled.gravity,
+        pressure: assembled.pressure,
+        echo: assembled.echo,
+        reflection: assembled.reflection,
+        conscience: assembled.conscience,
+      },
+    );
+    const principlesBlock = buildNarratorPrinciplesPromptBlock(guidance);
 
     // 8. Build campaign planner context
     const plannerBlock = buildCampaignPlannerContext(state.principles.campaignModel);
@@ -180,7 +184,7 @@ export function useCampaignNarrative(opts: UseCampaignNarrativeOptions | null) {
       plannerBlock,
     ].filter(Boolean);
 
-    return blocks.join('\n');
+    return blocks.length > 0 ? `\n${blocks.join('\n')}` : '';
   }, [getState, opts]);
 
   /**
@@ -190,15 +194,41 @@ export function useCampaignNarrative(opts: UseCampaignNarrativeOptions | null) {
   const ingestNarratorResponse = useCallback((
     narration: string,
     encounterType: string | null,
+    currentZone: string,
+    dayCount: number,
+    timeOfDay: string,
+    campaignDescription: string,
+    storyContext: Record<string, unknown>,
+    worldState: Record<string, unknown>,
+    knownNpcCount: number,
+    activeEnemyCount: number,
+    playerAction: string,
   ) => {
     const state = getState();
     if (!state) return;
 
-    // Update principles model from response
-    updateModelFromResponse(
+    const plannerInput: CampaignPlannerInput = {
+      campaignDescription,
+      currentZone,
+      dayCount,
+      timeOfDay,
+      storyContext,
+      worldState,
+      knownNpcCount,
+      activeEnemyCount,
+      playerAction,
+      narratorResponse: {
+        newZone: null,
+        encounterType,
+        enemySpawned: false,
+        npcInteracted: false,
+      },
+    };
+
+    state.principles.campaignModel = updateModelFromResponse(
       state.principles.campaignModel,
-      narration,
-      encounterType || 'exploration',
+      plannerInput,
+      state.turnNumber,
     );
   }, [getState]);
 
