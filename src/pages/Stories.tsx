@@ -96,6 +96,18 @@ export default function Stories() {
     }
   }, [user]);
 
+  // Load story points when characters change
+  useEffect(() => {
+    const loadStoryPoints = async () => {
+      const points: Record<string, { timelineEvents: any[]; loreSections: any[] }> = {};
+      for (const char of characters) {
+        points[char.id] = await fetchCharacterStoryPoints(char.id);
+      }
+      setStoryPoints(points);
+    };
+    if (characters.length > 0) loadStoryPoints();
+  }, [characters]);
+
   const fetchStories = async () => {
     if (!user) return;
     
