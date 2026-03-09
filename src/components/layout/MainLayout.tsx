@@ -11,45 +11,20 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import OwnershipNotice from '@/components/legal/OwnershipNotice';
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb';
 import PageTransition from '@/components/layout/PageTransition';
-import { Swords, Users, Shield, LogOut, User, Home, Dna, Heart, ChevronDown, FileText, Plus, Globe, FolderOpen, Settings, Crown, DollarSign } from 'lucide-react';
+import { Swords, Users, Shield, LogOut, User, Home, Heart, Settings, Crown, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
-
-interface UserCharacter {
-  id: string;
-  name: string;
-  level: number;
-}
 
 export default function MainLayout() {
   // Enable real-time battle challenge notifications
   useBattleNotifications();
   const { user, profile, signOut, isAdmin, isModerator } = useAuth();
   const navigate = useNavigate();
-  const [userCharacters, setUserCharacters] = useState<UserCharacter[]>([]);
-
-  useEffect(() => {
-    if (user) {
-      const fetchUserCharacters = async () => {
-        const { data } = await supabase
-          .from('characters')
-          .select('id, name, level')
-          .eq('user_id', user.id)
-          .order('updated_at', { ascending: false })
-          .limit(10);
-        
-        if (data) setUserCharacters(data);
-      };
-      fetchUserCharacters();
-    }
-  }, [user]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -78,71 +53,13 @@ export default function MainLayout() {
               </Link>
             </Button>
             
-            {/* Characters Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                  <Users className="w-4 h-4" />
-                  <span className="hidden sm:inline">Characters</span>
-                  <ChevronDown className="w-3 h-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56 bg-popover z-50">
-                <DropdownMenuItem asChild>
-                  <Link to="/characters/list" className="flex items-center cursor-pointer">
-                    <Users className="mr-2 h-4 w-4" />
-                    My Characters
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/characters" className="flex items-center cursor-pointer">
-                    <Globe className="mr-2 h-4 w-4" />
-                    Solar System Map
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/characters/new" className="flex items-center cursor-pointer">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create Character
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/races" className="flex items-center cursor-pointer">
-                    <Dna className="mr-2 h-4 w-4" />
-                    Races
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/teams" className="flex items-center cursor-pointer">
-                    <FolderOpen className="mr-2 h-4 w-4" />
-                    Teams
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/stories" className="flex items-center cursor-pointer">
-                    <FileText className="mr-2 h-4 w-4" />
-                    Stories
-                  </Link>
-                </DropdownMenuItem>
-                {userCharacters.length > 0 && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuLabel className="text-xs text-muted-foreground">Your Characters</DropdownMenuLabel>
-                    <ScrollArea className="max-h-48">
-                      {userCharacters.map((char) => (
-                        <DropdownMenuItem key={char.id} asChild>
-                          <Link to={`/characters/${char.id}`} className="flex items-center justify-between cursor-pointer">
-                            <span className="truncate">{char.name}</span>
-                            <span className="text-xs text-muted-foreground ml-2">Lv.{char.level}</span>
-                          </Link>
-                        </DropdownMenuItem>
-                      ))}
-                    </ScrollArea>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* Characters – opens the personal book */}
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/characters/list" className="flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                <span className="hidden sm:inline">Characters</span>
+              </Link>
+            </Button>
             <Button variant="ghost" size="sm" asChild>
               <Link to="/battles" className="flex items-center gap-2">
                 <Swords className="w-4 h-4" />
