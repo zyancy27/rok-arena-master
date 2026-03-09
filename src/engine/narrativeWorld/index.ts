@@ -350,3 +350,30 @@ export type {
   TimelineAnalysis,
   PartyTimelineAnalysis,
 } from './timelineIntegration';
+
+// ── System 24 — Narrative Thread Engine ─────────────────────────
+export {
+  createThreadEngineState,
+  seedThread,
+  escalateThread,
+  resolveThread,
+  advanceScene,
+  getActiveThreads,
+  getEscalatingThreads,
+  getStaleThreads,
+  getThreadsByType,
+  getThreadsByTag,
+  detectPossibleThreads,
+  buildThreadNarratorContext,
+  getThreadGravityTags,
+  getThreadPressureLevel,
+  getThreadEnvironmentTags,
+  getCharacterThreads,
+} from './narrativeThreadEngine';
+export type {
+  ThreadType,
+  ThreadStatus,
+  NarrativeThread,
+  ThreadEngineState,
+  ThreadDetectionContext,
+} from './narrativeThreadEngine';

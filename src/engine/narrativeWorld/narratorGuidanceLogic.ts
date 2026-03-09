@@ -159,11 +159,19 @@ export function assembleNarrativeContext(
     timeline = buildTimelineNarratorPrompt(analysis);
   }
 
+  // Threads — always include if available
+  let threads: string | null = null;
+  if (systems.threads) {
+    const ctx = buildThreadNarratorContext(systems.threads);
+    if (ctx) threads = ctx;
+  }
+
   // Build combined block
   const parts: string[] = [];
   if (identity) parts.push(`[Character Identity] ${identity}`);
   if (gravity) parts.push(`[Story Gravity] ${gravity}`);
   if (timeline) parts.push(`[Character Timeline] ${timeline}`);
+  if (threads) parts.push(`[Narrative Threads] ${threads}`);
   if (pressure) parts.push(`[Narrative Pressure] ${pressure}`);
   if (echo) parts.push(`[Character Echo] ${echo}`);
   if (reflection) parts.push(`[Reflection] ${reflection}`);
@@ -193,6 +201,7 @@ export function assembleNarrativeContext(
     reflection,
     conscience,
     timeline,
+    threads,
     combinedBlock: parts.length > 0
       ? `\nNARRATIVE SYSTEMS GUIDANCE:\n${parts.join('\n')}`
       : '',
