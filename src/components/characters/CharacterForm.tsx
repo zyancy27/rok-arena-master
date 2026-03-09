@@ -25,8 +25,10 @@ import { AutoSaveIndicator } from '@/components/ui/auto-save-indicator';
 import {
   ArrowLeft, Save, Sparkles, Camera, Brain, Crosshair, Dumbbell, Flame, Zap, Shield, Heart, Target,
   Wand2, Smile, Lightbulb, Globe, Mountain, Thermometer, FileText, Loader2, ChevronDown, Check,
-  Swords, User, BookOpen, Plus, Trash2,
+  Swords, User, BookOpen, Plus, Trash2, Clock, Eye,
 } from 'lucide-react';
+import CharacterTimeline, { saveTimelineEvents } from './CharacterTimeline';
+import CharacterAppearance, { type AppearanceData, DEFAULT_APPEARANCE } from './CharacterAppearance';
 
 // Helper to parse weapons_items (supports both JSON array and legacy plain text)
 interface WeaponItem { name: string; description: string }
