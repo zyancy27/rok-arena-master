@@ -343,6 +343,8 @@ export default function Stories() {
   };
 
   const handleDelete = async (storyId: string) => {
+    // Remove synced timeline events first
+    await removeStoryTimelineEvents(storyId);
     const { error } = await supabase
       .from('stories')
       .delete()
