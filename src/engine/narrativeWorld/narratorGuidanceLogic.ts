@@ -45,6 +45,11 @@ import {
 } from './characterConscienceSystem';
 import type { SceneType } from './narratorPrinciplesEngine';
 import type { EmotionalPressureState } from './types';
+import {
+  analyzeCharacterTimeline,
+  buildTimelineNarratorPrompt,
+  type TimelineEvent,
+} from './timelineIntegration';
 
 // ── Types ───────────────────────────────────────────────────────
 
