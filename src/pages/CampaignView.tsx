@@ -1638,6 +1638,13 @@ export default function CampaignView() {
                 {/* Battlefield Effects Overlay */}
                 <BattlefieldEffectsOverlay effects={battlefieldEffects} className="z-[1]" />
 
+                {/* Narrator-driven Tactical Map */}
+                {showTacticalMap && sceneMap && (
+                  <div className="px-3 pt-3 pb-1 relative z-10">
+                    <CampaignTacticalMap sceneMap={sceneMap} onClose={() => setShowTacticalMap(false)} />
+                  </div>
+                )}
+
                 {/* Enemy Tracker — above chat for visibility */}
                 {campaignEnemies.length > 0 && (
                   <div className="px-3 pt-3 pb-1 relative z-10">
