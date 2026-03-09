@@ -35,6 +35,7 @@ import Campaigns from "@/pages/Campaigns";
 import CampaignView from "@/pages/CampaignView";
 import NotFound from "@/pages/NotFound";
 import ResetPassword from "@/pages/ResetPassword";
+import Membership from "@/pages/Membership";
 
 
 const queryClient = new QueryClient();
