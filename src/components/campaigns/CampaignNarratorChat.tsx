@@ -91,6 +91,8 @@ interface CampaignNarratorChatProps {
   onAcceptTrade: (tradeId: string) => void;
   onDeclineTrade: (tradeId: string) => void;
   onCancelTrade: (tradeId: string) => void;
+  /** Assembled narrative systems context from the DM brain (identity, gravity, echo, etc.) */
+  narrativeSystemsContext?: string;
 }
 
 const QUICK_ASKS = [
