@@ -11,7 +11,7 @@ interface UseBookEngineOptions {
   sfxEnabled?: boolean;
 }
 
-const PAGE_FLIP_DURATION = 500;
+const PAGE_FLIP_DURATION = 800;
 
 // Lightweight page-flip sound via Web Audio API
 let audioCtx: AudioContext | null = null;
