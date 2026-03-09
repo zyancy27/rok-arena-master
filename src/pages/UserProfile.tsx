@@ -272,9 +272,16 @@ export default function UserProfile() {
               </AvatarFallback>
             </Avatar>
             <div className="text-center sm:text-left flex-1">
-              <h1 className="text-2xl font-bold">
-                {profile.display_name || profile.username}
-              </h1>
+              <div className="flex items-center gap-2 justify-center sm:justify-start">
+                <h1 className="text-2xl font-bold">
+                  {profile.display_name || profile.username}
+                </h1>
+                {(profile as any).founder_badge && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 text-xs font-bold">
+                    <Crown className="h-3 w-3" /> FOUNDER
+                  </span>
+                )}
+              </div>
               <p className="text-muted-foreground">@{profile.username}</p>
               {profile.bio && (
                 <p className="mt-3 text-foreground/80">{profile.bio}</p>
