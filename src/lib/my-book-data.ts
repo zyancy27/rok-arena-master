@@ -76,12 +76,6 @@ export interface MyBookInput {
     name: string;
     planetCount: number;
   }[];
-  campaigns: {
-    id: string;
-    name: string;
-    status: string;
-    description: string | null;
-  }[];
 }
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
@@ -333,56 +327,6 @@ export function buildMyBook(input: MyBookInput): { parts: MyBookPart[]; pages: M
       icon: '📖',
       chapters,
       count: input.stories.length,
-    });
-  }
-
-  // ── Part VI: Campaign History ────────────────────────
-  {
-    const chapters: MyBookChapter[] = [];
-
-    if (input.campaigns.length > 0) {
-      for (const c of input.campaigns) {
-        chapterNum++;
-        chapters.push({
-          id: `campaign-${c.id}`,
-          number: chapterNum,
-          title: c.name,
-          sections: [
-            {
-              id: `campaign-${c.id}-status`,
-              title: 'Status',
-              content: c.status,
-            },
-            ...(c.description ? [{
-              id: `campaign-${c.id}-desc`,
-              title: 'Description',
-              content: c.description,
-            }] : []),
-          ],
-        });
-      }
-    } else {
-      chapterNum++;
-      chapters.push({
-        id: 'campaign-empty',
-        number: chapterNum,
-        title: 'Campaigns',
-        sections: [{
-          id: 'campaign-empty-info',
-          title: 'No Campaigns',
-          content: 'No campaigns joined yet.',
-          linkTo: '/campaigns',
-        }],
-      });
-    }
-
-    parts.push({
-      id: 'campaigns',
-      number: 6,
-      title: 'Campaign History',
-      icon: '🏰',
-      chapters,
-      count: input.campaigns.length,
     });
   }
 
