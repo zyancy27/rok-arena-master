@@ -146,10 +146,18 @@ export function assembleNarrativeContext(
     }
   }
 
+  // Timeline — always include if available
+  let timeline: string | null = null;
+  if (systems.timelineEvents && systems.timelineEvents.length > 0) {
+    const analysis = analyzeCharacterTimeline(conditions.characterId, systems.timelineEvents);
+    timeline = buildTimelineNarratorPrompt(analysis);
+  }
+
   // Build combined block
   const parts: string[] = [];
   if (identity) parts.push(`[Character Identity] ${identity}`);
   if (gravity) parts.push(`[Story Gravity] ${gravity}`);
+  if (timeline) parts.push(`[Character Timeline] ${timeline}`);
   if (pressure) parts.push(`[Narrative Pressure] ${pressure}`);
   if (echo) parts.push(`[Character Echo] ${echo}`);
   if (reflection) parts.push(`[Reflection] ${reflection}`);
@@ -178,6 +186,7 @@ export function assembleNarrativeContext(
     echo,
     reflection,
     conscience,
+    timeline,
     combinedBlock: parts.length > 0
       ? `\nNARRATIVE SYSTEMS GUIDANCE:\n${parts.join('\n')}`
       : '',
