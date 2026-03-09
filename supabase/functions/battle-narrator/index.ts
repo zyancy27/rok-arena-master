@@ -378,36 +378,44 @@ ${opponent.name} (Tier ${opponent.level}) is about to respond.
 
 ${diceResult?.hit === false ? 'Describe how the attack misses.' : `Provide your narrator observation`}${environmentalEffects.length > 0 ? ', making sure to clearly describe the environmental hazards the defender must now contend with' : ''}${currentDistance ? `. If the fighters\' distance changed significantly, note it briefly.` : ''}.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        max_tokens: 300,
-      }),
-    });
+    const battleModels = ["google/gemini-2.5-flash-lite", "google/gemini-3-flash-preview"];
+    let data: any = null;
 
-    if (!response.ok) {
-      if (response.status === 429) {
+    for (const model of battleModels) {
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          max_tokens: 300,
+        }),
+      });
+
+      if (response.ok) {
+        data = await response.json();
+        break;
+      }
+
+      const errStatus = response.status;
+      await response.text();
+      if (errStatus === 429) {
         return new Response(
           JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      throw new Error(`AI gateway error: ${response.status}`);
+      console.warn(`Battle narrator model ${model} returned ${errStatus}, trying next...`);
+    }
+
+    if (!data) {
+      throw new Error("All AI models returned errors");
     }
 
     const data = await response.json();
