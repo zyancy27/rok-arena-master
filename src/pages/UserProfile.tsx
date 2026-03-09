@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import CharacterCard from '@/components/characters/CharacterCard';
 import { toast } from 'sonner';
-import { User, Users, BookOpen, Shield, Lock, UserPlus, UserCheck, Eye, Clock, Loader2, Heart } from 'lucide-react';
+import { User, Users, BookOpen, Shield, Lock, UserPlus, UserCheck, Eye, Clock, Loader2, Heart, Crown } from 'lucide-react';
 
 export default function UserProfile() {
   const { username } = useParams<{ username: string }>();
