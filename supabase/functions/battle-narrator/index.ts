@@ -418,7 +418,6 @@ ${diceResult?.hit === false ? 'Describe how the attack misses.' : `Provide your 
       throw new Error("All AI models returned errors");
     }
 
-    const data = await response.json();
     let narration = data.choices?.[0]?.message?.content || "";
     
     // If narrator chose to skip (key moments mode), return null narration
