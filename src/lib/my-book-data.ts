@@ -76,12 +76,6 @@ export interface MyBookInput {
     name: string;
     planetCount: number;
   }[];
-  campaigns: {
-    id: string;
-    name: string;
-    status: string;
-    description: string | null;
-  }[];
 }
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
