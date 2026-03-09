@@ -135,6 +135,19 @@ export function buildMyBook(input: MyBookInput): { parts: MyBookPart[]; pages: M
     const chapters: MyBookChapter[] = [];
 
     if (input.characters.length > 0) {
+      // Directory page listing all characters
+      chapterNum++;
+      chapters.push({
+        id: 'char-directory',
+        number: chapterNum,
+        title: 'Character Directory',
+        sections: input.characters.map(c => ({
+          id: `char-dir-${c.id}`,
+          title: c.name,
+          linkTo: `/characters/${c.id}`,
+        })),
+      });
+
       for (const c of input.characters) {
         chapterNum++;
         const sections: MyBookSection[] = [

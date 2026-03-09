@@ -269,7 +269,7 @@ function PageRenderer({ page, parts, pages, flipTo, navigate, displayName }: {
     case 'toc':
       return <HierarchicalTOC parts={parts} pages={pages} flipTo={flipTo} displayName={displayName} />;
     case 'part-divider':
-      return <PartDividerPage part={page.part} navigate={navigate} />;
+      return <PartDividerPage part={page.part} />;
     case 'chapter':
       return <ChapterPage part={page.part} chapter={page.chapter} navigate={navigate} />;
     default:
@@ -356,21 +356,9 @@ function HierarchicalTOC({ parts, pages, flipTo, displayName }: {
 
 // ── Part Divider Page ─────────────────────────────────────
 
-function PartDividerPage({ part, navigate }: { part: MyBookPart; navigate: (path: string) => void }) {
-  // For the Characters part, extract character links from chapters
-  const isCharactersPart = part.id === 'characters';
-  const characterEntries = isCharactersPart
-    ? part.chapters
-        .filter(ch => ch.id !== 'char-empty')
-        .map(ch => ({
-          id: ch.id.replace('char-', ''),
-          name: ch.title,
-          linkTo: ch.sections[0]?.linkTo,
-        }))
-    : [];
-
+function PartDividerPage({ part }: { part: MyBookPart }) {
   return (
-    <div className="flex flex-col items-center h-full min-h-[300px] gap-4">
+    <div className="flex flex-col items-center justify-center h-full min-h-[300px] gap-4">
       <div className="rok-chapter-divider w-full"><span className="rok-ornament">❧</span></div>
       <span className="text-4xl">{part.icon}</span>
       <p className="text-[11px] text-muted-foreground uppercase tracking-[0.35em] font-medium" style={{ fontFamily: 'Cinzel, serif' }}>
@@ -383,26 +371,6 @@ function PartDividerPage({ part, navigate }: { part: MyBookPart; navigate: (path
           {part.count} {part.count === 1 ? 'entry' : 'entries'}
         </p>
       )}
-
-      {/* Character listing for Characters part */}
-      {isCharactersPart && characterEntries.length > 0 && (
-        <div className="w-full mt-2 space-y-1 overflow-y-auto max-h-[40vh]">
-          <div className="rok-chapter-divider w-16 mx-auto"><span className="rok-ornament">·</span></div>
-          {characterEntries.map((entry) => (
-            <button
-              key={entry.id}
-              onClick={() => entry.linkTo && navigate(entry.linkTo)}
-              className="w-full text-left px-4 py-2 rounded-md hover:bg-muted/30 transition-colors group flex items-center gap-2"
-            >
-              <span className="text-xs text-muted-foreground/60">❖</span>
-              <span className="rok-body-text text-sm text-foreground/80 group-hover:text-primary transition-colors">
-                {entry.name}
-              </span>
-              <ExternalLink className="w-3 h-3 text-muted-foreground/40 group-hover:text-primary/60 ml-auto transition-colors" />
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -414,6 +382,34 @@ function ChapterPage({ part, chapter, navigate }: {
   chapter: MyBookChapter;
   navigate: (path: string) => void;
 }) {
+  // Special directory page: 2-column grid of clickable character names
+  if (chapter.id === 'char-directory') {
+    return (
+      <div className="space-y-4">
+        <div className="text-center space-y-1">
+          <p className="text-[9px] text-muted-foreground uppercase tracking-widest" style={{ fontFamily: 'Cinzel, serif' }}>
+            Part {ROMAN[part.number - 1]} · {part.title}
+          </p>
+          <h2 className="rok-chapter-title text-xl font-bold text-foreground">Character Directory</h2>
+          <div className="rok-chapter-divider"><span className="rok-ornament">§</span></div>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {chapter.sections.map((section) => (
+            <button
+              key={section.id}
+              onClick={() => section.linkTo && navigate(section.linkTo)}
+              className="text-left px-3 py-2.5 rounded-md border border-border/20 hover:bg-muted/30 hover:border-primary/30 transition-all group"
+            >
+              <span className="rok-body-text text-sm text-foreground/80 group-hover:text-primary transition-colors line-clamp-1">
+                {section.title}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       {/* Chapter header */}
