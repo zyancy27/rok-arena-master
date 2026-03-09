@@ -206,6 +206,7 @@ export default function CampaignNarratorChat({
             isCampaign: true, characterWeapons, characterLevel,
             campaignLevel, campaignHp, campaignHpMax,
           },
+          narrativeSystemsContext,
         },
       });
 

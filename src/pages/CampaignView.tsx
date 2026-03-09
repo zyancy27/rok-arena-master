@@ -2091,6 +2091,11 @@ export default function CampaignView() {
                   onSwapCharacterChange={setSwapCharacter}
                   onSwap={handleSwapCharacter}
                   swapping={swapping}
+                  narrativeSystemsContext={campaignNarrative.buildNarrativeBlock(
+                    '',
+                    campaignEnemies.filter(e => e.status === 'active' || e.status === 'hiding').length > 0,
+                    campaign.current_zone,
+                  )}
                   campaignEndDialog={
                     isCreator && isActive ? (
                       <CampaignEndDialog

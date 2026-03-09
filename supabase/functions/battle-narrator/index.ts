@@ -736,7 +736,7 @@ Abilities: ${characterAbilities || 'Not specified'}
 
 OPPONENTS: ${(opponentNames || []).join(', ')}
 BATTLE LOCATION: ${battleLocation || 'Unknown'}
-
+${narrativeSystemsContext ? `\nNARRATOR DM CONTEXT (use to inform your answers about campaign state, character identity, and story direction):\n${narrativeSystemsContext}` : ''}
 OUTPUT FORMAT: Return JSON with:
 - "answer": string (your response)
 - "moveApproved": boolean (only if validating a move, otherwise omit)
