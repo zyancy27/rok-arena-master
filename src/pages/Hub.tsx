@@ -7,7 +7,7 @@ import CharacterCard from '@/components/characters/CharacterCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Swords, Plus, Users, UserPlus } from 'lucide-react';
+import { Swords, Plus, Users, UserPlus, Crown } from 'lucide-react';
 
 interface Character {
   id: string;
