@@ -20,34 +20,11 @@ import PageTransition from '@/components/layout/PageTransition';
 import { Swords, Users, Shield, LogOut, User, Home, Heart, Settings, Crown, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface UserCharacter {
-  id: string;
-  name: string;
-  level: number;
-}
-
 export default function MainLayout() {
   // Enable real-time battle challenge notifications
   useBattleNotifications();
   const { user, profile, signOut, isAdmin, isModerator } = useAuth();
   const navigate = useNavigate();
-  const [userCharacters, setUserCharacters] = useState<UserCharacter[]>([]);
-
-  useEffect(() => {
-    if (user) {
-      const fetchUserCharacters = async () => {
-        const { data } = await supabase
-          .from('characters')
-          .select('id, name, level')
-          .eq('user_id', user.id)
-          .order('updated_at', { ascending: false })
-          .limit(10);
-        
-        if (data) setUserCharacters(data);
-      };
-      fetchUserCharacters();
-    }
-  }, [user]);
 
   const handleSignOut = async () => {
     await signOut();
