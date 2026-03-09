@@ -50,6 +50,10 @@ import {
   buildTimelineNarratorPrompt,
   type TimelineEvent,
 } from './timelineIntegration';
+import {
+  buildThreadNarratorContext,
+  type ThreadEngineState,
+} from './narrativeThreadEngine';
 
 // ── Types ───────────────────────────────────────────────────────
 
@@ -61,6 +65,7 @@ export interface NarrativeSystemInputs {
   reflection?: ReflectionState;
   conscience?: ConscienceState;
   timelineEvents?: TimelineEvent[];
+  threads?: ThreadEngineState;
 }
 
 export interface NarrativeSystemConditions {
@@ -83,6 +88,7 @@ export interface AssembledNarrativeContext {
   reflection: string | null;
   conscience: string | null;
   timeline: string | null;
+  threads: string | null;
   /** Combined context block for the AI prompt */
   combinedBlock: string;
 }
@@ -153,11 +159,19 @@ export function assembleNarrativeContext(
     timeline = buildTimelineNarratorPrompt(analysis);
   }
 
+  // Threads — always include if available
+  let threads: string | null = null;
+  if (systems.threads) {
+    const ctx = buildThreadNarratorContext(systems.threads);
+    if (ctx) threads = ctx;
+  }
+
   // Build combined block
   const parts: string[] = [];
   if (identity) parts.push(`[Character Identity] ${identity}`);
   if (gravity) parts.push(`[Story Gravity] ${gravity}`);
   if (timeline) parts.push(`[Character Timeline] ${timeline}`);
+  if (threads) parts.push(`[Narrative Threads] ${threads}`);
   if (pressure) parts.push(`[Narrative Pressure] ${pressure}`);
   if (echo) parts.push(`[Character Echo] ${echo}`);
   if (reflection) parts.push(`[Reflection] ${reflection}`);
@@ -187,6 +201,7 @@ export function assembleNarrativeContext(
     reflection,
     conscience,
     timeline,
+    threads,
     combinedBlock: parts.length > 0
       ? `\nNARRATIVE SYSTEMS GUIDANCE:\n${parts.join('\n')}`
       : '',
