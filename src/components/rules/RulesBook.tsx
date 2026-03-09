@@ -236,9 +236,9 @@ function TableOfContents({ chapters, onSelectChapter }: {
   return (
     <div className="space-y-6">
       <div className="text-center space-y-2">
-        <h2 className="text-xl font-bold text-foreground">Table of Contents</h2>
-        <p className="text-[10px] text-muted-foreground italic">A living record of the arena's mechanics</p>
-        <div className="w-16 h-px bg-primary/40 mx-auto" />
+        <h2 className="rok-chapter-title text-xl font-bold text-foreground">Table of Contents</h2>
+        <p className="text-[10px] text-muted-foreground italic rok-body-text">A living record of the arena's mechanics</p>
+        <div className="rok-chapter-divider"><span className="rok-ornament">✦</span></div>
       </div>
       <ol className="space-y-1">
         {chapters.map((chapter, idx) => {
@@ -251,22 +251,22 @@ function TableOfContents({ chapters, onSelectChapter }: {
               <button
                 onClick={() => onSelectChapter(idx)}
                 className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-muted/50 transition-colors text-left group",
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-muted/30 transition-colors text-left group",
                   hasUnread && "rok-unread-glow"
                 )}
               >
                 <span className="text-base">{chapter.icon}</span>
-                <span className="flex-1 text-sm text-foreground group-hover:text-primary transition-colors">
+                <span className="flex-1 text-sm text-foreground group-hover:text-primary transition-colors rok-body-text">
                   {chapter.title}
                 </span>
                 <div className="flex items-center gap-1">
                   {hasUnread && <Sparkles className="w-3 h-3 text-primary animate-pulse" />}
                   {chapter.isLiving && (
-                    <span className="text-[8px] text-muted-foreground/60 uppercase tracking-wider">
+                    <span className="text-[8px] text-muted-foreground/60 uppercase tracking-wider" style={{ fontFamily: 'Cinzel, serif' }}>
                       living
                     </span>
                   )}
-                  <span className="text-[10px] text-muted-foreground tabular-nums">{idx + 1}</span>
+                  <span className="rok-page-number tabular-nums">{idx + 1}</span>
                 </div>
               </button>
             </li>
