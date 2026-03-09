@@ -1479,26 +1479,38 @@ Story Context: ${JSON.stringify(storyContext || {})}${narrativeSystemsContext ? 
 ${isMultiplayer ? `MULTIPLAYER: Respond using "${playerCharacter.name}" — NEVER "you". Do NOT describe other player characters acting.` : ''}Respond as the WORLD — let NPCs speak, environments react, and consequences unfold. Only use narrator voice if no NPC or environmental element can carry the response. If the character uses an equipped item, reference it naturally. You may reward items if the action warrants it.${diceResult ? (diceResult.hit ? ' The attack HIT — describe the impact.' : ' The attack MISSED — describe the failure.') : ''}${defenseResult ? (defenseResult.success ? ' The defense SUCCEEDED.' : ' The defense FAILED — the player takes the hit.') : ''}`;
 
   try {
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...historyMessages,
-          { role: "user", content: userMessage },
-        ],
-        max_tokens: 2000,
-        temperature: 0.8,
-        response_format: { type: "json_object" },
-      }),
-    });
+    const campModels = ["google/gemini-2.5-flash-lite", "google/gemini-2.5-flash"];
+    let rawText = '';
+    let responseOk = false;
 
-    const rawText = await response.text();
-    if (!response.ok) {
-      console.error("Campaign narration API error:", response.status, rawText);
-      throw new Error(`AI API returned ${response.status}`);
+    for (const model of campModels) {
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...historyMessages.slice(-10),
+            { role: "user", content: userMessage },
+          ],
+          max_tokens: 2000,
+          temperature: 0.8,
+          response_format: { type: "json_object" },
+        }),
+      });
+
+      rawText = await response.text();
+      if (response.ok) {
+        responseOk = true;
+        break;
+      }
+      console.warn(`Campaign narration model ${model} returned ${response.status}, trying next...`);
+    }
+
+    if (!responseOk) {
+      console.error("Campaign narration API error:", rawText.substring(0, 200));
+      throw new Error("All AI models returned errors");
     }
 
     let data;
