@@ -124,6 +124,30 @@ export default function Campaigns() {
     setLoading(false);
   };
 
+  const handleGenerateConcept = async () => {
+    setGenerating(true);
+    try {
+      const char = characters.find(c => c.id === selectedCharacter);
+      const { data, error } = await supabase.functions.invoke('battle-narrator', {
+        body: {
+          type: 'generate_campaign_concept',
+          characterName: char?.name,
+          characterLevel: char?.level,
+        },
+      });
+      if (error) throw error;
+      if (data?.name) setNewName(data.name);
+      if (data?.description) setNewDescription(data.description);
+      if (data?.location) setStartingLocation(data.location);
+      toast.success('Campaign concept generated!');
+    } catch (err: any) {
+      console.error('Concept generation failed:', err);
+      toast.error('Failed to generate concept — try again');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const handleCreate = async () => {
     if (!newName.trim()) { toast.error('Campaign name required'); return; }
     if (!selectedCharacter) { toast.error('Select a character'); return; }
