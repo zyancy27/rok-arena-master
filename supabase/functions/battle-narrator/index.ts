@@ -756,26 +756,40 @@ OUTPUT FORMAT: Return JSON with:
   }
 
   try {
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          ...privateHistory,
-          { role: "user", content: userPrompt },
-        ],
-        max_tokens: 400,
-        response_format: { type: "json_object" },
-      }),
-    });
+    const models = ["google/gemini-2.5-flash-lite", "google/gemini-2.5-flash"];
+    let data: any = null;
 
-    if (!response.ok) {
-      throw new Error(`AI gateway error: ${response.status}`);
+    for (const model of models) {
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...privateHistory.slice(-6),
+            { role: "user", content: userPrompt },
+          ],
+          max_tokens: 400,
+          response_format: { type: "json_object" },
+        }),
+      });
+
+      if (response.ok) {
+        data = await response.json();
+        break;
+      }
+
+      // Consume body to avoid leak
+      await response.text();
+      console.warn(`Model ${model} returned ${response.status}, trying next...`);
+    }
+
+    if (!data) {
+      throw new Error("All AI models returned errors");
     }
 
     const data = await response.json();
