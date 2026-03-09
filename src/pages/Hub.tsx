@@ -90,6 +90,16 @@ export default function Hub() {
             </CardHeader>
           </Card>
         </Link>
+
+        <Link to="/membership">
+          <Card className="bg-card-gradient border-border hover:border-amber-500/50 transition-all cursor-pointer h-full">
+            <CardHeader className="text-center">
+              <Crown className="w-12 h-12 mx-auto text-amber-500 mb-2" />
+              <CardTitle>Membership</CardTitle>
+              <CardDescription>Storage tiers & AI access</CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
       </div>
 
       {/* User's Characters */}
