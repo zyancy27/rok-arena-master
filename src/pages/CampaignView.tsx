@@ -1418,6 +1418,14 @@ export default function CampaignView() {
         content: m.content,
       }));
 
+      // Build narrative systems context for advance story
+      const activeEnemiesList = campaignEnemies.filter(e => e.status === 'active' || e.status === 'hiding');
+      const advanceNarrativeContext = campaignNarrative.buildNarrativeBlock(
+        '[ADVANCE STORY] The party is idle.',
+        activeEnemiesList.length > 0,
+        campaign.current_zone,
+      );
+
       const { data, error } = await supabase.functions.invoke('battle-narrator', {
         body: {
           type: 'campaign_narration',
@@ -1435,6 +1443,7 @@ export default function CampaignView() {
           playerCharacter: { name: myParticipant.character?.name },
           isMultiplayer: !isSoloCampaign,
           partyNames: allPartyNames,
+          narrativeSystemsContext: advanceNarrativeContext,
         },
       });
 
