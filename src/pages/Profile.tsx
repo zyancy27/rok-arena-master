@@ -317,7 +317,14 @@ export default function Profile() {
               </label>
             </div>
             <div>
-              <p className="font-semibold text-lg">{profile?.username}</p>
+              <div className="flex items-center gap-2">
+                <p className="font-semibold text-lg">{profile?.username}</p>
+                {founderStatus && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 text-xs font-bold">
+                    <Crown className="h-3 w-3" /> FOUNDER
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-muted-foreground">{user?.email}</p>
             </div>
           </div>
