@@ -930,6 +930,11 @@ export default function CampaignView() {
         // Process narrator response for battlefield environment effects
         processEffectMessage(data.narration);
 
+        // Update tactical map from narrator-generated scene data
+        if (data.sceneMap && typeof data.sceneMap === 'object' && Array.isArray(data.sceneMap.zones)) {
+          setSceneMap(data.sceneMap as NarratorSceneMap);
+        }
+
         // Detect combat pulse: enemy encounter (red) or sneak attack success (green)
         if (data.enemySpawned) {
           const sneakPatterns = /\b(sneak|stealth|ambush|surprise|undetected|unnoticed|from behind|caught off guard)\b/i;
