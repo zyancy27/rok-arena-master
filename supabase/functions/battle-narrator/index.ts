@@ -159,6 +159,11 @@ serve(async (req) => {
       return await handleCampaignNarration(requestBody, LOVABLE_API_KEY, corsHeaders);
     }
 
+    // Handle campaign concept generation
+    if (requestBody.type === 'generate_campaign_concept') {
+      return await handleGenerateCampaignConcept(requestBody, LOVABLE_API_KEY, corsHeaders);
+    }
+
     // Handle battlefield intro generation
     if (requestBody.type === 'battlefield_intro') {
       const { battleLocation, emergencyLocation } = requestBody as BattlefieldIntroRequest;
