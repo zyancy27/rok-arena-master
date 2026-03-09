@@ -22,13 +22,15 @@ export async function syncStoryToTimeline(
 ) {
   for (const characterId of characterIds) {
     // Check if a timeline event already exists for this story+character
-    const { data: existing } = await supabase
+    // Check if a timeline event already exists for this story+character
+    const { data: allEvents } = await supabase
       .from('character_timeline_events')
-      .select('id')
-      .eq('character_id', characterId)
-      .eq('origin_type' as any, 'story')
-      .eq('origin_id' as any, storyId)
-      .maybeSingle();
+      .select('id, origin_type, origin_id')
+      .eq('character_id', characterId);
+    
+    const existing = (allEvents || []).find(
+      (e: any) => e.origin_type === 'story' && e.origin_id === storyId
+    );
 
     const summary = storyContent.length > 200
       ? storyContent.slice(0, 200) + '…'
