@@ -239,6 +239,10 @@ export default function Stories() {
           );
         }
         toast.success('Story updated!');
+        // Sync timeline events for linked characters
+        if (selectedCharacterIds.length > 0) {
+          await syncStoryToTimeline(editingStory.id, formData.title, formData.content, selectedCharacterIds, user.id);
+        }
         fetchStories();
         setIsDialogOpen(false);
         resetForm();
