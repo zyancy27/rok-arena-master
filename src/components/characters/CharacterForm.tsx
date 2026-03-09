@@ -449,6 +449,15 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
     e.preventDefault();
     if (!user) { toast.error('You must be logged in'); return; }
     if (!formData.name.trim()) { toast.error('Character name is required'); return; }
+
+    // Check character creation limit for new characters
+    if (mode === 'create') {
+      const allowed = await canCreateCharacter();
+      if (!allowed) {
+        toast.error(`You've reached your character limit (${limits.maxCharacters}). Upgrade your storage tier in Membership to create more.`);
+        return;
+      }
+    }
     setIsLoading(true);
     try {
       let imageUrl = formData.image_url;
