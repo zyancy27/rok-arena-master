@@ -1555,6 +1555,17 @@ export default function CampaignView() {
           </div>
         </div>
         <div className="flex items-center gap-1.5 sm:gap-2 ml-auto sm:ml-0 shrink-0">
+          {isActive && sceneMap && (
+            <Button
+              variant={showTacticalMap ? 'secondary' : 'ghost'}
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setShowTacticalMap(!showTacticalMap)}
+              title={showTacticalMap ? 'Hide tactical map' : 'Show tactical map'}
+            >
+              <Map className="w-4 h-4" />
+            </Button>
+          )}
           {isActive && (
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={toggleAmbientMute} title={ambientMuted ? 'Unmute ambient' : 'Mute ambient'}>
               {ambientMuted ? <VolumeX className="w-4 h-4 text-muted-foreground" /> : <Volume2 className="w-4 h-4 text-primary" />}
