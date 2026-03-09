@@ -22,7 +22,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { User, Save, Camera, Trash2, EyeOff, Eye, Users, KeyRound, AtSign } from 'lucide-react';
+import { User, Save, Camera, Trash2, EyeOff, Eye, Users, KeyRound, AtSign, Crown } from 'lucide-react';
 
 export default function Profile() {
   const navigate = useNavigate();
