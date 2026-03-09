@@ -144,6 +144,33 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
+    // --- AI Subscription Check ---
+    // Check if the caller has AI access (founder or active subscription)
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader) {
+      const supabaseAdmin = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+        { auth: { persistSession: false } }
+      );
+      const token = authHeader.replace("Bearer ", "");
+      const { data: userData } = await supabaseAdmin.auth.getUser(token);
+      if (userData?.user) {
+        const { data: subData } = await supabaseAdmin
+          .from('user_subscriptions')
+          .select('ai_subscription_active, founder_status')
+          .eq('user_id', userData.user.id)
+          .maybeSingle();
+        
+        if (subData && !subData.founder_status && !subData.ai_subscription_active) {
+          return new Response(
+            JSON.stringify({ error: 'AI subscription required', code: 'SUBSCRIPTION_REQUIRED' }),
+            { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+    }
+
     // Handle private narrator queries (move validation, battle questions)
     if (requestBody.type === 'private_query') {
       return await handlePrivateQuery(requestBody, LOVABLE_API_KEY, corsHeaders);

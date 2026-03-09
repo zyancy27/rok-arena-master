@@ -7,7 +7,7 @@ import CharacterCard from '@/components/characters/CharacterCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Swords, Plus, Users, UserPlus } from 'lucide-react';
+import { Swords, Plus, Users, UserPlus, Crown } from 'lucide-react';
 
 interface Character {
   id: string;
@@ -87,6 +87,16 @@ export default function Hub() {
               <Swords className="w-12 h-12 mx-auto text-cosmic-gold mb-2" />
               <CardTitle>Battle Arena</CardTitle>
               <CardDescription>Challenge opponents in combat</CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+
+        <Link to="/membership">
+          <Card className="bg-card-gradient border-border hover:border-amber-500/50 transition-all cursor-pointer h-full">
+            <CardHeader className="text-center">
+              <Crown className="w-12 h-12 mx-auto text-amber-500 mb-2" />
+              <CardTitle>Membership</CardTitle>
+              <CardDescription>Storage tiers & AI access</CardDescription>
             </CardHeader>
           </Card>
         </Link>

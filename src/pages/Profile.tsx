@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSubscription } from '@/hooks/use-subscription';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,11 +22,12 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { User, Save, Camera, Trash2, EyeOff, Eye, Users, KeyRound, AtSign } from 'lucide-react';
+import { User, Save, Camera, Trash2, EyeOff, Eye, Users, KeyRound, AtSign, Crown } from 'lucide-react';
 
 export default function Profile() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile, signOut } = useAuth();
+  const { founderStatus } = useSubscription();
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [displayName, setDisplayName] = useState(profile?.display_name || '');
@@ -315,7 +317,14 @@ export default function Profile() {
               </label>
             </div>
             <div>
-              <p className="font-semibold text-lg">{profile?.username}</p>
+              <div className="flex items-center gap-2">
+                <p className="font-semibold text-lg">{profile?.username}</p>
+                {founderStatus && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 text-xs font-bold">
+                    <Crown className="h-3 w-3" /> FOUNDER
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-muted-foreground">{user?.email}</p>
             </div>
           </div>

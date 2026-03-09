@@ -17,7 +17,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import OwnershipNotice from '@/components/legal/OwnershipNotice';
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb';
 import PageTransition from '@/components/layout/PageTransition';
-import { Swords, Users, Shield, LogOut, User, Home, Dna, Heart, ChevronDown, FileText, Plus, Globe, FolderOpen, Settings } from 'lucide-react';
+import { Swords, Users, Shield, LogOut, User, Home, Dna, Heart, ChevronDown, FileText, Plus, Globe, FolderOpen, Settings, Crown } from 'lucide-react';
 
 interface UserCharacter {
   id: string;
@@ -192,6 +192,12 @@ export default function MainLayout() {
                 <Link to="/settings" className="flex items-center cursor-pointer">
                   <Settings className="mr-2 h-4 w-4" />
                   Settings
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/membership" className="flex items-center cursor-pointer">
+                  <Crown className="mr-2 h-4 w-4" />
+                  Membership
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />

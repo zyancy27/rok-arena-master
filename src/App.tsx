@@ -35,6 +35,7 @@ import Campaigns from "@/pages/Campaigns";
 import CampaignView from "@/pages/CampaignView";
 import NotFound from "@/pages/NotFound";
 import ResetPassword from "@/pages/ResetPassword";
+import Membership from "@/pages/Membership";
 
 
 const queryClient = new QueryClient();
@@ -75,6 +76,7 @@ const App = () => (
               <Route path="/campaigns" element={<Campaigns />} />
               <Route path="/campaigns/:id" element={<CampaignView />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/membership" element={<Membership />} />
               <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />

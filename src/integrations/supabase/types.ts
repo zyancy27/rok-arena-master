@@ -2131,6 +2131,33 @@ export type Database = {
         }
         Relationships: []
       }
+      user_subscriptions: {
+        Row: {
+          ai_subscription_active: boolean
+          ai_subscription_expires: string | null
+          created_at: string
+          founder_status: boolean
+          storage_tier: string
+          user_id: string
+        }
+        Insert: {
+          ai_subscription_active?: boolean
+          ai_subscription_expires?: string | null
+          created_at?: string
+          founder_status?: boolean
+          storage_tier?: string
+          user_id: string
+        }
+        Update: {
+          ai_subscription_active?: boolean
+          ai_subscription_expires?: string | null
+          created_at?: string
+          founder_status?: boolean
+          storage_tier?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       character_ai_notes_decrypted: {

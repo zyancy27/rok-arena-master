@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import CharacterCard from '@/components/characters/CharacterCard';
 import { toast } from 'sonner';
-import { User, Users, BookOpen, Shield, Lock, UserPlus, UserCheck, Eye, Clock, Loader2, Heart } from 'lucide-react';
+import { User, Users, BookOpen, Shield, Lock, UserPlus, UserCheck, Eye, Clock, Loader2, Heart, Crown } from 'lucide-react';
 
 export default function UserProfile() {
   const { username } = useParams<{ username: string }>();
@@ -42,7 +42,15 @@ export default function UserProfile() {
         .single();
       
       if (error) throw error;
-      return data;
+      
+      // Check founder status
+      const { data: subData } = await supabase
+        .from('user_subscriptions')
+        .select('founder_status')
+        .eq('user_id', data.id)
+        .maybeSingle();
+      
+      return { ...data, founder_badge: subData?.founder_status || false };
     },
     enabled: !!username,
   });
@@ -272,9 +280,16 @@ export default function UserProfile() {
               </AvatarFallback>
             </Avatar>
             <div className="text-center sm:text-left flex-1">
-              <h1 className="text-2xl font-bold">
-                {profile.display_name || profile.username}
-              </h1>
+              <div className="flex items-center gap-2 justify-center sm:justify-start">
+                <h1 className="text-2xl font-bold">
+                  {profile.display_name || profile.username}
+                </h1>
+                {(profile as any).founder_badge && (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 text-xs font-bold">
+                    <Crown className="h-3 w-3" /> FOUNDER
+                  </span>
+                )}
+              </div>
               <p className="text-muted-foreground">@{profile.username}</p>
               {profile.bio && (
                 <p className="mt-3 text-foreground/80">{profile.bio}</p>
