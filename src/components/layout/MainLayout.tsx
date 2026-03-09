@@ -14,10 +14,13 @@ import {
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import OwnershipNotice from '@/components/legal/OwnershipNotice';
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb';
 import PageTransition from '@/components/layout/PageTransition';
-import { Swords, Users, Shield, LogOut, User, Home, Dna, Heart, ChevronDown, FileText, Plus, Globe, FolderOpen, Settings, Crown } from 'lucide-react';
+import { Swords, Users, Shield, LogOut, User, Home, Dna, Heart, ChevronDown, FileText, Plus, Globe, FolderOpen, Settings, Crown, DollarSign } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface UserCharacter {
   id: string;
@@ -223,22 +226,7 @@ export default function MainLayout() {
         <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <OwnershipNotice variant="footer" />
           <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-primary border-primary/50 hover:bg-primary/10"
-              asChild
-            >
-              <a
-                href="https://ko-fi.com/YOUR_USERNAME"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2"
-              >
-                <Heart className="w-4 h-4 fill-primary" />
-                <span>Donate</span>
-              </a>
-            </Button>
+            <DonateButton />
             <div className="text-xs text-muted-foreground">
               © 2026 Realm of Kings. All rights reserved.
             </div>
@@ -246,5 +234,105 @@ export default function MainLayout() {
         </div>
       </footer>
     </div>
+  );
+}
+
+function DonateButton() {
+  const [open, setOpen] = useState(false);
+  const [amount, setAmount] = useState('5');
+  const [loading, setLoading] = useState(false);
+
+  const handleDonate = async () => {
+    const num = parseFloat(amount);
+    if (!num || num < 1) {
+      toast.error('Minimum donation is $1.00');
+      return;
+    }
+    if (num > 999.99) {
+      toast.error('Maximum donation is $999.99');
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-donation', {
+        body: { amount: num },
+      });
+      if (error) throw error;
+      if (data?.url) {
+        window.open(data.url, '_blank');
+        setOpen(false);
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to start donation');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const presets = [3, 5, 10, 25];
+
+  return (
+    <>
+      <Button
+        variant="outline"
+        size="sm"
+        className="text-primary border-primary/50 hover:bg-primary/10 flex items-center gap-2"
+        onClick={() => setOpen(true)}
+      >
+        <Heart className="w-4 h-4 fill-primary" />
+        <span>Donate</span>
+      </Button>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Heart className="w-5 h-5 fill-primary text-primary" />
+              Support Realm of Kings
+            </DialogTitle>
+            <DialogDescription>
+              Choose an amount or enter your own. Every bit helps us keep building!
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="flex gap-2">
+              {presets.map((p) => (
+                <Button
+                  key={p}
+                  variant={amount === String(p) ? 'default' : 'outline'}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setAmount(String(p))}
+                >
+                  ${p}
+                </Button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <DollarSign className="w-4 h-4 text-muted-foreground" />
+              <Input
+                type="number"
+                min="1"
+                max="999.99"
+                step="0.01"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Custom amount"
+                className="flex-1"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button onClick={handleDonate} disabled={loading}>
+              {loading ? 'Processing...' : `Donate $${parseFloat(amount || '0').toFixed(2)}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
