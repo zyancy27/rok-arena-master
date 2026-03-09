@@ -3099,6 +3099,7 @@
   max-height: 720px;
   perspective: 2000px;
   transform-style: preserve-3d;
+  overflow: hidden;
 }
 /* Mobile: single-page sizing */
 @media (max-width: 767px) {
