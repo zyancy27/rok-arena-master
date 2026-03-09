@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
 import { toast } from 'sonner';
-import { ArrowLeft, BookOpen, Clock, MapPin, Play, Plus, Shield, Users, Compass, Swords, User, Globe, Lock, UserCheck, Shuffle, Trash2 } from 'lucide-react';
+import { ArrowLeft, BookOpen, Clock, MapPin, Play, Plus, Shield, Users, Compass, Swords, User, Globe, Lock, UserCheck, Shuffle, Trash2, Sparkles, Loader2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { generateRandomLocation, generateRandomCampaignName } from '@/lib/random-location-generator';
 import { analyzeLocation } from '@/lib/theme-engine';
@@ -45,6 +45,7 @@ export default function Campaigns() {
   const [startingLocation, setStartingLocation] = useState('');
   const [visibility, setVisibility] = useState<CampaignVisibility>('public');
   const [creating, setCreating] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -121,6 +122,30 @@ export default function Campaigns() {
 
     setCampaigns(enriched);
     setLoading(false);
+  };
+
+  const handleGenerateConcept = async () => {
+    setGenerating(true);
+    try {
+      const char = characters.find(c => c.id === selectedCharacter);
+      const { data, error } = await supabase.functions.invoke('battle-narrator', {
+        body: {
+          type: 'generate_campaign_concept',
+          characterName: char?.name,
+          characterLevel: char?.level,
+        },
+      });
+      if (error) throw error;
+      if (data?.name) setNewName(data.name);
+      if (data?.description) setNewDescription(data.description);
+      if (data?.location) setStartingLocation(data.location);
+      toast.success('Campaign concept generated!');
+    } catch (err: any) {
+      console.error('Concept generation failed:', err);
+      toast.error('Failed to generate concept — try again');
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const handleCreate = async () => {
@@ -262,10 +287,20 @@ export default function Campaigns() {
             </Button>
           </DialogTrigger>
            <DialogContent className="sm:max-w-md max-h-[90vh] h-[90vh] sm:h-auto flex flex-col overflow-hidden p-4 sm:p-6">
-             <DialogHeader className="shrink-0">
-               <DialogTitle>Create Campaign</DialogTitle>
-               <DialogDescription>Start a new persistent adventure for your party.</DialogDescription>
-             </DialogHeader>
+              <DialogHeader className="shrink-0">
+                <DialogTitle>Create Campaign</DialogTitle>
+                <DialogDescription>Start a new persistent adventure for your party.</DialogDescription>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateConcept}
+                  disabled={generating}
+                  className="w-full gap-2 mt-2 border-primary/30 text-primary hover:bg-primary/10"
+                >
+                  {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  {generating ? 'Generating...' : 'Generate with Narrator AI'}
+                </Button>
+              </DialogHeader>
              <div className="flex-1 min-h-0 overflow-y-auto -mx-4 px-4 sm:-mx-6 sm:px-6">
              <div className="space-y-4 pb-4">
               <div>

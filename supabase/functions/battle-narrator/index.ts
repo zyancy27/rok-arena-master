@@ -159,6 +159,11 @@ serve(async (req) => {
       return await handleCampaignNarration(requestBody, LOVABLE_API_KEY, corsHeaders);
     }
 
+    // Handle campaign concept generation
+    if (requestBody.type === 'generate_campaign_concept') {
+      return await handleGenerateCampaignConcept(requestBody, LOVABLE_API_KEY, corsHeaders);
+    }
+
     // Handle battlefield intro generation
     if (requestBody.type === 'battlefield_intro') {
       const { battleLocation, emergencyLocation } = requestBody as BattlefieldIntroRequest;
@@ -1584,6 +1589,96 @@ ${isMultiplayer ? `MULTIPLAYER: Respond using "${playerCharacter.name}" — NEVE
     console.error("Campaign narration error:", error);
     return new Response(
       JSON.stringify({ narration: "The world responds to your actions...", xpGained: 5, hpChange: 0 }),
+      { status: 500, headers: { ...cors, "Content-Type": "application/json" } }
+    );
+  }
+}
+
+/**
+ * Generate a campaign concept: name, description, and starting location
+ */
+async function handleGenerateCampaignConcept(
+  body: { characterName?: string; characterLevel?: number; characterPowers?: string; mood?: string },
+  apiKey: string,
+  cors: Record<string, string>
+): Promise<Response> {
+  try {
+    const { characterName, characterLevel, characterPowers, mood } = body;
+
+    const systemPrompt = `You are a creative campaign designer for a tabletop RPG universe. Generate an original, evocative campaign concept.
+
+RULES:
+- The name should be 2-5 words, dramatic and memorable (e.g., "The Shattered Covenant", "Ember of the Forsaken")
+- The description should be 1-3 sentences setting up the premise — mysterious, compelling, adventure-hook style
+- The location should be a specific, vivid starting place (e.g., "Rusted Dockyard of Mireport", "Obsidian Spire Outskirts")
+- Do NOT use generic fantasy clichés. Be creative and specific.
+- If a character is provided, subtly tailor the concept to their tier/powers without being obvious about it.
+
+Return a JSON object with keys: "name", "description", "location"`;
+
+    const userParts: string[] = [];
+    if (characterName) userParts.push(`Character: ${characterName} (Tier ${characterLevel || 1})`);
+    if (characterPowers) userParts.push(`Powers: ${characterPowers}`);
+    if (mood) userParts.push(`Mood/vibe preference: ${mood}`);
+    if (userParts.length === 0) userParts.push('Generate a compelling campaign concept for any character.');
+
+    const models = ["google/gemini-2.5-flash-lite", "google/gemini-2.5-flash"];
+    let data: any = null;
+
+    for (const model of models) {
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userParts.join('\n') },
+          ],
+          max_tokens: 300,
+          response_format: { type: "json_object" },
+        }),
+      });
+
+      if (response.ok) {
+        data = await response.json();
+        break;
+      }
+      const errText = await response.text();
+      console.warn(`Campaign concept model ${model} returned ${response.status}: ${errText}`);
+    }
+
+    if (!data) {
+      throw new Error("All AI models failed for campaign concept generation");
+    }
+
+    const content = data.choices?.[0]?.message?.content || "{}";
+    let concept;
+    try {
+      concept = JSON.parse(content);
+    } catch {
+      concept = { name: "The Unknown Path", description: "A mysterious adventure awaits.", location: "Crossroads of the Wandering Mist" };
+    }
+
+    return new Response(
+      JSON.stringify({
+        name: concept.name || "The Unknown Path",
+        description: concept.description || "A mysterious adventure awaits.",
+        location: concept.location || "Crossroads of the Wandering Mist",
+      }),
+      { headers: { ...cors, "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error("Campaign concept generation error:", error);
+    return new Response(
+      JSON.stringify({
+        name: "The Unknown Path",
+        description: "A mysterious adventure awaits beyond the horizon.",
+        location: "Crossroads of the Wandering Mist",
+      }),
       { status: 500, headers: { ...cors, "Content-Type": "application/json" } }
     );
   }
