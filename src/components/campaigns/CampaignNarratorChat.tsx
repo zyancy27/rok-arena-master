@@ -117,6 +117,7 @@ export default function CampaignNarratorChat({
   campaignEndDialog,
   incomingTrades, outgoingTrades,
   onSendTradeOffer, onAcceptTrade, onDeclineTrade, onCancelTrade,
+  narrativeSystemsContext,
 }: CampaignNarratorChatProps) {
   const [messages, setMessages] = useState<NarratorMessage[]>([]);
   const [input, setInput] = useState('');
