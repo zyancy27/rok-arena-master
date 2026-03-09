@@ -1563,7 +1563,7 @@ export default function CampaignView() {
               onClick={() => setShowTacticalMap(!showTacticalMap)}
               title={showTacticalMap ? 'Hide tactical map' : 'Show tactical map'}
             >
-              <Map className="w-4 h-4" />
+              <MapIcon className="w-4 h-4" />
             </Button>
           )}
           {isActive && (
