@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import BookPage from './BookPage';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useBookEngine } from '@/hooks/use-book-engine';
 
 export default function RulesBook() {
   const [isOpen, setIsOpen] = useState(false);
