@@ -99,6 +99,8 @@ export default function CampaignView() {
   const [myJoinRequest, setMyJoinRequest] = useState<any | null>(null);
   const [campaignEnemies, setCampaignEnemies] = useState<CampaignEnemy[]>([]);
   const [showStatAllocation, setShowStatAllocation] = useState(false);
+  const [sceneMap, setSceneMap] = useState<NarratorSceneMap | null>(null);
+  const [showTacticalMap, setShowTacticalMap] = useState(false);
   const userIsNearBottomRef = useRef(true);
   const [showNewMsgIndicator, setShowNewMsgIndicator] = useState(false);
   // Pending send context held while concentration prompt is active
