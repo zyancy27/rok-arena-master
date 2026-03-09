@@ -50,6 +50,10 @@ import {
   buildTimelineNarratorPrompt,
   type TimelineEvent,
 } from './timelineIntegration';
+import {
+  buildThreadNarratorContext,
+  type ThreadEngineState,
+} from './narrativeThreadEngine';
 
 // ── Types ───────────────────────────────────────────────────────
 
@@ -61,6 +65,7 @@ export interface NarrativeSystemInputs {
   reflection?: ReflectionState;
   conscience?: ConscienceState;
   timelineEvents?: TimelineEvent[];
+  threads?: ThreadEngineState;
 }
 
 export interface NarrativeSystemConditions {
