@@ -70,6 +70,8 @@ export default function Stories() {
   const [editingChapter, setEditingChapter] = useState<Chapter | null>(null);
   const [selectedStoryForChapter, setSelectedStoryForChapter] = useState<Story | null>(null);
   const [expandedStory, setExpandedStory] = useState<string | null>(null);
+  const [storyPoints, setStoryPoints] = useState<Record<string, { timelineEvents: any[]; loreSections: any[] }>>({});
+  const [expandedCharStory, setExpandedCharStory] = useState<string | null>(null);
   const [currentChapterIndex, setCurrentChapterIndex] = useState<Record<string, number>>({});
   
   const [formData, setFormData] = useState({
