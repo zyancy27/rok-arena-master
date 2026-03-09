@@ -269,7 +269,7 @@ function PageRenderer({ page, parts, pages, flipTo, navigate, displayName }: {
     case 'toc':
       return <HierarchicalTOC parts={parts} pages={pages} flipTo={flipTo} displayName={displayName} />;
     case 'part-divider':
-      return <PartDividerPage part={page.part} />;
+      return <PartDividerPage part={page.part} navigate={navigate} />;
     case 'chapter':
       return <ChapterPage part={page.part} chapter={page.chapter} navigate={navigate} />;
     default:
