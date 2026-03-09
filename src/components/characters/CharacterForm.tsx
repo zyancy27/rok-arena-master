@@ -141,6 +141,7 @@ function SectionHeader({
 export default function CharacterForm({ initialData, mode }: CharacterFormProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { canCreateCharacter, limits, storageTier, founderStatus } = useSubscription();
   const [isLoading, setIsLoading] = useState(false);
   const [isParsingNotes, setIsParsingNotes] = useState(false);
   const [isGeneratingBackground, setIsGeneratingBackground] = useState(false);
