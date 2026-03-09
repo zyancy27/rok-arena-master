@@ -3237,42 +3237,46 @@
   box-shadow: -1px 0 3px hsl(0 0% 0% / 0.15);
 }
 
-/* == Page (parchment style) == */
+/* == Page (paper style, inset inside hardback cover) == */
 .rok-book-page {
   position: absolute;
   display: flex;
   flex-direction: column;
   z-index: 10;
   overflow: hidden;
-  transform-origin: left center;
   backface-visibility: hidden;
   font-family: 'Crimson Text', Georgia, serif;
 }
 
-/* Left page */
+/* Left page — inset from cover edges */
 .rok-page-left {
-  left: 0;
-  top: 4px;
-  bottom: 4px;
-  right: 50%;
-  border-radius: 0.375rem 0 0 0.375rem;
+  left: 8px;
+  top: 10px;
+  bottom: 10px;
+  right: calc(50% + 4px);
+  border-radius: 4px 0 0 4px;
 }
-/* Right page */
+/* Right page — inset from cover edges */
 .rok-page-right {
-  left: 50%;
-  top: 4px;
-  bottom: 4px;
-  right: 0;
-  border-radius: 0 0.375rem 0.375rem 0;
+  left: calc(50% + 4px);
+  top: 10px;
+  bottom: 10px;
+  right: 8px;
+  border-radius: 0 4px 4px 0;
+  transform-origin: left center;
+  transform-style: preserve-3d;
 }
-/* Mobile: single page fills container */
+/* Mobile: single page fills container with inset */
 @media (max-width: 767px) {
   .rok-page-left { display: none; }
   .rok-page-right {
-    left: 12px;
-    right: 4px;
-    border-radius: 0 0.375rem 0.375rem 0;
+    left: 16px;
+    right: 8px;
+    top: 10px;
+    bottom: 10px;
+    border-radius: 0 4px 4px 0;
   }
+}
 }
 
 /* == Paper Texture (cream/off-white like real book pages) == */
