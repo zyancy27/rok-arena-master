@@ -3246,6 +3246,8 @@
   overflow: hidden;
   backface-visibility: hidden;
   font-family: 'Crimson Text', Georgia, serif;
+  /* Ensure pages always fill from top to bottom inset */
+  height: calc(100% - 20px);
 }
 
 /* Left page — inset from cover edges */
