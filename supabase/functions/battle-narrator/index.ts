@@ -1208,6 +1208,48 @@ OUTPUT FORMAT (JSON):
   "advanceTime": <number 0-2, how many time periods to advance>,
   "newZone": <string or null if zone changes>,
   "encounterType": <"combat"|"social"|"exploration"|"rest"|null>,
+  "sceneMap": {
+    "locationLabel": "short name of the current scene location (e.g. 'Market Square', 'Dark Alley', 'Cave Entrance')",
+    "zones": [
+      {
+        "id": "unique zone id (e.g. zone-1)",
+        "label": "zone name (e.g. 'Market Stalls', 'Fountain Plaza')",
+        "x": <number 0-100, center X position on grid>,
+        "y": <number 0-100, center Y position on grid>,
+        "width": <number 10-40, zone width>,
+        "height": <number 10-40, zone height>,
+        "terrain": <"open"|"cover"|"hazard"|"water"|"elevation"|"structure"|"vegetation">,
+        "elevation": <"ground"|"elevated"|"high"|"underground"|null>,
+        "description": "1 sentence describing what's in this zone"
+      }
+    ],
+    "entities": [
+      {
+        "id": "entity id — use character name slug or NPC name slug",
+        "name": "display name",
+        "type": <"player"|"enemy"|"npc"|"object">,
+        "zoneId": "which zone they're in",
+        "color": "optional hex color (e.g. #ef4444 for enemies, #3b82f6 for NPCs)"
+      }
+    ],
+    "hazards": [
+      {
+        "id": "hazard id",
+        "label": "hazard name",
+        "type": <"fire"|"electric"|"flood"|"collapse"|"debris"|"ice"|"generic">,
+        "zoneId": "which zone the hazard is in",
+        "radius": <number 3-10>
+      }
+    ],
+    "features": [
+      {
+        "id": "feature id",
+        "label": "feature name (e.g. 'Wooden Cart', 'Stone Pillar')",
+        "type": <"structure"|"cover"|"hazard"|"water"|"vegetation"|"vehicle"|"platform"|"crater">,
+        "zoneId": "which zone this feature is in"
+      }
+    ]
+  },
   "itemsFound": [{"name": "item name", "type": "weapon|armor|potion|artifact|gem|misc", "rarity": "common|uncommon|rare|epic|legendary", "description": "brief description", "statBonus": {"stat": value}}] or [] if no items picked up,
   "itemsUsed": [{"name": "exact item name that was consumed/given away/used up", "reason": "consumed|given|dropped|destroyed"}] or [] if no items were used up,
   "npcUpdates": [
@@ -1245,6 +1287,20 @@ OUTPUT FORMAT (JSON):
     }
   ] or [] if no active enemy changes
 }
+
+SCENE MAP RULES (CRITICAL — generate with EVERY response):
+- The sceneMap represents the CURRENT state of the scene as a top-down tactical view.
+- Generate 3-6 zones that represent distinct areas of the current location (rooms, sections, landmarks).
+- Place ALL relevant entities: the player character, active enemies, notable NPCs in the scene, and important objects.
+- Place zones so they tile the 0-100 grid logically. Adjacent areas should have adjacent coordinates.
+- Update entity positions when they move between zones. If the player walks from the market to an alley, move their entity.
+- Add/remove hazards as the scene evolves. Fire spreads, water recedes, debris accumulates.
+- Add features that provide tactical information: cover spots, structures, interactable objects.
+- The map should help the player visualize WHERE everything is in relation to each other.
+- When the zone changes (newZone is set), generate a completely new map layout for the new location.
+- When the zone stays the same, UPDATE the existing map — move entities, add/remove hazards, but keep the same zone layout unless something dramatic changed it.
+- The player entity id should always be "player". Enemy entities should use their enemy id from the ACTIVE ENEMIES list.
+- Keep zone labels short and descriptive (2-4 words max).
 
 ENEMY CREATION RULES:
 - You CAN and SHOULD create enemies when the story calls for it — ambushes, hostile creatures, bandits, monsters, aggressive NPCs, etc.
