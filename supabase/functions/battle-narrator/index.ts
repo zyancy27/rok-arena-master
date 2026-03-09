@@ -540,7 +540,6 @@ Describe how each character naturally arrives at or is already present in this s
     }
 
     const content = data.choices?.[0]?.message?.content || "{}";
-    const content = data.choices?.[0]?.message?.content || "{}";
     
     let entrances;
     try {
