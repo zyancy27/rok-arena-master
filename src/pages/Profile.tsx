@@ -27,6 +27,7 @@ import { User, Save, Camera, Trash2, EyeOff, Eye, Users, KeyRound, AtSign, Crown
 export default function Profile() {
   const navigate = useNavigate();
   const { user, profile, refreshProfile, signOut } = useAuth();
+  const { founderStatus } = useSubscription();
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [displayName, setDisplayName] = useState(profile?.display_name || '');
