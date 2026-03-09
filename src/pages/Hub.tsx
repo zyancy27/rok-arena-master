@@ -75,8 +75,8 @@ export default function Hub() {
           <Card className="bg-card-gradient border-border hover:glow-accent transition-all cursor-pointer h-full">
             <CardHeader className="text-center">
               <Users className="w-12 h-12 mx-auto text-accent mb-2" />
-              <CardTitle>My Characters</CardTitle>
-              <CardDescription>View and manage your warriors</CardDescription>
+              <CardTitle>My Book</CardTitle>
+              <CardDescription>Your character book — warriors, worlds & lore</CardDescription>
             </CardHeader>
           </Card>
         </Link>
