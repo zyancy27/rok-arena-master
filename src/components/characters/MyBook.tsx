@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,31 +8,25 @@ import { BookOpen, ChevronLeft, ChevronRight, Bookmark, BookmarkCheck, Swords, E
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useBookEngine } from '@/hooks/use-book-engine';
 
 const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
 
 export default function MyBook() {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const [loading, setLoading] = useState(true);
   const [parts, setParts] = useState<MyBookPart[]>([]);
   const [pages, setPages] = useState<MyBookPage[]>([]);
-
   const [isOpen, setIsOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [flipDirection, setFlipDirection] = useState<'next' | 'prev' | null>(null);
-  const [isFlipping, setIsFlipping] = useState(false);
-  const [bookmarks, setBookmarks] = useState<number[]>(() => {
-    try {
-      const saved = localStorage.getItem('rok-mybook-bookmarks');
-      return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
-  });
 
-  const touchStartX = useRef(0);
+  const totalPages = pages.length;
+  const book = useBookEngine({ storageKey: 'rok-mybook', totalPages });
 
-  // ── Fetch data ──────────────────────────────────────────
+  // Fetch data
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -49,9 +43,7 @@ export default function MyBook() {
       let memberCounts: Record<string, number> = {};
       if (groupIds.length > 0) {
         const { data: allMembers } = await supabase.from('character_group_members').select('group_id').in('group_id', groupIds);
-        for (const m of (allMembers || [])) {
-          memberCounts[m.group_id] = (memberCounts[m.group_id] || 0) + 1;
-        }
+        for (const m of (allMembers || [])) { memberCounts[m.group_id] = (memberCounts[m.group_id] || 0) + 1; }
       }
 
       const systems = systemsRes.data || [];
@@ -59,9 +51,7 @@ export default function MyBook() {
       if (systems.length > 0) {
         const sysIds = systems.map(s => s.id);
         const { data: planets } = await supabase.from('planet_customizations').select('solar_system_id').in('solar_system_id', sysIds);
-        for (const p of (planets || [])) {
-          if (p.solar_system_id) planetCounts[p.solar_system_id] = (planetCounts[p.solar_system_id] || 0) + 1;
-        }
+        for (const p of (planets || [])) { if (p.solar_system_id) planetCounts[p.solar_system_id] = (planetCounts[p.solar_system_id] || 0) + 1; }
       }
 
       const input: MyBookInput = {
@@ -80,63 +70,31 @@ export default function MyBook() {
   }, [user]);
 
   useEffect(() => {
-    if (!loading) {
-      const timer = setTimeout(() => setIsOpen(true), 300);
-      return () => clearTimeout(timer);
-    }
+    if (!loading) { const t = setTimeout(() => setIsOpen(true), 300); return () => clearTimeout(t); }
   }, [loading]);
 
-  useEffect(() => {
-    localStorage.setItem('rok-mybook-bookmarks', JSON.stringify(bookmarks));
-  }, [bookmarks]);
-
-  const totalPages = pages.length;
-
-  const flipTo = useCallback((page: number, direction?: 'next' | 'prev') => {
-    if (isFlipping || page < 0 || page >= totalPages) return;
-    const dir = direction || (page > currentPage ? 'next' : 'prev');
-    setFlipDirection(dir);
-    setIsFlipping(true);
-    setTimeout(() => {
-      setCurrentPage(page);
-      setIsFlipping(false);
-      setFlipDirection(null);
-    }, 400);
-  }, [currentPage, isFlipping, totalPages]);
-
-  const nextPage = useCallback(() => {
-    if (currentPage < totalPages - 1) flipTo(currentPage + 1, 'next');
-  }, [currentPage, totalPages, flipTo]);
-
-  const prevPage = useCallback(() => {
-    if (currentPage > 0) flipTo(currentPage - 1, 'prev');
-  }, [currentPage, flipTo]);
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight') nextPage();
-      else if (e.key === 'ArrowLeft') prevPage();
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [nextPage, prevPage]);
-
-  const onTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
-  const onTouchEnd = (e: React.TouchEvent) => {
-    const diff = touchStartX.current - e.changedTouches[0].clientX;
-    if (Math.abs(diff) > 50) { diff > 0 ? nextPage() : prevPage(); }
-  };
-
-  const toggleBookmark = (page: number) => {
-    setBookmarks(prev => prev.includes(page) ? prev.filter(p => p !== page) : [...prev, page]);
-  };
-
-  const isBookmarked = bookmarks.includes(currentPage);
   const displayName = profile?.display_name || profile?.username || 'Warrior';
 
-  // ── Helpers for page label ──────────────────────────────
+  // Dynamic spine width & page edge thickness based on page count
+  const spineWidth = Math.min(24, Math.max(12, totalPages * 0.5));
+  const edgeThickness = Math.min(10, Math.max(4, totalPages * 0.3));
+
+  // Side tabs for parts
+  const sideTabData = useMemo(() => {
+    return parts.map(part => {
+      const idx = pages.findIndex(p => p.type === 'part-divider' && p.part.id === part.id);
+      return { icon: part.icon, label: part.title, pageIdx: idx };
+    });
+  }, [parts, pages]);
+
+  // Two-page spread: current spread shows page pairs
+  const leftPageIdx = isMobile ? null : (book.currentSpread > 0 ? book.currentSpread - 1 + ((book.currentSpread - 1) % 2 === 0 ? 0 : -1) : null);
+  // Simpler: on desktop, show currentSpread on right, currentSpread-1 on left (if > 0)
+  const rightPage = pages[book.currentSpread];
+  const leftPage = (!isMobile && book.currentSpread > 0) ? pages[book.currentSpread - 1] : null;
+
   const getPageLabel = () => {
-    const pg = pages[currentPage];
+    const pg = pages[book.currentSpread];
     if (!pg) return '';
     if (pg.type === 'toc') return 'Contents';
     if (pg.type === 'part-divider') return `Part ${ROMAN[pg.part.number - 1]}`;
@@ -147,9 +105,7 @@ export default function MyBook() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-pulse-glow">
-          <Swords className="w-16 h-16 text-primary" />
-        </div>
+        <div className="animate-pulse"><Swords className="w-16 h-16 text-primary" /></div>
       </div>
     );
   }
@@ -158,68 +114,120 @@ export default function MyBook() {
     <div className="min-h-[80vh] flex flex-col items-center justify-center p-2 sm:p-4">
       <div
         className={cn("rok-book-container relative select-none", isOpen ? "rok-book-open" : "rok-book-closed")}
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
+        style={{ '--spine-width': `${spineWidth}px`, '--edge-thickness': `${edgeThickness}px` } as React.CSSProperties}
+        onTouchStart={book.onTouchStart}
+        onTouchEnd={book.onTouchEnd}
       >
         <div className="rok-book-back" />
         <div className="rok-book-spine" />
 
+        {/* Page edge stacks */}
+        {!isMobile && <div className="rok-page-edges rok-page-edges-left" />}
+        <div className="rok-page-edges rok-page-edges-right" />
+
+        {/* Side section tabs */}
+        <div className="rok-side-tabs">
+          {sideTabData.map((tab, i) => (
+            <button
+              key={i}
+              className={cn("rok-side-tab", book.currentSpread > 0 && pages[book.currentSpread]?.type !== 'toc' && pages[book.currentSpread]?.type === 'part-divider' && (pages[book.currentSpread] as any).part?.id === parts[i]?.id && "active")}
+              onClick={() => tab.pageIdx >= 0 && book.flipTo(tab.pageIdx)}
+              title={tab.label}
+            >
+              {tab.icon}
+            </button>
+          ))}
+        </div>
+
+        {/* Bookmark ribbon */}
+        {book.isBookmarked && (
+          <div className="rok-bookmark-ribbon" style={{ right: isMobile ? 30 : '25%' }} />
+        )}
+
         {/* Bookmark tabs */}
-        {bookmarks.length > 0 && (
-          <div className="absolute right-0 top-8 z-30 flex flex-col gap-1">
-            {bookmarks.map(bm => (
+        {book.bookmarks.length > 0 && (
+          <div className="absolute right-0 top-8 z-30 flex flex-col gap-1" style={{ right: isMobile ? -2 : 'auto', left: isMobile ? 'auto' : 'calc(100% + 30px)' }}>
+            {book.bookmarks.slice(0, 8).map(bm => (
               <button
                 key={bm}
-                onClick={() => flipTo(bm)}
+                onClick={() => book.flipTo(bm)}
                 className={cn(
                   "w-6 h-8 rounded-r-sm text-[8px] font-bold flex items-center justify-center transition-colors",
-                  bm === currentPage ? "bg-primary text-primary-foreground" : "bg-primary/40 text-primary-foreground/70 hover:bg-primary/60"
+                  bm === book.currentSpread ? "bg-primary text-primary-foreground" : "bg-primary/40 text-primary-foreground/70 hover:bg-primary/60"
                 )}
-                title={bm === 0 ? 'Contents' : getPageLabel()}
               >
-                {bm}
+                {bm + 1}
               </button>
             ))}
           </div>
         )}
 
-        {/* Page */}
+        {/* == LEFT PAGE (desktop only) == */}
+        {!isMobile && (
+          <div className={cn("rok-book-page rok-page-left rok-parchment")}>
+            {leftPage ? (
+              <>
+                <div className="flex items-center justify-between px-4 pt-3 pb-1 border-b border-border/20">
+                  <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium" style={{ fontFamily: 'Cinzel, serif' }}>
+                    {displayName}'s Book
+                  </span>
+                </div>
+                <div className="rok-page-content flex-1 overflow-y-auto px-5 sm:px-6 py-4">
+                  <PageRenderer page={leftPage} parts={parts} pages={pages} flipTo={book.flipTo} navigate={navigate} displayName={displayName} />
+                </div>
+                <div className="flex justify-start px-4 py-2 border-t border-border/20">
+                  <span className="rok-page-number">{book.currentSpread}</span>
+                </div>
+              </>
+            ) : (
+              /* Blank endpaper on first spread */
+              <div className="flex-1 flex items-center justify-center rok-parchment">
+                <div className="text-center space-y-3 opacity-40">
+                  <div className="rok-chapter-divider"><span className="rok-ornament">❧</span></div>
+                  <p className="text-xs italic text-muted-foreground" style={{ fontFamily: 'Crimson Text, serif' }}>
+                    This book belongs to {displayName}
+                  </p>
+                  <div className="rok-chapter-divider"><span className="rok-ornament">❧</span></div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* == RIGHT PAGE (always visible) == */}
         <div className={cn(
-          "rok-book-page",
-          isFlipping && flipDirection === 'next' && "rok-flip-next",
-          isFlipping && flipDirection === 'prev' && "rok-flip-prev",
+          "rok-book-page rok-parchment",
+          isMobile ? "rok-page-right" : "rok-page-right",
+          book.isFlipping && book.flipDirection === 'next' && "rok-flip-next",
+          book.isFlipping && book.flipDirection === 'prev' && "rok-flip-prev",
         )}>
           {/* Header */}
-          <div className="flex items-center justify-between px-4 pt-3 pb-1 border-b border-border/30">
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">
-              {displayName}'s Book
+          <div className="flex items-center justify-between px-4 pt-3 pb-1 border-b border-border/20">
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium" style={{ fontFamily: 'Cinzel, serif' }}>
+              {getPageLabel()}
             </span>
             <div className="flex items-center gap-1">
-              {currentPage > 0 && (
-                <Button variant="ghost" size="icon" className="w-7 h-7" onClick={() => toggleBookmark(currentPage)}>
-                  {isBookmarked
-                    ? <BookmarkCheck className="w-3.5 h-3.5 text-primary" />
-                    : <Bookmark className="w-3.5 h-3.5 text-muted-foreground" />
-                  }
-                </Button>
-              )}
+              <Button variant="ghost" size="icon" className="w-7 h-7" onClick={() => book.toggleBookmark(book.currentSpread)}>
+                {book.isBookmarked
+                  ? <BookmarkCheck className="w-3.5 h-3.5 text-primary" />
+                  : <Bookmark className="w-3.5 h-3.5 text-muted-foreground" />
+                }
+              </Button>
             </div>
           </div>
 
           {/* Body */}
-          <div className="rok-page-content flex-1 overflow-y-auto px-5 sm:px-8 py-4">
-            <PageRenderer page={pages[currentPage]} parts={parts} pages={pages} flipTo={flipTo} navigate={navigate} displayName={displayName} />
+          <div className="rok-page-content flex-1 overflow-y-auto px-5 sm:px-6 py-4">
+            <PageRenderer page={rightPage} parts={parts} pages={pages} flipTo={book.flipTo} navigate={navigate} displayName={displayName} />
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between px-4 py-2 border-t border-border/30">
-            <Button variant="ghost" size="sm" onClick={prevPage} disabled={currentPage === 0 || isFlipping} className="text-muted-foreground text-xs gap-1">
+          <div className="flex items-center justify-between px-4 py-2 border-t border-border/20">
+            <Button variant="ghost" size="sm" onClick={book.prevPage} disabled={book.currentSpread === 0 || book.isFlipping} className="text-muted-foreground text-xs gap-1">
               <ChevronLeft className="w-3 h-3" /> Prev
             </Button>
-            <span className="text-[10px] text-muted-foreground">
-              {getPageLabel()} · {currentPage + 1}/{totalPages}
-            </span>
-            <Button variant="ghost" size="sm" onClick={nextPage} disabled={currentPage >= totalPages - 1 || isFlipping} className="text-muted-foreground text-xs gap-1">
+            <span className="rok-page-number">{book.currentSpread + 1} / {totalPages}</span>
+            <Button variant="ghost" size="sm" onClick={book.nextPage} disabled={book.currentSpread >= totalPages - 1 || book.isFlipping} className="text-muted-foreground text-xs gap-1">
               Next <ChevronRight className="w-3 h-3" />
             </Button>
           </div>
@@ -228,13 +236,13 @@ export default function MyBook() {
         {/* Cover */}
         <div className={cn("rok-book-cover", isOpen && "rok-cover-opened")}>
           <div className="flex flex-col items-center justify-center h-full gap-4 p-6">
-            <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30">
               <BookOpen className="w-8 h-8 text-primary" />
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold text-primary-foreground text-center leading-tight">
+            <h1 className="rok-chapter-title text-xl sm:text-2xl font-bold text-primary-foreground text-center leading-tight">
               {displayName}'s Book
             </h1>
-            <p className="text-xs text-primary-foreground/60 uppercase tracking-[0.3em]">
+            <p className="text-xs text-primary-foreground/60 uppercase tracking-[0.3em]" style={{ fontFamily: 'Cinzel, serif' }}>
               Realm of Kings
             </p>
             <div className="w-12 h-px bg-primary/40 mt-2" />
@@ -248,7 +256,7 @@ export default function MyBook() {
 // ── Page Renderer ─────────────────────────────────────────
 
 function PageRenderer({ page, parts, pages, flipTo, navigate, displayName }: {
-  page: MyBookPage;
+  page: MyBookPage | undefined;
   parts: MyBookPart[];
   pages: MyBookPage[];
   flipTo: (page: number, dir?: 'next' | 'prev') => void;
@@ -277,7 +285,6 @@ function HierarchicalTOC({ parts, pages, flipTo, displayName }: {
   flipTo: (page: number, dir?: 'next' | 'prev') => void;
   displayName: string;
 }) {
-  // Build page index lookup
   const findPage = (type: string, partId: string, chapterId?: string) => {
     return pages.findIndex(p => {
       if (type === 'part-divider' && p.type === 'part-divider') return p.part.id === partId;
@@ -289,56 +296,51 @@ function HierarchicalTOC({ parts, pages, flipTo, displayName }: {
   return (
     <div className="space-y-5">
       <div className="text-center space-y-2">
-        <h2 className="text-lg font-bold text-foreground">{displayName}'s Book</h2>
-        <p className="text-[10px] text-muted-foreground italic">Your living chronicle in the Realm of Kings</p>
-        <div className="w-16 h-px bg-primary/40 mx-auto" />
-        <p className="text-[10px] text-muted-foreground uppercase tracking-[0.25em] pt-1">Table of Contents</p>
+        <h2 className="rok-chapter-title text-lg font-bold text-foreground">{displayName}'s Book</h2>
+        <p className="text-[10px] text-muted-foreground italic rok-body-text">Your living chronicle in the Realm of Kings</p>
+        <div className="rok-chapter-divider"><span className="rok-ornament">✦</span></div>
+        <p className="text-[10px] text-muted-foreground uppercase tracking-[0.25em]" style={{ fontFamily: 'Cinzel, serif' }}>
+          Table of Contents
+        </p>
       </div>
 
       <div className="space-y-3">
         {parts.map(part => {
           const partPageIdx = findPage('part-divider', part.id);
-
           return (
             <div key={part.id} className="space-y-0.5">
-              {/* Part heading */}
               <button
                 onClick={() => partPageIdx >= 0 && flipTo(partPageIdx)}
-                className="w-full flex items-center gap-2 px-2 py-2 rounded-md hover:bg-muted/50 transition-colors text-left group"
+                className="w-full flex items-center gap-2 px-2 py-2 rounded-md hover:bg-muted/30 transition-colors text-left group"
               >
                 <span className="text-base">{part.icon}</span>
-                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider" style={{ fontFamily: 'Cinzel, serif' }}>
                   Part {ROMAN[part.number - 1]}
                 </span>
-                <span className="flex-1 text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                <span className="flex-1 text-sm font-semibold text-foreground group-hover:text-primary transition-colors rok-body-text">
                   {part.title}
                 </span>
                 {part.count != null && part.count > 0 && (
                   <Badge variant="secondary" className="text-[9px] h-5 px-1.5">{part.count}</Badge>
                 )}
               </button>
-
-              {/* Chapters indented */}
-              <div className="ml-7 border-l border-border/40 pl-3 space-y-0.5">
+              <div className="ml-7 border-l border-border/30 pl-3 space-y-0.5">
                 {part.chapters.map(chapter => {
                   const chapterPageIdx = findPage('chapter', part.id, chapter.id);
                   return (
                     <button
                       key={chapter.id}
                       onClick={() => chapterPageIdx >= 0 && flipTo(chapterPageIdx)}
-                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted/30 transition-colors text-left group"
+                      className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted/20 transition-colors text-left group"
                     >
-                      <span className="text-[10px] text-muted-foreground tabular-nums w-5 shrink-0">
+                      <span className="text-[10px] text-muted-foreground tabular-nums w-5 shrink-0 rok-page-number">
                         {chapter.number}.
                       </span>
-                      <span className="flex-1 text-sm text-foreground/80 group-hover:text-primary transition-colors">
+                      <span className="flex-1 text-sm text-foreground/80 group-hover:text-primary transition-colors rok-body-text">
                         {chapter.title}
                       </span>
-                      {/* Section count */}
                       {chapter.sections.length > 1 && (
-                        <span className="text-[9px] text-muted-foreground/60">
-                          §{chapter.sections.length}
-                        </span>
+                        <span className="text-[9px] text-muted-foreground/60">§{chapter.sections.length}</span>
                       )}
                     </button>
                   );
@@ -357,14 +359,15 @@ function HierarchicalTOC({ parts, pages, flipTo, displayName }: {
 function PartDividerPage({ part }: { part: MyBookPart }) {
   return (
     <div className="flex flex-col items-center justify-center h-full min-h-[300px] gap-5">
+      <div className="rok-chapter-divider w-full"><span className="rok-ornament">❧</span></div>
       <span className="text-4xl">{part.icon}</span>
-      <p className="text-[11px] text-muted-foreground uppercase tracking-[0.35em] font-medium">
+      <p className="text-[11px] text-muted-foreground uppercase tracking-[0.35em] font-medium" style={{ fontFamily: 'Cinzel, serif' }}>
         Part {ROMAN[part.number - 1]}
       </p>
-      <h2 className="text-2xl sm:text-3xl font-bold text-foreground text-center">{part.title}</h2>
-      <div className="w-20 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+      <h2 className="rok-chapter-title text-2xl sm:text-3xl font-bold text-foreground text-center">{part.title}</h2>
+      <div className="rok-chapter-divider w-48"><span className="rok-ornament">✦</span></div>
       {part.count != null && part.count > 0 && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground rok-body-text italic">
           {part.count} {part.count === 1 ? 'entry' : 'entries'}
         </p>
       )}
@@ -383,20 +386,20 @@ function ChapterPage({ part, chapter, navigate }: {
     <div className="space-y-5">
       {/* Chapter header */}
       <div className="space-y-1">
-        <p className="text-[9px] text-muted-foreground uppercase tracking-widest">
+        <p className="text-[9px] text-muted-foreground uppercase tracking-widest" style={{ fontFamily: 'Cinzel, serif' }}>
           Part {ROMAN[part.number - 1]} · {part.title}
         </p>
-        <h2 className="text-xl sm:text-2xl font-bold text-foreground">
+        <h2 className="rok-chapter-title text-xl sm:text-2xl font-bold text-foreground">
           Chapter {chapter.number}. {chapter.title}
         </h2>
-        <div className="w-full h-px bg-gradient-to-r from-primary/40 via-primary/20 to-transparent" />
+        <div className="rok-chapter-divider"><span className="rok-ornament">§</span></div>
       </div>
 
       {/* Sections */}
       {chapter.sections.map((section, sIdx) => (
         <div key={section.id} className="space-y-2">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-primary">
+            <h3 className="rok-section-title text-sm">
               {chapter.number}.{sIdx + 1} {section.title}
             </h3>
             {section.linkTo && (
@@ -410,21 +413,24 @@ function ChapterPage({ part, chapter, navigate }: {
           </div>
 
           {section.content && (
-            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap pl-1">
+            <p className={cn(
+              "rok-body-text whitespace-pre-wrap pl-1",
+              sIdx === 0 && "rok-drop-cap"
+            )}>
               {section.content}
             </p>
           )}
 
           {/* Subsections */}
           {section.subsections && section.subsections.length > 0 && (
-            <div className="ml-3 border-l-2 border-border/30 pl-3 space-y-2">
+            <div className="ml-3 border-l-2 border-border/20 pl-3 space-y-2">
               {section.subsections.map((sub, subIdx) => (
                 <div key={subIdx}>
-                  <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wide">
+                  <h4 className="text-xs font-medium text-foreground/70 uppercase tracking-wide rok-section-title" style={{ fontSize: '11px' }}>
                     {chapter.number}.{sIdx + 1}.{subIdx + 1} {sub.title}
                   </h4>
                   {sub.content && (
-                    <p className="text-sm text-muted-foreground mt-0.5">{sub.content}</p>
+                    <p className="rok-body-text text-sm text-muted-foreground mt-0.5">{sub.content}</p>
                   )}
                   {sub.linkTo && (
                     <button
@@ -440,7 +446,7 @@ function ChapterPage({ part, chapter, navigate }: {
           )}
 
           {sIdx < chapter.sections.length - 1 && (
-            <div className="w-10 h-px bg-border/40 mx-auto my-2" />
+            <div className="rok-chapter-divider w-16 mx-auto"><span className="rok-ornament">·</span></div>
           )}
         </div>
       ))}
