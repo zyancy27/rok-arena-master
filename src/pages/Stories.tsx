@@ -824,6 +824,104 @@ export default function Stories() {
           })}
         </div>
       )}
+
+      {/* ═══════════════════════════════════════════
+          Character Story Points
+          ═══════════════════════════════════════════ */}
+      {characters.length > 0 && (
+        <div className="space-y-3 mt-8">
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <ScrollText className="w-5 h-5 text-primary" />
+            Character Story Points
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Timeline events and lore sections from your characters, synced with their creation sheets.
+          </p>
+
+          {characters.map((char) => {
+            const points = storyPoints[char.id];
+            if (!points) return null;
+            const hasContent = (points.timelineEvents.length > 0 || points.loreSections.length > 0);
+            if (!hasContent) return null;
+
+            return (
+              <Collapsible
+                key={char.id}
+                open={expandedCharStory === char.id}
+                onOpenChange={() => setExpandedCharStory(expandedCharStory === char.id ? null : char.id)}
+              >
+                <CollapsibleTrigger className="w-full flex items-center gap-3 p-3 rounded-lg border border-border bg-card hover:bg-muted/50 transition-colors text-left">
+                  <User className="w-4 h-4 text-primary shrink-0" />
+                  <span className="text-sm font-semibold flex-1">{char.name}</span>
+                  <Badge variant="outline" className="text-[10px]">
+                    {points.timelineEvents.length} events · {points.loreSections.length} sections
+                  </Badge>
+                  <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${expandedCharStory === char.id ? 'rotate-180' : ''}`} />
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <Card className="mt-2 border-border bg-card/50">
+                    <CardContent className="pt-4 space-y-4">
+                      {/* Timeline Events */}
+                      {points.timelineEvents.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                            <Clock className="w-3 h-3" /> Timeline Events
+                          </h4>
+                          {points.timelineEvents.map((ev: any) => (
+                            <div key={ev.id} className="p-3 rounded-lg border border-border bg-background/50 space-y-1">
+                              <div className="flex items-center gap-2">
+                                {ev.age_or_year && (
+                                  <Badge variant="outline" className="text-[10px] shrink-0">
+                                    <Clock className="w-2.5 h-2.5 mr-1" />{ev.age_or_year}
+                                  </Badge>
+                                )}
+                                <span className="text-sm font-medium">{ev.event_title}</span>
+                                <div className="flex items-center gap-0.5 ml-auto">
+                                  {Array.from({ length: ev.emotional_weight || 3 }, (_, i) => (
+                                    <Heart key={i} className="w-2.5 h-2.5 text-red-400 fill-red-400" />
+                                  ))}
+                                </div>
+                              </div>
+                              {ev.event_description && (
+                                <p className="text-xs text-muted-foreground">{ev.event_description}</p>
+                              )}
+                              {ev.tags && ev.tags.length > 0 && (
+                                <div className="flex gap-1 flex-wrap">
+                                  {ev.tags.map((tag: string) => (
+                                    <Badge key={tag} variant="secondary" className="text-[9px] h-4">{tag}</Badge>
+                                  ))}
+                                </div>
+                              )}
+                              {(ev as any).origin_type === 'story' && (
+                                <Badge variant="outline" className="text-[9px] border-primary/30 text-primary">From Story</Badge>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Lore Sections */}
+                      {points.loreSections.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                            <FileText className="w-3 h-3" /> Lore Sections
+                          </h4>
+                          {points.loreSections.map((section: any) => (
+                            <div key={section.id} className="p-3 rounded-lg border border-border bg-background/50">
+                              <span className="text-sm font-medium">{section.title}</span>
+                              <p className="text-xs text-muted-foreground mt-1 line-clamp-3">{section.body}</p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
