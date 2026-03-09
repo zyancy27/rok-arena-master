@@ -356,21 +356,9 @@ function HierarchicalTOC({ parts, pages, flipTo, displayName }: {
 
 // ── Part Divider Page ─────────────────────────────────────
 
-function PartDividerPage({ part, navigate }: { part: MyBookPart; navigate: (path: string) => void }) {
-  // For the Characters part, extract character links from chapters
-  const isCharactersPart = part.id === 'characters';
-  const characterEntries = isCharactersPart
-    ? part.chapters
-        .filter(ch => ch.id !== 'char-empty')
-        .map(ch => ({
-          id: ch.id.replace('char-', ''),
-          name: ch.title,
-          linkTo: ch.sections[0]?.linkTo,
-        }))
-    : [];
-
+function PartDividerPage({ part }: { part: MyBookPart }) {
   return (
-    <div className="flex flex-col items-center h-full min-h-[300px] gap-4">
+    <div className="flex flex-col items-center justify-center h-full min-h-[300px] gap-4">
       <div className="rok-chapter-divider w-full"><span className="rok-ornament">❧</span></div>
       <span className="text-4xl">{part.icon}</span>
       <p className="text-[11px] text-muted-foreground uppercase tracking-[0.35em] font-medium" style={{ fontFamily: 'Cinzel, serif' }}>
@@ -382,26 +370,6 @@ function PartDividerPage({ part, navigate }: { part: MyBookPart; navigate: (path
         <p className="text-xs text-muted-foreground rok-body-text italic">
           {part.count} {part.count === 1 ? 'entry' : 'entries'}
         </p>
-      )}
-
-      {/* Character listing for Characters part */}
-      {isCharactersPart && characterEntries.length > 0 && (
-        <div className="w-full mt-2 space-y-1 overflow-y-auto max-h-[40vh]">
-          <div className="rok-chapter-divider w-16 mx-auto"><span className="rok-ornament">·</span></div>
-          {characterEntries.map((entry) => (
-            <button
-              key={entry.id}
-              onClick={() => entry.linkTo && navigate(entry.linkTo)}
-              className="w-full text-left px-4 py-2 rounded-md hover:bg-muted/30 transition-colors group flex items-center gap-2"
-            >
-              <span className="text-xs text-muted-foreground/60">❖</span>
-              <span className="rok-body-text text-sm text-foreground/80 group-hover:text-primary transition-colors">
-                {entry.name}
-              </span>
-              <ExternalLink className="w-3 h-3 text-muted-foreground/40 group-hover:text-primary/60 ml-auto transition-colors" />
-            </button>
-          ))}
-        </div>
       )}
     </div>
   );
