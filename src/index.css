@@ -3344,19 +3344,19 @@
 .rok-chapter-title {
   font-family: 'Cinzel Decorative', 'Cinzel', serif;
   letter-spacing: 0.08em;
-  color: hsl(35 40% 70%);
+  color: hsl(20 30% 25%);
 }
 .rok-section-title {
   font-family: 'Cinzel', serif;
   letter-spacing: 0.05em;
   font-weight: 600;
-  color: hsl(var(--primary));
+  color: hsl(20 35% 30%);
 }
 .rok-body-text {
   font-family: 'Crimson Text', Georgia, serif;
   font-size: 15px;
   line-height: 1.75;
-  color: hsl(35 15% 70%);
+  color: hsl(25 20% 25%);
 }
 
 /* == Drop Cap == */
@@ -3367,15 +3367,15 @@
   line-height: 0.8;
   padding-right: 8px;
   padding-top: 4px;
-  color: hsl(var(--primary));
-  text-shadow: 0 2px 4px hsl(0 0% 0% / 0.3);
+  color: hsl(20 40% 30%);
+  text-shadow: 0 1px 2px hsl(0 0% 0% / 0.1);
 }
 
 /* == Page Numbers == */
 .rok-page-number {
   font-family: 'Crimson Text', serif;
   font-size: 11px;
-  color: hsl(35 15% 45%);
+  color: hsl(25 15% 50%);
   letter-spacing: 0.05em;
 }
 
