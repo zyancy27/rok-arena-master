@@ -193,12 +193,19 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
   // Section open states — essentials always visible, rest collapsed on create
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     identity: mode === 'edit',
+    lore: false,
     powers: mode === 'edit',
     personality: mode === 'edit',
     stats: false,
+  });
+
+  // Sub-sections inside Lore
+  const [openLoreSubs, setOpenLoreSubs] = useState<Record<string, boolean>>({
+    background: false,
     appearance: false,
     timeline: false,
   });
+  const toggleLoreSub = (key: string) => setOpenLoreSubs(prev => ({ ...prev, [key]: !prev[key] }));
 
   const toggleSection = (key: string) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
 
@@ -938,11 +945,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                   </div>
                 )}
 
-                {/* Lore */}
-                <div className="space-y-1">
-                  <Label className="text-xs">Lore & Backstory</Label>
-                  <VoiceTextarea placeholder="Origins, motivations, journey..." value={formData.lore} onValueChange={(v) => handleChange('lore', v)} rows={3} className="text-sm" />
-                </div>
+                {/* Lore field moved to Lore section */}
               </CardContent>
             </Card>
           )}
@@ -1224,42 +1227,62 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
         </div>
 
         {/* ═══════════════════════════════════════════
-            SECTION 5 — Character Appearance
+            SECTION 5 — Lore (Appearance, Timeline, Background)
             ═══════════════════════════════════════════ */}
         <div className="space-y-2">
           <SectionHeader
-            icon={<Eye className="w-4 h-4" />}
-            title="Character Appearance"
-            subtitle={Object.values(appearance).some(v => v.trim()) ? 'Details added' : 'Height, build, eyes, features'}
-            badge={Object.values(appearance).some(v => v.trim()) ? 'Added' : 'Optional'}
-            open={openSections.appearance}
-            onToggle={() => toggleSection('appearance')}
+            icon={<BookOpen className="w-4 h-4" />}
+            title="Lore"
+            subtitle={formData.lore || Object.values(appearance).some(v => v.trim()) ? 'Details added' : 'Background, appearance, timeline'}
+            badge={formData.lore || Object.values(appearance).some(v => v.trim()) ? 'Added' : 'Optional'}
+            open={openSections.lore}
+            onToggle={() => toggleSection('lore')}
           />
-          {openSections.appearance && (
+          {openSections.lore && (
             <Card className="border-border bg-card/50">
-              <CardContent className="pt-4">
-                <CharacterAppearance data={appearance} onChange={(field, value) => setAppearance(prev => ({ ...prev, [field]: value }))} />
-              </CardContent>
-            </Card>
-          )}
-        </div>
+              <CardContent className="pt-4 space-y-3">
+                {/* Background sub-section */}
+                <Collapsible open={openLoreSubs.background} onOpenChange={() => toggleLoreSub('background')}>
+                  <CollapsibleTrigger className="w-full flex items-center gap-2 p-2.5 rounded-md border border-border bg-background/50 hover:bg-muted/50 transition-colors text-left">
+                    <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
+                    <span className="text-xs font-medium flex-1">Background & Backstory</span>
+                    <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${openLoreSubs.background ? 'rotate-180' : ''}`} />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="pt-3 space-y-1">
+                      <VoiceTextarea placeholder="Origins, motivations, journey..." value={formData.lore} onValueChange={(v) => handleChange('lore', v)} rows={4} className="text-sm" />
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
 
-        {/* ═══════════════════════════════════════════
-            SECTION 6 — Character Timeline
-            ═══════════════════════════════════════════ */}
-        <div className="space-y-2">
-          <SectionHeader
-            icon={<Clock className="w-4 h-4" />}
-            title="Character Timeline"
-            subtitle="Key life events that shape your character"
-            badge="Optional"
-            open={openSections.timeline}
-            onToggle={() => toggleSection('timeline')}
-          />
-          {openSections.timeline && (
-            <Card className="border-border bg-card/50">
-              <CardContent className="pt-4">
-                <CharacterTimeline characterId={initialData?.id || ''} mode={mode} />
+                {/* Appearance sub-section */}
+                <Collapsible open={openLoreSubs.appearance} onOpenChange={() => toggleLoreSub('appearance')}>
+                  <CollapsibleTrigger className="w-full flex items-center gap-2 p-2.5 rounded-md border border-border bg-background/50 hover:bg-muted/50 transition-colors text-left">
+                    <Eye className="w-3.5 h-3.5 text-primary shrink-0" />
+                    <span className="text-xs font-medium flex-1">Appearance</span>
+                    {Object.values(appearance).some(v => v.trim()) && <Badge variant="outline" className="text-[9px] h-4 border-primary/30 text-primary">Added</Badge>}
+                    <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${openLoreSubs.appearance ? 'rotate-180' : ''}`} />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="pt-3">
+                      <CharacterAppearance data={appearance} onChange={(field, value) => setAppearance(prev => ({ ...prev, [field]: value }))} />
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+
+                {/* Timeline sub-section */}
+                <Collapsible open={openLoreSubs.timeline} onOpenChange={() => toggleLoreSub('timeline')}>
+                  <CollapsibleTrigger className="w-full flex items-center gap-2 p-2.5 rounded-md border border-border bg-background/50 hover:bg-muted/50 transition-colors text-left">
+                    <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
+                    <span className="text-xs font-medium flex-1">Timeline</span>
+                    <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${openLoreSubs.timeline ? 'rotate-180' : ''}`} />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="pt-3">
+                      <CharacterTimeline characterId={initialData?.id || ''} mode={mode} />
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
               </CardContent>
             </Card>
           )}

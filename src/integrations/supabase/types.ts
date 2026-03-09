@@ -1201,6 +1201,8 @@ export type Database = {
           event_description: string
           event_title: string
           id: string
+          origin_id: string | null
+          origin_type: string
           sort_order: number
           tags: string[]
           updated_at: string
@@ -1215,6 +1217,8 @@ export type Database = {
           event_description?: string
           event_title?: string
           id?: string
+          origin_id?: string | null
+          origin_type?: string
           sort_order?: number
           tags?: string[]
           updated_at?: string
@@ -1229,6 +1233,8 @@ export type Database = {
           event_description?: string
           event_title?: string
           id?: string
+          origin_id?: string | null
+          origin_type?: string
           sort_order?: number
           tags?: string[]
           updated_at?: string
