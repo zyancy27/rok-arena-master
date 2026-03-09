@@ -41,6 +41,7 @@ import CampaignEndDialog from '@/components/campaigns/CampaignEndDialog';
 import CampaignNarratorChat from '@/components/campaigns/CampaignNarratorChat';
 import { useAmbientSound } from '@/hooks/use-ambient-sound';
 import { discoverMechanic, type MechanicKey } from '@/lib/mechanic-discovery';
+import { useCampaignNarrative } from '@/hooks/use-campaign-narrative';
 import { useCampaignCombat } from '@/hooks/use-campaign-combat';
 import type { CampaignMechanicDiscovery } from '@/components/campaigns/CampaignNarratorChat';
 import BagBubble from '@/components/campaigns/BagBubble';
