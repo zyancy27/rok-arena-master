@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { fromDecrypted } from '@/lib/encrypted-query';
 import { buildMyBook, type MyBookPart, type MyBookPage, type MyBookChapter, type MyBookSection, type MyBookInput } from '@/lib/my-book-data';
 import { BookOpen, ChevronLeft, ChevronRight, Bookmark, BookmarkCheck, Swords, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
