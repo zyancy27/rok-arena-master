@@ -287,10 +287,20 @@ export default function Campaigns() {
             </Button>
           </DialogTrigger>
            <DialogContent className="sm:max-w-md max-h-[90vh] h-[90vh] sm:h-auto flex flex-col overflow-hidden p-4 sm:p-6">
-             <DialogHeader className="shrink-0">
-               <DialogTitle>Create Campaign</DialogTitle>
-               <DialogDescription>Start a new persistent adventure for your party.</DialogDescription>
-             </DialogHeader>
+              <DialogHeader className="shrink-0">
+                <DialogTitle>Create Campaign</DialogTitle>
+                <DialogDescription>Start a new persistent adventure for your party.</DialogDescription>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateConcept}
+                  disabled={generating}
+                  className="w-full gap-2 mt-2 border-primary/30 text-primary hover:bg-primary/10"
+                >
+                  {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                  {generating ? 'Generating...' : 'Generate with Narrator AI'}
+                </Button>
+              </DialogHeader>
              <div className="flex-1 min-h-0 overflow-y-auto -mx-4 px-4 sm:-mx-6 sm:px-6">
              <div className="space-y-4 pb-4">
               <div>
