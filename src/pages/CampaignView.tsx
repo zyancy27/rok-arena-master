@@ -41,6 +41,7 @@ import CampaignEndDialog from '@/components/campaigns/CampaignEndDialog';
 import CampaignNarratorChat from '@/components/campaigns/CampaignNarratorChat';
 import { useAmbientSound } from '@/hooks/use-ambient-sound';
 import { discoverMechanic, type MechanicKey } from '@/lib/mechanic-discovery';
+import { useCampaignNarrative } from '@/hooks/use-campaign-narrative';
 import { useCampaignCombat } from '@/hooks/use-campaign-combat';
 import type { CampaignMechanicDiscovery } from '@/components/campaigns/CampaignNarratorChat';
 import BagBubble from '@/components/campaigns/BagBubble';
@@ -166,6 +167,16 @@ export default function CampaignView() {
   const { activeEffects: battlefieldEffects, processMessage: processEffectMessage } = useBattlefieldEffects({
     enabled: campaign?.status === 'active',
   });
+
+  // Narrative systems context (identity, gravity, echo, reflection, pressure, conscience)
+  const campaignNarrative = useCampaignNarrative(
+    myParticipant?.character ? {
+      characterId: myParticipant.character_id,
+      characterName: myParticipant.character.name,
+      campaignId: campaignId || '',
+      campaignDescription: campaign?.description || null,
+    } : null
+  );
 
   const triggerDiscovery = (key: MechanicKey) => {
     if (!user) return;
@@ -852,6 +863,14 @@ export default function CampaignView() {
       ];
       const isInventoryCheck = INVENTORY_CHECK_PATTERNS.some(p => p.test(messageText));
 
+      // Build narrative systems context (identity, gravity, echo, reflection, etc.)
+      const activeEnemiesList = campaignEnemies.filter(e => e.status === 'active' || e.status === 'hiding');
+      const narrativeSystemsContext = campaignNarrative.buildNarrativeBlock(
+        messageText,
+        activeEnemiesList.length > 0,
+        snapshotCampaign.current_zone,
+      );
+
       const { data, error } = await supabase.functions.invoke('battle-narrator', {
         body: {
           type: 'campaign_narration',
@@ -896,7 +915,8 @@ export default function CampaignView() {
           ...(combatResult.narratorDiceContext || {}),
           conversationHistory,
           knownNpcs,
-          activeEnemies: campaignEnemies.filter(e => e.status === 'active' || e.status === 'hiding'),
+          activeEnemies: activeEnemiesList,
+          narrativeSystemsContext,
         },
       });
 
@@ -1176,6 +1196,21 @@ export default function CampaignView() {
             });
           }
         }
+
+        // Feed narrator response back into narrative subsystems
+        campaignNarrative.ingestNarratorResponse(
+          data.narration,
+          data.encounterType || null,
+          snapshotCampaign.current_zone,
+          snapshotCampaign.day_count,
+          snapshotCampaign.time_of_day,
+          snapshotCampaign.description || '',
+          snapshotCampaign.story_context as Record<string, unknown> || {},
+          snapshotCampaign.world_state as Record<string, unknown> || {},
+          (knownNpcs || []).length,
+          activeEnemiesList.length,
+          messageText,
+        );
 
         // explicit check, items found, items used, or equip/use intent in their message
         const inventoryInteracted =

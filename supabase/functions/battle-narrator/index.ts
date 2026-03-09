@@ -972,6 +972,7 @@ async function handleCampaignNarration(
     conversationHistory,
     knownNpcs,
     activeEnemies,
+    narrativeSystemsContext,
   } = body;
 
   // Build conversation history as multi-turn messages for AI continuity
@@ -1354,7 +1355,7 @@ Zone: ${currentZone}
 Party: ${partyContext}
 Campaign: ${campaignDescription || 'An ongoing adventure'}
 World State: ${JSON.stringify(worldState || {})}
-Story Context: ${JSON.stringify(storyContext || {})}`;
+Story Context: ${JSON.stringify(storyContext || {})}${narrativeSystemsContext ? `\n\n${narrativeSystemsContext}` : ''}`;
   const itemsInfo = playerCharacter.weaponsItems ? `\nCharacter's Items (from sheet, type: personal — NEVER consumed): ${playerCharacter.weaponsItems}` : '';
   const allCampaignItems = playerCharacter.allCampaignItems && playerCharacter.allCampaignItems.length > 0
     ? `\nFULL CAMPAIGN INVENTORY: ${playerCharacter.allCampaignItems.map((i: any) => `${i.item_name} (${i.item_rarity} ${i.item_type}${i.is_equipped ? ', equipped' : ''}${i.description ? ' — ' + i.description : ''})`).join(', ')}`
