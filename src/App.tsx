@@ -76,6 +76,7 @@ const App = () => (
               <Route path="/campaigns" element={<Campaigns />} />
               <Route path="/campaigns/:id" element={<CampaignView />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/membership" element={<Membership />} />
               <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />
