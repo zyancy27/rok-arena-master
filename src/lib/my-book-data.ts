@@ -376,16 +376,6 @@ export function buildMyBook(input: MyBookInput): { parts: MyBookPart[]; pages: M
       });
     }
 
-    parts.push({
-      id: 'campaigns',
-      number: 6,
-      title: 'Campaign History',
-      icon: '🏰',
-      chapters,
-      count: input.campaigns.length,
-    });
-  }
-
   // ── Build flat page array ────────────────────────────
   const pages: MyBookPage[] = [{ type: 'toc' }];
   for (const part of parts) {
