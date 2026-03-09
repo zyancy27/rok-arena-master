@@ -36,13 +36,12 @@ export default function MyBook() {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const [charsRes, racesRes, groupsRes, storiesRes, systemsRes, campaignsRes] = await Promise.all([
+      const [charsRes, racesRes, groupsRes, storiesRes, systemsRes] = await Promise.all([
         fromDecrypted('characters').select('id, name, level, race, home_planet, image_url').eq('user_id', user.id).order('updated_at', { ascending: false }),
         fromDecrypted('races').select('id, name, description, home_planet').eq('user_id', user.id).order('name'),
         supabase.from('character_groups').select('id, name, description, color').eq('user_id', user.id).order('name'),
         fromDecrypted('stories').select('id, title, summary, character_id, updated_at').eq('user_id', user.id).order('updated_at', { ascending: false }).limit(20),
         supabase.from('solar_systems').select('id, name').eq('user_id', user.id),
-        supabase.from('campaign_participants').select('campaign_id, campaigns(id, name, status, description)').eq('user_id', user.id),
       ]);
 
       const groups = groupsRes.data || [];
@@ -71,7 +70,6 @@ export default function MyBook() {
         groups: groups.map(g => ({ ...g, memberCount: memberCounts[g.id] || 0 })),
         stories: storiesRes.data || [],
         solarSystems: systems.map(s => ({ ...s, planetCount: planetCounts[s.id] || 0 })),
-        campaigns: (campaignsRes.data || []).map((c: any) => c.campaigns).filter(Boolean),
       };
 
       const result = buildMyBook(input);
