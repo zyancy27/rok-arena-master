@@ -1504,6 +1504,7 @@ ${isMultiplayer ? `MULTIPLAYER: Respond using "${playerCharacter.name}" — NEVE
         advanceTime: typeof parsed.advanceTime === 'number' ? Math.max(0, Math.min(2, Math.floor(parsed.advanceTime))) : 0,
         newZone: typeof parsed.newZone === 'string' ? parsed.newZone : null,
         encounterType: parsed.encounterType || null,
+        sceneMap: parsed.sceneMap && typeof parsed.sceneMap === 'object' ? parsed.sceneMap : null,
         itemsFound: Array.isArray(parsed.itemsFound) ? parsed.itemsFound : [],
         itemsUsed: Array.isArray(parsed.itemsUsed) ? parsed.itemsUsed : [],
         npcUpdates: Array.isArray(parsed.npcUpdates) ? parsed.npcUpdates : [],
