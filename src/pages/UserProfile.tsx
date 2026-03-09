@@ -42,7 +42,15 @@ export default function UserProfile() {
         .single();
       
       if (error) throw error;
-      return data;
+      
+      // Check founder status
+      const { data: subData } = await supabase
+        .from('user_subscriptions')
+        .select('founder_status')
+        .eq('user_id', data.id)
+        .maybeSingle();
+      
+      return { ...data, founder_badge: subData?.founder_status || false };
     },
     enabled: !!username,
   });
