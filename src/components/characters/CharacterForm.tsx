@@ -540,6 +540,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
         age: formData.age ? parseInt(formData.age) : null, image_url: imageUrl || null,
         personality: formData.personality.trim() || null, mentality: formData.mentality.trim() || null,
         user_id: user.id, ...stats,
+        ...Object.fromEntries(Object.entries(appearance).map(([k, v]) => [k, (v as string).trim() || null])),
       };
 
       if (mode === 'create') {
