@@ -932,24 +932,36 @@ Day: ${dayCount || 1}
 Party: ${partyMembers}${envTagsList}${chosenLocNote}${worldStateNote}${storyCtxNote}`;
 
   try {
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Generate a unique campaign opening for seed "${seed}". Make it feel completely different from any generic intro.` },
-        ],
-        max_tokens: 1000,
-        temperature: 0.95,
-      }),
-    });
+    const introModels = ["google/gemini-2.5-flash-lite", "google/gemini-2.5-flash"];
+    let rawText = '';
+    let responseOk = false;
 
-    const rawText = await response.text();
-    if (!response.ok) {
-      console.error("Campaign intro API error:", response.status, rawText);
-      throw new Error(`AI API returned ${response.status}`);
+    for (const model of introModels) {
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: `Generate a unique campaign opening for seed "${seed}". Make it feel completely different from any generic intro.` },
+          ],
+          max_tokens: 1000,
+          temperature: 0.95,
+        }),
+      });
+
+      rawText = await response.text();
+      if (response.ok) {
+        responseOk = true;
+        break;
+      }
+      console.warn(`Campaign intro model ${model} returned ${response.status}, trying next...`);
+    }
+
+    if (!responseOk) {
+      console.error("Campaign intro API error:", rawText.substring(0, 200));
+      throw new Error("All AI models returned errors");
     }
 
     let data;
