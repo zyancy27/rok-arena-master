@@ -60,6 +60,7 @@ export interface NarrativeSystemInputs {
   echo?: EchoMemoryState;
   reflection?: ReflectionState;
   conscience?: ConscienceState;
+  timelineEvents?: TimelineEvent[];
 }
 
 export interface NarrativeSystemConditions {
