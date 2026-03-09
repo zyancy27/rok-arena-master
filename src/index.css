@@ -3214,12 +3214,12 @@
   width: var(--edge-thickness, 6px);
   background: repeating-linear-gradient(
     180deg,
-    hsl(35 30% 80%) 0px,
-    hsl(35 25% 75%) 1px,
-    hsl(35 30% 82%) 2px
+    hsl(40 30% 90%) 0px,
+    hsl(38 25% 86%) 1px,
+    hsl(40 30% 91%) 2px
   );
   border-radius: 0 2px 2px 0;
-  box-shadow: 1px 0 3px hsl(0 0% 0% / 0.2);
+  box-shadow: 1px 0 3px hsl(0 0% 0% / 0.15);
 }
 .rok-page-edges-left {
   left: 2px;
@@ -3228,12 +3228,12 @@
   width: var(--edge-thickness, 6px);
   background: repeating-linear-gradient(
     180deg,
-    hsl(35 30% 80%) 0px,
-    hsl(35 25% 75%) 1px,
-    hsl(35 30% 82%) 2px
+    hsl(40 30% 90%) 0px,
+    hsl(38 25% 86%) 1px,
+    hsl(40 30% 91%) 2px
   );
   border-radius: 2px 0 0 2px;
-  box-shadow: -1px 0 3px hsl(0 0% 0% / 0.2);
+  box-shadow: -1px 0 3px hsl(0 0% 0% / 0.15);
 }
 
 /* == Page (parchment style) == */
