@@ -168,6 +168,16 @@ export default function CampaignView() {
     enabled: campaign?.status === 'active',
   });
 
+  // Narrative systems context (identity, gravity, echo, reflection, pressure, conscience)
+  const campaignNarrative = useCampaignNarrative(
+    myParticipant?.character ? {
+      characterId: myParticipant.character_id,
+      characterName: myParticipant.character.name,
+      campaignId: campaignId || '',
+      campaignDescription: campaign?.description || null,
+    } : null
+  );
+
   const triggerDiscovery = (key: MechanicKey) => {
     if (!user) return;
     const info = discoverMechanic(user.id, key);
