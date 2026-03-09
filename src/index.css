@@ -3246,6 +3246,8 @@
   overflow: hidden;
   backface-visibility: hidden;
   font-family: 'Crimson Text', Georgia, serif;
+  /* Ensure pages always fill from top to bottom inset */
+  height: calc(100% - 20px);
 }
 
 /* Left page — inset from cover edges */
@@ -3270,11 +3272,13 @@
 @media (max-width: 767px) {
   .rok-page-left { display: none; }
   .rok-page-right {
-    left: 16px;
-    right: 8px;
+    left: 10px;
+    right: 10px;
     top: 10px;
     bottom: 10px;
-    border-radius: 0 4px 4px 0;
+    height: calc(100% - 20px);
+    width: calc(100% - 20px);
+    border-radius: 4px;
   }
 }
 
