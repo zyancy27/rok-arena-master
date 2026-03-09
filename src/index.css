@@ -3274,21 +3274,23 @@
   }
 }
 
-/* == Parchment Texture == */
+/* == Paper Texture (cream/off-white like real book pages) == */
 .rok-parchment {
   background:
-    radial-gradient(ellipse at 20% 50%, hsl(35 30% 16% / 0.15) 0%, transparent 70%),
-    radial-gradient(ellipse at 80% 20%, hsl(30 20% 12% / 0.1) 0%, transparent 50%),
+    /* Subtle warm tonal variation */
+    radial-gradient(ellipse at 20% 50%, hsl(40 30% 88% / 0.3) 0%, transparent 70%),
+    radial-gradient(ellipse at 80% 20%, hsl(35 25% 85% / 0.2) 0%, transparent 50%),
+    /* Base cream paper color */
     linear-gradient(
       175deg,
-      hsl(35 25% 12%) 0%,
-      hsl(30 20% 10%) 30%,
-      hsl(28 18% 9%) 70%,
-      hsl(25 15% 8%) 100%
+      hsl(40 35% 92%) 0%,
+      hsl(38 30% 90%) 30%,
+      hsl(36 28% 88%) 70%,
+      hsl(35 25% 86%) 100%
     );
   position: relative;
 }
-/* Aged paper grain overlay */
+/* Paper fiber / subtle grain lines */
 .rok-parchment::before {
   content: '';
   position: absolute;
@@ -3298,22 +3300,22 @@
       0deg,
       transparent,
       transparent 26px,
-      hsl(35 20% 50% / 0.03) 26px,
-      hsl(35 20% 50% / 0.03) 27px
+      hsl(35 15% 70% / 0.08) 26px,
+      hsl(35 15% 70% / 0.08) 27px
     );
-  mix-blend-mode: overlay;
+  mix-blend-mode: multiply;
   pointer-events: none;
   z-index: 0;
 }
-/* Foxing/age spots */
+/* Light foxing / age spots */
 .rok-parchment::after {
   content: '';
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at 15% 85%, hsl(30 40% 30% / 0.06) 0%, transparent 25%),
-    radial-gradient(circle at 85% 15%, hsl(25 30% 25% / 0.05) 0%, transparent 20%),
-    radial-gradient(circle at 60% 70%, hsl(35 25% 28% / 0.04) 0%, transparent 15%);
+    radial-gradient(circle at 15% 85%, hsl(30 30% 75% / 0.15) 0%, transparent 25%),
+    radial-gradient(circle at 85% 15%, hsl(25 25% 78% / 0.1) 0%, transparent 20%),
+    radial-gradient(circle at 60% 70%, hsl(35 20% 80% / 0.08) 0%, transparent 15%);
   pointer-events: none;
   z-index: 0;
 }
@@ -3325,18 +3327,18 @@
 
 .rok-page-content {
   scrollbar-width: thin;
-  scrollbar-color: hsl(30 15% 25%) transparent;
+  scrollbar-color: hsl(35 20% 75%) transparent;
   font-family: 'Crimson Text', Georgia, serif;
   font-size: 15px;
   line-height: 1.7;
-  color: hsl(35 15% 75%);
+  color: hsl(25 20% 20%);
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
 }
 .rok-page-content::-webkit-scrollbar { width: 4px; }
 .rok-page-content::-webkit-scrollbar-track { background: transparent; }
-.rok-page-content::-webkit-scrollbar-thumb { background: hsl(30 15% 25%); border-radius: 2px; }
+.rok-page-content::-webkit-scrollbar-thumb { background: hsl(35 20% 75%); border-radius: 2px; }
 
 /* == Book Typography == */
 .rok-chapter-title {
