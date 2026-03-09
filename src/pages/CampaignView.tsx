@@ -1489,6 +1489,23 @@ export default function CampaignView() {
           fetchEnemies();
         }
       }
+      // Feed advance response back into narrative subsystems
+      if (!error && data?.narration) {
+        campaignNarrative.ingestNarratorResponse(
+          data.narration,
+          data.encounterType || null,
+          campaign.current_zone,
+          campaign.day_count,
+          campaign.time_of_day,
+          campaign.description || '',
+          (campaign.story_context ?? {}) as Record<string, unknown>,
+          (campaign.world_state ?? {}) as Record<string, unknown>,
+          0,
+          activeEnemiesList.length,
+          '[ADVANCE STORY]',
+        );
+      }
+
       fetchCampaign();
       fetchMessages();
     } catch (err) {
