@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { fromDecrypted } from '@/lib/encrypted-query';
+import { syncStoryToTimeline, removeStoryTimelineEvents, fetchCharacterStoryPoints } from '@/lib/narrative-sync';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,8 +15,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
-import { Plus, FileText, Edit, Trash2, Eye, EyeOff, BookOpen, User, ChevronLeft, ChevronRight, Book, ListOrdered, Users } from 'lucide-react';
+import { Plus, FileText, Edit, Trash2, Eye, EyeOff, BookOpen, User, ChevronLeft, ChevronRight, Book, ListOrdered, Users, Clock, Heart, ChevronDown, ScrollText } from 'lucide-react';
 
 interface Chapter {
   id: string;
