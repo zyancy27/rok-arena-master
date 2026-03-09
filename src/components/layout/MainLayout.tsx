@@ -194,6 +194,12 @@ export default function MainLayout() {
                   Settings
                 </Link>
               </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/membership" className="flex items-center cursor-pointer">
+                  <Crown className="mr-2 h-4 w-4" />
+                  Membership
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut} className="text-destructive cursor-pointer">
                 <LogOut className="mr-2 h-4 w-4" />
