@@ -91,6 +91,8 @@ interface CampaignNarratorChatProps {
   onAcceptTrade: (tradeId: string) => void;
   onDeclineTrade: (tradeId: string) => void;
   onCancelTrade: (tradeId: string) => void;
+  /** Assembled narrative systems context from the DM brain (identity, gravity, echo, etc.) */
+  narrativeSystemsContext?: string;
 }
 
 const QUICK_ASKS = [
@@ -115,6 +117,7 @@ export default function CampaignNarratorChat({
   campaignEndDialog,
   incomingTrades, outgoingTrades,
   onSendTradeOffer, onAcceptTrade, onDeclineTrade, onCancelTrade,
+  narrativeSystemsContext,
 }: CampaignNarratorChatProps) {
   const [messages, setMessages] = useState<NarratorMessage[]>([]);
   const [input, setInput] = useState('');
@@ -203,6 +206,7 @@ export default function CampaignNarratorChat({
             isCampaign: true, characterWeapons, characterLevel,
             campaignLevel, campaignHp, campaignHpMax,
           },
+          narrativeSystemsContext,
         },
       });
 

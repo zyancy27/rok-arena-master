@@ -1418,6 +1418,14 @@ export default function CampaignView() {
         content: m.content,
       }));
 
+      // Build narrative systems context for advance story
+      const activeEnemiesList = campaignEnemies.filter(e => e.status === 'active' || e.status === 'hiding');
+      const advanceNarrativeContext = campaignNarrative.buildNarrativeBlock(
+        '[ADVANCE STORY] The party is idle.',
+        activeEnemiesList.length > 0,
+        campaign.current_zone,
+      );
+
       const { data, error } = await supabase.functions.invoke('battle-narrator', {
         body: {
           type: 'campaign_narration',
@@ -1435,6 +1443,7 @@ export default function CampaignView() {
           playerCharacter: { name: myParticipant.character?.name },
           isMultiplayer: !isSoloCampaign,
           partyNames: allPartyNames,
+          narrativeSystemsContext: advanceNarrativeContext,
         },
       });
 
@@ -1480,6 +1489,23 @@ export default function CampaignView() {
           fetchEnemies();
         }
       }
+      // Feed advance response back into narrative subsystems
+      if (!error && data?.narration) {
+        campaignNarrative.ingestNarratorResponse(
+          data.narration,
+          data.encounterType || null,
+          campaign.current_zone,
+          campaign.day_count,
+          campaign.time_of_day,
+          campaign.description || '',
+          (campaign.story_context ?? {}) as Record<string, unknown>,
+          (campaign.world_state ?? {}) as Record<string, unknown>,
+          0,
+          activeEnemiesList.length,
+          '[ADVANCE STORY]',
+        );
+      }
+
       fetchCampaign();
       fetchMessages();
     } catch (err) {
@@ -2065,6 +2091,11 @@ export default function CampaignView() {
                   onSwapCharacterChange={setSwapCharacter}
                   onSwap={handleSwapCharacter}
                   swapping={swapping}
+                  narrativeSystemsContext={campaignNarrative.buildNarrativeBlock(
+                    '',
+                    campaignEnemies.filter(e => e.status === 'active' || e.status === 'hiding').length > 0,
+                    campaign.current_zone,
+                  )}
                   campaignEndDialog={
                     isCreator && isActive ? (
                       <CampaignEndDialog
