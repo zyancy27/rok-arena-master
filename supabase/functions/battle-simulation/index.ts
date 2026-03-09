@@ -73,6 +73,27 @@ serve(async (req) => {
 
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+
+    // --- AI Subscription Check ---
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } }
+    );
+    const { data: userData } = await supabaseAdmin.auth.getUser(token);
+    if (userData?.user) {
+      const { data: subData } = await supabaseAdmin
+        .from('user_subscriptions')
+        .select('ai_subscription_active, founder_status')
+        .eq('user_id', userData.user.id)
+        .maybeSingle();
+      if (subData && !subData.founder_status && !subData.ai_subscription_active) {
+        return new Response(
+          JSON.stringify({ error: 'AI subscription required', code: 'SUBSCRIPTION_REQUIRED' }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
     if (claimsError || !claimsData?.claims) {
       return new Response(
         JSON.stringify({ error: "Invalid token" }),
