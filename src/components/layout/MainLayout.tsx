@@ -17,7 +17,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import OwnershipNotice from '@/components/legal/OwnershipNotice';
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb';
 import PageTransition from '@/components/layout/PageTransition';
-import { Swords, Users, Shield, LogOut, User, Home, Dna, Heart, ChevronDown, FileText, Plus, Globe, FolderOpen, Settings } from 'lucide-react';
+import { Swords, Users, Shield, LogOut, User, Home, Dna, Heart, ChevronDown, FileText, Plus, Globe, FolderOpen, Settings, Crown } from 'lucide-react';
 
 interface UserCharacter {
   id: string;
