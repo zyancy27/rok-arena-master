@@ -945,11 +945,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                   </div>
                 )}
 
-                {/* Lore */}
-                <div className="space-y-1">
-                  <Label className="text-xs">Lore & Backstory</Label>
-                  <VoiceTextarea placeholder="Origins, motivations, journey..." value={formData.lore} onValueChange={(v) => handleChange('lore', v)} rows={3} className="text-sm" />
-                </div>
+                {/* Lore field moved to Lore section */}
               </CardContent>
             </Card>
           )}
