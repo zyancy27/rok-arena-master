@@ -3483,7 +3483,7 @@
 /* == Side Section Tabs == */
 .rok-side-tabs {
   position: absolute;
-  right: -28px;
+  right: 0;
   top: 40px;
   z-index: 25;
   display: flex;
@@ -3491,13 +3491,13 @@
   gap: 2px;
 }
 .rok-side-tab {
-  width: 28px;
-  height: 40px;
-  border-radius: 0 6px 6px 0;
+  width: 24px;
+  height: 36px;
+  border-radius: 0 5px 5px 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 11px;
   cursor: pointer;
   transition: all 0.2s ease;
   background: hsl(25 15% 15%);
@@ -3506,18 +3506,18 @@
   box-shadow: 2px 1px 4px hsl(0 0% 0% / 0.3);
 }
 .rok-side-tab:hover {
-  width: 34px;
+  width: 28px;
   background: hsl(25 18% 20%);
 }
 .rok-side-tab.active {
-  width: 32px;
+  width: 28px;
   background: hsl(var(--primary) / 0.2);
   border-color: hsl(var(--primary) / 0.4);
 }
 @media (max-width: 767px) {
-  .rok-side-tabs { right: -24px; }
-  .rok-side-tab { width: 24px; height: 34px; font-size: 10px; }
-  .rok-side-tab:hover { width: 28px; }
+  .rok-side-tabs { right: 0; }
+  .rok-side-tab { width: 20px; height: 30px; font-size: 9px; }
+  .rok-side-tab:hover { width: 24px; }
 }
 
 /* == Margin Notes == */
