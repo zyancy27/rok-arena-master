@@ -1443,7 +1443,7 @@ ${isMultiplayer ? `MULTIPLAYER: Respond using "${playerCharacter.name}" — NEVE
           ...historyMessages,
           { role: "user", content: userMessage },
         ],
-        max_tokens: 1500,
+        max_tokens: 2000,
         temperature: 0.8,
         response_format: { type: "json_object" },
       }),
