@@ -45,6 +45,7 @@ export default function Campaigns() {
   const [startingLocation, setStartingLocation] = useState('');
   const [visibility, setVisibility] = useState<CampaignVisibility>('public');
   const [creating, setCreating] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     if (user) {
