@@ -1222,6 +1222,48 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
           )}
         </div>
 
+        {/* ═══════════════════════════════════════════
+            SECTION 5 — Character Appearance
+            ═══════════════════════════════════════════ */}
+        <div className="space-y-2">
+          <SectionHeader
+            icon={<Eye className="w-4 h-4" />}
+            title="Character Appearance"
+            subtitle={Object.values(appearance).some(v => v.trim()) ? 'Details added' : 'Height, build, eyes, features'}
+            badge={Object.values(appearance).some(v => v.trim()) ? 'Added' : 'Optional'}
+            open={openSections.appearance}
+            onToggle={() => toggleSection('appearance')}
+          />
+          {openSections.appearance && (
+            <Card className="border-border bg-card/50">
+              <CardContent className="pt-4">
+                <CharacterAppearance data={appearance} onChange={(field, value) => setAppearance(prev => ({ ...prev, [field]: value }))} />
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* ═══════════════════════════════════════════
+            SECTION 6 — Character Timeline
+            ═══════════════════════════════════════════ */}
+        <div className="space-y-2">
+          <SectionHeader
+            icon={<Clock className="w-4 h-4" />}
+            title="Character Timeline"
+            subtitle="Key life events that shape your character"
+            badge="Optional"
+            open={openSections.timeline}
+            onToggle={() => toggleSection('timeline')}
+          />
+          {openSections.timeline && (
+            <Card className="border-border bg-card/50">
+              <CardContent className="pt-4">
+                <CharacterTimeline characterId={initialData?.id || ''} mode={mode} />
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
         {/* Ownership Notice */}
         <OwnershipNotice variant="card" />
 
