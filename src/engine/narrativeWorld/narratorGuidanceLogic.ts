@@ -130,10 +130,13 @@ export function assembleNarrativeContext(
     }
   }
 
-  // Conscience — always include if there's a pending alert
+  // Conscience — include if there's a pending unresolved prompt
   let conscience: string | null = null;
   if (systems.conscience) {
-    conscience = buildConscienceNarratorContext(systems.conscience);
+    const pending = systems.conscience.prompts.filter(p => !p.resolved);
+    if (pending.length > 0) {
+      conscience = buildConscienceNarratorContext(pending[pending.length - 1]);
+    }
   }
 
   // Build combined block
