@@ -3,7 +3,7 @@
  *
  * Helper logic layer that decides HOW to apply narrator principles
  * for a given situation. Integrates all narrative subsystems
- * (identity, gravity, pressure, echo, reflection, conscience)
+ * (identity, gravity, pressure, echo, reflection, conscience, timeline)
  * into unified guidance for the AI narrator.
  */
 
