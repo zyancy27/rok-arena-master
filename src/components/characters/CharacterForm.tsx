@@ -445,8 +445,8 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
   };
 
   // Auto-save for edit mode
-  const autoSaveData = useMemo(() => ({ formData, stats }), [formData, stats]);
-  const handleAutoSave = useCallback(async (data: { formData: CharacterFormData; stats: CharacterStats }) => {
+  const autoSaveData = useMemo(() => ({ formData, stats, appearance }), [formData, stats, appearance]);
+  const handleAutoSave = useCallback(async (data: { formData: CharacterFormData; stats: CharacterStats; appearance: AppearanceData }) => {
     if (!initialData?.id || !user || !data.formData.name.trim()) return;
     const characterData = {
       name: data.formData.name.trim(), level: data.formData.level,
@@ -456,6 +456,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
       age: data.formData.age ? parseInt(data.formData.age) : null,
       personality: data.formData.personality.trim() || null, mentality: data.formData.mentality.trim() || null,
       ...data.stats,
+      ...Object.fromEntries(Object.entries(data.appearance).map(([k, v]) => [k, (v as string).trim() || null])),
     };
     const { error } = await supabase.from('characters').update(characterData).eq('id', initialData.id);
     if (error) {
