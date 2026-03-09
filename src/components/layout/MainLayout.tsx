@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import OwnershipNotice from '@/components/legal/OwnershipNotice';
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb';
 import PageTransition from '@/components/layout/PageTransition';
-import { Swords, Users, Shield, LogOut, User, Home, Heart, FileText, Globe, FolderOpen, Settings, Crown, DollarSign } from 'lucide-react';
+import { Swords, Users, Shield, LogOut, User, Home, Heart, Settings, Crown, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface UserCharacter {
