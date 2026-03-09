@@ -382,6 +382,34 @@ function ChapterPage({ part, chapter, navigate }: {
   chapter: MyBookChapter;
   navigate: (path: string) => void;
 }) {
+  // Special directory page: 2-column grid of clickable character names
+  if (chapter.id === 'char-directory') {
+    return (
+      <div className="space-y-4">
+        <div className="text-center space-y-1">
+          <p className="text-[9px] text-muted-foreground uppercase tracking-widest" style={{ fontFamily: 'Cinzel, serif' }}>
+            Part {ROMAN[part.number - 1]} · {part.title}
+          </p>
+          <h2 className="rok-chapter-title text-xl font-bold text-foreground">Character Directory</h2>
+          <div className="rok-chapter-divider"><span className="rok-ornament">§</span></div>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {chapter.sections.map((section) => (
+            <button
+              key={section.id}
+              onClick={() => section.linkTo && navigate(section.linkTo)}
+              className="text-left px-3 py-2.5 rounded-md border border-border/20 hover:bg-muted/30 hover:border-primary/30 transition-all group"
+            >
+              <span className="rok-body-text text-sm text-foreground/80 group-hover:text-primary transition-colors line-clamp-1">
+                {section.title}
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
       {/* Chapter header */}
