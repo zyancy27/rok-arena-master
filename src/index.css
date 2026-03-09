@@ -3288,6 +3288,9 @@
   font-size: 15px;
   line-height: 1.7;
   color: hsl(35 15% 75%);
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 .rok-page-content::-webkit-scrollbar { width: 4px; }
 .rok-page-content::-webkit-scrollbar-track { background: transparent; }
