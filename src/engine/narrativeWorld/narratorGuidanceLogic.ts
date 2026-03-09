@@ -88,6 +88,7 @@ export interface AssembledNarrativeContext {
   reflection: string | null;
   conscience: string | null;
   timeline: string | null;
+  threads: string | null;
   /** Combined context block for the AI prompt */
   combinedBlock: string;
 }
