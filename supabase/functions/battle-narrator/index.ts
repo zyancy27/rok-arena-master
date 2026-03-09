@@ -657,27 +657,37 @@ EXAMPLES:
   const userPrompt = `Describe this battlefield: ${battleLocation}`;
 
   try {
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        max_tokens: 200,
-      }),
-    });
+    const introModels = ["google/gemini-2.5-flash-lite", "google/gemini-2.5-flash"];
+    let data: any = null;
 
-    if (!response.ok) {
-      throw new Error(`AI gateway error: ${response.status}`);
+    for (const model of introModels) {
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          max_tokens: 200,
+        }),
+      });
+
+      if (response.ok) {
+        data = await response.json();
+        break;
+      }
+      await response.text();
+      console.warn(`Battlefield intro model ${model} returned ${response.status}, trying next...`);
     }
 
-    const data = await response.json();
+    if (!data) {
+      throw new Error("All AI models returned errors");
+    }
     const intro = data.choices?.[0]?.message?.content || "";
 
     return new Response(
