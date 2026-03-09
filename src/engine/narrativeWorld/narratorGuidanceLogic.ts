@@ -3,7 +3,7 @@
  *
  * Helper logic layer that decides HOW to apply narrator principles
  * for a given situation. Integrates all narrative subsystems
- * (identity, gravity, pressure, echo, reflection, conscience)
+ * (identity, gravity, pressure, echo, reflection, conscience, timeline)
  * into unified guidance for the AI narrator.
  */
 
@@ -45,6 +45,11 @@ import {
 } from './characterConscienceSystem';
 import type { SceneType } from './narratorPrinciplesEngine';
 import type { EmotionalPressureState } from './types';
+import {
+  analyzeCharacterTimeline,
+  buildTimelineNarratorPrompt,
+  type TimelineEvent,
+} from './timelineIntegration';
 
 // ── Types ───────────────────────────────────────────────────────
 
@@ -55,6 +60,7 @@ export interface NarrativeSystemInputs {
   echo?: EchoMemoryState;
   reflection?: ReflectionState;
   conscience?: ConscienceState;
+  timelineEvents?: TimelineEvent[];
 }
 
 export interface NarrativeSystemConditions {
@@ -76,6 +82,7 @@ export interface AssembledNarrativeContext {
   echo: string | null;
   reflection: string | null;
   conscience: string | null;
+  timeline: string | null;
   /** Combined context block for the AI prompt */
   combinedBlock: string;
 }
@@ -139,10 +146,18 @@ export function assembleNarrativeContext(
     }
   }
 
+  // Timeline — always include if available
+  let timeline: string | null = null;
+  if (systems.timelineEvents && systems.timelineEvents.length > 0) {
+    const analysis = analyzeCharacterTimeline(conditions.characterId, systems.timelineEvents);
+    timeline = buildTimelineNarratorPrompt(analysis);
+  }
+
   // Build combined block
   const parts: string[] = [];
   if (identity) parts.push(`[Character Identity] ${identity}`);
   if (gravity) parts.push(`[Story Gravity] ${gravity}`);
+  if (timeline) parts.push(`[Character Timeline] ${timeline}`);
   if (pressure) parts.push(`[Narrative Pressure] ${pressure}`);
   if (echo) parts.push(`[Character Echo] ${echo}`);
   if (reflection) parts.push(`[Reflection] ${reflection}`);
@@ -171,6 +186,7 @@ export function assembleNarrativeContext(
     echo,
     reflection,
     conscience,
+    timeline,
     combinedBlock: parts.length > 0
       ? `\nNARRATIVE SYSTEMS GUIDANCE:\n${parts.join('\n')}`
       : '',

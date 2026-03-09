@@ -1192,10 +1192,82 @@ export type Database = {
           },
         ]
       }
+      character_timeline_events: {
+        Row: {
+          age_or_year: string
+          character_id: string
+          created_at: string
+          emotional_weight: number
+          event_description: string
+          event_title: string
+          id: string
+          sort_order: number
+          tags: string[]
+          updated_at: string
+          user_id: string
+          visibility: string
+        }
+        Insert: {
+          age_or_year?: string
+          character_id: string
+          created_at?: string
+          emotional_weight?: number
+          event_description?: string
+          event_title?: string
+          id?: string
+          sort_order?: number
+          tags?: string[]
+          updated_at?: string
+          user_id: string
+          visibility?: string
+        }
+        Update: {
+          age_or_year?: string
+          character_id?: string
+          created_at?: string
+          emotional_weight?: number
+          event_description?: string
+          event_title?: string
+          id?: string
+          sort_order?: number
+          tags?: string[]
+          updated_at?: string
+          user_id?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "character_timeline_events_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "character_timeline_events_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "characters_decrypted"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       characters: {
         Row: {
           abilities: string | null
           age: number | null
+          appearance_aura: string | null
+          appearance_build: string | null
+          appearance_clothing_style: string | null
+          appearance_description: string | null
+          appearance_distinct_features: string | null
+          appearance_eyes: string | null
+          appearance_hair: string | null
+          appearance_height: string | null
+          appearance_movement_style: string | null
+          appearance_posture: string | null
+          appearance_typical_expression: string | null
+          appearance_voice: string | null
           created_at: string
           home_moon: string | null
           home_planet: string | null
@@ -1227,6 +1299,18 @@ export type Database = {
         Insert: {
           abilities?: string | null
           age?: number | null
+          appearance_aura?: string | null
+          appearance_build?: string | null
+          appearance_clothing_style?: string | null
+          appearance_description?: string | null
+          appearance_distinct_features?: string | null
+          appearance_eyes?: string | null
+          appearance_hair?: string | null
+          appearance_height?: string | null
+          appearance_movement_style?: string | null
+          appearance_posture?: string | null
+          appearance_typical_expression?: string | null
+          appearance_voice?: string | null
           created_at?: string
           home_moon?: string | null
           home_planet?: string | null
@@ -1258,6 +1342,18 @@ export type Database = {
         Update: {
           abilities?: string | null
           age?: number | null
+          appearance_aura?: string | null
+          appearance_build?: string | null
+          appearance_clothing_style?: string | null
+          appearance_description?: string | null
+          appearance_distinct_features?: string | null
+          appearance_eyes?: string | null
+          appearance_hair?: string | null
+          appearance_height?: string | null
+          appearance_movement_style?: string | null
+          appearance_posture?: string | null
+          appearance_typical_expression?: string | null
+          appearance_voice?: string | null
           created_at?: string
           home_moon?: string | null
           home_planet?: string | null

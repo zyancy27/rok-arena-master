@@ -25,8 +25,10 @@ import { AutoSaveIndicator } from '@/components/ui/auto-save-indicator';
 import {
   ArrowLeft, Save, Sparkles, Camera, Brain, Crosshair, Dumbbell, Flame, Zap, Shield, Heart, Target,
   Wand2, Smile, Lightbulb, Globe, Mountain, Thermometer, FileText, Loader2, ChevronDown, Check,
-  Swords, User, BookOpen, Plus, Trash2,
+  Swords, User, BookOpen, Plus, Trash2, Clock, Eye,
 } from 'lucide-react';
+import CharacterTimeline, { saveTimelineEvents } from './CharacterTimeline';
+import CharacterAppearance, { type AppearanceData, DEFAULT_APPEARANCE } from './CharacterAppearance';
 
 // Helper to parse weapons_items (supports both JSON array and legacy plain text)
 interface WeaponItem { name: string; description: string }
@@ -165,12 +167,37 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
   const [useCustomRace, setUseCustomRace] = useState(false);
   const [useCustomSubRace, setUseCustomSubRace] = useState(false);
 
+  const [appearance, setAppearance] = useState<AppearanceData>(() => {
+    if (initialData) {
+      const d = initialData as any;
+      return {
+        appearance_height: d.appearance_height || '',
+        appearance_build: d.appearance_build || '',
+        appearance_hair: d.appearance_hair || '',
+        appearance_eyes: d.appearance_eyes || '',
+        appearance_distinct_features: d.appearance_distinct_features || '',
+        appearance_clothing_style: d.appearance_clothing_style || '',
+        appearance_aura: d.appearance_aura || '',
+        appearance_description: d.appearance_description || '',
+        appearance_posture: d.appearance_posture || '',
+        appearance_voice: d.appearance_voice || '',
+        appearance_movement_style: d.appearance_movement_style || '',
+        appearance_typical_expression: d.appearance_typical_expression || '',
+      };
+    }
+    return { ...DEFAULT_APPEARANCE };
+  });
+
+  const [timelineEventsLocal, setTimelineEventsLocal] = useState<any[]>([]);
+
   // Section open states — essentials always visible, rest collapsed on create
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     identity: mode === 'edit',
     powers: mode === 'edit',
     personality: mode === 'edit',
     stats: false,
+    appearance: false,
+    timeline: false,
   });
 
   const toggleSection = (key: string) => setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
@@ -418,8 +445,8 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
   };
 
   // Auto-save for edit mode
-  const autoSaveData = useMemo(() => ({ formData, stats }), [formData, stats]);
-  const handleAutoSave = useCallback(async (data: { formData: CharacterFormData; stats: CharacterStats }) => {
+  const autoSaveData = useMemo(() => ({ formData, stats, appearance }), [formData, stats, appearance]);
+  const handleAutoSave = useCallback(async (data: { formData: CharacterFormData; stats: CharacterStats; appearance: AppearanceData }) => {
     if (!initialData?.id || !user || !data.formData.name.trim()) return;
     const characterData = {
       name: data.formData.name.trim(), level: data.formData.level,
@@ -429,6 +456,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
       age: data.formData.age ? parseInt(data.formData.age) : null,
       personality: data.formData.personality.trim() || null, mentality: data.formData.mentality.trim() || null,
       ...data.stats,
+      ...Object.fromEntries(Object.entries(data.appearance).map(([k, v]) => [k, (v as string).trim() || null])),
     };
     const { error } = await supabase.from('characters').update(characterData).eq('id', initialData.id);
     if (error) {
@@ -513,6 +541,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
         age: formData.age ? parseInt(formData.age) : null, image_url: imageUrl || null,
         personality: formData.personality.trim() || null, mentality: formData.mentality.trim() || null,
         user_id: user.id, ...stats,
+        ...Object.fromEntries(Object.entries(appearance).map(([k, v]) => [k, (v as string).trim() || null])),
       };
 
       if (mode === 'create') {
@@ -1189,6 +1218,48 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                     color={stat.color}
                   />
                 ))}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* ═══════════════════════════════════════════
+            SECTION 5 — Character Appearance
+            ═══════════════════════════════════════════ */}
+        <div className="space-y-2">
+          <SectionHeader
+            icon={<Eye className="w-4 h-4" />}
+            title="Character Appearance"
+            subtitle={Object.values(appearance).some(v => v.trim()) ? 'Details added' : 'Height, build, eyes, features'}
+            badge={Object.values(appearance).some(v => v.trim()) ? 'Added' : 'Optional'}
+            open={openSections.appearance}
+            onToggle={() => toggleSection('appearance')}
+          />
+          {openSections.appearance && (
+            <Card className="border-border bg-card/50">
+              <CardContent className="pt-4">
+                <CharacterAppearance data={appearance} onChange={(field, value) => setAppearance(prev => ({ ...prev, [field]: value }))} />
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* ═══════════════════════════════════════════
+            SECTION 6 — Character Timeline
+            ═══════════════════════════════════════════ */}
+        <div className="space-y-2">
+          <SectionHeader
+            icon={<Clock className="w-4 h-4" />}
+            title="Character Timeline"
+            subtitle="Key life events that shape your character"
+            badge="Optional"
+            open={openSections.timeline}
+            onToggle={() => toggleSection('timeline')}
+          />
+          {openSections.timeline && (
+            <Card className="border-border bg-card/50">
+              <CardContent className="pt-4">
+                <CharacterTimeline characterId={initialData?.id || ''} mode={mode} />
               </CardContent>
             </Card>
           )}
