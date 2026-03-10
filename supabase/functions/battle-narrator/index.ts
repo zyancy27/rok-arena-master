@@ -964,6 +964,12 @@ Your role:
 - If there are multiple party members, mention ALL of them by name in the scene. Never generate actions or dialogue for any of them — just place them in the environment.
 - IMPORTANT: Characters start with their powers RESET. They are at Campaign Level 1 with only basic foundational abilities. Describe this subtly.
 
+PARTY TRACKING (CRITICAL):
+- The full party roster is listed below. In the intro, mention EVERY party member by name at least once.
+- Place each party member physically in the scene so the player knows where everyone is.
+- Do NOT focus on only one or two members while ignoring others — distribute attention across the whole group.
+- If there are 3+ members, a brief line for each is fine ("Dakota leans against the wall. Kira studies a map. Jun fidgets with a coin.")
+
 Campaign: ${campaignName}
 Description: ${campaignDescription || 'An adventure awaits.'}
 Location: ${location}
@@ -1453,6 +1459,24 @@ NPC PERSISTENCE RULES:
 - Give NPCs memorable personalities — quirks, speech patterns, attitudes. Make them feel real.
 - NPCs should remember past interactions based on their relationship data.
 
+NPC NAME COLLISION PREVENTION (CRITICAL — NEVER BREAK):
+- Before naming a new NPC, CHECK the lists below for names already in use:
+  • Party member names: ${partyNames.join(', ')}
+  • Known NPC names: ${Array.isArray(knownNpcs) && knownNpcs.length > 0 ? knownNpcs.map((n: any) => n.name).join(', ') : 'none yet'}
+  • Active enemy names: ${Array.isArray(activeEnemies) && activeEnemies.length > 0 ? activeEnemies.map((e: any) => e.name).join(', ') : 'none'}
+- NEVER reuse a name that already exists in any of these lists. Every new NPC MUST have a UNIQUE name.
+- If you want a name that's similar, change it enough to be clearly different (e.g., if "Kael" exists, do NOT use "Kael" again — use "Dorian", "Maren", "Riss", etc.).
+- This applies to ALL new NPCs, enemies, and named characters you introduce.
+
+PARTY AWARENESS (CRITICAL — prevents "disappearing companions"):
+- The full party is: ${partyContext}
+- Even when focusing on the acting character, the REST of the party still EXISTS in the scene.
+- Every 2-3 responses, briefly acknowledge what the other party members are doing: standing nearby, watching, reacting to the environment, etc.
+- If the party enters a new zone, mention ALL members arriving — not just the acting character.
+- If combat starts, note the positions of ALL party members, not just the fighter.
+- Do NOT let party members silently vanish. If someone hasn't been mentioned in several turns, include a brief line about where they are and what they're doing.
+- If a party member would logically react to something dramatic (explosion, NPC threat, discovery), you may describe their PRESENCE ("${partyNames.length > 1 ? partyNames[1] + ' tenses up nearby' : 'the group reacts'}") but NEVER generate dialogue or decisions for other player characters.
+
 ITEMS & LOOT:
 - When players explore, fight, trade, or search, you MAY reward them with items.
 - Items should fit the narrative context (a cave might have gems, a defeated guard might drop a weapon).
@@ -1472,7 +1496,7 @@ INVENTORY TRACKING (CRITICAL — ENFORCE STRICTLY):
 
 KNOWN NPCs IN THIS CAMPAIGN:
 ${Array.isArray(knownNpcs) && knownNpcs.length > 0
-  ? knownNpcs.map((npc: any) => `- ${npc.name} (${npc.role}): ${npc.personality || 'No personality set'}. Disposition toward player: ${npc.disposition} (trust: ${npc.trust_level}). Zone: ${npc.current_zone || 'unknown'}. Last seen: Day ${npc.last_seen_day || '?'}. ${npc.backstory ? 'Backstory: ' + npc.backstory + '. ' : ''}${npc.relationship_notes ? 'Notes: ' + npc.relationship_notes : ''}`).join('\n')
+  ? knownNpcs.map((npc: any) => `- [ID: ${npc.id}] ${npc.name} (${npc.role}): ${npc.personality || 'No personality set'}. Disposition toward player: ${npc.disposition} (trust: ${npc.trust_level}). Zone: ${npc.current_zone || 'unknown'}. Last seen: Day ${npc.last_seen_day || '?'}. ${npc.backstory ? 'Backstory: ' + npc.backstory + '. ' : ''}${npc.relationship_notes ? 'Notes: ' + npc.relationship_notes : ''}`).join('\n')
   : 'No NPCs met yet. Create new ones naturally as the player interacts with the world.'}
 
 NPC MOVEMENT & PRESENCE RULES:
