@@ -203,7 +203,6 @@ export default function CampaignView() {
   }, [user, campaignId]);
 
   // ── Auto-generate narrator intro if campaign is active but has no narrator message ──
-  const introAttemptedRef = useRef(false);
   useEffect(() => {
     if (
       !loading &&
