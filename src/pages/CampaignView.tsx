@@ -201,6 +201,63 @@ export default function CampaignView() {
     };
   }, [user, campaignId]);
 
+  // ── Auto-generate narrator intro if campaign is active but has no narrator message ──
+  const introAttemptedRef = useRef(false);
+  useEffect(() => {
+    if (
+      !loading &&
+      campaign?.status === 'active' &&
+      participants.length > 0 &&
+      myParticipant &&
+      !introAttemptedRef.current
+    ) {
+      const hasNarratorMessage = messages.some(m => m.sender_type === 'narrator');
+      if (!hasNarratorMessage) {
+        introAttemptedRef.current = true;
+        (async () => {
+          try {
+            setNarratorTyping(true);
+            const partyInfo = participants
+              .filter(p => p.is_active)
+              .map(p => `${p.character?.name} (Campaign Lv.${p.campaign_level}, Original Tier ${p.character?.level})`)
+              .join(', ');
+
+            const { data, error } = await supabase.functions.invoke('battle-narrator', {
+              body: {
+                type: 'campaign_intro',
+                campaignName: campaign.name,
+                campaignDescription: campaign.description,
+                location: campaign.current_zone,
+                timeOfDay: campaign.time_of_day,
+                dayCount: campaign.day_count,
+                partyMembers: partyInfo,
+                worldState: campaign.world_state,
+                storyContext: campaign.story_context,
+                environmentTags: campaign.environment_tags,
+                chosenLocation: campaign.chosen_location,
+                campaignSeed: campaign.campaign_seed || `${campaign.id}-${Date.now()}`,
+              },
+            });
+
+            if (!error && data?.narration) {
+              await supabase.from('campaign_messages').insert({
+                campaign_id: campaign.id,
+                sender_type: 'narrator',
+                content: data.narration,
+                channel: 'in_universe',
+              });
+              await fetchMessages();
+            }
+          } catch (err) {
+            console.error('Failed to auto-generate campaign intro:', err);
+          } finally {
+            setNarratorTyping(false);
+          }
+        })();
+      }
+    }
+  }, [loading, campaign, participants, myParticipant, messages]);
+
 
   // Smart auto-scroll: only scroll if user is near the bottom
   useEffect(() => {
