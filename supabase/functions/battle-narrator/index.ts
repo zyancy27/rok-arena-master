@@ -852,7 +852,6 @@ OUTPUT FORMAT: Return JSON with:
       throw new Error("All AI models returned errors");
     }
 
-    const data = await response.json();
     const content = data.choices?.[0]?.message?.content || '{}';
 
     let parsed;
