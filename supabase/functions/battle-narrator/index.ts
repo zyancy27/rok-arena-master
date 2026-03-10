@@ -147,7 +147,7 @@ serve(async (req) => {
     // --- AI Subscription Check ---
     // Check if the caller has AI access (founder or active subscription)
     const subAuthHeader = req.headers.get("Authorization");
-    if (authHeader) {
+    if (subAuthHeader) {
       const supabaseAdmin = createClient(
         Deno.env.get("SUPABASE_URL") ?? "",
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
