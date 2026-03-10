@@ -146,14 +146,14 @@ serve(async (req) => {
 
     // --- AI Subscription Check ---
     // Check if the caller has AI access (founder or active subscription)
-    const authHeader = req.headers.get("Authorization");
-    if (authHeader) {
+    const subAuthHeader = req.headers.get("Authorization");
+    if (subAuthHeader) {
       const supabaseAdmin = createClient(
         Deno.env.get("SUPABASE_URL") ?? "",
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
         { auth: { persistSession: false } }
       );
-      const token = authHeader.replace("Bearer ", "");
+      const token = subAuthHeader.replace("Bearer ", "");
       const { data: userData } = await supabaseAdmin.auth.getUser(token);
       if (userData?.user) {
         const { data: subData } = await supabaseAdmin
