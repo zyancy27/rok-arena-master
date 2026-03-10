@@ -102,6 +102,7 @@ export default function CampaignView() {
   const [sceneMap, setSceneMap] = useState<NarratorSceneMap | null>(null);
   const [showTacticalMap, setShowTacticalMap] = useState(false);
   const userIsNearBottomRef = useRef(true);
+  const introAttemptedRef = useRef(false);
   const [showNewMsgIndicator, setShowNewMsgIndicator] = useState(false);
   // Pending send context held while concentration prompt is active
   const pendingSendRef = useRef<{
