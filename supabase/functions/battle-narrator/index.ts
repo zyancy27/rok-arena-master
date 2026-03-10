@@ -153,7 +153,7 @@ serve(async (req) => {
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
         { auth: { persistSession: false } }
       );
-      const token = authHeader.replace("Bearer ", "");
+      const token = subAuthHeader.replace("Bearer ", "");
       const { data: userData } = await supabaseAdmin.auth.getUser(token);
       if (userData?.user) {
         const { data: subData } = await supabaseAdmin
