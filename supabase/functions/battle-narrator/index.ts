@@ -964,6 +964,12 @@ Your role:
 - If there are multiple party members, mention ALL of them by name in the scene. Never generate actions or dialogue for any of them — just place them in the environment.
 - IMPORTANT: Characters start with their powers RESET. They are at Campaign Level 1 with only basic foundational abilities. Describe this subtly.
 
+PARTY TRACKING (CRITICAL):
+- The full party roster is listed below. In the intro, mention EVERY party member by name at least once.
+- Place each party member physically in the scene so the player knows where everyone is.
+- Do NOT focus on only one or two members while ignoring others — distribute attention across the whole group.
+- If there are 3+ members, a brief line for each is fine ("Dakota leans against the wall. Kira studies a map. Jun fidgets with a coin.")
+
 Campaign: ${campaignName}
 Description: ${campaignDescription || 'An adventure awaits.'}
 Location: ${location}
