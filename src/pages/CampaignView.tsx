@@ -104,6 +104,7 @@ export default function CampaignView() {
   const userIsNearBottomRef = useRef(true);
   const introAttemptedRef = useRef(false);
   const [showNewMsgIndicator, setShowNewMsgIndicator] = useState(false);
+  const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
   // Pending send context held while concentration prompt is active
   const pendingSendRef = useRef<{
     messageText: string;
