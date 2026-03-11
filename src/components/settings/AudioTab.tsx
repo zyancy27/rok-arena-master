@@ -2,6 +2,7 @@ import { AudioSettings } from '@/lib/settings-defaults';
 import { SettingsSection } from './SettingsSection';
 import { SettingsSlider } from './SettingsSlider';
 import { SettingsToggle } from './SettingsToggle';
+import { SettingsSelect } from './SettingsSelect';
 import { Separator } from '@/components/ui/separator';
 
 interface Props {
@@ -32,6 +33,29 @@ export function AudioTab({ settings, onChange, onReset }: Props) {
         <>
           <SettingsToggle label="Auto-Read Narrator Messages" description="Automatically read narrator messages aloud when received" checked={settings.narratorAutoRead} onCheckedChange={v => onChange({ narratorAutoRead: v })} />
           <SettingsSlider label="Narrator Voice Volume" value={settings.narratorVoiceVolume} onValueChange={v => onChange({ narratorVoiceVolume: v })} />
+        </>
+      )}
+
+      <Separator className="my-4" />
+
+      <h3 className="text-sm font-semibold text-foreground mb-3">🌍 Narration Ambient Sounds</h3>
+      <SettingsToggle label="Enable Narration Ambient" description="Dynamic ambient sounds that react to what the narrator describes" checked={settings.narrationAmbientEnabled} onCheckedChange={v => onChange({ narrationAmbientEnabled: v })} />
+      {settings.narrationAmbientEnabled && (
+        <>
+          <SettingsSelect
+            label="Ambient Intensity"
+            description="Controls density and richness of ambient sound layers"
+            value={settings.narrationAmbientIntensity}
+            options={[
+              { value: 'low', label: 'Low — Minimal, subtle cues only' },
+              { value: 'standard', label: 'Standard — Balanced ambient layers' },
+              { value: 'immersive', label: 'Immersive — Rich, multi-layered soundscape' },
+            ]}
+            onValueChange={v => onChange({ narrationAmbientIntensity: v as any })}
+          />
+          <SettingsSlider label="Ambient Volume" value={settings.narrationAmbientVolume} onValueChange={v => onChange({ narrationAmbientVolume: v })} />
+          <SettingsSlider label="Event Cue Volume" value={settings.narrationEventCueVolume} onValueChange={v => onChange({ narrationEventCueVolume: v })} />
+          <SettingsToggle label="Reduce Vocal Tension Sounds" description="Lower volume or skip human distress sounds like screams and crying" checked={settings.narrationReduceVocalSounds} onCheckedChange={v => onChange({ narrationReduceVocalSounds: v })} />
         </>
       )}
 
