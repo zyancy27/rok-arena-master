@@ -401,7 +401,7 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
       playingRef.current = false;
       stopAmbient();
     }
-  }, [options.enabled, options.volume, playAmbient, playAccentCue, stopAmbient, stopAccents, buildTtsSegments]);
+  }, [options.enabled, options.volume, options.hasAIAccess, playAmbient, playAccentCue, stopAmbient, stopAccents, buildTtsSegments]);
 
   const stop = useCallback(() => {
     if (audioRef.current) {
