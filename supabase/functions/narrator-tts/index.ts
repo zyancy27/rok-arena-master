@@ -11,9 +11,8 @@ const corsHeaders = {
  */
 /**
  * Cinematic fantasy RPG narrator voice presets.
- * Calm, expressive, mostly soft — like a seasoned storyteller beside a fire.
- * Light Scottish accent, warm feminine voice.
- * Tone shifts dynamically per scene context.
+ * Natural, human, warm feminine storyteller with light Scottish lilt.
+ * Higher stability + similarity for natural tone; lower style to avoid AI artifacts.
  */
 const VOICE_PRESETS: Record<string, {
   stability: number;
@@ -22,51 +21,51 @@ const VOICE_PRESETS: Record<string, {
   speed: number;
 }> = {
   exploration: {
-    stability: 0.62,
-    similarity_boost: 0.88,
-    style: 0.22,
+    stability: 0.72,
+    similarity_boost: 0.95,
+    style: 0.08,
     speed: 0.92,
   },
   peaceful: {
-    stability: 0.75,
-    similarity_boost: 0.92,
-    style: 0.12,
+    stability: 0.80,
+    similarity_boost: 0.96,
+    style: 0.05,
     speed: 0.88,
   },
   danger: {
-    stability: 0.52,
-    similarity_boost: 0.88,
-    style: 0.28,
+    stability: 0.65,
+    similarity_boost: 0.94,
+    style: 0.12,
     speed: 0.90,
   },
   combat: {
-    stability: 0.45,
-    similarity_boost: 0.85,
-    style: 0.35,
-    speed: 0.98,
+    stability: 0.58,
+    similarity_boost: 0.92,
+    style: 0.15,
+    speed: 0.96,
   },
   tragic: {
-    stability: 0.80,
-    similarity_boost: 0.92,
-    style: 0.08,
-    speed: 0.82,
+    stability: 0.82,
+    similarity_boost: 0.96,
+    style: 0.04,
+    speed: 0.84,
   },
   victory: {
-    stability: 0.70,
-    similarity_boost: 0.90,
-    style: 0.18,
+    stability: 0.75,
+    similarity_boost: 0.95,
+    style: 0.08,
     speed: 0.90,
   },
   npc: {
-    stability: 0.40,
-    similarity_boost: 0.82,
-    style: 0.40,
-    speed: 0.95,
+    stability: 0.55,
+    similarity_boost: 0.90,
+    style: 0.20,
+    speed: 0.94,
   },
   default: {
-    stability: 0.65,
-    similarity_boost: 0.90,
-    style: 0.18,
+    stability: 0.74,
+    similarity_boost: 0.95,
+    style: 0.06,
     speed: 0.90,
   },
 };
