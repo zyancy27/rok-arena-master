@@ -156,6 +156,42 @@ export default function CampaignView() {
 
   const otherParticipantsReadThis = (messageId: string) => otherReadIds.has(messageId);
 
+  // ── Typing indicator state ──
+  const [typingParticipants, setTypingParticipants] = useState<{ name: string; characterId: string }[]>([]);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  const updateTypingStatus = async (isTyping: boolean) => {
+    if (!myParticipant) return;
+    await supabase
+      .from('campaign_participants')
+      .update({ is_typing: isTyping, last_typed_at: isTyping ? new Date().toISOString() : null })
+      .eq('id', myParticipant.id);
+  };
+
+  const handleCampaignInputChange = (value: string) => {
+    setInputMessage(value);
+    // Debounce typing indicator
+    if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+    if (value.trim()) {
+      typingDebounceRef.current = setTimeout(() => updateTypingStatus(true), 300);
+      // Auto-clear after 5 seconds of no input
+      typingTimeoutRef.current = setTimeout(() => updateTypingStatus(false), 5000);
+    } else {
+      updateTypingStatus(false);
+    }
+  };
+
+  // Clear typing on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
+    };
+  }, []);
+
   // Dynamic scene location from messages
   const [activeSceneLocation, setActiveSceneLocation] = useState<string | null>(null);
   useEffect(() => {
@@ -362,8 +398,23 @@ export default function CampaignView() {
           });
         }
       )
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_participants', filter: `campaign_id=eq.${campaignId}` },
-        () => fetchParticipants()
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'campaign_participants', filter: `campaign_id=eq.${campaignId}` },
+        (payload) => {
+          const updated = payload.new as any;
+          // Update typing indicators from other participants
+          if (updated.user_id !== user?.id) {
+            setTypingParticipants(prev => {
+              const without = prev.filter(t => t.characterId !== updated.character_id);
+              if (updated.is_typing) {
+                const p = participantsRef.current.find(pp => pp.character_id === updated.character_id);
+                return [...without, { name: p?.character?.name || 'Someone', characterId: updated.character_id }];
+              }
+              return without;
+            });
+          }
+          // Also refetch participants for read receipts etc.
+          fetchParticipants();
+        }
       )
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'campaigns', filter: `id=eq.${campaignId}` },
         (payload) => {
@@ -1383,6 +1434,7 @@ export default function CampaignView() {
     }
 
     setInputMessage('');
+    updateTypingStatus(false);
     setSending(true);
 
     try {
@@ -1947,7 +1999,22 @@ export default function CampaignView() {
                       );
                     })}
 
-                    {/* Narrator loading indicator */}
+                    {/* Player typing indicators */}
+                    {typingParticipants.length > 0 && (
+                      <div className="p-3 rounded-lg bg-muted/50 border-l-4 border-accent mr-8 animate-fade-in">
+                        <p className="text-xs mb-1 text-muted-foreground">
+                          {typingParticipants.map(t => t.name).join(', ')} {typingParticipants.length === 1 ? 'is' : 'are'} thinking…
+                        </p>
+                        <div className="flex items-center gap-1">
+                          <span className="flex gap-1">
+                            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
                     {sending && (
                       <div className="p-3 rounded-lg bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-l-4 border-amber-500 mx-2 animate-fade-in">
                         <div className="flex items-center gap-2">
@@ -2097,7 +2164,7 @@ export default function CampaignView() {
                       <VoiceTextarea
                         placeholder={isSoloMode ? "Describe your solo action..." : "Describe your action..."}
                         value={inputMessage}
-                        onValueChange={setInputMessage}
+                        onValueChange={handleCampaignInputChange}
                         disabled={sending}
                         className="flex-1"
                         style={{ maxHeight: '300px' }}
