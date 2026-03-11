@@ -9,60 +9,65 @@ const corsHeaders = {
  * Context-aware voice presets for the Dungeon Master narrator.
  * Each preset adjusts ElevenLabs voice_settings to match the scene mood.
  */
+/**
+ * Baldur's Gate-inspired narrator voice presets.
+ * Deep, measured, gravelly storyteller — dramatic pauses, weighty delivery.
+ * Each context shifts tone while keeping that iconic fantasy narrator gravitas.
+ */
 const VOICE_PRESETS: Record<string, {
   stability: number;
   similarity_boost: number;
   style: number;
   speed: number;
 }> = {
-  // Exploration: mysterious, measured, inviting curiosity
+  // Exploration: slow, ominous, dripping with mystery — like describing ancient ruins
   exploration: {
-    stability: 0.55,
-    similarity_boost: 0.75,
-    style: 0.35,
-    speed: 0.90,
+    stability: 0.65,
+    similarity_boost: 0.85,
+    style: 0.30,
+    speed: 0.82,
   },
-  // Peaceful / reflective moments: soft, gentle, slow
+  // Peaceful / reflective: hushed gravitas, almost whispered weight
   peaceful: {
-    stability: 0.70,
-    similarity_boost: 0.80,
-    style: 0.20,
-    speed: 0.85,
+    stability: 0.75,
+    similarity_boost: 0.85,
+    style: 0.15,
+    speed: 0.78,
   },
-  // Danger / suspense: tense, slightly unstable, deliberate
+  // Danger / suspense: controlled tension, words chosen with dread
   danger: {
-    stability: 0.40,
-    similarity_boost: 0.70,
-    style: 0.50,
-    speed: 0.88,
-  },
-  // Combat: energetic, cinematic, faster pace
-  combat: {
-    stability: 0.35,
-    similarity_boost: 0.65,
-    style: 0.60,
-    speed: 1.05,
-  },
-  // Victory / triumph: warm, grounded, slightly elevated
-  victory: {
-    stability: 0.60,
+    stability: 0.50,
     similarity_boost: 0.80,
     style: 0.45,
-    speed: 0.92,
+    speed: 0.80,
   },
-  // NPC dialogue: expressive, character-driven
+  // Combat: commanding, thunderous, each blow narrated with weight
+  combat: {
+    stability: 0.45,
+    similarity_boost: 0.80,
+    style: 0.55,
+    speed: 0.88,
+  },
+  // Victory / triumph: deep satisfaction, a saga concluded
+  victory: {
+    stability: 0.70,
+    similarity_boost: 0.85,
+    style: 0.35,
+    speed: 0.80,
+  },
+  // NPC dialogue: slightly more expressive, but still narrator-framed
   npc: {
-    stability: 0.30,
-    similarity_boost: 0.60,
-    style: 0.65,
-    speed: 0.95,
-  },
-  // Default / general narration: balanced storyteller
-  default: {
-    stability: 0.50,
+    stability: 0.40,
     similarity_boost: 0.75,
-    style: 0.40,
-    speed: 0.93,
+    style: 0.50,
+    speed: 0.85,
+  },
+  // Default: the classic BG narrator — deep, slow, authoritative
+  default: {
+    stability: 0.60,
+    similarity_boost: 0.85,
+    style: 0.30,
+    speed: 0.80,
   },
 };
 
