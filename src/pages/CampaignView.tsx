@@ -117,6 +117,10 @@ export default function CampaignView() {
     autoRead: userSettings.audio.narratorAutoRead,
     volume: userSettings.audio.narratorVoiceVolume * userSettings.audio.masterVolume,
   });
+  const narratorVoiceRef = useRef(narratorVoice);
+  narratorVoiceRef.current = narratorVoice;
+  const userSettingsRef = useRef(userSettings);
+  userSettingsRef.current = userSettings;
   const chatSoundsEngine = getChatSoundsEngine();
   useEffect(() => {
     chatSoundsEngine.setEnabled(userSettings.audio.chatSoundsEnabled);
