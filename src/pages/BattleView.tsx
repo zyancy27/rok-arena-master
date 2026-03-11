@@ -804,6 +804,9 @@ export default function BattleView() {
                 // Unlock sending after server confirms
                 if (charData?.user_id === user?.id) {
                   setIsSending(false);
+                } else {
+                  // Play received sound for opponent messages
+                  chatSoundsEngine.play('message_received');
                 }
                 
                 // Process battlefield effects from in-universe messages
