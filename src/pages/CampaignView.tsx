@@ -117,6 +117,10 @@ export default function CampaignView() {
     autoRead: userSettings.audio.narratorAutoRead,
     volume: userSettings.audio.narratorVoiceVolume * userSettings.audio.masterVolume,
   });
+  const narratorVoiceRef = useRef(narratorVoice);
+  narratorVoiceRef.current = narratorVoice;
+  const userSettingsRef = useRef(userSettings);
+  userSettingsRef.current = userSettings;
   const chatSoundsEngine = getChatSoundsEngine();
   useEffect(() => {
     chatSoundsEngine.setEnabled(userSettings.audio.chatSoundsEnabled);
@@ -384,8 +388,8 @@ export default function CampaignView() {
             processEffectMessage(msg.content);
             // Play narrator arrival sound + auto-read
             chatSoundsEngine.play('narrator_message');
-            if (userSettings.audio.narratorAutoRead && userSettings.audio.narratorVoiceEnabled) {
-              narratorVoice.speak(msg.content);
+            if (userSettingsRef.current.audio.narratorAutoRead && userSettingsRef.current.audio.narratorVoiceEnabled) {
+              narratorVoiceRef.current.speak(msg.content);
             }
           } else if (msg.sender_type === 'player') {
             // Play received sound if it's from another player
