@@ -1631,7 +1631,8 @@ export default function CampaignView() {
               <Compass className="w-4 h-4 sm:w-5 sm:h-5 text-primary shrink-0" />
               <span className="truncate">{campaign.name}</span>
             </h1>
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs sm:text-sm text-muted-foreground mt-0.5">
+             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs sm:text-sm text-muted-foreground mt-0.5">
+              <RealtimeStatus status={realtimeStatus} />
               <span className="whitespace-nowrap">{getTimeEmoji(campaign.time_of_day)} {campaign.time_of_day}</span>
               <span className="hidden sm:inline">·</span>
               <span className="whitespace-nowrap">Day {campaign.day_count}</span>
