@@ -117,6 +117,45 @@ export default function CampaignView() {
   // Ref to avoid stale closure in realtime callbacks
   const participantsRef = useRef<CampaignParticipant[]>([]);
 
+  // Read receipt tracking for campaign messages
+  const [otherReadIds, setOtherReadIds] = useState<Set<string>>(new Set());
+
+  // Update our read receipt when new messages arrive
+  useEffect(() => {
+    const updateReadReceipt = async () => {
+      if (!myParticipant || !messages.length || campaign?.status !== 'active') return;
+      const lastMsg = messages[messages.length - 1];
+      if (!lastMsg || lastMsg.isPending) return;
+      // Only update if the last message is from someone else
+      if (lastMsg.character_id === myParticipant.character_id && lastMsg.sender_type === 'player') return;
+      await supabase
+        .from('campaign_participants')
+        .update({ last_read_message_id: lastMsg.id, last_read_at: new Date().toISOString() })
+        .eq('id', myParticipant.id);
+    };
+    updateReadReceipt();
+  }, [messages, myParticipant, campaign?.status]);
+
+  // Build set of message IDs that other participants have read
+  useEffect(() => {
+    if (!myParticipant || participants.length <= 1) return;
+    const others = participants.filter(p => p.id !== myParticipant.id);
+    // Collect all message IDs that at least one other participant has read up to
+    const readSet = new Set<string>();
+    for (const other of others) {
+      if (other.last_read_message_id) {
+        // Mark all messages up to and including last_read_message_id as read
+        for (const msg of messages) {
+          readSet.add(msg.id);
+          if (msg.id === other.last_read_message_id) break;
+        }
+      }
+    }
+    setOtherReadIds(readSet);
+  }, [participants, messages, myParticipant]);
+
+  const otherParticipantsReadThis = (messageId: string) => otherReadIds.has(messageId);
+
   // Dynamic scene location from messages
   const [activeSceneLocation, setActiveSceneLocation] = useState<string | null>(null);
   useEffect(() => {
