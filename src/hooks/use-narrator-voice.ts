@@ -6,6 +6,7 @@ export type NarratorSceneContext =
   | 'peaceful'
   | 'danger'
   | 'combat'
+  | 'tragic'
   | 'victory'
   | 'npc'
   | 'default';
