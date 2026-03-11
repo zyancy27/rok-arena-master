@@ -12,9 +12,8 @@ const corsHeaders = {
 /**
  * Cinematic fantasy RPG narrator voice presets.
  * Calm, expressive, mostly soft — like a seasoned storyteller beside a fire.
- * Deliberate pacing, subtle emotion, atmospheric and immersive.
- * Tone shifts dynamically: curious in exploration, tense in danger,
- * vivid in combat, quiet in tragedy, relieved in victory.
+ * Light Scottish accent, warm feminine voice.
+ * Tone shifts dynamically per scene context.
  */
 const VOICE_PRESETS: Record<string, {
   stability: number;
@@ -22,61 +21,53 @@ const VOICE_PRESETS: Record<string, {
   style: number;
   speed: number;
 }> = {
-  // Exploration: curious, mysterious, observational — unveiling a hidden world
   exploration: {
-    stability: 0.65,
+    stability: 0.62,
     similarity_boost: 0.88,
     style: 0.22,
-    speed: 0.82,
+    speed: 0.92,
   },
-  // Peaceful / reflective: soft, warm, unhurried — fireside storytelling
   peaceful: {
-    stability: 0.78,
+    stability: 0.75,
     similarity_boost: 0.92,
     style: 0.12,
-    speed: 0.78,
-  },
-  // Danger / suspense: tense, cautious, restrained urgency — breath held
-  danger: {
-    stability: 0.55,
-    similarity_boost: 0.88,
-    style: 0.28,
-    speed: 0.80,
-  },
-  // Combat: urgent, vivid, dramatic — cinematic action unfolding in real time
-  combat: {
-    stability: 0.48,
-    similarity_boost: 0.85,
-    style: 0.35,
     speed: 0.88,
   },
-  // Tragic moments: quiet, heavy, emotionally weighted — silence between words
+  danger: {
+    stability: 0.52,
+    similarity_boost: 0.88,
+    style: 0.28,
+    speed: 0.90,
+  },
+  combat: {
+    stability: 0.45,
+    similarity_boost: 0.85,
+    style: 0.35,
+    speed: 0.98,
+  },
   tragic: {
-    stability: 0.82,
+    stability: 0.80,
     similarity_boost: 0.92,
     style: 0.08,
-    speed: 0.72,
+    speed: 0.82,
   },
-  // Victory: measured pride or relief — not triumphant, but earned
   victory: {
-    stability: 0.72,
+    stability: 0.70,
     similarity_boost: 0.90,
     style: 0.18,
-    speed: 0.80,
+    speed: 0.90,
   },
-  // NPC dialogue: more expressive, adopting character personality through tone
   npc: {
-    stability: 0.42,
+    stability: 0.40,
     similarity_boost: 0.82,
     style: 0.40,
-    speed: 0.85,
+    speed: 0.95,
   },
-  // Default: calm, expressive, soft — the seasoned storyteller's natural voice
   default: {
-    stability: 0.68,
+    stability: 0.65,
     similarity_boost: 0.90,
     style: 0.18,
-    speed: 0.80,
+    speed: 0.90,
   },
 };
 
@@ -106,8 +97,8 @@ serve(async (req) => {
     // Select voice preset based on scene context
     const preset = VOICE_PRESETS[context as string] || VOICE_PRESETS.default;
 
-    // Use Brian voice — calm, expressive, soft storyteller
-    const selectedVoice = voiceId || "nPczCjzI2devNBz1zQrb";
+    // Use Matilda voice — warm, expressive feminine narrator with light Scottish quality
+    const selectedVoice = voiceId || "XrExE9yKIg1WjnnlVkGX";
 
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoice}?output_format=mp3_44100_128`,
