@@ -124,6 +124,11 @@ export const DEFAULT_SETTINGS: UserSettings = {
     heartbeatLowHP: true,
     spatialAudio: false,
     batterySaverAudio: false,
+    narratorVoiceEnabled: true,
+    narratorAutoRead: false,
+    narratorVoiceVolume: 0.8,
+    chatSoundsEnabled: true,
+    chatSoundsVolume: 0.6,
   },
   visual: {
     vfxIntensity: 'medium',
