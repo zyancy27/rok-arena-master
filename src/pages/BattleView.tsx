@@ -1756,6 +1756,8 @@ export default function BattleView() {
         if (userSettings.audio.narratorAutoRead && userSettings.audio.narratorVoiceEnabled) {
           narratorVoice.speak(response.data.narration);
         }
+        // Trigger narration-aware ambient sounds
+        narrationAmbient.processNarration(response.data.narration);
         
         // Also post to OOC chat for persistence
         await supabase.from('battle_messages').insert({
