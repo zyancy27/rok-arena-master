@@ -406,7 +406,7 @@ export default function CampaignView() {
             if (userSettingsRef.current.audio.narratorAutoRead && userSettingsRef.current.audio.narratorVoiceEnabled) {
               // Duck ambient sounds while narrator is speaking
               narrationAmbientRef.current.setNarratorSpeaking(true);
-              narratorVoiceRef.current.speak(msg.content);
+              narratorVoiceRef.current.speak(msg.content, undefined, msg.id);
               // Un-duck after estimated speech duration (roughly 80ms per word)
               const wordCount = msg.content.split(/\s+/).length;
               setTimeout(() => narrationAmbientRef.current.setNarratorSpeaking(false), wordCount * 80 + 2000);
