@@ -264,6 +264,13 @@ export default function BattleView() {
     chatSoundsEngine.setEnabled(userSettings.audio.chatSoundsEnabled);
     chatSoundsEngine.setVolume(userSettings.audio.chatSoundsVolume * userSettings.audio.masterVolume);
   }, [userSettings.audio.chatSoundsEnabled, userSettings.audio.chatSoundsVolume, userSettings.audio.masterVolume]);
+
+  // Narration-aware ambient sounds
+  const narrationAmbient = useNarrationAmbient({
+    enabled: battle?.status === 'active',
+    audioSettings: userSettings.audio,
+  });
+
   const [showRules, setShowRules] = useState(false);
   const [locationInput, setLocationInput] = useState('');
   const [isFlippingCoin, setIsFlippingCoin] = useState(false);
