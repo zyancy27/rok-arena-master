@@ -21,6 +21,11 @@ export interface AudioSettings {
   heartbeatLowHP: boolean;
   spatialAudio: boolean;
   batterySaverAudio: boolean;
+  narratorVoiceEnabled: boolean;
+  narratorAutoRead: boolean;
+  narratorVoiceVolume: number;
+  chatSoundsEnabled: boolean;
+  chatSoundsVolume: number;
 }
 
 export interface VisualSettings {
