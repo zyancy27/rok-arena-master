@@ -31,6 +31,8 @@ class NarrationSoundManager {
   private sceneContext: string[] = []; // active cue IDs for context memory
   private enabled = true;
   private fetchingCues = new Set<string>();
+  private reduceVocalSounds = false;
+  private narratorSpeaking = false;
 
   setEnabled(val: boolean) {
     this.enabled = val;
