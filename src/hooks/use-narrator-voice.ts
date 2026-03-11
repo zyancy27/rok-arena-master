@@ -139,6 +139,8 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
   const ambientRef = useRef<HTMLAudioElement | null>(null);
   const accentAudiosRef = useRef<HTMLAudioElement[]>([]);
   const playingRef = useRef(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const cacheRef = useRef<Map<string, string>>(new Map());
   const ambientCacheRef = useRef<Map<string, string>>(new Map());
   const accentCacheRef = useRef<Map<string, string>>(new Map());
