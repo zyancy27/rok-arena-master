@@ -294,7 +294,7 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
 
     try {
       await amb.play();
-      const targetVol = Math.min(options.volume * 0.3, 0.3);
+      const targetVol = Math.min(options.volume * 0.15, 0.15);
       const fadeIn = setInterval(() => {
         if (amb.volume < targetVol - 0.02) {
           amb.volume = Math.min(targetVol, amb.volume + 0.03);

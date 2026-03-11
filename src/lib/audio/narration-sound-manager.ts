@@ -231,7 +231,7 @@ class NarrationSoundManager {
     if (!this.enabled || this.intensityLevel === 'off') return;
 
     const audio = new Audio(audioUrl);
-    const targetVol = cue.volumeCeiling * rules.globalVolumeMultiplier * this.masterVolume;
+    const targetVol = this.getEffectiveVolume(cue, rules);
     audio.volume = 0;
     audio.loop = persistent;
 
