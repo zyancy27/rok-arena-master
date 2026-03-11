@@ -5,13 +5,74 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+/**
+ * Context-aware voice presets for the Dungeon Master narrator.
+ * Each preset adjusts ElevenLabs voice_settings to match the scene mood.
+ */
+const VOICE_PRESETS: Record<string, {
+  stability: number;
+  similarity_boost: number;
+  style: number;
+  speed: number;
+}> = {
+  // Exploration: mysterious, measured, inviting curiosity
+  exploration: {
+    stability: 0.55,
+    similarity_boost: 0.75,
+    style: 0.35,
+    speed: 0.90,
+  },
+  // Peaceful / reflective moments: soft, gentle, slow
+  peaceful: {
+    stability: 0.70,
+    similarity_boost: 0.80,
+    style: 0.20,
+    speed: 0.85,
+  },
+  // Danger / suspense: tense, slightly unstable, deliberate
+  danger: {
+    stability: 0.40,
+    similarity_boost: 0.70,
+    style: 0.50,
+    speed: 0.88,
+  },
+  // Combat: energetic, cinematic, faster pace
+  combat: {
+    stability: 0.35,
+    similarity_boost: 0.65,
+    style: 0.60,
+    speed: 1.05,
+  },
+  // Victory / triumph: warm, grounded, slightly elevated
+  victory: {
+    stability: 0.60,
+    similarity_boost: 0.80,
+    style: 0.45,
+    speed: 0.92,
+  },
+  // NPC dialogue: expressive, character-driven
+  npc: {
+    stability: 0.30,
+    similarity_boost: 0.60,
+    style: 0.65,
+    speed: 0.95,
+  },
+  // Default / general narration: balanced storyteller
+  default: {
+    stability: 0.50,
+    similarity_boost: 0.75,
+    style: 0.40,
+    speed: 0.93,
+  },
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { text, voiceId } = await req.json();
+    const { text, voiceId, context } = await req.json();
     const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
 
     if (!ELEVENLABS_API_KEY) {
@@ -28,6 +89,9 @@ serve(async (req) => {
       });
     }
 
+    // Select voice preset based on scene context
+    const preset = VOICE_PRESETS[context as string] || VOICE_PRESETS.default;
+
     // Use George voice by default (deep, authoritative narrator voice)
     const selectedVoice = voiceId || "JBFqnCBsd6RMkjVDRZzb";
 
@@ -43,11 +107,11 @@ serve(async (req) => {
           text: text.substring(0, 5000),
           model_id: "eleven_turbo_v2_5",
           voice_settings: {
-            stability: 0.6,
-            similarity_boost: 0.75,
-            style: 0.4,
+            stability: preset.stability,
+            similarity_boost: preset.similarity_boost,
+            style: preset.style,
             use_speaker_boost: true,
-            speed: 0.95,
+            speed: preset.speed,
           },
         }),
       }
