@@ -54,6 +54,7 @@ import ConcentrationButton from '@/components/battles/ConcentrationButton';
 import type { CharacterStats } from '@/lib/character-stats';
 import CampaignTacticalMap, { type NarratorSceneMap } from '@/components/campaigns/CampaignTacticalMap';
 import { useNarratorVoice } from '@/hooks/use-narrator-voice';
+import NarratorMessageContent from '@/components/campaigns/NarratorMessageContent';
 import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import { useNarrationAmbient } from '@/hooks/use-narration-ambient';
