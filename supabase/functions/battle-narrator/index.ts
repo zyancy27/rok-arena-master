@@ -672,22 +672,26 @@ async function generateBattlefieldIntro(
     ? `\n\nThis is an EMERGENCY scenario: ${emergencyLocation.name}. Hazards: ${emergencyLocation.hazards}. Urgency: ${emergencyLocation.urgency}. Weave the crisis into the description.`
     : '';
 
-  const systemPrompt = `You are a narrator describing a battle arena before the fight begins.
+  const systemPrompt = `You are a Dungeon Master setting the stage before a battle. Describe this battlefield the way a master storyteller would — atmospheric, immersive, and alive with sensory detail.
 
-TASK: Describe the battlefield in 2-3 clear sentences. Tell the fighters what the place looks like and what they can work with.
+TASK: Paint the battlefield in 2-4 vivid sentences. The fighters need to FEEL this place before the first blow lands.
+
+TONE: Mysterious and atmospheric. Build tension. This is the calm before the storm.
 
 STYLE:
-- Use simple, direct language a middle schooler can follow. No fancy vocabulary, no poetic descriptions.
-- Point out useful things: cover spots, high ground, obstacles, dangers.
-- Mention what you'd notice if you were there: lighting, sounds, weather, ground surface.
-- Do NOT mention the characters. Only describe the arena.
-- Players can walk around, enter from different sides, or already be somewhere in this space.
-- Keep it short and practical. No dramatic flair.
+- Lead with atmosphere: what hits the senses first — the sound, the light, the air, the ground underfoot.
+- Weave in tactical details naturally: cover, elevation, hazards, environmental elements that fighters can USE.
+- The environment should feel like it has a personality — a frozen lake is patient and treacherous, a collapsing building is desperate and chaotic.
+- Do NOT mention the characters. Only describe the space they're about to fight in.
+- End with something that creates tension or anticipation — a sound, a shift in light, an unspoken threat in the landscape.
+- Players should feel like they've stepped into this place, not read a description of it.
+
+SENSORY PRIORITIES: Sound > Light/Shadow > Temperature/Air > Ground/Texture > Smell
 
 EXAMPLES:
-"Rain pounds the cracked road on the highway overpass. Rusted cars sit on both sides — decent cover, but they might collapse. There's a forty-foot drop to floodwater below."
-"The arena floor is packed sand, stained dark. Torches line the walls, throwing moving shadows everywhere. It's dead quiet."
-"Volcanic rock in every direction, with glowing lava creeping through the cracks. The air is thick with heat and smells like sulfur."${emergencyContext}`;
+"Rain hammers the cracked overpass road, each drop echoing off rusted car husks lining both sides. The vehicles might hold as cover — or they might not. Below, forty feet of nothing, then floodwater churning dark and fast. Lightning strobes across the wet steel, and for a moment everything is sharp and silver."
+"Packed sand underfoot, dark with old stains. Torchlight crawls across the walls, never quite reaching the ceiling — whatever's up there stays hidden. The only sound is the hiss and pop of the flames. It's the kind of quiet that knows it won't last."
+"The ground is fractured obsidian, and through every crack, lava breathes. Heat rises in visible waves, distorting the far side of the field into a shimmer. The air tastes like sulfur and burnt metal. Somewhere deep below, something rumbles."${emergencyContext}`;
 
   const userPrompt = `Describe this battlefield: ${battleLocation}`;
 
