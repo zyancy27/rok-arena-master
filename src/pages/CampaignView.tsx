@@ -1434,6 +1434,7 @@ export default function CampaignView() {
     }
 
     setInputMessage('');
+    updateTypingStatus(false);
     setSending(true);
 
     try {
