@@ -398,8 +398,22 @@ export default function CampaignView() {
           });
         }
       )
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_participants', filter: `campaign_id=eq.${campaignId}` },
-        () => fetchParticipants()
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'campaign_participants', filter: `campaign_id=eq.${campaignId}` },
+        (payload) => {
+          const updated = payload.new as any;
+          // Update typing indicators from other participants
+          if (updated.user_id !== user?.id) {
+            setTypingParticipants(prev => {
+              const without = prev.filter(t => t.characterId !== updated.character_id);
+              if (updated.is_typing) {
+                const p = participantsRef.current.find(pp => pp.character_id === updated.character_id);
+                return [...without, { name: p?.character?.name || 'Someone', characterId: updated.character_id }];
+              }
+              return without;
+            });
+          }
+          // Also refetch participants for read receipts etc.
+          fetchParticipants();
       )
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'campaigns', filter: `id=eq.${campaignId}` },
         (payload) => {
