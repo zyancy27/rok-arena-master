@@ -65,9 +65,14 @@ class NarrationSoundManager {
   processNarration(text: string) {
     if (!this.enabled || this.intensityLevel === 'off') return;
 
-    const events = parseNarrationForSounds(text);
+    let events = parseNarrationForSounds(text);
     const intensity = classifySceneIntensity(text);
     const rules = getMixingRules(intensity, this.intensityLevel);
+
+    // Filter out vocal sounds if user has reduce vocal setting on
+    if (this.reduceVocalSounds) {
+      events = events.filter(e => e.cue.family !== 'vocal');
+    }
 
     // Clean expired cooldowns
     const now = Date.now();
