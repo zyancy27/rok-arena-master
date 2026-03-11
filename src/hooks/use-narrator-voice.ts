@@ -49,7 +49,6 @@ function detectSceneContext(text: string): NarratorSceneContext {
 
 /**
  * Build a cache key for ambient SFX based on context + key location words.
- * This avoids re-generating the same ambient for similar narration.
  */
 function buildAmbientCacheKey(context: string, text: string): string {
   const t = text.toLowerCase();
@@ -62,16 +61,110 @@ function buildAmbientCacheKey(context: string, text: string): string {
   return `sfx:${context}:${matched || 'generic'}`;
 }
 
+// ── Accent Sound Cue Detection ──────────────────────────────────
+
+interface AccentCue {
+  cue: string;
+  /** Delay in ms before playing (stagger multiple cues) */
+  delay: number;
+}
+
+/**
+ * Extract contextual accent sound cues from narrator text.
+ * Returns up to 3 cues to avoid overwhelming the scene.
+ */
+function extractAccentCues(text: string): AccentCue[] {
+  const t = text.toLowerCase();
+  const cues: AccentCue[] = [];
+
+  const patterns: [RegExp, string][] = [
+    // Movement
+    [/\b(footsteps?|walks?|steps?|strides?|paces?|trudge)\b/, 'footsteps'],
+    [/\b(runs?|sprint|dash|rushing|charge[sd]?)\b/, 'running'],
+    // Doors & mechanisms
+    [/\b(door\s*(open|creak|swing|shut|slam|close))\b/, 'door_open'],
+    [/\b(opens?\s*(the\s+)?door)\b/, 'door_open'],
+    [/\b(slams?\s*(the\s+)?door|door\s*slam)\b/, 'door_slam'],
+    [/\b(gate\s*(open|creak|swing)|opens?\s*(the\s+)?gate)\b/, 'gate'],
+    [/\b(lock|unlock|key\s*turn)\b/, 'lock'],
+    // Nature
+    [/\b(wind\s*(howl|gust|blow|whip|rush))\b/, 'wind_gust'],
+    [/\b(gust\s*of\s*wind)\b/, 'wind_gust'],
+    [/\b(thunder\s*(crack|boom|rumble|roll)|lightning\s*(strike|flash|crack))\b/, 'thunder_crack'],
+    [/\b(rain\s*(begin|start|fall|pour))\b/, 'rain_start'],
+    [/\b(branch(es)?\s*(snap|crack|break))\b/, 'branches'],
+    [/\b(leaves?\s*(rustl|crunch|whisper))\b/, 'leaves'],
+    [/\b(splash(es)?|plunge|dive)\b/, 'water_splash'],
+    [/\b(river|stream|brook|waterfall)\b/, 'river'],
+    // Combat
+    [/\b(draw[sn]?\s*(sword|blade|weapon))\b/, 'sword_draw'],
+    [/\b(unsheathe|unsheaths)\b/, 'sword_draw'],
+    [/\b(swords?\s*(clash|clang|ring|meet)|blade[s]?\s*(clash|meet|ring))\b/, 'sword_clash'],
+    [/\b(arrow\s*(flies|whiz|loose|fire|shoot)|fires?\s*an?\s*arrow)\b/, 'arrow'],
+    [/\b(hit|slam|smash|crash|impact|strike|blow)\b/, 'impact'],
+    [/\b(explo(sion|de)|blast|detonat)\b/, 'explosion'],
+    [/\b(shield\s*(block|bash|raise)|blocks?\s*with)\b/, 'shield'],
+    // Magic
+    [/\b(magic|spell|enchant|arcane|mystical|conjur|incantation|hex)\b/, 'magic'],
+    [/\b(portal\s*(open|appear|shimmer)|rift|vortex|dimensional)\b/, 'portal'],
+    [/\b(whisper[sng]*\s*(echo|fill|surround)|eerie\s*whisper|ghostly)\b/, 'whisper'],
+    [/\b(ground\s*(rumbl|shak|trembl|quak)|earthquake|tremor)\b/, 'rumble'],
+    [/\b(energy\s*(surge|blast|pulse|crackl)|power\s*(surge|build|grow))\b/, 'energy'],
+    // Creatures
+    [/\b(growl[sng]*|snarl[sng]*)\b/, 'growl'],
+    [/\b(roar[sng]*|bellow[sng]*)\b/, 'roar'],
+    [/\b(wings?\s*(flap|spread|beat|unfurl)|takes?\s*flight)\b/, 'wings'],
+    [/\b(howl[sng]*|wolf|wolves)\b/, 'howl'],
+    [/\b(horse|stallion|mare|steed|mount|hooves?)\b/, 'horse'],
+    // Atmosphere
+    [/\b(fire\s*(crackl|burn)|campfire|torch(es)?|flame[sd]?\s*flicker)\b/, 'fire_crackle'],
+    [/\b(glass\s*(shatter|break|smash)|shatter[sng]*)\b/, 'glass'],
+    [/\b(chain[sng]*\s*(rattl|clank|clink)|rattling\s*chain)\b/, 'chains'],
+    [/\b(bell\s*(toll|ring|chime)|church\s*bell|tolling)\b/, 'bell'],
+    [/\b(crowd\s*(gasp|murmur|cheer|react)|onlookers)\b/, 'crowd'],
+    [/\b(scream[sng]*|shriek|cry\s*out|wail)\b/, 'scream'],
+    [/\b(collaps|crumbl|cave-?in|rubble|structure\s*fall)\b/, 'collapse'],
+    [/\b(heart\s*(pound|race|beat|thump)|pulse\s*(quicken|race))\b/, 'heartbeat'],
+  ];
+
+  const seen = new Set<string>();
+  for (const [pattern, cue] of patterns) {
+    if (pattern.test(t) && !seen.has(cue)) {
+      seen.add(cue);
+      // Stagger cues with increasing delay
+      cues.push({ cue, delay: cues.length * 1500 + Math.random() * 800 });
+      if (cues.length >= 3) break; // cap at 3 accent sounds
+    }
+  }
+
+  return cues;
+}
+
 export function useNarratorVoice(options: NarratorVoiceOptions) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ambientRef = useRef<HTMLAudioElement | null>(null);
+  const accentAudiosRef = useRef<HTMLAudioElement[]>([]);
   const playingRef = useRef(false);
   const cacheRef = useRef<Map<string, string>>(new Map());
   const ambientCacheRef = useRef<Map<string, string>>(new Map());
+  const accentCacheRef = useRef<Map<string, string>>(new Map());
+  const accentTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const stopAccents = useCallback(() => {
+    accentTimersRef.current.forEach(clearTimeout);
+    accentTimersRef.current = [];
+    accentAudiosRef.current.forEach(a => {
+      try {
+        a.volume = 0;
+        a.pause();
+      } catch {}
+    });
+    accentAudiosRef.current = [];
+  }, []);
 
   const stopAmbient = useCallback(() => {
+    stopAccents();
     if (ambientRef.current) {
-      // Fade out ambient
       const amb = ambientRef.current;
       const fadeOut = setInterval(() => {
         if (amb.volume > 0.05) {
@@ -82,6 +175,59 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
           ambientRef.current = null;
         }
       }, 80);
+    }
+  }, [stopAccents]);
+
+  const playAccentCue = useCallback(async (cue: string, vol: number) => {
+    const cacheKey = `accent:${cue}`;
+    let audioUrl = accentCacheRef.current.get(cacheKey);
+
+    if (!audioUrl) {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/narrator-ambient-sfx`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: JSON.stringify({ mode: 'accent', cue }),
+          }
+        );
+
+        if (!response.ok) return;
+        const blob = await response.blob();
+        audioUrl = URL.createObjectURL(blob);
+        accentCacheRef.current.set(cacheKey, audioUrl);
+
+        // Limit accent cache
+        if (accentCacheRef.current.size > 25) {
+          const firstKey = accentCacheRef.current.keys().next().value;
+          if (firstKey) {
+            const oldUrl = accentCacheRef.current.get(firstKey);
+            if (oldUrl) URL.revokeObjectURL(oldUrl);
+            accentCacheRef.current.delete(firstKey);
+          }
+        }
+      } catch {
+        return;
+      }
+    }
+
+    const audio = new Audio(audioUrl);
+    // Accent sounds play at 40-60% of narrator volume
+    audio.volume = vol * (0.4 + Math.random() * 0.2);
+    accentAudiosRef.current.push(audio);
+
+    try {
+      await audio.play();
+      audio.onended = () => {
+        accentAudiosRef.current = accentAudiosRef.current.filter(a => a !== audio);
+      };
+    } catch {
+      // autoplay blocked
     }
   }, []);
 
@@ -104,13 +250,12 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
           }
         );
 
-        if (!response.ok) return; // silently fail — ambient is optional
+        if (!response.ok) return;
 
         const blob = await response.blob();
         audioUrl = URL.createObjectURL(blob);
         ambientCacheRef.current.set(cacheKey, audioUrl);
 
-        // Limit ambient cache
         if (ambientCacheRef.current.size > 10) {
           const firstKey = ambientCacheRef.current.keys().next().value;
           if (firstKey) {
@@ -120,7 +265,7 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
           }
         }
       } catch {
-        return; // ambient is best-effort
+        return;
       }
     }
 
@@ -131,27 +276,24 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
     }
 
     const amb = new Audio(audioUrl);
-    amb.volume = 0; // start silent for fade-in
+    amb.volume = 0;
     amb.loop = true;
     ambientRef.current = amb;
 
     // Vary playback rate slightly each loop to break repetition
-    const baseRate = 0.97 + Math.random() * 0.06; // 0.97–1.03
+    const baseRate = 0.97 + Math.random() * 0.06;
     amb.playbackRate = baseRate;
 
-    // On each loop restart, shift rate & volume subtly so it never sounds identical
     const onLoop = () => {
       if (ambientRef.current !== amb) return;
-      amb.playbackRate = 0.94 + Math.random() * 0.12; // 0.94–1.06
-      // Subtle volume drift around target
+      amb.playbackRate = 0.94 + Math.random() * 0.12;
       const targetVol = Math.min(options.volume * 0.3, 0.3);
-      amb.volume = targetVol * (0.8 + Math.random() * 0.4); // ±20%
+      amb.volume = targetVol * (0.8 + Math.random() * 0.4);
     };
-    amb.addEventListener('seeked', onLoop); // fires on loop restart
+    amb.addEventListener('seeked', onLoop);
 
     try {
       await amb.play();
-      // Fade in to ~30% of narrator volume
       const targetVol = Math.min(options.volume * 0.3, 0.3);
       const fadeIn = setInterval(() => {
         if (amb.volume < targetVol - 0.02) {
@@ -162,7 +304,7 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
         }
       }, 60);
     } catch {
-      // autoplay blocked — no big deal
+      // autoplay blocked
     }
   }, [options.volume]);
 
@@ -174,13 +316,23 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
       audioRef.current.pause();
       audioRef.current = null;
     }
+    stopAccents();
 
     const context = explicitContext || detectSceneContext(text);
     const cacheKey = `${context}:${text.substring(0, 200)}`;
     let audioUrl = cacheRef.current.get(cacheKey);
 
-    // Fire ambient SFX request in parallel with TTS (don't await)
+    // Fire ambient SFX request in parallel (don't await)
     playAmbient(context, text);
+
+    // Extract and schedule accent sound cues from the narration text
+    const accentCues = extractAccentCues(text);
+    for (const { cue, delay } of accentCues) {
+      const timer = setTimeout(() => {
+        playAccentCue(cue, options.volume);
+      }, delay);
+      accentTimersRef.current.push(timer);
+    }
 
     if (!audioUrl) {
       try {
@@ -245,7 +397,7 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
       playingRef.current = false;
       stopAmbient();
     }
-  }, [options.enabled, options.volume, playAmbient, stopAmbient]);
+  }, [options.enabled, options.volume, playAmbient, playAccentCue, stopAmbient, stopAccents]);
 
   const stop = useCallback(() => {
     if (audioRef.current) {

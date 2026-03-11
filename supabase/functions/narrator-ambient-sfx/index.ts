@@ -11,7 +11,6 @@ const corsHeaders = {
 function buildAmbientPrompt(context: string, text: string): string {
   const t = text.toLowerCase();
 
-  // Location-specific ambience
   if (/\b(cave|cavern|underground|tunnel|mine)\b/.test(t)) {
     return "dark dripping cave ambience, distant echoes, water drops on stone, subtle underground wind";
   }
@@ -58,7 +57,6 @@ function buildAmbientPrompt(context: string, text: string): string {
     return "volcanic landscape, bubbling lava, crackling fire, intense heat haze, rumbling earth";
   }
 
-  // Context-based fallbacks
   switch (context) {
     case 'combat':
       return "intense battle ambience, clashing metal, war drums in distance, tense dramatic atmosphere";
@@ -79,13 +77,69 @@ function buildAmbientPrompt(context: string, text: string): string {
   }
 }
 
+/**
+ * Build a short accent SFX prompt from a cue keyword.
+ */
+function buildAccentPrompt(cue: string): string {
+  const accentMap: Record<string, string> = {
+    // Movement & footsteps
+    footsteps: "footsteps on stone floor, echoing steps, single person walking",
+    footsteps_dirt: "footsteps on dirt path, crunching gravel, outdoor walking",
+    footsteps_wood: "footsteps on wooden floorboards, creaking wood",
+    running: "person running fast, urgent footsteps, heavy breathing",
+    // Doors & mechanisms
+    door_open: "heavy wooden door creaking open slowly, medieval door",
+    door_slam: "heavy door slamming shut, echoing slam",
+    lock: "metal lock clicking, key turning in lock mechanism",
+    gate: "iron gate creaking open, rusty metal hinges",
+    // Nature
+    wind_gust: "sudden gust of wind blowing, whooshing breeze",
+    thunder_crack: "single dramatic thunder crack, lightning strike",
+    rain_start: "rain beginning to fall, first raindrops hitting ground",
+    branches: "branches snapping underfoot, twigs breaking in forest",
+    leaves: "leaves rustling in wind, foliage movement",
+    water_splash: "splash in water, something entering water",
+    river: "flowing river water, babbling stream sounds",
+    // Combat & impact
+    sword_draw: "sword being drawn from sheath, metallic ring",
+    sword_clash: "metal swords clashing together, blade impact",
+    arrow: "arrow whooshing through air, projectile flying",
+    impact: "heavy blunt impact, physical hit, thud",
+    explosion: "distant explosion, rumbling boom, debris",
+    shield: "shield blocking attack, metal clang, defensive impact",
+    // Magic & supernatural
+    magic: "magical energy surge, mystical shimmer, arcane power",
+    portal: "dimensional portal opening, swirling energy vortex",
+    whisper: "eerie supernatural whisper, ghostly voice, ethereal",
+    rumble: "deep ground rumbling, earthquake tremor, earth shaking",
+    energy: "energy blast charging up, power surge building",
+    // Animals & creatures
+    growl: "deep animal growl, threatening beast, low snarl",
+    roar: "loud creature roar, powerful beast cry",
+    wings: "large wings flapping, creature taking flight",
+    howl: "distant wolf howl, lonely canine cry at night",
+    horse: "horse neighing, hooves stomping on ground",
+    // Atmosphere
+    fire_crackle: "campfire crackling, wood burning, warm flames",
+    glass: "glass shattering, breaking glass, crystal smash",
+    chains: "metal chains rattling, iron links clinking",
+    bell: "distant bell tolling, single deep bell ring",
+    crowd: "crowd murmuring, people reacting, gasps and chatter",
+    scream: "distant scream of alarm, startled cry",
+    collapse: "stone structure collapsing, rubble falling, crumbling",
+    heartbeat: "tense heartbeat sound, rhythmic pulse, suspenseful",
+  };
+
+  return accentMap[cue] || `${cue} sound effect, short and clear`;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { context, text } = await req.json();
+    const { context, text, mode, cue } = await req.json();
     const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
 
     if (!ELEVENLABS_API_KEY) {
@@ -95,6 +149,41 @@ serve(async (req) => {
       });
     }
 
+    // Accent mode: generate a short targeted SFX
+    if (mode === 'accent' && cue) {
+      const prompt = buildAccentPrompt(cue);
+      const response = await fetch("https://api.elevenlabs.io/v1/sound-generation", {
+        method: "POST",
+        headers: {
+          "xi-api-key": ELEVENLABS_API_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: prompt,
+          duration_seconds: 3,
+          prompt_influence: 0.5,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error("ElevenLabs accent SFX error:", response.status);
+        return new Response(JSON.stringify({ error: "Accent SFX failed" }), {
+          status: response.status === 429 ? 429 : 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const audioBuffer = await response.arrayBuffer();
+      return new Response(audioBuffer, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "audio/mpeg",
+          "Cache-Control": "public, max-age=14400",
+        },
+      });
+    }
+
+    // Standard ambient mode
     if (!text || text.trim().length === 0) {
       return new Response(JSON.stringify({ error: "No text provided" }), {
         status: 400,
