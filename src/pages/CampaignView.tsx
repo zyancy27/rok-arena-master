@@ -52,6 +52,9 @@ import { useCampaignTrades } from '@/hooks/use-campaign-trades';
 import ConcentrationButton from '@/components/battles/ConcentrationButton';
 import type { CharacterStats } from '@/lib/character-stats';
 import CampaignTacticalMap, { type NarratorSceneMap } from '@/components/campaigns/CampaignTacticalMap';
+import { useNarratorVoice } from '@/hooks/use-narrator-voice';
+import { getChatSoundsEngine } from '@/lib/chat-sounds';
+import { useUserSettings } from '@/hooks/use-user-settings';
 // Helper: build bag content for the inline backpack bubble
 function buildBagContent(campaignItems: InventoryItem[], characterWeapons: string | null) {
   const items: { name: string; type: string; rarity: string; equipped: boolean }[] = [];
