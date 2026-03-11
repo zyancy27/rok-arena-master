@@ -31,12 +31,14 @@ export function useNarrationAmbient(options: UseNarrationAmbientOptions) {
     }
 
     mgr.setMasterVolume(audioSettings.narrationAmbientVolume * audioSettings.masterVolume);
+    mgr.setReduceVocalSounds(audioSettings.narrationReduceVocalSounds);
   }, [
     options.enabled,
     options.audioSettings.narrationAmbientEnabled,
     options.audioSettings.narrationAmbientIntensity,
     options.audioSettings.narrationAmbientVolume,
     options.audioSettings.masterVolume,
+    options.audioSettings.narrationReduceVocalSounds,
   ]);
 
   // Cleanup on unmount
