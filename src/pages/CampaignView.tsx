@@ -401,6 +401,8 @@ export default function CampaignView() {
             if (userSettingsRef.current.audio.narratorAutoRead && userSettingsRef.current.audio.narratorVoiceEnabled) {
               narratorVoiceRef.current.speak(msg.content);
             }
+            // Trigger narration-aware ambient sounds
+            narrationAmbientRef.current.processNarration(msg.content);
           } else if (msg.sender_type === 'player') {
             // Play received sound if it's from another player
             const isFromMe = participantsRef.current.find(
