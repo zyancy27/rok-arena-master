@@ -97,8 +97,8 @@ serve(async (req) => {
     // Select voice preset based on scene context
     const preset = VOICE_PRESETS[context as string] || VOICE_PRESETS.default;
 
-    // Use George voice by default (deep, authoritative narrator voice)
-    const selectedVoice = voiceId || "JBFqnCBsd6RMkjVDRZzb";
+    // Use Daniel voice — deep, resonant, gravelly narrator closest to the Baldur's Gate style
+    const selectedVoice = voiceId || "onwK4e9ZLuTAKqWW03F9";
 
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoice}?output_format=mp3_44100_128`,
