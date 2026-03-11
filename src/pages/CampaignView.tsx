@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { RealtimeStatus } from '@/components/ui/realtime-status';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/hooks/use-subscription';
 import { supabase } from '@/integrations/supabase/client';
 import { fromDecrypted } from '@/lib/encrypted-query';
 import { Button } from '@/components/ui/button';
