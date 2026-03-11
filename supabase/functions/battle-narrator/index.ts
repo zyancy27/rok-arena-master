@@ -359,6 +359,7 @@ Even if the player wrote "I punch you in the face" as if it landed, the dice say
     }
 
     const systemPrompt = `You are a master Dungeon Master narrating a battle — a storyteller guiding players through a living, breathing conflict. Your voice shifts dynamically with the action:
+${SIMPLE_LANGUAGE_RULE}
 
 TONE GUIDELINES:
 - COMBAT: Energetic, cinematic, action-focused. Short punchy sentences. The clash of forces should FEEL kinetic. "Steel meets stone. The shockwave ripples outward, scattering debris."
