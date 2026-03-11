@@ -312,11 +312,23 @@ class NarrationSoundManager {
     }, 50);
   }
 
+  private getEffectiveVolume(cue: SoundCue, rules: MixingRules): number {
+    let vol = cue.volumeCeiling * rules.globalVolumeMultiplier * this.masterVolume;
+    // Duck significantly when narrator TTS is speaking
+    if (this.narratorSpeaking) {
+      vol *= 0.25; // drop to 25% while narrator voice is active
+    }
+    // Extra reduction for vocal family sounds
+    if (cue.family === 'vocal') {
+      vol *= 0.5;
+    }
+    return Math.min(vol, 0.35); // hard ceiling
+  }
+
   private updateActiveVolumes() {
     const rules = getMixingRules('quiet', this.intensityLevel);
     for (const layer of [...this.persistentLayers, ...this.momentLayers]) {
-      const targetVol = layer.cue.volumeCeiling * rules.globalVolumeMultiplier * this.masterVolume;
-      // Smoothly adjust
+      const targetVol = this.getEffectiveVolume(layer.cue, rules);
       if (Math.abs(layer.audio.volume - targetVol) > 0.02) {
         layer.audio.volume = targetVol;
       }
