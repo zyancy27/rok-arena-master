@@ -1967,13 +1967,27 @@ export default function CampaignView() {
                                   <span className="text-xs text-amber-400 font-semibold uppercase tracking-wider">Narrator</span>
                                   <span className="text-[10px] text-muted-foreground">{new Date(msg.created_at).toLocaleTimeString()}</span>
                                   {userSettings.audio.narratorVoiceEnabled && (
-                                    <button
-                                      onClick={() => narratorVoice.speak(msg.content, undefined, msg.id)}
-                                      className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
-                                      title="Listen to narrator"
-                                    >
-                                      <Volume2 className="w-3.5 h-3.5 text-amber-400" />
-                                    </button>
+                                    narratorVoice.isPlaying && narratorVoice.activeMessageId === msg.id ? (
+                                      <button
+                                        onClick={() => narratorVoice.togglePause()}
+                                        className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
+                                        title={narratorVoice.isPaused ? 'Resume narrator' : 'Pause narrator'}
+                                      >
+                                        {narratorVoice.isPaused ? (
+                                          <Play className="w-3.5 h-3.5 text-amber-400" />
+                                        ) : (
+                                          <VolumeX className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                                        )}
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() => narratorVoice.speak(msg.content, undefined, msg.id)}
+                                        className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
+                                        title="Listen to narrator"
+                                      >
+                                        <Volume2 className="w-3.5 h-3.5 text-amber-400" />
+                                      </button>
+                                    )
                                   )}
                                 </div>
                                 <NarratorMessageContent
