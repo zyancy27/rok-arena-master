@@ -112,8 +112,8 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         text: prompt,
-        duration_seconds: 10,
-        prompt_influence: 0.4,
+        duration_seconds: 18,
+        prompt_influence: 0.35,
       }),
     });
 

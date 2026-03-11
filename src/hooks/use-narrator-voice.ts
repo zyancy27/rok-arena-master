@@ -135,6 +135,20 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
     amb.loop = true;
     ambientRef.current = amb;
 
+    // Vary playback rate slightly each loop to break repetition
+    const baseRate = 0.97 + Math.random() * 0.06; // 0.97–1.03
+    amb.playbackRate = baseRate;
+
+    // On each loop restart, shift rate & volume subtly so it never sounds identical
+    const onLoop = () => {
+      if (ambientRef.current !== amb) return;
+      amb.playbackRate = 0.94 + Math.random() * 0.12; // 0.94–1.06
+      // Subtle volume drift around target
+      const targetVol = Math.min(options.volume * 0.3, 0.3);
+      amb.volume = targetVol * (0.8 + Math.random() * 0.4); // ±20%
+    };
+    amb.addEventListener('seeked', onLoop); // fires on loop restart
+
     try {
       await amb.play();
       // Fade in to ~30% of narrator volume
