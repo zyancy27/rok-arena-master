@@ -26,6 +26,11 @@ export interface AudioSettings {
   narratorVoiceVolume: number;
   chatSoundsEnabled: boolean;
   chatSoundsVolume: number;
+  narrationAmbientEnabled: boolean;
+  narrationAmbientIntensity: 'off' | 'low' | 'standard' | 'immersive';
+  narrationAmbientVolume: number;
+  narrationEventCueVolume: number;
+  narrationReduceVocalSounds: boolean;
 }
 
 export interface VisualSettings {
