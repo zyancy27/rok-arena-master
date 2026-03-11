@@ -414,6 +414,7 @@ export default function CampaignView() {
           }
           // Also refetch participants for read receipts etc.
           fetchParticipants();
+        }
       )
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'campaigns', filter: `id=eq.${campaignId}` },
         (payload) => {
