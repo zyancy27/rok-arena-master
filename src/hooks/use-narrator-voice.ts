@@ -23,48 +23,134 @@ interface NarratorVoiceOptions {
 function detectSceneContext(text: string): NarratorSceneContext {
   const t = text.toLowerCase();
 
-  // Combat indicators
   if (/\b(attack|strikes?|slash|punch|dodge|block|parry|swing|blade|combat|fight|clash|retaliat|counter-?attack|lunge|charge|arrow|bolt|spell hits)\b/.test(t)) {
     return 'combat';
   }
-
-  // Victory / triumph
   if (/\b(victor|triumph|defeat(ed|s)|falls? (to|unconscious)|crumbles|vanquish|won|celebrate|cheers?)\b/.test(t)) {
     return 'victory';
   }
-
-  // Danger / suspense
   if (/\b(danger|threat|rumbl|creep|shadow|lurk|growl|hiss|scream|trembl|stalk|ominous|dread|warning|ambush|trap|poison|toxic)\b/.test(t)) {
     return 'danger';
   }
-
-  // NPC dialogue (contains quoted speech)
   if (/[""\u201C].{8,}[""\u201D]/.test(text)) {
     return 'npc';
   }
-
-  // Tragic / heavy emotional moments
   if (/\b(grief|mourn|tears?|weep|sorrow|loss|fallen|death|dying|funeral|grave|farewell|goodbye|sacrifice|hollow|empty|broken)\b/.test(t)) {
     return 'tragic';
   }
-
-  // Peaceful / reflective
   if (/\b(gentle|calm|quiet|peace|soft|warm|rest|sleep|dawn|sunset|breeze|murmur|still|serene|safe|comfort)\b/.test(t)) {
     return 'peaceful';
   }
-
-  // Exploration (default for descriptive content)
   if (/\b(cave|forest|path|corridor|door|passage|tunnel|room|chamber|trail|ruins|ancient|discover|explore|notice|observe|ahead)\b/.test(t)) {
     return 'exploration';
   }
-
   return 'default';
+}
+
+/**
+ * Build a cache key for ambient SFX based on context + key location words.
+ * This avoids re-generating the same ambient for similar narration.
+ */
+function buildAmbientCacheKey(context: string, text: string): string {
+  const t = text.toLowerCase();
+  const locationWords = [
+    'cave', 'forest', 'ocean', 'sea', 'desert', 'city', 'town', 'tavern',
+    'castle', 'mountain', 'swamp', 'snow', 'ice', 'ruins', 'temple', 'space',
+    'fire', 'lava', 'rain', 'storm', 'jungle', 'dungeon', 'tower', 'village'
+  ];
+  const matched = locationWords.filter(w => t.includes(w)).sort().join(',');
+  return `sfx:${context}:${matched || 'generic'}`;
 }
 
 export function useNarratorVoice(options: NarratorVoiceOptions) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const ambientRef = useRef<HTMLAudioElement | null>(null);
   const playingRef = useRef(false);
   const cacheRef = useRef<Map<string, string>>(new Map());
+  const ambientCacheRef = useRef<Map<string, string>>(new Map());
+
+  const stopAmbient = useCallback(() => {
+    if (ambientRef.current) {
+      // Fade out ambient
+      const amb = ambientRef.current;
+      const fadeOut = setInterval(() => {
+        if (amb.volume > 0.05) {
+          amb.volume = Math.max(0, amb.volume - 0.05);
+        } else {
+          clearInterval(fadeOut);
+          amb.pause();
+          ambientRef.current = null;
+        }
+      }, 80);
+    }
+  }, []);
+
+  const playAmbient = useCallback(async (context: string, text: string) => {
+    const cacheKey = buildAmbientCacheKey(context, text);
+    let audioUrl = ambientCacheRef.current.get(cacheKey);
+
+    if (!audioUrl) {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/narrator-ambient-sfx`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: JSON.stringify({ context, text }),
+          }
+        );
+
+        if (!response.ok) return; // silently fail — ambient is optional
+
+        const blob = await response.blob();
+        audioUrl = URL.createObjectURL(blob);
+        ambientCacheRef.current.set(cacheKey, audioUrl);
+
+        // Limit ambient cache
+        if (ambientCacheRef.current.size > 10) {
+          const firstKey = ambientCacheRef.current.keys().next().value;
+          if (firstKey) {
+            const oldUrl = ambientCacheRef.current.get(firstKey);
+            if (oldUrl) URL.revokeObjectURL(oldUrl);
+            ambientCacheRef.current.delete(firstKey);
+          }
+        }
+      } catch {
+        return; // ambient is best-effort
+      }
+    }
+
+    // Stop previous ambient
+    if (ambientRef.current) {
+      ambientRef.current.pause();
+      ambientRef.current = null;
+    }
+
+    const amb = new Audio(audioUrl);
+    amb.volume = 0; // start silent for fade-in
+    amb.loop = true;
+    ambientRef.current = amb;
+
+    try {
+      await amb.play();
+      // Fade in to ~30% of narrator volume
+      const targetVol = Math.min(options.volume * 0.3, 0.3);
+      const fadeIn = setInterval(() => {
+        if (amb.volume < targetVol - 0.02) {
+          amb.volume = Math.min(targetVol, amb.volume + 0.03);
+        } else {
+          amb.volume = targetVol;
+          clearInterval(fadeIn);
+        }
+      }, 60);
+    } catch {
+      // autoplay blocked — no big deal
+    }
+  }, [options.volume]);
 
   const speak = useCallback(async (text: string, explicitContext?: NarratorSceneContext) => {
     if (!options.enabled || !text.trim()) return;
@@ -75,12 +161,12 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
       audioRef.current = null;
     }
 
-    // Auto-detect scene context from text if not explicitly provided
     const context = explicitContext || detectSceneContext(text);
-
-    // Check cache (include context in key since same text may sound different)
     const cacheKey = `${context}:${text.substring(0, 200)}`;
     let audioUrl = cacheRef.current.get(cacheKey);
+
+    // Fire ambient SFX request in parallel with TTS (don't await)
+    playAmbient(context, text);
 
     if (!audioUrl) {
       try {
@@ -107,7 +193,6 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
         audioUrl = URL.createObjectURL(blob);
         cacheRef.current.set(cacheKey, audioUrl);
 
-        // Limit cache size
         if (cacheRef.current.size > 20) {
           const firstKey = cacheRef.current.keys().next().value;
           if (firstKey) {
@@ -120,6 +205,7 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
         playingRef.current = false;
         console.error('[Narrator TTS]', err);
         toast.error('Narrator voice unavailable');
+        stopAmbient();
         return;
       }
     }
@@ -131,18 +217,21 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
     audio.onended = () => {
       playingRef.current = false;
       audioRef.current = null;
+      stopAmbient();
     };
     audio.onerror = () => {
       playingRef.current = false;
       audioRef.current = null;
+      stopAmbient();
     };
 
     try {
       await audio.play();
     } catch {
       playingRef.current = false;
+      stopAmbient();
     }
-  }, [options.enabled, options.volume]);
+  }, [options.enabled, options.volume, playAmbient, stopAmbient]);
 
   const stop = useCallback(() => {
     if (audioRef.current) {
@@ -150,7 +239,8 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
       audioRef.current = null;
       playingRef.current = false;
     }
-  }, []);
+    stopAmbient();
+  }, [stopAmbient]);
 
   return { speak, stop, isPlaying: playingRef.current };
 }
