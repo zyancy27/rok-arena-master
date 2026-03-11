@@ -1940,6 +1940,15 @@ export default function CampaignView() {
                                 <div className="flex items-center gap-2 mb-1">
                                   <span className="text-xs text-amber-400 font-semibold uppercase tracking-wider">Narrator</span>
                                   <span className="text-[10px] text-muted-foreground">{new Date(msg.created_at).toLocaleTimeString()}</span>
+                                  {userSettings.audio.narratorVoiceEnabled && (
+                                    <button
+                                      onClick={() => narratorVoice.speak(msg.content)}
+                                      className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
+                                      title="Listen to narrator"
+                                    >
+                                      <Volume2 className="w-3.5 h-3.5 text-amber-400" />
+                                    </button>
+                                  )}
                                 </div>
                                 <p className="text-sm whitespace-pre-wrap break-words text-foreground/90 italic">{msg.content}</p>
                               </div>
