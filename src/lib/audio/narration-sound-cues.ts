@@ -315,6 +315,7 @@ const CREATURE_CUES: SoundCue[] = [
     patterns: [
       /\b(something\s*(mov|stir|shift|lurk|creep|watch|approach)|creature\s*(mov|stir|creep|approach|emerge))\b/i,
       /\b(skitter|scurry|slither|crawl|scuttle)\b/i,
+      /\b(mandible[s]?\s*(click|clack|snap)|clicking\s*(furious|rapid))\b/i,
     ],
     prompt: 'subtle creature movement in darkness, something stirring nearby',
     duration: 4, category: 'moment', volumeCeiling: 0.2, cooldownMs: 12000,
