@@ -2956,9 +2956,20 @@ export default function BattleView() {
                             <div className="flex items-start gap-2">
                               <BookOpen className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                               <div className="flex-1">
-                                <p className="text-xs text-amber-400 font-medium uppercase tracking-wider mb-1">
-                                  Narrator
-                                </p>
+                                <div className="flex items-center gap-2 mb-1">
+                                  <p className="text-xs text-amber-400 font-medium uppercase tracking-wider">
+                                    Narrator
+                                  </p>
+                                  {userSettings.audio.narratorVoiceEnabled && (
+                                    <button
+                                      onClick={() => narratorVoice.speak(narratorMessages[narratorMessages.length - 1]?.content || '')}
+                                      className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
+                                      title="Listen to narrator"
+                                    >
+                                      <Volume2 className="w-3.5 h-3.5 text-amber-400" />
+                                    </button>
+                                  )}
+                                </div>
                                 <p className="text-sm text-foreground/90 italic">
                                   {narratorMessages[narratorMessages.length - 1]?.content}
                                 </p>
