@@ -46,7 +46,16 @@ class NarrationSoundManager {
 
   setMasterVolume(vol: number) {
     this.masterVolume = Math.max(0, Math.min(1, vol));
-    // Update all active layers
+    this.updateActiveVolumes();
+  }
+
+  setReduceVocalSounds(val: boolean) {
+    this.reduceVocalSounds = val;
+  }
+
+  /** Call when narrator TTS starts speaking — ducks all layers significantly */
+  setNarratorSpeaking(speaking: boolean) {
+    this.narratorSpeaking = speaking;
     this.updateActiveVolumes();
   }
 
