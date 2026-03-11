@@ -1274,6 +1274,13 @@ CLARITY:
 - Avoid vague scene progression. Reinforce the immediate situation clearly.
 - After zone changes or major events, ground the player in the new reality.
 
+NAME USAGE (CRITICAL — natural prose style):
+- Once a character has been established as the subject of a passage, use pronouns (he, she, they, it) or descriptive references ("the beast", "the warrior") instead of repeating their name.
+- Only re-use a character's full name when switching focus to a DIFFERENT character, to avoid confusion.
+- This applies to both player characters AND NPCs/enemies.
+- BAD: "QwWe raises his fist. QwWe slams it down. QwWe roars."
+- GOOD: "QwWe raises his fist and slams it down with a thunderous roar."
+
 FAIRNESS AND CONSISTENCY:
 - If a threat is dangerous, keep it dangerous. Don't hand-wave consequences.
 - If a clue exists, keep it meaningful. If a structure is unstable, maintain that state.
