@@ -106,7 +106,7 @@ serve(async (req) => {
     // Select voice preset based on scene context
     const preset = VOICE_PRESETS[context as string] || VOICE_PRESETS.default;
 
-    // Use Brian voice — deep, aged, gravelly masculine narrator
+    // Use Brian voice — calm, expressive, soft storyteller
     const selectedVoice = voiceId || "nPczCjzI2devNBz1zQrb";
 
     const response = await fetch(
