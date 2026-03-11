@@ -55,6 +55,7 @@ import CampaignTacticalMap, { type NarratorSceneMap } from '@/components/campaig
 import { useNarratorVoice } from '@/hooks/use-narrator-voice';
 import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
+import { useNarrationAmbient } from '@/hooks/use-narration-ambient';
 // Helper: build bag content for the inline backpack bubble
 function buildBagContent(campaignItems: InventoryItem[], characterWeapons: string | null) {
   const items: { name: string; type: string; rarity: string; equipped: boolean }[] = [];
@@ -126,6 +127,15 @@ export default function CampaignView() {
     chatSoundsEngine.setEnabled(userSettings.audio.chatSoundsEnabled);
     chatSoundsEngine.setVolume(userSettings.audio.chatSoundsVolume * userSettings.audio.masterVolume);
   }, [userSettings.audio.chatSoundsEnabled, userSettings.audio.chatSoundsVolume, userSettings.audio.masterVolume]);
+
+  // Narration-aware ambient sounds
+  const narrationAmbient = useNarrationAmbient({
+    enabled: campaign?.status === 'active',
+    audioSettings: userSettings.audio,
+  });
+  const narrationAmbientRef = useRef(narrationAmbient);
+  narrationAmbientRef.current = narrationAmbient;
+
   // Pending send context held while concentration prompt is active
   const pendingSendRef = useRef<{
     messageText: string;
@@ -391,6 +401,8 @@ export default function CampaignView() {
             if (userSettingsRef.current.audio.narratorAutoRead && userSettingsRef.current.audio.narratorVoiceEnabled) {
               narratorVoiceRef.current.speak(msg.content);
             }
+            // Trigger narration-aware ambient sounds
+            narrationAmbientRef.current.processNarration(msg.content);
           } else if (msg.sender_type === 'player') {
             // Play received sound if it's from another player
             const isFromMe = participantsRef.current.find(

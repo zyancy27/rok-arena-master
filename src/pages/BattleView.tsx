@@ -106,6 +106,7 @@ import { interpretMove } from '@/lib/intent-interpreter';
 import { useNarratorVoice } from '@/hooks/use-narrator-voice';
 import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
+import { useNarrationAmbient } from '@/hooks/use-narration-ambient';
 import { applyHardClamp, generateClampContext, type CharacterProfile, type ClampResult } from '@/lib/hard-clamp';
 import { detectDirectInteraction } from '@/lib/battle-hit-detection';
 import {
@@ -263,6 +264,13 @@ export default function BattleView() {
     chatSoundsEngine.setEnabled(userSettings.audio.chatSoundsEnabled);
     chatSoundsEngine.setVolume(userSettings.audio.chatSoundsVolume * userSettings.audio.masterVolume);
   }, [userSettings.audio.chatSoundsEnabled, userSettings.audio.chatSoundsVolume, userSettings.audio.masterVolume]);
+
+  // Narration-aware ambient sounds
+  const narrationAmbient = useNarrationAmbient({
+    enabled: battle?.status === 'active',
+    audioSettings: userSettings.audio,
+  });
+
   const [showRules, setShowRules] = useState(false);
   const [locationInput, setLocationInput] = useState('');
   const [isFlippingCoin, setIsFlippingCoin] = useState(false);
@@ -1748,6 +1756,8 @@ export default function BattleView() {
         if (userSettings.audio.narratorAutoRead && userSettings.audio.narratorVoiceEnabled) {
           narratorVoice.speak(response.data.narration);
         }
+        // Trigger narration-aware ambient sounds
+        narrationAmbient.processNarration(response.data.narration);
         
         // Also post to OOC chat for persistence
         await supabase.from('battle_messages').insert({

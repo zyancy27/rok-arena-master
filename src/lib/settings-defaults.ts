@@ -26,6 +26,11 @@ export interface AudioSettings {
   narratorVoiceVolume: number;
   chatSoundsEnabled: boolean;
   chatSoundsVolume: number;
+  narrationAmbientEnabled: boolean;
+  narrationAmbientIntensity: 'off' | 'low' | 'standard' | 'immersive';
+  narrationAmbientVolume: number;
+  narrationEventCueVolume: number;
+  narrationReduceVocalSounds: boolean;
 }
 
 export interface VisualSettings {
@@ -129,6 +134,11 @@ export const DEFAULT_SETTINGS: UserSettings = {
     narratorVoiceVolume: 0.8,
     chatSoundsEnabled: true,
     chatSoundsVolume: 0.6,
+    narrationAmbientEnabled: true,
+    narrationAmbientIntensity: 'standard',
+    narrationAmbientVolume: 0.5,
+    narrationEventCueVolume: 0.5,
+    narrationReduceVocalSounds: false,
   },
   visual: {
     vfxIntensity: 'medium',
