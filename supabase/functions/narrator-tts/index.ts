@@ -22,52 +22,52 @@ const VOICE_PRESETS: Record<string, {
 }> = {
   // Exploration: slow, ominous, dripping with mystery — like describing ancient ruins
   exploration: {
-    stability: 0.65,
-    similarity_boost: 0.85,
-    style: 0.30,
-    speed: 0.82,
+    stability: 0.72,
+    similarity_boost: 0.90,
+    style: 0.20,
+    speed: 0.78,
   },
   // Peaceful / reflective: hushed gravitas, almost whispered weight
   peaceful: {
-    stability: 0.75,
-    similarity_boost: 0.85,
-    style: 0.15,
-    speed: 0.78,
+    stability: 0.80,
+    similarity_boost: 0.90,
+    style: 0.10,
+    speed: 0.74,
   },
   // Danger / suspense: controlled tension, words chosen with dread
   danger: {
-    stability: 0.50,
-    similarity_boost: 0.80,
-    style: 0.45,
-    speed: 0.80,
+    stability: 0.58,
+    similarity_boost: 0.88,
+    style: 0.30,
+    speed: 0.76,
   },
   // Combat: commanding, thunderous, each blow narrated with weight
   combat: {
-    stability: 0.45,
-    similarity_boost: 0.80,
-    style: 0.55,
-    speed: 0.88,
+    stability: 0.52,
+    similarity_boost: 0.85,
+    style: 0.40,
+    speed: 0.82,
   },
   // Victory / triumph: deep satisfaction, a saga concluded
   victory: {
-    stability: 0.70,
-    similarity_boost: 0.85,
-    style: 0.35,
-    speed: 0.80,
+    stability: 0.75,
+    similarity_boost: 0.90,
+    style: 0.25,
+    speed: 0.76,
   },
   // NPC dialogue: slightly more expressive, but still narrator-framed
   npc: {
-    stability: 0.40,
-    similarity_boost: 0.75,
-    style: 0.50,
-    speed: 0.85,
+    stability: 0.48,
+    similarity_boost: 0.82,
+    style: 0.38,
+    speed: 0.80,
   },
   // Default: the classic BG narrator — deep, slow, authoritative
   default: {
-    stability: 0.60,
-    similarity_boost: 0.85,
-    style: 0.30,
-    speed: 0.80,
+    stability: 0.68,
+    similarity_boost: 0.90,
+    style: 0.18,
+    speed: 0.75,
   },
 };
 
