@@ -307,33 +307,15 @@ const CREATURE_CUES: SoundCue[] = [
       /\b(crying|weeping|sobbing|tears?\s*(fall|stream|roll))\b/i,
     ],
     prompt: 'very faint distant crying, muffled sobbing barely audible',
-    duration: 4, category: 'moment', volumeCeiling: 0.06, cooldownMs: 30000,
+    duration: 4, category: 'moment', volumeCeiling: 0.05, cooldownMs: 35000,
     fadeInMs: 800, fadeOutMs: 2000, momentDurationMs: 3000, priority: 1, family: 'vocal',
-  },
-  {
-    id: 'distant_yelling',
-    patterns: [
-      /\b(yelling|shout(ing|s)?|call(ing|s)?\s*out|voice[s]?\s*(echo|carry|shout|ring))\b/i,
-      /\b(bellow(ing|s)?|holler(ing|s)?)\b/i,
-    ],
-    prompt: 'very faint distant shouting, muffled voices yelling far away',
-    duration: 3, category: 'moment', volumeCeiling: 0.07, cooldownMs: 25000,
-    fadeInMs: 300, fadeOutMs: 1500, momentDurationMs: 2500, priority: 2, family: 'vocal',
-  },
-  {
-    id: 'faint_scream',
-    patterns: [
-      /\b(scream[s]?\s*(echo|ring|pierce|fill|cut)|shriek|wail|cry\s*of\s*(pain|terror|anguish|agony))\b/i,
-    ],
-    prompt: 'very faint distant scream, barely audible cry of alarm',
-    duration: 3, category: 'moment', volumeCeiling: 0.05, cooldownMs: 40000,
-    fadeInMs: 200, fadeOutMs: 2000, momentDurationMs: 2000, priority: 2, family: 'vocal',
   },
   {
     id: 'creature_movement',
     patterns: [
       /\b(something\s*(mov|stir|shift|lurk|creep|watch|approach)|creature\s*(mov|stir|creep|approach|emerge))\b/i,
       /\b(skitter|scurry|slither|crawl|scuttle)\b/i,
+      /\b(mandible[s]?\s*(click|clack|snap)|clicking\s*(furious|rapid))\b/i,
     ],
     prompt: 'subtle creature movement in darkness, something stirring nearby',
     duration: 4, category: 'moment', volumeCeiling: 0.2, cooldownMs: 12000,
@@ -372,11 +354,10 @@ const CREATURE_CUES: SoundCue[] = [
   {
     id: 'roar',
     patterns: [
-      /\b(roar[sng]*|bellow[sng]*|beast\s*(roar|cry|scream))\b/i,
-      /\b(dragon\s*(roar|screech|cry)|monster\s*(roar|cry|shriek))\b/i,
+      /\b(dragon\s*(roar|screech|cry)|monster\s*(roar|cry)|beast\s*(roar|cry))\b/i,
     ],
     prompt: 'powerful creature roar, deep bellowing beast cry',
-    duration: 3, category: 'moment', volumeCeiling: 0.3, cooldownMs: 12000,
+    duration: 3, category: 'moment', volumeCeiling: 0.25, cooldownMs: 15000,
     fadeInMs: 200, fadeOutMs: 1500, momentDurationMs: 2500, priority: 4, family: 'creature',
   },
   {
