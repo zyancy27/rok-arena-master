@@ -62,6 +62,12 @@ class NarrationSoundManager {
   /**
    * Primary entry point: called when a narrator message is rendered.
    */
+  /**
+   * Estimated narrator speech rate: ms per character.
+   * ~80ms per word ≈ ~16ms per character (avg word ~5 chars + space).
+   */
+  private static readonly MS_PER_CHAR = 16;
+
   processNarration(text: string) {
     if (!this.enabled || this.intensityLevel === 'off') return;
 
@@ -82,10 +88,19 @@ class NarrationSoundManager {
     const persistentEvents = events.filter(e => e.cue.category === 'persistent');
     const momentEvents = events.filter(e => e.cue.category === 'moment');
 
-    // Handle persistent layers
-    this.updatePersistentLayers(persistentEvents, rules, intensity);
+    // Calculate delay for each event based on its character offset in the text.
+    // This ensures sounds only trigger AFTER the narrator has spoken/rendered
+    // the relevant portion of the text.
+    for (const event of persistentEvents) {
+      const delayMs = event.textOffset * NarrationSoundManager.MS_PER_CHAR;
+      setTimeout(() => {
+        if (!this.enabled || this.intensityLevel === 'off') return;
+        const currentRules = getMixingRules(intensity, this.intensityLevel);
+        this.updatePersistentLayers([event], currentRules, intensity);
+      }, delayMs);
+    }
 
-    // Handle moment sounds with staggered delays
+    // Handle moment sounds — delay based on text position + stagger
     this.scheduleMomentSounds(momentEvents, rules);
   }
 
