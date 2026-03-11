@@ -382,6 +382,23 @@ export default function CampaignView() {
           // Detect battlefield effects from narrator messages
           if (msg.sender_type === 'narrator' && msg.content) {
             processEffectMessage(msg.content);
+            // Play narrator arrival sound + auto-read
+            chatSoundsEngine.play('narrator_message');
+            if (userSettings.audio.narratorAutoRead && userSettings.audio.narratorVoiceEnabled) {
+              narratorVoice.speak(msg.content);
+            }
+          } else if (msg.sender_type === 'player') {
+            // Play received sound if it's from another player
+            const isFromMe = participantsRef.current.find(
+              p => p.character_id === msg.character_id
+            )?.user_id === user?.id;
+            if (!isFromMe) {
+              chatSoundsEngine.play('message_received');
+            }
+            // Play dice roll sound
+            if (msg.dice_result) {
+              chatSoundsEngine.play('dice_roll');
+            }
           }
 
           setMessages(prev => {
