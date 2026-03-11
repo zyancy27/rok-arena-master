@@ -149,6 +149,44 @@ serve(async (req) => {
       });
     }
 
+    // Narration cue mode: generate a sound from a specific prompt + duration
+    if (mode === 'narration_cue') {
+      const { prompt: cuePrompt, duration: cueDuration } = await req.json().catch(() => ({ prompt: null, duration: null }));
+      // Re-parse since we already consumed the body above — use the outer variables
+      const finalPrompt = cuePrompt || text || 'ambient background sound';
+      const finalDuration = Math.min(Math.max(cueDuration || 8, 2), 18);
+      
+      const response = await fetch("https://api.elevenlabs.io/v1/sound-generation", {
+        method: "POST",
+        headers: {
+          "xi-api-key": ELEVENLABS_API_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          text: finalPrompt,
+          duration_seconds: finalDuration,
+          prompt_influence: 0.45,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error("ElevenLabs narration cue SFX error:", response.status);
+        return new Response(JSON.stringify({ error: "Narration cue SFX failed" }), {
+          status: response.status === 429 ? 429 : 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const audioBuffer = await response.arrayBuffer();
+      return new Response(audioBuffer, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "audio/mpeg",
+          "Cache-Control": "public, max-age=14400",
+        },
+      });
+    }
+
     // Accent mode: generate a short targeted SFX
     if (mode === 'accent' && cue) {
       const prompt = buildAccentPrompt(cue);
