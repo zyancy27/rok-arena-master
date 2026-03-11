@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.narrator-tts]
 verify_jwt = false
+
+[functions.narrator-ambient-sfx]
+verify_jwt = false
