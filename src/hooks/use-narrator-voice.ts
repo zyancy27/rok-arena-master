@@ -446,12 +446,16 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
 
     audio.onended = () => {
       playingRef.current = false;
+      setIsPlaying(false);
+      setIsPaused(false);
       audioRef.current = null;
       stopAmbient();
       clearSentenceTracking();
     };
     audio.onerror = () => {
       playingRef.current = false;
+      setIsPlaying(false);
+      setIsPaused(false);
       audioRef.current = null;
       stopAmbient();
       clearSentenceTracking();
