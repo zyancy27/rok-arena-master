@@ -139,7 +139,7 @@ serve(async (req) => {
   }
 
   try {
-    const { context, text, mode, cue } = await req.json();
+    const { context, text, mode, cue, prompt: bodyPrompt, duration: bodyDuration } = await req.json();
     const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY");
 
     if (!ELEVENLABS_API_KEY) {
@@ -151,10 +151,8 @@ serve(async (req) => {
 
     // Narration cue mode: generate a sound from a specific prompt + duration
     if (mode === 'narration_cue') {
-      const { prompt: cuePrompt, duration: cueDuration } = await req.json().catch(() => ({ prompt: null, duration: null }));
-      // Re-parse since we already consumed the body above — use the outer variables
-      const finalPrompt = cuePrompt || text || 'ambient background sound';
-      const finalDuration = Math.min(Math.max(cueDuration || 8, 2), 18);
+      const finalPrompt = bodyPrompt || text || 'ambient background sound';
+      const finalDuration = Math.min(Math.max(bodyDuration || 8, 2), 18);
       
       const response = await fetch("https://api.elevenlabs.io/v1/sound-generation", {
         method: "POST",
