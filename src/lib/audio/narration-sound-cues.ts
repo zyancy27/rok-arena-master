@@ -353,11 +353,10 @@ const CREATURE_CUES: SoundCue[] = [
   {
     id: 'roar',
     patterns: [
-      /\b(roar[sng]*|bellow[sng]*|beast\s*(roar|cry|scream))\b/i,
-      /\b(dragon\s*(roar|screech|cry)|monster\s*(roar|cry|shriek))\b/i,
+      /\b(dragon\s*(roar|screech|cry)|monster\s*(roar|cry)|beast\s*(roar|cry))\b/i,
     ],
     prompt: 'powerful creature roar, deep bellowing beast cry',
-    duration: 3, category: 'moment', volumeCeiling: 0.3, cooldownMs: 12000,
+    duration: 3, category: 'moment', volumeCeiling: 0.25, cooldownMs: 15000,
     fadeInMs: 200, fadeOutMs: 1500, momentDurationMs: 2500, priority: 4, family: 'creature',
   },
   {
