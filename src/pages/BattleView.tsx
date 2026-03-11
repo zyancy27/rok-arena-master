@@ -1741,6 +1741,10 @@ export default function BattleView() {
           timestamp: new Date(),
         };
         setNarratorMessages(prev => [...prev, narratorMsg]);
+        chatSoundsEngine.play('narrator_message');
+        if (userSettings.audio.narratorAutoRead && userSettings.audio.narratorVoiceEnabled) {
+          narratorVoice.speak(response.data.narration);
+        }
         
         // Also post to OOC chat for persistence
         await supabase.from('battle_messages').insert({
