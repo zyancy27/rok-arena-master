@@ -2290,9 +2290,10 @@ export default function BattleView() {
         )
       )}
 
-      {/* SFX Toggle (minimal) */}
+      {/* SFX Toggle & Connection Status */}
       {battle.status === 'active' && userCharacter?.character && (
-        <div className="flex justify-end">
+        <div className="flex justify-between items-center">
+          <RealtimeStatus status={realtimeStatus} />
           <div className="flex items-center gap-1">
             <SfxToggle muted={sfxMuted} onToggle={toggleSfxMute} />
             <SfxToggle muted={ambientMuted} onToggle={toggleAmbientMute} />
