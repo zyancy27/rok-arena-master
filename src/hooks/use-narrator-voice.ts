@@ -16,6 +16,8 @@ interface NarratorVoiceOptions {
   enabled: boolean;
   autoRead: boolean;
   volume: number;
+  /** Gate behind AI subscription — voices & ambient won't fire without access */
+  hasAIAccess?: boolean;
 }
 
 /**
