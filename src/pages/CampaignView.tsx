@@ -52,6 +52,9 @@ import { useCampaignTrades } from '@/hooks/use-campaign-trades';
 import ConcentrationButton from '@/components/battles/ConcentrationButton';
 import type { CharacterStats } from '@/lib/character-stats';
 import CampaignTacticalMap, { type NarratorSceneMap } from '@/components/campaigns/CampaignTacticalMap';
+import { useNarratorVoice } from '@/hooks/use-narrator-voice';
+import { getChatSoundsEngine } from '@/lib/chat-sounds';
+import { useUserSettings } from '@/hooks/use-user-settings';
 // Helper: build bag content for the inline backpack bubble
 function buildBagContent(campaignItems: InventoryItem[], characterWeapons: string | null) {
   const items: { name: string; type: string; rarity: string; equipped: boolean }[] = [];
@@ -106,6 +109,19 @@ export default function CampaignView() {
   const introAttemptedRef = useRef(false);
   const [showNewMsgIndicator, setShowNewMsgIndicator] = useState(false);
   const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
+
+  // ── Narrator Voice & Chat Sounds ──
+  const { settings: userSettings } = useUserSettings();
+  const narratorVoice = useNarratorVoice({
+    enabled: userSettings.audio.narratorVoiceEnabled,
+    autoRead: userSettings.audio.narratorAutoRead,
+    volume: userSettings.audio.narratorVoiceVolume * userSettings.audio.masterVolume,
+  });
+  const chatSoundsEngine = getChatSoundsEngine();
+  useEffect(() => {
+    chatSoundsEngine.setEnabled(userSettings.audio.chatSoundsEnabled);
+    chatSoundsEngine.setVolume(userSettings.audio.chatSoundsVolume * userSettings.audio.masterVolume);
+  }, [userSettings.audio.chatSoundsEnabled, userSettings.audio.chatSoundsVolume, userSettings.audio.masterVolume]);
   // Pending send context held while concentration prompt is active
   const pendingSendRef = useRef<{
     messageText: string;
@@ -366,6 +382,23 @@ export default function CampaignView() {
           // Detect battlefield effects from narrator messages
           if (msg.sender_type === 'narrator' && msg.content) {
             processEffectMessage(msg.content);
+            // Play narrator arrival sound + auto-read
+            chatSoundsEngine.play('narrator_message');
+            if (userSettings.audio.narratorAutoRead && userSettings.audio.narratorVoiceEnabled) {
+              narratorVoice.speak(msg.content);
+            }
+          } else if (msg.sender_type === 'player') {
+            // Play received sound if it's from another player
+            const isFromMe = participantsRef.current.find(
+              p => p.character_id === msg.character_id
+            )?.user_id === user?.id;
+            if (!isFromMe) {
+              chatSoundsEngine.play('message_received');
+            }
+            // Play dice roll sound
+            if (msg.dice_result) {
+              chatSoundsEngine.play('dice_roll');
+            }
           }
 
           setMessages(prev => {
@@ -1479,6 +1512,9 @@ export default function CampaignView() {
         ? combatResult.diceMetadata as Record<string, unknown>
         : null;
 
+      // Play sent sound
+      chatSoundsEngine.play('message_sent');
+
       // OPTIMISTIC: Add message to UI immediately before DB write
       const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const optimisticMessage: CampaignMessage = {
@@ -1904,6 +1940,15 @@ export default function CampaignView() {
                                 <div className="flex items-center gap-2 mb-1">
                                   <span className="text-xs text-amber-400 font-semibold uppercase tracking-wider">Narrator</span>
                                   <span className="text-[10px] text-muted-foreground">{new Date(msg.created_at).toLocaleTimeString()}</span>
+                                  {userSettings.audio.narratorVoiceEnabled && (
+                                    <button
+                                      onClick={() => narratorVoice.speak(msg.content)}
+                                      className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
+                                      title="Listen to narrator"
+                                    >
+                                      <Volume2 className="w-3.5 h-3.5 text-amber-400" />
+                                    </button>
+                                  )}
                                 </div>
                                 <p className="text-sm whitespace-pre-wrap break-words text-foreground/90 italic">{msg.content}</p>
                               </div>

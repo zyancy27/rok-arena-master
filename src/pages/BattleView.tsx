@@ -103,6 +103,9 @@ import { useBattleSfx } from '@/hooks/use-battle-sfx';
 import { useAmbientSound } from '@/hooks/use-ambient-sound';
 import { getDominantPsychCue } from '@/lib/battle-psychology';
 import { interpretMove } from '@/lib/intent-interpreter';
+import { useNarratorVoice } from '@/hooks/use-narrator-voice';
+import { getChatSoundsEngine } from '@/lib/chat-sounds';
+import { useUserSettings } from '@/hooks/use-user-settings';
 import { applyHardClamp, generateClampContext, type CharacterProfile, type ClampResult } from '@/lib/hard-clamp';
 import { detectDirectInteraction } from '@/lib/battle-hit-detection';
 import {
@@ -247,6 +250,19 @@ export default function BattleView() {
   const [activeChannel, setActiveChannel] = useState<'in_universe' | 'out_of_universe'>('in_universe');
   const [isSending, setIsSending] = useState(false);
   const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
+
+  // ── Narrator Voice & Chat Sounds ──
+  const { settings: userSettings } = useUserSettings();
+  const narratorVoice = useNarratorVoice({
+    enabled: userSettings.audio.narratorVoiceEnabled,
+    autoRead: userSettings.audio.narratorAutoRead,
+    volume: userSettings.audio.narratorVoiceVolume * userSettings.audio.masterVolume,
+  });
+  const chatSoundsEngine = getChatSoundsEngine();
+  useEffect(() => {
+    chatSoundsEngine.setEnabled(userSettings.audio.chatSoundsEnabled);
+    chatSoundsEngine.setVolume(userSettings.audio.chatSoundsVolume * userSettings.audio.masterVolume);
+  }, [userSettings.audio.chatSoundsEnabled, userSettings.audio.chatSoundsVolume, userSettings.audio.masterVolume]);
   const [showRules, setShowRules] = useState(false);
   const [locationInput, setLocationInput] = useState('');
   const [isFlippingCoin, setIsFlippingCoin] = useState(false);
@@ -788,6 +804,9 @@ export default function BattleView() {
                 // Unlock sending after server confirms
                 if (charData?.user_id === user?.id) {
                   setIsSending(false);
+                } else {
+                  // Play received sound for opponent messages
+                  chatSoundsEngine.play('message_received');
                 }
                 
                 // Process battlefield effects from in-universe messages
@@ -1137,6 +1156,9 @@ export default function BattleView() {
           activeStatusEffects: characterStatusEffects.map(e => e.type),
         })
       : null;
+
+    // Play sent sound
+    chatSoundsEngine.play('message_sent');
 
     // OPTIMISTIC: Add message to UI immediately
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -1722,6 +1744,10 @@ export default function BattleView() {
           timestamp: new Date(),
         };
         setNarratorMessages(prev => [...prev, narratorMsg]);
+        chatSoundsEngine.play('narrator_message');
+        if (userSettings.audio.narratorAutoRead && userSettings.audio.narratorVoiceEnabled) {
+          narratorVoice.speak(response.data.narration);
+        }
         
         // Also post to OOC chat for persistence
         await supabase.from('battle_messages').insert({
@@ -2930,9 +2956,20 @@ export default function BattleView() {
                             <div className="flex items-start gap-2">
                               <BookOpen className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                               <div className="flex-1">
-                                <p className="text-xs text-amber-400 font-medium uppercase tracking-wider mb-1">
-                                  Narrator
-                                </p>
+                                <div className="flex items-center gap-2 mb-1">
+                                  <p className="text-xs text-amber-400 font-medium uppercase tracking-wider">
+                                    Narrator
+                                  </p>
+                                  {userSettings.audio.narratorVoiceEnabled && (
+                                    <button
+                                      onClick={() => narratorVoice.speak(narratorMessages[narratorMessages.length - 1]?.content || '')}
+                                      className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
+                                      title="Listen to narrator"
+                                    >
+                                      <Volume2 className="w-3.5 h-3.5 text-amber-400" />
+                                    </button>
+                                  )}
+                                </div>
                                 <p className="text-sm text-foreground/90 italic">
                                   {narratorMessages[narratorMessages.length - 1]?.content}
                                 </p>
