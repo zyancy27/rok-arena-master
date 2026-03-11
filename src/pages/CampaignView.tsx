@@ -156,6 +156,42 @@ export default function CampaignView() {
 
   const otherParticipantsReadThis = (messageId: string) => otherReadIds.has(messageId);
 
+  // ── Typing indicator state ──
+  const [typingParticipants, setTypingParticipants] = useState<{ name: string; characterId: string }[]>([]);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingDebounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  const updateTypingStatus = async (isTyping: boolean) => {
+    if (!myParticipant) return;
+    await supabase
+      .from('campaign_participants')
+      .update({ is_typing: isTyping, last_typed_at: isTyping ? new Date().toISOString() : null })
+      .eq('id', myParticipant.id);
+  };
+
+  const handleCampaignInputChange = (value: string) => {
+    setInputMessage(value);
+    // Debounce typing indicator
+    if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+    if (value.trim()) {
+      typingDebounceRef.current = setTimeout(() => updateTypingStatus(true), 300);
+      // Auto-clear after 5 seconds of no input
+      typingTimeoutRef.current = setTimeout(() => updateTypingStatus(false), 5000);
+    } else {
+      updateTypingStatus(false);
+    }
+  };
+
+  // Clear typing on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
+    };
+  }, []);
+
   // Dynamic scene location from messages
   const [activeSceneLocation, setActiveSceneLocation] = useState<string | null>(null);
   useEffect(() => {
