@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
+import { RealtimeStatus } from '@/components/ui/realtime-status';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -104,6 +105,7 @@ export default function CampaignView() {
   const userIsNearBottomRef = useRef(true);
   const introAttemptedRef = useRef(false);
   const [showNewMsgIndicator, setShowNewMsgIndicator] = useState(false);
+  const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
   // Pending send context held while concentration prompt is active
   const pendingSendRef = useRef<{
     messageText: string;
@@ -343,7 +345,12 @@ export default function CampaignView() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_enemies', filter: `campaign_id=eq.${campaignId}` },
         () => fetchEnemies()
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') setRealtimeStatus('connected');
+        else if (status === 'CHANNEL_ERROR') setRealtimeStatus('error');
+        else if (status === 'TIMED_OUT') setRealtimeStatus('disconnected');
+        else if (status === 'CLOSED') setRealtimeStatus('disconnected');
+      });
   };
 
   const fetchAll = async () => {
@@ -1625,7 +1632,8 @@ export default function CampaignView() {
               <Compass className="w-4 h-4 sm:w-5 sm:h-5 text-primary shrink-0" />
               <span className="truncate">{campaign.name}</span>
             </h1>
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs sm:text-sm text-muted-foreground mt-0.5">
+             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs sm:text-sm text-muted-foreground mt-0.5">
+              <RealtimeStatus status={realtimeStatus} />
               <span className="whitespace-nowrap">{getTimeEmoji(campaign.time_of_day)} {campaign.time_of_day}</span>
               <span className="hidden sm:inline">·</span>
               <span className="whitespace-nowrap">Day {campaign.day_count}</span>

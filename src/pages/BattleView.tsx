@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { RealtimeStatus } from '@/components/ui/realtime-status';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -245,6 +246,7 @@ export default function BattleView() {
   const [messageInput, setMessageInput] = useState('');
   const [activeChannel, setActiveChannel] = useState<'in_universe' | 'out_of_universe'>('in_universe');
   const [isSending, setIsSending] = useState(false);
+  const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
   const [showRules, setShowRules] = useState(false);
   const [locationInput, setLocationInput] = useState('');
   const [isFlippingCoin, setIsFlippingCoin] = useState(false);
@@ -942,9 +944,15 @@ export default function BattleView() {
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
+          setRealtimeStatus('connected');
           console.log('✅ Battle realtime channel connected');
         } else if (status === 'CHANNEL_ERROR') {
+          setRealtimeStatus('error');
           console.error('❌ Battle realtime channel error');
+        } else if (status === 'TIMED_OUT') {
+          setRealtimeStatus('disconnected');
+        } else if (status === 'CLOSED') {
+          setRealtimeStatus('disconnected');
         }
       });
       
@@ -2282,9 +2290,10 @@ export default function BattleView() {
         )
       )}
 
-      {/* SFX Toggle (minimal) */}
+      {/* SFX Toggle & Connection Status */}
       {battle.status === 'active' && userCharacter?.character && (
-        <div className="flex justify-end">
+        <div className="flex justify-between items-center">
+          <RealtimeStatus status={realtimeStatus} />
           <div className="flex items-center gap-1">
             <SfxToggle muted={sfxMuted} onToggle={toggleSfxMute} />
             <SfxToggle muted={ambientMuted} onToggle={toggleAmbientMute} />
