@@ -250,6 +250,19 @@ export default function BattleView() {
   const [activeChannel, setActiveChannel] = useState<'in_universe' | 'out_of_universe'>('in_universe');
   const [isSending, setIsSending] = useState(false);
   const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
+
+  // ── Narrator Voice & Chat Sounds ──
+  const { settings: userSettings } = useUserSettings();
+  const narratorVoice = useNarratorVoice({
+    enabled: userSettings.audio.narratorVoiceEnabled,
+    autoRead: userSettings.audio.narratorAutoRead,
+    volume: userSettings.audio.narratorVoiceVolume * userSettings.audio.masterVolume,
+  });
+  const chatSoundsEngine = getChatSoundsEngine();
+  useEffect(() => {
+    chatSoundsEngine.setEnabled(userSettings.audio.chatSoundsEnabled);
+    chatSoundsEngine.setVolume(userSettings.audio.chatSoundsVolume * userSettings.audio.masterVolume);
+  }, [userSettings.audio.chatSoundsEnabled, userSettings.audio.chatSoundsVolume, userSettings.audio.masterVolume]);
   const [showRules, setShowRules] = useState(false);
   const [locationInput, setLocationInput] = useState('');
   const [isFlippingCoin, setIsFlippingCoin] = useState(false);
