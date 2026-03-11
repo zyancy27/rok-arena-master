@@ -12,6 +12,8 @@ import type { AudioSettings } from '@/lib/settings-defaults';
 interface UseNarrationAmbientOptions {
   enabled: boolean;
   audioSettings: AudioSettings;
+  /** Gate behind AI subscription */
+  hasAIAccess?: boolean;
 }
 
 export function useNarrationAmbient(options: UseNarrationAmbientOptions) {
@@ -22,7 +24,8 @@ export function useNarrationAmbient(options: UseNarrationAmbientOptions) {
     const mgr = managerRef.current;
     const { audioSettings, enabled } = options;
     
-    mgr.setEnabled(enabled && audioSettings.narrationAmbientEnabled);
+    const gated = enabled && audioSettings.narrationAmbientEnabled && options.hasAIAccess !== false;
+    mgr.setEnabled(gated);
     
     if (audioSettings.narrationAmbientIntensity === 'off' || !audioSettings.narrationAmbientEnabled) {
       mgr.setIntensityLevel('off');

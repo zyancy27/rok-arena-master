@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { RealtimeStatus } from '@/components/ui/realtime-status';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/hooks/use-subscription';
 import { supabase } from '@/integrations/supabase/client';
 import { fromDecrypted } from '@/lib/encrypted-query';
 import { buildSceneTags } from '@/lib/build-scene-tags';
@@ -254,10 +255,12 @@ export default function BattleView() {
 
   // ── Narrator Voice & Chat Sounds ──
   const { settings: userSettings } = useUserSettings();
+  const { hasAIAccess } = useSubscription();
   const narratorVoice = useNarratorVoice({
     enabled: userSettings.audio.narratorVoiceEnabled,
     autoRead: userSettings.audio.narratorAutoRead,
     volume: userSettings.audio.narratorVoiceVolume * userSettings.audio.masterVolume,
+    hasAIAccess,
   });
   const chatSoundsEngine = getChatSoundsEngine();
   useEffect(() => {
@@ -269,6 +272,7 @@ export default function BattleView() {
   const narrationAmbient = useNarrationAmbient({
     enabled: battle?.status === 'active',
     audioSettings: userSettings.audio,
+    hasAIAccess,
   });
 
   const [showRules, setShowRules] = useState(false);

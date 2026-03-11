@@ -16,6 +16,8 @@ interface NarratorVoiceOptions {
   enabled: boolean;
   autoRead: boolean;
   volume: number;
+  /** Gate behind AI subscription — voices & ambient won't fire without access */
+  hasAIAccess?: boolean;
 }
 
 /**
@@ -305,7 +307,7 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
   }, []);
 
   const speak = useCallback(async (text: string, explicitContext?: NarratorSceneContext) => {
-    if (!options.enabled || !text.trim()) return;
+    if (!options.enabled || !text.trim() || options.hasAIAccess === false) return;
 
     if (audioRef.current) {
       audioRef.current.pause();
@@ -399,7 +401,7 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
       playingRef.current = false;
       stopAmbient();
     }
-  }, [options.enabled, options.volume, playAmbient, playAccentCue, stopAmbient, stopAccents, buildTtsSegments]);
+  }, [options.enabled, options.volume, options.hasAIAccess, playAmbient, playAccentCue, stopAmbient, stopAccents, buildTtsSegments]);
 
   const stop = useCallback(() => {
     if (audioRef.current) {
