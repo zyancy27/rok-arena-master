@@ -127,6 +127,15 @@ export default function CampaignView() {
     chatSoundsEngine.setEnabled(userSettings.audio.chatSoundsEnabled);
     chatSoundsEngine.setVolume(userSettings.audio.chatSoundsVolume * userSettings.audio.masterVolume);
   }, [userSettings.audio.chatSoundsEnabled, userSettings.audio.chatSoundsVolume, userSettings.audio.masterVolume]);
+
+  // Narration-aware ambient sounds
+  const narrationAmbient = useNarrationAmbient({
+    enabled: campaign?.status === 'active',
+    audioSettings: userSettings.audio,
+  });
+  const narrationAmbientRef = useRef(narrationAmbient);
+  narrationAmbientRef.current = narrationAmbient;
+
   // Pending send context held while concentration prompt is active
   const pendingSendRef = useRef<{
     messageText: string;
