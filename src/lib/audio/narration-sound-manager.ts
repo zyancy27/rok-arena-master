@@ -168,25 +168,30 @@ class NarrationSoundManager {
 
   private scheduleMomentSounds(events: ParsedSoundEvent[], rules: MixingRules) {
     const now = Date.now();
-    let delay = 0;
+    let staggerOffset = 0;
 
     // Active moment count check
     const activeMoments = this.momentLayers.length;
 
     for (const event of events) {
-      if (activeMoments + delay / 1500 >= rules.maxMomentSounds) break;
+      if (activeMoments + staggerOffset / 1500 >= rules.maxMomentSounds) break;
       if (this.isOnCooldown(event.cue.id)) continue;
-      if (now - this.lastMomentTriggerAt < rules.momentCooldownMs && delay === 0) {
-        delay = rules.momentCooldownMs;
+
+      // Base delay = narrator reaching that word in the text
+      const narratorDelay = event.textOffset * NarrationSoundManager.MS_PER_CHAR;
+
+      // Additional stagger so moment sounds don't stack
+      if (now - this.lastMomentTriggerAt < rules.momentCooldownMs && staggerOffset === 0) {
+        staggerOffset = rules.momentCooldownMs;
       }
 
-      const triggerDelay = delay + 500 + Math.random() * 1000; // slight randomness
+      const triggerDelay = narratorDelay + staggerOffset + 300 + Math.random() * 700;
       setTimeout(() => {
         if (!this.enabled) return;
         this.triggerCue(event.cue, rules, false);
       }, triggerDelay);
 
-      delay += 2000; // stagger
+      staggerOffset += 2000; // stagger between moment sounds
       this.setCooldown(event.cue.id, event.cue.cooldownMs);
     }
   }

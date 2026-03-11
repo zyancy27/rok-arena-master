@@ -307,27 +307,8 @@ const CREATURE_CUES: SoundCue[] = [
       /\b(crying|weeping|sobbing|tears?\s*(fall|stream|roll))\b/i,
     ],
     prompt: 'very faint distant crying, muffled sobbing barely audible',
-    duration: 4, category: 'moment', volumeCeiling: 0.06, cooldownMs: 30000,
+    duration: 4, category: 'moment', volumeCeiling: 0.05, cooldownMs: 35000,
     fadeInMs: 800, fadeOutMs: 2000, momentDurationMs: 3000, priority: 1, family: 'vocal',
-  },
-  {
-    id: 'distant_yelling',
-    patterns: [
-      /\b(yelling|shout(ing|s)?|call(ing|s)?\s*out|voice[s]?\s*(echo|carry|shout|ring))\b/i,
-      /\b(bellow(ing|s)?|holler(ing|s)?)\b/i,
-    ],
-    prompt: 'very faint distant shouting, muffled voices yelling far away',
-    duration: 3, category: 'moment', volumeCeiling: 0.07, cooldownMs: 25000,
-    fadeInMs: 300, fadeOutMs: 1500, momentDurationMs: 2500, priority: 2, family: 'vocal',
-  },
-  {
-    id: 'faint_scream',
-    patterns: [
-      /\b(scream[s]?\s*(echo|ring|pierce|fill|cut)|shriek|wail|cry\s*of\s*(pain|terror|anguish|agony))\b/i,
-    ],
-    prompt: 'very faint distant scream, barely audible cry of alarm',
-    duration: 3, category: 'moment', volumeCeiling: 0.05, cooldownMs: 40000,
-    fadeInMs: 200, fadeOutMs: 2000, momentDurationMs: 2000, priority: 2, family: 'vocal',
   },
   {
     id: 'creature_movement',
