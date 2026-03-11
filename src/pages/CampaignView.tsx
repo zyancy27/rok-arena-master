@@ -54,6 +54,7 @@ import ConcentrationButton from '@/components/battles/ConcentrationButton';
 import type { CharacterStats } from '@/lib/character-stats';
 import CampaignTacticalMap, { type NarratorSceneMap } from '@/components/campaigns/CampaignTacticalMap';
 import { useNarratorVoice } from '@/hooks/use-narrator-voice';
+import NarratorMessageContent from '@/components/campaigns/NarratorMessageContent';
 import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import { useNarrationAmbient } from '@/hooks/use-narration-ambient';
@@ -405,7 +406,7 @@ export default function CampaignView() {
             if (userSettingsRef.current.audio.narratorAutoRead && userSettingsRef.current.audio.narratorVoiceEnabled) {
               // Duck ambient sounds while narrator is speaking
               narrationAmbientRef.current.setNarratorSpeaking(true);
-              narratorVoiceRef.current.speak(msg.content);
+              narratorVoiceRef.current.speak(msg.content, undefined, msg.id);
               // Un-duck after estimated speech duration (roughly 80ms per word)
               const wordCount = msg.content.split(/\s+/).length;
               setTimeout(() => narrationAmbientRef.current.setNarratorSpeaking(false), wordCount * 80 + 2000);
@@ -1967,7 +1968,7 @@ export default function CampaignView() {
                                   <span className="text-[10px] text-muted-foreground">{new Date(msg.created_at).toLocaleTimeString()}</span>
                                   {userSettings.audio.narratorVoiceEnabled && (
                                     <button
-                                      onClick={() => narratorVoice.speak(msg.content)}
+                                      onClick={() => narratorVoice.speak(msg.content, undefined, msg.id)}
                                       className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
                                       title="Listen to narrator"
                                     >
@@ -1975,7 +1976,14 @@ export default function CampaignView() {
                                     </button>
                                   )}
                                 </div>
-                                <p className="text-sm whitespace-pre-wrap break-words text-foreground/90 italic">{msg.content}</p>
+                                <NarratorMessageContent
+                                  content={msg.content}
+                                  activeSentenceIndex={narratorVoice.activeMessageId === msg.id ? narratorVoice.activeSentenceIndex : -1}
+                                  voiceEnabled={userSettings.audio.narratorVoiceEnabled}
+                                  onSentenceClick={(sentenceIdx) => {
+                                    narratorVoice.speak(msg.content, undefined, msg.id, sentenceIdx);
+                                  }}
+                                />
                               </div>
                             </div>
                           </div>

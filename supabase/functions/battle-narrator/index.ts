@@ -8,6 +8,18 @@ const corsHeaders = {
 
 // Input validation constants
 const MAX_ACTION_LENGTH = 5000;
+
+// Shared language-level instruction injected into every narrator system prompt
+const SIMPLE_LANGUAGE_RULE = `
+LANGUAGE LEVEL (CRITICAL — apply to ALL narration):
+- Write at a middle-school reading level. Use short, common words that most people already know.
+- AVOID fancy vocabulary, SAT words, archaic language, or flowery prose. If a simpler word exists, use it.
+- BAD: "The effulgent luminescence cascaded through the dilapidated corridor."
+- GOOD: "Bright light poured through the broken hallway."
+- BAD: "An inexorable dread permeated the atmosphere."
+- GOOD: "A heavy fear filled the air."
+- Keep sentences short and punchy. Aim for 8-15 words per sentence on average.
+- Every reader should understand every word without needing a dictionary.`;
 const MAX_LOCATION_LENGTH = 500;
 const MAX_NAME_LENGTH = 100;
 
@@ -347,6 +359,7 @@ Even if the player wrote "I punch you in the face" as if it landed, the dice say
     }
 
     const systemPrompt = `You are a master Dungeon Master narrating a battle — a storyteller guiding players through a living, breathing conflict. Your voice shifts dynamically with the action:
+${SIMPLE_LANGUAGE_RULE}
 
 TONE GUIDELINES:
 - COMBAT: Energetic, cinematic, action-focused. Short punchy sentences. The clash of forces should FEEL kinetic. "Steel meets stone. The shockwave ripples outward, scattering debris."
@@ -494,6 +507,7 @@ async function generateEntrances(
   corsHeaders: Record<string, string>
 ): Promise<Response> {
   const systemPrompt = `You are writing how two characters naturally arrive at a specific real-world location for a fight. You are the NARRATOR — you describe the scene and how they show up. You do NOT write dialogue or inner thoughts for the characters.
+${SIMPLE_LANGUAGE_RULE}
 
 THE LOCATION IS REAL AND SPECIFIC. The entrance MUST be shaped by this environment:
 - If it's a rooftop → they climb up, take the elevator, land from a jump, etc.
@@ -789,6 +803,7 @@ EVALUATE their explanation:
     : '';
 
   const systemPrompt = `You are a private battle narrator assistant. You answer questions from ${characterName} about the ongoing battle.
+${SIMPLE_LANGUAGE_RULE}
 
 RULES:
 1. You can ONLY reveal information about opponents that was publicly shared in the RP chat.
@@ -1135,6 +1150,7 @@ NPC FAME & RECOGNITION RULES (apply organically):
   const isMultiplayer = partyNames.length > 1;
 
   const systemPrompt = `You are the DUNGEON MASTER for "Realm of Kings" — a master storyteller guiding players through a living world. Your voice adapts dynamically:
+${SIMPLE_LANGUAGE_RULE}
 
 DM TONE (shift based on context):
 - EXPLORATION: Mysterious, sensory-rich. "The corridor slopes downward, air cooling with each step. Water drips ahead, each drop echoing longer than the last."
