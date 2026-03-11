@@ -1512,6 +1512,9 @@ export default function CampaignView() {
         ? combatResult.diceMetadata as Record<string, unknown>
         : null;
 
+      // Play sent sound
+      chatSoundsEngine.play('message_sent');
+
       // OPTIMISTIC: Add message to UI immediately before DB write
       const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const optimisticMessage: CampaignMessage = {
