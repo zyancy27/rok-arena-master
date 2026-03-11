@@ -399,7 +399,12 @@ export default function CampaignView() {
             // Play narrator arrival sound + auto-read
             chatSoundsEngine.play('narrator_message');
             if (userSettingsRef.current.audio.narratorAutoRead && userSettingsRef.current.audio.narratorVoiceEnabled) {
+              // Duck ambient sounds while narrator is speaking
+              narrationAmbientRef.current.setNarratorSpeaking(true);
               narratorVoiceRef.current.speak(msg.content);
+              // Un-duck after estimated speech duration (roughly 80ms per word)
+              const wordCount = msg.content.split(/\s+/).length;
+              setTimeout(() => narrationAmbientRef.current.setNarratorSpeaking(false), wordCount * 80 + 2000);
             }
             // Trigger narration-aware ambient sounds
             narrationAmbientRef.current.processNarration(msg.content);
