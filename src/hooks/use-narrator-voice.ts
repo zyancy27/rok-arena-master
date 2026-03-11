@@ -463,8 +463,11 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
 
     try {
       await audio.play();
+      setIsPlaying(true);
+      setIsPaused(false);
     } catch {
       playingRef.current = false;
+      setIsPlaying(false);
       stopAmbient();
       clearSentenceTracking();
     }
@@ -476,14 +479,53 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
       audioRef.current = null;
       playingRef.current = false;
     }
+    setIsPlaying(false);
+    setIsPaused(false);
     stopAmbient();
     clearSentenceTracking();
   }, [stopAmbient, clearSentenceTracking]);
 
+  const pause = useCallback(() => {
+    if (audioRef.current && !audioRef.current.paused) {
+      audioRef.current.pause();
+      setIsPaused(true);
+      // Pause sentence timers by clearing them (highlight stays on current sentence)
+      sentenceTimerRef.current.forEach(clearTimeout);
+      sentenceTimerRef.current = [];
+      // Pause ambient
+      if (ambientRef.current && !ambientRef.current.paused) {
+        ambientRef.current.pause();
+      }
+    }
+  }, []);
+
+  const resume = useCallback(() => {
+    if (audioRef.current && audioRef.current.paused && isPaused) {
+      audioRef.current.play().catch(() => {});
+      setIsPaused(false);
+      // Resume ambient
+      if (ambientRef.current) {
+        ambientRef.current.play().catch(() => {});
+      }
+    }
+  }, [isPaused]);
+
+  const togglePause = useCallback(() => {
+    if (isPaused) {
+      resume();
+    } else {
+      pause();
+    }
+  }, [isPaused, pause, resume]);
+
   return {
     speak,
     stop,
-    isPlaying: playingRef.current,
+    pause,
+    resume,
+    togglePause,
+    isPlaying,
+    isPaused,
     /** Currently highlighted sentence index (-1 = none) */
     activeSentenceIndex,
     /** Message ID whose sentences are being tracked */
