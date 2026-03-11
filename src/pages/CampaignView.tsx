@@ -1844,6 +1844,25 @@ export default function CampaignView() {
                               {(msg as any).isPending && (
                                 <span className="text-xs text-muted-foreground italic ml-auto">Sending...</span>
                               )}
+                              {/* Sent / Read indicator for own messages */}
+                              {isMe && !(msg as any).isPending && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="ml-auto">
+                                        {otherParticipantsReadThis(msg.id) ? (
+                                          <CheckCheck className="w-3 h-3 text-primary" />
+                                        ) : (
+                                          <Check className="w-3 h-3 text-muted-foreground" />
+                                        )}
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      {otherParticipantsReadThis(msg.id) ? 'Read' : 'Sent'}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
                             </div>
                             <p className="text-sm whitespace-pre-wrap break-words pl-8">{msg.content}</p>
                           </div>
