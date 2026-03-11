@@ -6,6 +6,7 @@ export type NarratorSceneContext =
   | 'peaceful'
   | 'danger'
   | 'combat'
+  | 'tragic'
   | 'victory'
   | 'npc'
   | 'default';
@@ -40,6 +41,11 @@ function detectSceneContext(text: string): NarratorSceneContext {
   // NPC dialogue (contains quoted speech)
   if (/[""\u201C].{8,}[""\u201D]/.test(text)) {
     return 'npc';
+  }
+
+  // Tragic / heavy emotional moments
+  if (/\b(grief|mourn|tears?|weep|sorrow|loss|fallen|death|dying|funeral|grave|farewell|goodbye|sacrifice|hollow|empty|broken)\b/.test(t)) {
+    return 'tragic';
   }
 
   // Peaceful / reflective
