@@ -1998,7 +1998,22 @@ export default function CampaignView() {
                       );
                     })}
 
-                    {/* Narrator loading indicator */}
+                    {/* Player typing indicators */}
+                    {typingParticipants.length > 0 && (
+                      <div className="p-3 rounded-lg bg-muted/50 border-l-4 border-accent mr-8 animate-fade-in">
+                        <p className="text-xs mb-1 text-muted-foreground">
+                          {typingParticipants.map(t => t.name).join(', ')} {typingParticipants.length === 1 ? 'is' : 'are'} thinking…
+                        </p>
+                        <div className="flex items-center gap-1">
+                          <span className="flex gap-1">
+                            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
                     {sending && (
                       <div className="p-3 rounded-lg bg-gradient-to-r from-amber-500/10 to-orange-500/10 border-l-4 border-amber-500 mx-2 animate-fade-in">
                         <div className="flex items-center gap-2">
