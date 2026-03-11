@@ -1157,6 +1157,9 @@ export default function BattleView() {
         })
       : null;
 
+    // Play sent sound
+    chatSoundsEngine.play('message_sent');
+
     // OPTIMISTIC: Add message to UI immediately
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const optimisticMessage: Message = {
