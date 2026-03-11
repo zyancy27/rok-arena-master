@@ -2220,26 +2220,43 @@ export default function CampaignView() {
                       </Button>
                     </form>
                     <div className="flex gap-2">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              disabled={narratorTyping || sending}
-                              onClick={handleAdvanceCampaign}
-                              className="gap-1.5 flex-1 h-8 text-xs"
-                            >
-                              <FastForward className="w-3.5 h-3.5" />
-                              Progress Story
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top">
-                            <p>Move the story forward</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
+                      <AlertDialog>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={narratorTyping || sending}
+                                  className="gap-1.5 flex-1 h-8 text-xs"
+                                >
+                                  <FastForward className="w-3.5 h-3.5" />
+                                  Progress Story
+                                </Button>
+                              </AlertDialogTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <p>Move the story forward</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Progress the story?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              The narrator will advance the campaign forward. This works best when the party is idle or you're ready for the next scene.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleAdvanceCampaign}>
+                              Continue
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
