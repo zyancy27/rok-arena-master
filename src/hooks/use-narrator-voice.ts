@@ -307,7 +307,7 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
   }, []);
 
   const speak = useCallback(async (text: string, explicitContext?: NarratorSceneContext) => {
-    if (!options.enabled || !text.trim()) return;
+    if (!options.enabled || !text.trim() || options.hasAIAccess === false) return;
 
     if (audioRef.current) {
       audioRef.current.pause();
