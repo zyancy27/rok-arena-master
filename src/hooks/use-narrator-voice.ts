@@ -287,7 +287,7 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
     const onLoop = () => {
       if (ambientRef.current !== amb) return;
       amb.playbackRate = 0.94 + Math.random() * 0.12;
-      const targetVol = Math.min(options.volume * 0.3, 0.3);
+      const targetVol = Math.min(options.volume * 0.15, 0.15);
       amb.volume = targetVol * (0.8 + Math.random() * 0.4);
     };
     amb.addEventListener('seeked', onLoop);
