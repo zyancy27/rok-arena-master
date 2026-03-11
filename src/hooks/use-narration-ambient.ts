@@ -56,5 +56,9 @@ export function useNarrationAmbient(options: UseNarrationAmbientOptions) {
     managerRef.current.onSceneChange();
   }, []);
 
-  return { processNarration, onSceneChange };
+  const setNarratorSpeaking = useCallback((speaking: boolean) => {
+    managerRef.current.setNarratorSpeaking(speaking);
+  }, []);
+
+  return { processNarration, onSceneChange, setNarratorSpeaking };
 }
