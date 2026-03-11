@@ -334,15 +334,15 @@ class NarrationSoundManager {
 
   private getEffectiveVolume(cue: SoundCue, rules: MixingRules): number {
     let vol = cue.volumeCeiling * rules.globalVolumeMultiplier * this.masterVolume;
-    // Duck significantly when narrator TTS is speaking
+    // Duck heavily when narrator TTS is speaking — sounds should barely be audible
     if (this.narratorSpeaking) {
-      vol *= 0.25; // drop to 25% while narrator voice is active
+      vol *= 0.10; // drop to 10% while narrator voice is active
     }
     // Extra reduction for vocal family sounds
     if (cue.family === 'vocal') {
-      vol *= 0.5;
+      vol *= 0.4;
     }
-    return Math.min(vol, 0.35); // hard ceiling
+    return Math.min(vol, 0.25); // hard ceiling lowered
   }
 
   private updateActiveVolumes() {
