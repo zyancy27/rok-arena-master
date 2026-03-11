@@ -803,6 +803,7 @@ EVALUATE their explanation:
     : '';
 
   const systemPrompt = `You are a private battle narrator assistant. You answer questions from ${characterName} about the ongoing battle.
+${SIMPLE_LANGUAGE_RULE}
 
 RULES:
 1. You can ONLY reveal information about opponents that was publicly shared in the RP chat.
