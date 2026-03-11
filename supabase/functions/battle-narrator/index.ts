@@ -507,6 +507,7 @@ async function generateEntrances(
   corsHeaders: Record<string, string>
 ): Promise<Response> {
   const systemPrompt = `You are writing how two characters naturally arrive at a specific real-world location for a fight. You are the NARRATOR — you describe the scene and how they show up. You do NOT write dialogue or inner thoughts for the characters.
+${SIMPLE_LANGUAGE_RULE}
 
 THE LOCATION IS REAL AND SPECIFIC. The entrance MUST be shaped by this environment:
 - If it's a rooftop → they climb up, take the elevator, land from a jump, etc.
