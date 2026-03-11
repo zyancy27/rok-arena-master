@@ -97,8 +97,8 @@ serve(async (req) => {
     // Select voice preset based on scene context
     const preset = VOICE_PRESETS[context as string] || VOICE_PRESETS.default;
 
-    // Use Matilda voice — rich, warm, dramatic feminine narrator
-    const selectedVoice = voiceId || "XrExE9yKIg1WjnnlVkGX";
+    // Use Brian voice — deep, aged, gravelly masculine narrator
+    const selectedVoice = voiceId || "nPczCjzI2devNBz1zQrb";
 
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoice}?output_format=mp3_44100_128`,
