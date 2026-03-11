@@ -54,23 +54,54 @@ const VOICE_POOL: NpcVoiceProfile[] = [
   { voiceId: 'goT3UYdM9bhm0n2lmKQx', label: 'Voice-35',  tone: 'neutral', gender: 'male'   },
 ];
 
-/** Session-stable NPC → voice mapping */
-const npcAssignments = new Map<string, NpcVoiceProfile>();
+const STORAGE_KEY = 'npc_voice_assignments';
+
+/** Load persisted NPC → voiceId map from localStorage */
+function loadAssignments(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch { return {}; }
+}
+
+/** Save NPC → voiceId map to localStorage */
+function saveAssignments(map: Record<string, string>) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(map)); } catch {}
+}
+
+/** In-memory cache hydrated from storage on first access */
+let assignmentsCache: Record<string, string> | null = null;
 let nextPoolIndex = 0;
+
+function getCache(): Record<string, string> {
+  if (!assignmentsCache) {
+    assignmentsCache = loadAssignments();
+    // Advance pool index past already-used voices to avoid duplicates
+    nextPoolIndex = Object.keys(assignmentsCache).length;
+  }
+  return assignmentsCache;
+}
 
 /**
  * Get a consistent voice for a given NPC name.
- * Same NPC always gets the same voice within a session.
+ * Persists across sessions so the same NPC always keeps its voice.
  */
 export function getVoiceForNpc(npcName: string): NpcVoiceProfile {
   const key = npcName.trim().toLowerCase();
-  const existing = npcAssignments.get(key);
-  if (existing) return existing;
+  const cache = getCache();
 
-  // Assign next voice from pool (wraps around)
+  // Check persisted assignment
+  const savedId = cache[key];
+  if (savedId) {
+    const profile = VOICE_POOL.find(p => p.voiceId === savedId);
+    if (profile) return profile;
+  }
+
+  // Assign next available voice from pool (wraps around)
   const profile = VOICE_POOL[nextPoolIndex % VOICE_POOL.length];
   nextPoolIndex++;
-  npcAssignments.set(key, profile);
+  cache[key] = profile.voiceId;
+  saveAssignments(cache);
   return profile;
 }
 
