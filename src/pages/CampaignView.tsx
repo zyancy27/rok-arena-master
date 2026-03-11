@@ -109,6 +109,19 @@ export default function CampaignView() {
   const introAttemptedRef = useRef(false);
   const [showNewMsgIndicator, setShowNewMsgIndicator] = useState(false);
   const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
+
+  // ── Narrator Voice & Chat Sounds ──
+  const { settings: userSettings } = useUserSettings();
+  const narratorVoice = useNarratorVoice({
+    enabled: userSettings.audio.narratorVoiceEnabled,
+    autoRead: userSettings.audio.narratorAutoRead,
+    volume: userSettings.audio.narratorVoiceVolume * userSettings.audio.masterVolume,
+  });
+  const chatSoundsEngine = getChatSoundsEngine();
+  useEffect(() => {
+    chatSoundsEngine.setEnabled(userSettings.audio.chatSoundsEnabled);
+    chatSoundsEngine.setVolume(userSettings.audio.chatSoundsVolume * userSettings.audio.masterVolume);
+  }, [userSettings.audio.chatSoundsEnabled, userSettings.audio.chatSoundsVolume, userSettings.audio.masterVolume]);
   // Pending send context held while concentration prompt is active
   const pendingSendRef = useRef<{
     messageText: string;
