@@ -344,7 +344,12 @@ export default function CampaignView() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'campaign_enemies', filter: `campaign_id=eq.${campaignId}` },
         () => fetchEnemies()
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') setRealtimeStatus('connected');
+        else if (status === 'CHANNEL_ERROR') setRealtimeStatus('error');
+        else if (status === 'TIMED_OUT') setRealtimeStatus('disconnected');
+        else if (status === 'CLOSED') setRealtimeStatus('disconnected');
+      });
   };
 
   const fetchAll = async () => {
