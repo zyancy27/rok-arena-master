@@ -1,6 +1,7 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { splitNarrationSegments, getNpcVoiceSettings, type NarrationSegment } from '@/lib/audio/npc-voice-pool';
+import { splitSentences } from '@/components/campaigns/NarratorMessageContent';
 
 export type NarratorSceneContext =
   | 'exploration'
@@ -142,6 +143,49 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
   const ambientCacheRef = useRef<Map<string, string>>(new Map());
   const accentCacheRef = useRef<Map<string, string>>(new Map());
   const accentTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  // ── Sentence highlight tracking ──
+  const [activeSentenceIndex, setActiveSentenceIndex] = useState(-1);
+  const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
+  const sentenceTimerRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+
+  const clearSentenceTracking = useCallback(() => {
+    sentenceTimerRef.current.forEach(clearTimeout);
+    sentenceTimerRef.current = [];
+    setActiveSentenceIndex(-1);
+    setActiveMessageId(null);
+  }, []);
+
+  /**
+   * Schedule sentence highlighting based on estimated word timing.
+   * Approx 80ms per word for narrator speech speed.
+   */
+  const scheduleSentenceHighlights = useCallback((text: string, messageId: string, startFromSentence = 0) => {
+    clearSentenceTracking();
+    const sentences = splitSentences(text);
+    if (sentences.length === 0) return;
+
+    setActiveMessageId(messageId);
+
+    let cumulativeDelay = 0;
+    for (let i = startFromSentence; i < sentences.length; i++) {
+      const wordCount = sentences.slice(startFromSentence, i).join('').split(/\s+/).filter(Boolean).length;
+      cumulativeDelay = wordCount * 80; // 80ms per word
+
+      const idx = i;
+      const timer = setTimeout(() => {
+        setActiveSentenceIndex(idx);
+      }, cumulativeDelay);
+      sentenceTimerRef.current.push(timer);
+    }
+
+    // Clear highlight after the last sentence finishes
+    const totalWords = sentences.slice(startFromSentence).join('').split(/\s+/).filter(Boolean).length;
+    const endTimer = setTimeout(() => {
+      clearSentenceTracking();
+    }, totalWords * 80 + 2000);
+    sentenceTimerRef.current.push(endTimer);
+  }, [clearSentenceTracking]);
 
   const stopAccents = useCallback(() => {
     accentTimersRef.current.forEach(clearTimeout);
@@ -306,7 +350,7 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
     });
   }, []);
 
-  const speak = useCallback(async (text: string, explicitContext?: NarratorSceneContext) => {
+  const speak = useCallback(async (text: string, explicitContext?: NarratorSceneContext, messageId?: string, startFromSentence?: number) => {
     if (!options.enabled || !text.trim() || options.hasAIAccess === false) return;
 
     if (audioRef.current) {
@@ -314,16 +358,29 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
       audioRef.current = null;
     }
     stopAccents();
+    clearSentenceTracking();
 
-    const context = explicitContext || detectSceneContext(text);
-    const cacheKey = `${context}:${text.substring(0, 200)}`;
+    // If starting from a specific sentence, trim the text
+    let effectiveText = text;
+    if (startFromSentence != null && startFromSentence > 0) {
+      const sentences = splitSentences(text);
+      effectiveText = sentences.slice(startFromSentence).join('');
+    }
+
+    const context = explicitContext || detectSceneContext(effectiveText);
+    const cacheKey = `${context}:${effectiveText.substring(0, 200)}`;
     let audioUrl = cacheRef.current.get(cacheKey);
 
+    // Start sentence highlighting
+    if (messageId) {
+      scheduleSentenceHighlights(text, messageId, startFromSentence || 0);
+    }
+
     // Fire ambient SFX in parallel
-    playAmbient(context, text);
+    playAmbient(context, effectiveText);
 
     // Schedule accent sound cues
-    const accentCues = extractAccentCues(text);
+    const accentCues = extractAccentCues(effectiveText);
     for (const { cue, delay } of accentCues) {
       const timer = setTimeout(() => {
         playAccentCue(cue, options.volume);
@@ -336,10 +393,10 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
         playingRef.current = true;
 
         // Try multi-segment (NPC voices) first
-        const segments = buildTtsSegments(text, context);
+        const segments = buildTtsSegments(effectiveText, context);
         const body = segments
           ? { segments }
-          : { text, context };
+          : { text: effectiveText, context };
 
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/narrator-tts`,
@@ -376,6 +433,7 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
         console.error('[Narrator TTS]', err);
         toast.error('Narrator voice unavailable');
         stopAmbient();
+        clearSentenceTracking();
         return;
       }
     }
@@ -388,11 +446,13 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
       playingRef.current = false;
       audioRef.current = null;
       stopAmbient();
+      clearSentenceTracking();
     };
     audio.onerror = () => {
       playingRef.current = false;
       audioRef.current = null;
       stopAmbient();
+      clearSentenceTracking();
     };
 
     try {
@@ -400,8 +460,9 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
     } catch {
       playingRef.current = false;
       stopAmbient();
+      clearSentenceTracking();
     }
-  }, [options.enabled, options.volume, options.hasAIAccess, playAmbient, playAccentCue, stopAmbient, stopAccents, buildTtsSegments]);
+  }, [options.enabled, options.volume, options.hasAIAccess, playAmbient, playAccentCue, stopAmbient, stopAccents, buildTtsSegments, clearSentenceTracking, scheduleSentenceHighlights]);
 
   const stop = useCallback(() => {
     if (audioRef.current) {
@@ -410,7 +471,16 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
       playingRef.current = false;
     }
     stopAmbient();
-  }, [stopAmbient]);
+    clearSentenceTracking();
+  }, [stopAmbient, clearSentenceTracking]);
 
-  return { speak, stop, isPlaying: playingRef.current };
+  return {
+    speak,
+    stop,
+    isPlaying: playingRef.current,
+    /** Currently highlighted sentence index (-1 = none) */
+    activeSentenceIndex,
+    /** Message ID whose sentences are being tracked */
+    activeMessageId,
+  };
 }
