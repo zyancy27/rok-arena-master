@@ -1754,7 +1754,11 @@ export default function BattleView() {
         setNarratorMessages(prev => [...prev, narratorMsg]);
         chatSoundsEngine.play('narrator_message');
         if (userSettings.audio.narratorAutoRead && userSettings.audio.narratorVoiceEnabled) {
+          // Duck ambient sounds while narrator TTS is active
+          narrationAmbient.setNarratorSpeaking(true);
           narratorVoice.speak(response.data.narration);
+          const wordCount = response.data.narration.split(/\s+/).length;
+          setTimeout(() => narrationAmbient.setNarratorSpeaking(false), wordCount * 80 + 2000);
         }
         // Trigger narration-aware ambient sounds
         narrationAmbient.processNarration(response.data.narration);
