@@ -217,8 +217,8 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
     }
 
     const audio = new Audio(audioUrl);
-    // Accent sounds play at 40-60% of narrator volume
-    audio.volume = vol * (0.4 + Math.random() * 0.2);
+    // Accent sounds play at 20-30% of narrator volume (quieter than narration)
+    audio.volume = vol * (0.15 + Math.random() * 0.15);
     accentAudiosRef.current.push(audio);
 
     try {
@@ -287,14 +287,14 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
     const onLoop = () => {
       if (ambientRef.current !== amb) return;
       amb.playbackRate = 0.94 + Math.random() * 0.12;
-      const targetVol = Math.min(options.volume * 0.3, 0.3);
+      const targetVol = Math.min(options.volume * 0.15, 0.15);
       amb.volume = targetVol * (0.8 + Math.random() * 0.4);
     };
     amb.addEventListener('seeked', onLoop);
 
     try {
       await amb.play();
-      const targetVol = Math.min(options.volume * 0.3, 0.3);
+      const targetVol = Math.min(options.volume * 0.15, 0.15);
       const fadeIn = setInterval(() => {
         if (amb.volume < targetVol - 0.02) {
           amb.volume = Math.min(targetVol, amb.volume + 0.03);

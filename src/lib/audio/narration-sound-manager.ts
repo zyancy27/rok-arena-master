@@ -31,6 +31,8 @@ class NarrationSoundManager {
   private sceneContext: string[] = []; // active cue IDs for context memory
   private enabled = true;
   private fetchingCues = new Set<string>();
+  private reduceVocalSounds = false;
+  private narratorSpeaking = false;
 
   setEnabled(val: boolean) {
     this.enabled = val;
@@ -44,7 +46,16 @@ class NarrationSoundManager {
 
   setMasterVolume(vol: number) {
     this.masterVolume = Math.max(0, Math.min(1, vol));
-    // Update all active layers
+    this.updateActiveVolumes();
+  }
+
+  setReduceVocalSounds(val: boolean) {
+    this.reduceVocalSounds = val;
+  }
+
+  /** Call when narrator TTS starts speaking — ducks all layers significantly */
+  setNarratorSpeaking(speaking: boolean) {
+    this.narratorSpeaking = speaking;
     this.updateActiveVolumes();
   }
 
@@ -54,9 +65,14 @@ class NarrationSoundManager {
   processNarration(text: string) {
     if (!this.enabled || this.intensityLevel === 'off') return;
 
-    const events = parseNarrationForSounds(text);
+    let events = parseNarrationForSounds(text);
     const intensity = classifySceneIntensity(text);
     const rules = getMixingRules(intensity, this.intensityLevel);
+
+    // Filter out vocal sounds if user has reduce vocal setting on
+    if (this.reduceVocalSounds) {
+      events = events.filter(e => e.cue.family !== 'vocal');
+    }
 
     // Clean expired cooldowns
     const now = Date.now();
@@ -215,7 +231,7 @@ class NarrationSoundManager {
     if (!this.enabled || this.intensityLevel === 'off') return;
 
     const audio = new Audio(audioUrl);
-    const targetVol = cue.volumeCeiling * rules.globalVolumeMultiplier * this.masterVolume;
+    const targetVol = this.getEffectiveVolume(cue, rules);
     audio.volume = 0;
     audio.loop = persistent;
 
@@ -296,11 +312,23 @@ class NarrationSoundManager {
     }, 50);
   }
 
+  private getEffectiveVolume(cue: SoundCue, rules: MixingRules): number {
+    let vol = cue.volumeCeiling * rules.globalVolumeMultiplier * this.masterVolume;
+    // Duck significantly when narrator TTS is speaking
+    if (this.narratorSpeaking) {
+      vol *= 0.25; // drop to 25% while narrator voice is active
+    }
+    // Extra reduction for vocal family sounds
+    if (cue.family === 'vocal') {
+      vol *= 0.5;
+    }
+    return Math.min(vol, 0.35); // hard ceiling
+  }
+
   private updateActiveVolumes() {
     const rules = getMixingRules('quiet', this.intensityLevel);
     for (const layer of [...this.persistentLayers, ...this.momentLayers]) {
-      const targetVol = layer.cue.volumeCeiling * rules.globalVolumeMultiplier * this.masterVolume;
-      // Smoothly adjust
+      const targetVol = this.getEffectiveVolume(layer.cue, rules);
       if (Math.abs(layer.audio.volume - targetVol) > 0.02) {
         layer.audio.volume = targetVol;
       }
