@@ -944,9 +944,15 @@ export default function BattleView() {
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
+          setRealtimeStatus('connected');
           console.log('✅ Battle realtime channel connected');
         } else if (status === 'CHANNEL_ERROR') {
+          setRealtimeStatus('error');
           console.error('❌ Battle realtime channel error');
+        } else if (status === 'TIMED_OUT') {
+          setRealtimeStatus('disconnected');
+        } else if (status === 'CLOSED') {
+          setRealtimeStatus('disconnected');
         }
       });
       
