@@ -216,7 +216,7 @@ const CREATURE_CUES: SoundCue[] = [
     id: 'faint_scream',
     patterns: [/\b(scream[s]?\s*(echo|ring|pierce|fill)|shriek|wail|cry\s*of\s*(pain|terror|anguish))\b/i],
     prompt: 'very faint distant scream, barely audible cry of alarm',
-    duration: 3, category: 'moment', volumeCeiling: 0.1, cooldownMs: 30000,
+    duration: 3, category: 'moment', volumeCeiling: 0.05, cooldownMs: 40000,
     fadeInMs: 200, fadeOutMs: 2000, momentDurationMs: 2000, priority: 2, family: 'vocal',
   },
   {
