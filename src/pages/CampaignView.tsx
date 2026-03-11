@@ -1968,7 +1968,7 @@ export default function CampaignView() {
                                   <span className="text-[10px] text-muted-foreground">{new Date(msg.created_at).toLocaleTimeString()}</span>
                                   {userSettings.audio.narratorVoiceEnabled && (
                                     <button
-                                      onClick={() => narratorVoice.speak(msg.content)}
+                                      onClick={() => narratorVoice.speak(msg.content, undefined, msg.id)}
                                       className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
                                       title="Listen to narrator"
                                     >
@@ -1976,7 +1976,14 @@ export default function CampaignView() {
                                     </button>
                                   )}
                                 </div>
-                                <p className="text-sm whitespace-pre-wrap break-words text-foreground/90 italic">{msg.content}</p>
+                                <NarratorMessageContent
+                                  content={msg.content}
+                                  activeSentenceIndex={narratorVoice.activeMessageId === msg.id ? narratorVoice.activeSentenceIndex : -1}
+                                  voiceEnabled={userSettings.audio.narratorVoiceEnabled}
+                                  onSentenceClick={(sentenceIdx) => {
+                                    narratorVoice.speak(msg.content, undefined, msg.id, sentenceIdx);
+                                  }}
+                                />
                               </div>
                             </div>
                           </div>
