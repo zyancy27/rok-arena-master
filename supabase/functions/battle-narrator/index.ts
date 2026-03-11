@@ -8,6 +8,18 @@ const corsHeaders = {
 
 // Input validation constants
 const MAX_ACTION_LENGTH = 5000;
+
+// Shared language-level instruction injected into every narrator system prompt
+const SIMPLE_LANGUAGE_RULE = `
+LANGUAGE LEVEL (CRITICAL — apply to ALL narration):
+- Write at a middle-school reading level. Use short, common words that most people already know.
+- AVOID fancy vocabulary, SAT words, archaic language, or flowery prose. If a simpler word exists, use it.
+- BAD: "The effulgent luminescence cascaded through the dilapidated corridor."
+- GOOD: "Bright light poured through the broken hallway."
+- BAD: "An inexorable dread permeated the atmosphere."
+- GOOD: "A heavy fear filled the air."
+- Keep sentences short and punchy. Aim for 8-15 words per sentence on average.
+- Every reader should understand every word without needing a dictionary.`;
 const MAX_LOCATION_LENGTH = 500;
 const MAX_NAME_LENGTH = 100;
 
