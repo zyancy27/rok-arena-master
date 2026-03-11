@@ -255,10 +255,12 @@ export default function BattleView() {
 
   // ── Narrator Voice & Chat Sounds ──
   const { settings: userSettings } = useUserSettings();
+  const { hasAIAccess } = useSubscription();
   const narratorVoice = useNarratorVoice({
     enabled: userSettings.audio.narratorVoiceEnabled,
     autoRead: userSettings.audio.narratorAutoRead,
     volume: userSettings.audio.narratorVoiceVolume * userSettings.audio.masterVolume,
+    hasAIAccess,
   });
   const chatSoundsEngine = getChatSoundsEngine();
   useEffect(() => {
@@ -270,6 +272,7 @@ export default function BattleView() {
   const narrationAmbient = useNarrationAmbient({
     enabled: battle?.status === 'active',
     audioSettings: userSettings.audio,
+    hasAIAccess,
   });
 
   const [showRules, setShowRules] = useState(false);
