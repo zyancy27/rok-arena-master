@@ -42,6 +42,11 @@ function detectSceneContext(text: string): NarratorSceneContext {
     return 'npc';
   }
 
+  // Tragic / heavy emotional moments
+  if (/\b(grief|mourn|tears?|weep|sorrow|loss|fallen|death|dying|funeral|grave|farewell|goodbye|sacrifice|hollow|empty|broken)\b/.test(t)) {
+    return 'tragic';
+  }
+
   // Peaceful / reflective
   if (/\b(gentle|calm|quiet|peace|soft|warm|rest|sleep|dawn|sunset|breeze|murmur|still|serene|safe|comfort)\b/.test(t)) {
     return 'peaceful';
