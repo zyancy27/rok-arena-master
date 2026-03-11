@@ -1,5 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { toast } from 'sonner';
+import { splitNarrationSegments, getNpcVoiceSettings, type NarrationSegment } from '@/lib/audio/npc-voice-pool';
 
 export type NarratorSceneContext =
   | 'exploration'
@@ -65,29 +66,24 @@ function buildAmbientCacheKey(context: string, text: string): string {
 
 interface AccentCue {
   cue: string;
-  /** Delay in ms before playing (stagger multiple cues) */
   delay: number;
 }
 
 /**
  * Extract contextual accent sound cues from narrator text.
- * Returns up to 3 cues to avoid overwhelming the scene.
  */
 function extractAccentCues(text: string): AccentCue[] {
   const t = text.toLowerCase();
   const cues: AccentCue[] = [];
 
   const patterns: [RegExp, string][] = [
-    // Movement
     [/\b(footsteps?|walks?|steps?|strides?|paces?|trudge)\b/, 'footsteps'],
     [/\b(runs?|sprint|dash|rushing|charge[sd]?)\b/, 'running'],
-    // Doors & mechanisms
     [/\b(door\s*(open|creak|swing|shut|slam|close))\b/, 'door_open'],
     [/\b(opens?\s*(the\s+)?door)\b/, 'door_open'],
     [/\b(slams?\s*(the\s+)?door|door\s*slam)\b/, 'door_slam'],
     [/\b(gate\s*(open|creak|swing)|opens?\s*(the\s+)?gate)\b/, 'gate'],
     [/\b(lock|unlock|key\s*turn)\b/, 'lock'],
-    // Nature
     [/\b(wind\s*(howl|gust|blow|whip|rush))\b/, 'wind_gust'],
     [/\b(gust\s*of\s*wind)\b/, 'wind_gust'],
     [/\b(thunder\s*(crack|boom|rumble|roll)|lightning\s*(strike|flash|crack))\b/, 'thunder_crack'],
@@ -96,7 +92,6 @@ function extractAccentCues(text: string): AccentCue[] {
     [/\b(leaves?\s*(rustl|crunch|whisper))\b/, 'leaves'],
     [/\b(splash(es)?|plunge|dive)\b/, 'water_splash'],
     [/\b(river|stream|brook|waterfall)\b/, 'river'],
-    // Combat
     [/\b(draw[sn]?\s*(sword|blade|weapon))\b/, 'sword_draw'],
     [/\b(unsheathe|unsheaths)\b/, 'sword_draw'],
     [/\b(swords?\s*(clash|clang|ring|meet)|blade[s]?\s*(clash|meet|ring))\b/, 'sword_clash'],
@@ -104,19 +99,16 @@ function extractAccentCues(text: string): AccentCue[] {
     [/\b(hit|slam|smash|crash|impact|strike|blow)\b/, 'impact'],
     [/\b(explo(sion|de)|blast|detonat)\b/, 'explosion'],
     [/\b(shield\s*(block|bash|raise)|blocks?\s*with)\b/, 'shield'],
-    // Magic
     [/\b(magic|spell|enchant|arcane|mystical|conjur|incantation|hex)\b/, 'magic'],
     [/\b(portal\s*(open|appear|shimmer)|rift|vortex|dimensional)\b/, 'portal'],
     [/\b(whisper[sng]*\s*(echo|fill|surround)|eerie\s*whisper|ghostly)\b/, 'whisper'],
     [/\b(ground\s*(rumbl|shak|trembl|quak)|earthquake|tremor)\b/, 'rumble'],
     [/\b(energy\s*(surge|blast|pulse|crackl)|power\s*(surge|build|grow))\b/, 'energy'],
-    // Creatures
     [/\b(growl[sng]*|snarl[sng]*)\b/, 'growl'],
     [/\b(roar[sng]*|bellow[sng]*)\b/, 'roar'],
     [/\b(wings?\s*(flap|spread|beat|unfurl)|takes?\s*flight)\b/, 'wings'],
     [/\b(howl[sng]*|wolf|wolves)\b/, 'howl'],
     [/\b(horse|stallion|mare|steed|mount|hooves?)\b/, 'horse'],
-    // Atmosphere
     [/\b(fire\s*(crackl|burn)|campfire|torch(es)?|flame[sd]?\s*flicker)\b/, 'fire_crackle'],
     [/\b(glass\s*(shatter|break|smash)|shatter[sng]*)\b/, 'glass'],
     [/\b(chain[sng]*\s*(rattl|clank|clink)|rattling\s*chain)\b/, 'chains'],
@@ -131,9 +123,8 @@ function extractAccentCues(text: string): AccentCue[] {
   for (const [pattern, cue] of patterns) {
     if (pattern.test(t) && !seen.has(cue)) {
       seen.add(cue);
-      // Stagger cues with increasing delay
       cues.push({ cue, delay: cues.length * 1500 + Math.random() * 800 });
-      if (cues.length >= 3) break; // cap at 3 accent sounds
+      if (cues.length >= 3) break;
     }
   }
 
@@ -154,10 +145,7 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
     accentTimersRef.current.forEach(clearTimeout);
     accentTimersRef.current = [];
     accentAudiosRef.current.forEach(a => {
-      try {
-        a.volume = 0;
-        a.pause();
-      } catch {}
+      try { a.volume = 0; a.pause(); } catch {}
     });
     accentAudiosRef.current = [];
   }, []);
@@ -196,13 +184,10 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
             body: JSON.stringify({ mode: 'accent', cue }),
           }
         );
-
         if (!response.ok) return;
         const blob = await response.blob();
         audioUrl = URL.createObjectURL(blob);
         accentCacheRef.current.set(cacheKey, audioUrl);
-
-        // Limit accent cache
         if (accentCacheRef.current.size > 25) {
           const firstKey = accentCacheRef.current.keys().next().value;
           if (firstKey) {
@@ -211,13 +196,10 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
             accentCacheRef.current.delete(firstKey);
           }
         }
-      } catch {
-        return;
-      }
+      } catch { return; }
     }
 
     const audio = new Audio(audioUrl);
-    // Accent sounds play at 20-30% of narrator volume (quieter than narration)
     audio.volume = vol * (0.15 + Math.random() * 0.15);
     accentAudiosRef.current.push(audio);
 
@@ -226,9 +208,7 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
       audio.onended = () => {
         accentAudiosRef.current = accentAudiosRef.current.filter(a => a !== audio);
       };
-    } catch {
-      // autoplay blocked
-    }
+    } catch {}
   }, []);
 
   const playAmbient = useCallback(async (context: string, text: string) => {
@@ -249,13 +229,10 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
             body: JSON.stringify({ context, text }),
           }
         );
-
         if (!response.ok) return;
-
         const blob = await response.blob();
         audioUrl = URL.createObjectURL(blob);
         ambientCacheRef.current.set(cacheKey, audioUrl);
-
         if (ambientCacheRef.current.size > 10) {
           const firstKey = ambientCacheRef.current.keys().next().value;
           if (firstKey) {
@@ -264,12 +241,9 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
             ambientCacheRef.current.delete(firstKey);
           }
         }
-      } catch {
-        return;
-      }
+      } catch { return; }
     }
 
-    // Stop previous ambient
     if (ambientRef.current) {
       ambientRef.current.pause();
       ambientRef.current = null;
@@ -280,17 +254,15 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
     amb.loop = true;
     ambientRef.current = amb;
 
-    // Vary playback rate slightly each loop to break repetition
     const baseRate = 0.97 + Math.random() * 0.06;
     amb.playbackRate = baseRate;
 
-    const onLoop = () => {
+    amb.addEventListener('seeked', () => {
       if (ambientRef.current !== amb) return;
       amb.playbackRate = 0.94 + Math.random() * 0.12;
       const targetVol = Math.min(options.volume * 0.15, 0.15);
       amb.volume = targetVol * (0.8 + Math.random() * 0.4);
-    };
-    amb.addEventListener('seeked', onLoop);
+    });
 
     try {
       await amb.play();
@@ -303,15 +275,38 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
           clearInterval(fadeIn);
         }
       }, 60);
-    } catch {
-      // autoplay blocked
-    }
+    } catch {}
   }, [options.volume]);
+
+  /**
+   * Build TTS segments — narrator prose uses Priyanka, NPC dialogue uses assigned voices.
+   */
+  const buildTtsSegments = useCallback((text: string, context: NarratorSceneContext) => {
+    const narrationSegments = splitNarrationSegments(text);
+    
+    // If no NPC dialogue detected, use simple single-voice mode
+    const hasNpc = narrationSegments.some(s => s.type === 'npc');
+    if (!hasNpc) return null; // fall back to single voice
+
+    return narrationSegments.map(seg => {
+      if (seg.type === 'npc' && seg.voiceProfile) {
+        const settings = getNpcVoiceSettings(seg.voiceProfile.tone);
+        return {
+          text: seg.text,
+          voiceId: seg.voiceProfile.voiceId,
+          voiceSettings: settings,
+        };
+      }
+      return {
+        text: seg.text,
+        context,
+      };
+    });
+  }, []);
 
   const speak = useCallback(async (text: string, explicitContext?: NarratorSceneContext) => {
     if (!options.enabled || !text.trim()) return;
 
-    // Stop any currently playing audio
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current = null;
@@ -322,10 +317,10 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
     const cacheKey = `${context}:${text.substring(0, 200)}`;
     let audioUrl = cacheRef.current.get(cacheKey);
 
-    // Fire ambient SFX request in parallel (don't await)
+    // Fire ambient SFX in parallel
     playAmbient(context, text);
 
-    // Extract and schedule accent sound cues from the narration text
+    // Schedule accent sound cues
     const accentCues = extractAccentCues(text);
     for (const { cue, delay } of accentCues) {
       const timer = setTimeout(() => {
@@ -337,6 +332,13 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
     if (!audioUrl) {
       try {
         playingRef.current = true;
+
+        // Try multi-segment (NPC voices) first
+        const segments = buildTtsSegments(text, context);
+        const body = segments
+          ? { segments }
+          : { text, context };
+
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/narrator-tts`,
           {
@@ -346,7 +348,7 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
               apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
               Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
             },
-            body: JSON.stringify({ text, context }),
+            body: JSON.stringify(body),
           }
         );
 
@@ -397,7 +399,7 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
       playingRef.current = false;
       stopAmbient();
     }
-  }, [options.enabled, options.volume, playAmbient, playAccentCue, stopAmbient, stopAccents]);
+  }, [options.enabled, options.volume, playAmbient, playAccentCue, stopAmbient, stopAccents, buildTtsSegments]);
 
   const stop = useCallback(() => {
     if (audioRef.current) {
