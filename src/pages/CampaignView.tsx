@@ -20,7 +20,7 @@ import {
   ArrowLeft, Compass, Heart, LogOut, MapPin, Play, Send,
   Shield, Swords, Users, Zap, Clock, Sun, Moon, Backpack,
   Volume2, VolumeX, RefreshCw, BookOpen, Sparkles, Dices, Trash2, UserCheck, FastForward,
-  Target, Brain, Map as MapIcon,
+  Target, Brain, Map as MapIcon, Check, CheckCheck,
 } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -116,6 +116,45 @@ export default function CampaignView() {
 
   // Ref to avoid stale closure in realtime callbacks
   const participantsRef = useRef<CampaignParticipant[]>([]);
+
+  // Read receipt tracking for campaign messages
+  const [otherReadIds, setOtherReadIds] = useState<Set<string>>(new Set());
+
+  // Update our read receipt when new messages arrive
+  useEffect(() => {
+    const updateReadReceipt = async () => {
+      if (!myParticipant || !messages.length || campaign?.status !== 'active') return;
+      const lastMsg = messages[messages.length - 1];
+      if (!lastMsg || lastMsg.isPending) return;
+      // Only update if the last message is from someone else
+      if (lastMsg.character_id === myParticipant.character_id && lastMsg.sender_type === 'player') return;
+      await supabase
+        .from('campaign_participants')
+        .update({ last_read_message_id: lastMsg.id, last_read_at: new Date().toISOString() })
+        .eq('id', myParticipant.id);
+    };
+    updateReadReceipt();
+  }, [messages, myParticipant, campaign?.status]);
+
+  // Build set of message IDs that other participants have read
+  useEffect(() => {
+    if (!myParticipant || participants.length <= 1) return;
+    const others = participants.filter(p => p.id !== myParticipant.id);
+    // Collect all message IDs that at least one other participant has read up to
+    const readSet = new Set<string>();
+    for (const other of others) {
+      if (other.last_read_message_id) {
+        // Mark all messages up to and including last_read_message_id as read
+        for (const msg of messages) {
+          readSet.add(msg.id);
+          if (msg.id === other.last_read_message_id) break;
+        }
+      }
+    }
+    setOtherReadIds(readSet);
+  }, [participants, messages, myParticipant]);
+
+  const otherParticipantsReadThis = (messageId: string) => otherReadIds.has(messageId);
 
   // Dynamic scene location from messages
   const [activeSceneLocation, setActiveSceneLocation] = useState<string | null>(null);
@@ -1843,6 +1882,25 @@ export default function CampaignView() {
                               <span className="text-[10px] text-muted-foreground">{new Date(msg.created_at).toLocaleTimeString()}</span>
                               {(msg as any).isPending && (
                                 <span className="text-xs text-muted-foreground italic ml-auto">Sending...</span>
+                              )}
+                              {/* Sent / Read indicator for own messages */}
+                              {isMe && !(msg as any).isPending && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="ml-auto">
+                                        {otherParticipantsReadThis(msg.id) ? (
+                                          <CheckCheck className="w-3 h-3 text-primary" />
+                                        ) : (
+                                          <Check className="w-3 h-3 text-muted-foreground" />
+                                        )}
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      {otherParticipantsReadThis(msg.id) ? 'Read' : 'Sent'}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
                               )}
                             </div>
                             <p className="text-sm whitespace-pre-wrap break-words pl-8">{msg.content}</p>

@@ -643,6 +643,8 @@ export type Database = {
           is_active: boolean
           is_solo: boolean
           last_active_at: string | null
+          last_read_at: string | null
+          last_read_message_id: string | null
           power_reset_applied: boolean
           stat_overrides: Json | null
           unlocked_abilities: Json | null
@@ -663,6 +665,8 @@ export type Database = {
           is_active?: boolean
           is_solo?: boolean
           last_active_at?: string | null
+          last_read_at?: string | null
+          last_read_message_id?: string | null
           power_reset_applied?: boolean
           stat_overrides?: Json | null
           unlocked_abilities?: Json | null
@@ -683,6 +687,8 @@ export type Database = {
           is_active?: boolean
           is_solo?: boolean
           last_active_at?: string | null
+          last_read_at?: string | null
+          last_read_message_id?: string | null
           power_reset_applied?: boolean
           stat_overrides?: Json | null
           unlocked_abilities?: Json | null
