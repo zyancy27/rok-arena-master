@@ -106,6 +106,7 @@ import { interpretMove } from '@/lib/intent-interpreter';
 import { useNarratorVoice } from '@/hooks/use-narrator-voice';
 import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
+import { useNarrationAmbient } from '@/hooks/use-narration-ambient';
 import { applyHardClamp, generateClampContext, type CharacterProfile, type ClampResult } from '@/lib/hard-clamp';
 import { detectDirectInteraction } from '@/lib/battle-hit-detection';
 import {
