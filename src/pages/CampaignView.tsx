@@ -2163,7 +2163,7 @@ export default function CampaignView() {
                       <VoiceTextarea
                         placeholder={isSoloMode ? "Describe your solo action..." : "Describe your action..."}
                         value={inputMessage}
-                        onValueChange={setInputMessage}
+                        onValueChange={handleCampaignInputChange}
                         disabled={sending}
                         className="flex-1"
                         style={{ maxHeight: '300px' }}
