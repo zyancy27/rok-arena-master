@@ -12,6 +12,8 @@ import type { AudioSettings } from '@/lib/settings-defaults';
 interface UseNarrationAmbientOptions {
   enabled: boolean;
   audioSettings: AudioSettings;
+  /** Gate behind AI subscription */
+  hasAIAccess?: boolean;
 }
 
 export function useNarrationAmbient(options: UseNarrationAmbientOptions) {
