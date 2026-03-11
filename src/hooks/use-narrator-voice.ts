@@ -217,8 +217,8 @@ export function useNarratorVoice(options: NarratorVoiceOptions) {
     }
 
     const audio = new Audio(audioUrl);
-    // Accent sounds play at 40-60% of narrator volume
-    audio.volume = vol * (0.4 + Math.random() * 0.2);
+    // Accent sounds play at 20-30% of narrator volume (quieter than narration)
+    audio.volume = vol * (0.15 + Math.random() * 0.15);
     accentAudiosRef.current.push(audio);
 
     try {
