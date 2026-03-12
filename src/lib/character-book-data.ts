@@ -58,6 +58,14 @@ export interface CharacterBookData {
   created_at?: string;
 }
 
+export interface NarratorSentimentData {
+  nickname?: string | null;
+  sentiment_score?: number;
+  opinion_summary?: string | null;
+  personality_notes?: string | null;
+  memorable_moments?: string[];
+}
+
 export function buildCharacterBookChapters(
   character: CharacterBookData,
   extras?: {
