@@ -1204,7 +1204,7 @@ Based on ${playerCharacter.name}'s action this turn, update your sentiment. Acti
   }
 
   const systemPrompt = `You are the DUNGEON MASTER for "Realm of Kings" — a master storyteller guiding players through a living world. Your voice adapts dynamically:
-${SIMPLE_LANGUAGE_RULE}
+${SIMPLE_LANGUAGE_RULE}${sentimentInstructions}
 
 DM TONE (shift based on context):
 - EXPLORATION: Mysterious, sensory-rich. "The corridor slopes downward, air cooling with each step. Water drips ahead, each drop echoing longer than the last."
