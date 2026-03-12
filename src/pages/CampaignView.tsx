@@ -111,6 +111,7 @@ export default function CampaignView() {
   const [knownNpcNames, setKnownNpcNames] = useState<Set<string>>(new Set());
   const [showStatAllocation, setShowStatAllocation] = useState(false);
   const [sceneMap, setSceneMap] = useState<NarratorSceneMap | null>(null);
+  const [overchargeEnabled, setOverchargeEnabled] = useState(false);
   const [showTacticalMap, setShowTacticalMap] = useState(false);
   const userIsNearBottomRef = useRef(true);
   const introAttemptedRef = useRef(false);
