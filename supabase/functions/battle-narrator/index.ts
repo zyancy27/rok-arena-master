@@ -1533,13 +1533,14 @@ ${Array.isArray(activeEnemies) && activeEnemies.length > 0
   : 'No active enemies. Create new ones only if the story demands it.'}
 
 NPC PERSISTENCE RULES:
-- When NPCs appear in your narration, include them in npcUpdates so they persist.
-- For NEW named NPCs (shopkeepers, guards, strangers the player talks to), set isNew: true and give them a name, role, and personality.
+- When ANY named NPC appears in your narration — even background characters — include them in npcUpdates so they persist in the world.
+- For NEW named NPCs (shopkeepers, guards, strangers, background characters the player might interact with later), set isNew: true and give them a name, role, personality, and appearance.
 - For EXISTING NPCs (listed in KNOWN NPCs below), set isNew: false and include their id.
 - Update trust_change based on how the interaction went: positive for friendly exchanges, negative for hostility/rudeness.
-- Only include NPCs who actually appeared or were affected in this interaction.
-- Give NPCs memorable personalities — quirks, speech patterns, attitudes. Make them feel real.
+- REGISTER LIBERALLY: Even minor background NPCs (a street vendor who shouted something, a guard at a gate, a child who stared) should be registered. This builds a living, persistent world.
+- Give NPCs memorable personalities — quirks, speech patterns, attitudes. Make them feel real and individual.
 - NPCs should remember past interactions based on their relationship data.
+- You have FULL KNOWLEDGE of all NPCs. You always know their real names. ALWAYS use their real names in narration.
 
 NPC NAME COLLISION PREVENTION (CRITICAL — NEVER BREAK):
 - Before naming a new NPC, CHECK the lists below for names already in use:
