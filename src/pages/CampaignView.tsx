@@ -112,6 +112,7 @@ export default function CampaignView() {
   const [showTacticalMap, setShowTacticalMap] = useState(false);
   const userIsNearBottomRef = useRef(true);
   const introAttemptedRef = useRef(false);
+  const consecutiveAdvancesRef = useRef(0);
   const [showNewMsgIndicator, setShowNewMsgIndicator] = useState(false);
   const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
 
@@ -1491,6 +1492,7 @@ export default function CampaignView() {
 
    const handleSendMessage = async () => {
     if (!inputMessage.trim() || !myParticipant || !campaign) return;
+    consecutiveAdvancesRef.current = 0; // Reset idle counter when player types
     const messageText = inputMessage.trim();
 
     // Move validation — check before sending
@@ -1623,6 +1625,7 @@ export default function CampaignView() {
 
   const handleAdvanceCampaign = async () => {
     if (!myParticipant || !campaign || narratorTyping) return;
+    consecutiveAdvancesRef.current += 1;
     setNarratorTyping(true);
     try {
       const activeParty = participants.filter(p => p.is_active);
@@ -1654,7 +1657,7 @@ export default function CampaignView() {
         body: {
           type: 'campaign_narration',
           campaignId: campaign.id,
-          playerAction: `[ADVANCE STORY] The party is idle. Move the campaign forward organically — introduce a new event, encounter, discovery, environmental change, NPC interaction, or plot development that fits the current situation and keeps things interesting. Do NOT wait for player input; make something happen in the world around them.`,
+          playerAction: `[ADVANCE STORY] The party is idle.${consecutiveAdvancesRef.current >= 3 ? ' [IDLE ESCALATION — the players have pressed "Progress Story" ' + consecutiveAdvancesRef.current + ' times in a row without typing anything. The world MUST force an interaction NOW — an enemy ambush, an NPC approaching with urgent news, a sudden environmental event, a creature attack, or something that DEMANDS the player respond. Do NOT describe calm scenes. Make something happen TO them that they MUST react to.]' : ' Move the campaign forward organically — introduce a new event, encounter, discovery, environmental change, NPC interaction, or plot development that fits the current situation and keeps things interesting. Do NOT wait for player input; make something happen in the world around them.'}`,
           currentZone: campaign.current_zone,
           timeOfDay: campaign.time_of_day,
           dayCount: campaign.day_count,
