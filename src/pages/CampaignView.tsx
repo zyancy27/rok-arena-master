@@ -53,11 +53,11 @@ import { useCampaignTrades } from '@/hooks/use-campaign-trades';
 import ConcentrationButton from '@/components/battles/ConcentrationButton';
 import type { CharacterStats } from '@/lib/character-stats';
 import CampaignTacticalMap, { type NarratorSceneMap } from '@/components/campaigns/CampaignTacticalMap';
-import { useNarratorVoice } from '@/hooks/use-narrator-voice';
 import NarratorMessageContent from '@/components/campaigns/NarratorMessageContent';
 import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import { useNarrationAmbient } from '@/hooks/use-narration-ambient';
+import { useNarrationController } from '@/hooks/use-narration-controller';
 // Helper: build bag content for the inline backpack bubble
 function buildBagContent(campaignItems: InventoryItem[], characterWeapons: string | null) {
   const items: { name: string; type: string; rarity: string; equipped: boolean }[] = [];
@@ -116,10 +116,11 @@ export default function CampaignView() {
   // ── Narrator Voice & Chat Sounds ──
   const { settings: userSettings } = useUserSettings();
   const { hasAIAccess } = useSubscription();
-  const narratorVoice = useNarratorVoice({
+  const narratorVoice = useNarrationController({
     enabled: userSettings.audio.narratorVoiceEnabled,
-    autoRead: userSettings.audio.narratorAutoRead,
-    volume: userSettings.audio.narratorVoiceVolume * userSettings.audio.masterVolume,
+    voiceVolume: userSettings.audio.narratorVoiceVolume * userSettings.audio.masterVolume,
+    soundVolume: userSettings.audio.narrationAmbientVolume * userSettings.audio.masterVolume,
+    tapToNarrate: userSettings.audio.tapToNarrate,
     hasAIAccess,
   });
   const narratorVoiceRef = useRef(narratorVoice);
@@ -404,15 +405,9 @@ export default function CampaignView() {
             // Play narrator arrival sound + auto-read
             chatSoundsEngine.play('narrator_message');
             if (userSettingsRef.current.audio.narratorAutoRead && userSettingsRef.current.audio.narratorVoiceEnabled) {
-              // Duck ambient sounds while narrator is speaking
-              narrationAmbientRef.current.setNarratorSpeaking(true);
-              narratorVoiceRef.current.speak(msg.content, undefined, msg.id);
-              // Un-duck after estimated speech duration (roughly 80ms per word)
-              const wordCount = msg.content.split(/\s+/).length;
-              setTimeout(() => narrationAmbientRef.current.setNarratorSpeaking(false), wordCount * 80 + 2000);
+              // NarrationController handles ducking, highlighting, and sound triggers
+              narratorVoiceRef.current.narrate(msg.content, msg.id);
             }
-            // Trigger narration-aware ambient sounds
-            narrationAmbientRef.current.processNarration(msg.content);
           } else if (msg.sender_type === 'player') {
             // Play received sound if it's from another player
             const isFromMe = participantsRef.current.find(
@@ -1981,7 +1976,7 @@ export default function CampaignView() {
                                       </button>
                                     ) : (
                                       <button
-                                        onClick={() => narratorVoice.speak(msg.content, undefined, msg.id)}
+                                        onClick={() => narratorVoice.narrate(msg.content, msg.id)}
                                         className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
                                         title="Listen to narrator"
                                       >
@@ -1993,10 +1988,10 @@ export default function CampaignView() {
                                 <NarratorMessageContent
                                   content={msg.content}
                                   activeSentenceIndex={narratorVoice.activeMessageId === msg.id ? narratorVoice.activeSentenceIndex : -1}
-                                  voiceEnabled={userSettings.audio.narratorVoiceEnabled}
-                                  onSentenceClick={(sentenceIdx) => {
-                                    narratorVoice.speak(msg.content, undefined, msg.id, sentenceIdx);
-                                  }}
+                                  voiceEnabled={userSettings.audio.narratorVoiceEnabled && userSettings.audio.tapToNarrate}
+                                   onSentenceClick={(sentenceIdx) => {
+                                     narratorVoice.narrateFromSentence(msg.content, msg.id, sentenceIdx);
+                                   }}
                                 />
                               </div>
                             </div>

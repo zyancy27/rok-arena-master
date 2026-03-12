@@ -59,6 +59,15 @@ export function AudioTab({ settings, onChange, onReset }: Props) {
         </>
       )}
 
+      {settings.narratorVoiceEnabled && (
+        <>
+          <Separator className="my-4" />
+          <h3 className="text-sm font-semibold text-foreground mb-3">👆 Tap to Narrate</h3>
+          <SettingsToggle label="Tap to Narrate" description="Tap any narrator paragraph to start reading from that point" checked={settings.tapToNarrate} onCheckedChange={v => onChange({ tapToNarrate: v })} />
+        </>
+      
+      )}
+
       <Separator className="my-4" />
 
       <h3 className="text-sm font-semibold text-foreground mb-3">🔔 Chat Sounds</h3>

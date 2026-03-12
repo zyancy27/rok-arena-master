@@ -31,6 +31,7 @@ export interface AudioSettings {
   narrationAmbientVolume: number;
   narrationEventCueVolume: number;
   narrationReduceVocalSounds: boolean;
+  tapToNarrate: boolean;
 }
 
 export interface VisualSettings {
@@ -139,6 +140,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
     narrationAmbientVolume: 0.5,
     narrationEventCueVolume: 0.5,
     narrationReduceVocalSounds: false,
+    tapToNarrate: true,
   },
   visual: {
     vfxIntensity: 'medium',
