@@ -462,7 +462,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
       lore: data.formData.lore.trim() || null, powers: data.formData.powers.trim() || null,
       abilities: data.formData.abilities.trim() || null, home_planet: data.formData.home_planet.trim() || null,
       race: data.formData.race.trim() || null, sub_race: data.formData.sub_race.trim() || null,
-      age: data.formData.age ? parseInt(data.formData.age) : null,
+      age: data.formData.age ? parseInt(data.formData.age) : null, sex: data.formData.sex || null,
       personality: data.formData.personality.trim() || null, mentality: data.formData.mentality.trim() || null,
       ...data.stats,
       ...Object.fromEntries(Object.entries(data.appearance).map(([k, v]) => [k, (v as string).trim() || null])),
