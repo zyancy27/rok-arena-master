@@ -1835,8 +1835,11 @@ export default function CampaignView() {
       <div className={`flex-1 min-h-0 flex flex-col relative transition-shadow duration-500 ${
           combatPulse === 'red' ? 'animate-combat-pulse-red' : combatPulse === 'green' ? 'animate-combat-pulse-green' : ''
         }`}>
-        {/* Environment background fills entire chat area */}
-        <Tabs defaultValue="adventure" className="flex flex-col flex-1 min-h-0">
+        {/* Persistent Environment Background — fills entire content area */}
+        <EnvironmentChatBackground location={activeSceneLocation || campaign.current_zone} />
+        <BattlefieldEffectsOverlay effects={battlefieldEffects} className="z-[1]" />
+
+        <Tabs defaultValue="adventure" className="flex flex-col flex-1 min-h-0 relative z-[2]">
           <div className="bg-background/60 backdrop-blur-sm border-b border-border/30 px-3 z-10 relative shrink-0">
               <TabsList className="bg-transparent h-auto p-0 gap-4">
                 <TabsTrigger value="adventure" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-1 pb-2 pt-3 text-sm gap-1.5">
