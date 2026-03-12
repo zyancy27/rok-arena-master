@@ -622,7 +622,6 @@ const AMBIENT_PROFILES: Partial<Record<EnvironmentTag, AmbientProfile>> = {
   radiation: { layers: [spaceLayer(), creakingLayer()] },
   celestial: { layers: [spaceLayer(), windLayer(0.03, 400)] },
   bloodmoon: { layers: [windLayer(0.06, 300)] },
-  urban: { layers: [cityLayer()] },
 };
 
 // ── Engine ──────────────────────────────────────────────────────
