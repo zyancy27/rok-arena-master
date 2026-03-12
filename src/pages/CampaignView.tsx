@@ -1989,9 +1989,9 @@ export default function CampaignView() {
                                   content={msg.content}
                                   activeSentenceIndex={narratorVoice.activeMessageId === msg.id ? narratorVoice.activeSentenceIndex : -1}
                                   voiceEnabled={userSettings.audio.narratorVoiceEnabled}
-                                  onSentenceClick={(sentenceIdx) => {
-                                    narratorVoice.speak(msg.content, undefined, msg.id, sentenceIdx);
-                                  }}
+                                   onSentenceClick={(sentenceIdx) => {
+                                     narratorVoice.narrateFromSentence(msg.content, msg.id, sentenceIdx);
+                                   }}
                                 />
                               </div>
                             </div>
