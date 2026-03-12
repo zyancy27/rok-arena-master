@@ -1786,7 +1786,7 @@ export default function CampaignView() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 sm:gap-2 ml-auto sm:ml-0 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           {isActive && sceneMap && (
             <Button
               variant={showTacticalMap ? 'secondary' : 'ghost'}
