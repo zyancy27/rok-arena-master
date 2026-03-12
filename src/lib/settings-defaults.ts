@@ -31,6 +31,7 @@ export interface AudioSettings {
   narrationAmbientVolume: number;
   narrationEventCueVolume: number;
   narrationReduceVocalSounds: boolean;
+  tapToNarrate: boolean;
 }
 
 export interface VisualSettings {
