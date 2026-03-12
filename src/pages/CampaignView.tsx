@@ -1611,7 +1611,7 @@ export default function CampaignView() {
       setSending(false);
 
       // Fire narrator response in background (non-blocking)
-      fireNarratorResponse(messageText, soloIntent, combatResult, participant, campaignSnap);
+      fireNarratorResponse(messageText, soloIntent, combatResult, participant, campaignSnap, overchargeContext);
     } catch (err) {
       console.error('Campaign message error:', err);
       toast.error('Failed to send message');
