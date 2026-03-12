@@ -1685,6 +1685,57 @@ export type Database = {
           },
         ]
       }
+      narrator_sentiments: {
+        Row: {
+          character_id: string
+          created_at: string
+          id: string
+          memorable_moments: string[]
+          nickname: string | null
+          opinion_summary: string | null
+          personality_notes: string | null
+          sentiment_score: number
+          updated_at: string
+        }
+        Insert: {
+          character_id: string
+          created_at?: string
+          id?: string
+          memorable_moments?: string[]
+          nickname?: string | null
+          opinion_summary?: string | null
+          personality_notes?: string | null
+          sentiment_score?: number
+          updated_at?: string
+        }
+        Update: {
+          character_id?: string
+          created_at?: string
+          id?: string
+          memorable_moments?: string[]
+          nickname?: string | null
+          opinion_summary?: string | null
+          personality_notes?: string | null
+          sentiment_score?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "narrator_sentiments_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: true
+            referencedRelation: "characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "narrator_sentiments_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: true
+            referencedRelation: "characters_decrypted"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       npc_relationships: {
         Row: {
           campaign_id: string
