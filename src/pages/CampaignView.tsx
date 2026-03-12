@@ -325,6 +325,13 @@ export default function CampaignView() {
     };
   }, [user, campaignId]);
 
+  // Fetch narrator sentiment when participant character is known
+  useEffect(() => {
+    if (myParticipant?.character_id) {
+      fetchNarratorSentiment(myParticipant.character_id);
+    }
+  }, [myParticipant?.character_id]);
+
   // ── Auto-generate narrator intro if campaign is active but has no narrator message ──
   useEffect(() => {
     if (
