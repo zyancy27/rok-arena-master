@@ -605,6 +605,24 @@ const AMBIENT_PROFILES: Partial<Record<EnvironmentTag, AmbientProfile>> = {
   wind: { layers: [windLayer(0.1, 500)] },
   rain: { layers: [stormLayer()] },
   tremor: { layers: [creakingLayer()] },
+  // Ship / nautical — hull creaks + wind + subtle water-like rumble
+  ship: { layers: [creakingLayer(), windLayer(0.06, 280), underwaterLayer()] },
+  // Indoor / structural environments
+  office: { layers: [cityLayer()] },
+  library: { layers: [windLayer(0.02, 150)] },
+  prison: { layers: [creakingLayer(), windLayer(0.03, 200)] },
+  hospital: { layers: [cityLayer()] },
+  laboratory: { layers: [cityLayer(), creakingLayer()] },
+  tower: { layers: [windLayer(0.12, 600)] },
+  corridor: { layers: [windLayer(0.03, 180), creakingLayer()] },
+  rooftop: { layers: [windLayer(0.15, 700)] },
+  lobby: { layers: [cityLayer()] },
+  // Additional environment types
+  toxic: { layers: [cavernLayer(), windLayer(0.04, 250)] },
+  radiation: { layers: [spaceLayer(), creakingLayer()] },
+  celestial: { layers: [spaceLayer(), windLayer(0.03, 400)] },
+  bloodmoon: { layers: [windLayer(0.06, 300)] },
+  urban: { layers: [cityLayer()] },
 };
 
 // ── Engine ──────────────────────────────────────────────────────
