@@ -74,6 +74,7 @@ export function buildCharacterBookChapters(
     loreSections?: any[];
     campaignHistory?: any[];
     groups?: any[];
+    narratorSentiment?: NarratorSentimentData | null;
   }
 ): CharacterBookChapter[] {
   const chapters: CharacterBookChapter[] = [];
