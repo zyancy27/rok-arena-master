@@ -1143,6 +1143,7 @@ export default function CampaignView() {
           knownNpcs,
           activeEnemies: activeEnemiesList,
           narrativeSystemsContext,
+          overchargeContext: overchargeContext || undefined,
         },
       });
 
