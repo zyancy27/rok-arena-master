@@ -1976,7 +1976,7 @@ export default function CampaignView() {
                                       </button>
                                     ) : (
                                       <button
-                                        onClick={() => narratorVoice.speak(msg.content, undefined, msg.id)}
+                                        onClick={() => narratorVoice.narrate(msg.content, msg.id)}
                                         className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
                                         title="Listen to narrator"
                                       >
