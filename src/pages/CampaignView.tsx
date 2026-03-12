@@ -56,7 +56,6 @@ import CampaignTacticalMap, { type NarratorSceneMap } from '@/components/campaig
 import NarratorMessageContent from '@/components/campaigns/NarratorMessageContent';
 import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
-import { useNarrationAmbient } from '@/hooks/use-narration-ambient';
 import { useNarrationController } from '@/hooks/use-narration-controller';
 // Helper: build bag content for the inline backpack bubble
 function buildBagContent(campaignItems: InventoryItem[], characterWeapons: string | null) {
