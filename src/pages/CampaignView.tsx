@@ -1831,7 +1831,9 @@ export default function CampaignView() {
           </AlertDialog>
       </div>
 
-      <div className="flex-1 min-h-0 flex flex-col relative">
+      <div className={`flex-1 min-h-0 flex flex-col relative transition-shadow duration-500 ${
+          combatPulse === 'red' ? 'animate-combat-pulse-red' : combatPulse === 'green' ? 'animate-combat-pulse-green' : ''
+        }`}>
         {/* Environment background fills entire chat area */}
         <Tabs defaultValue="adventure" className="flex flex-col flex-1 min-h-0">
           <div className="bg-background/60 backdrop-blur-sm border-b border-border/30 px-3 z-10 relative shrink-0">
