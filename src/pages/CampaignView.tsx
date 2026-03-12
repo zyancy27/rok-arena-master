@@ -1175,6 +1175,7 @@ export default function CampaignView() {
           activeEnemies: activeEnemiesList,
           narrativeSystemsContext,
           overchargeContext: overchargeContext || undefined,
+          narratorSentiment: narratorSentiment || undefined,
         },
       });
 
