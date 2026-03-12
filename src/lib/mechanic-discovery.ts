@@ -92,7 +92,7 @@ const MECHANIC_EXPLANATIONS: Record<MechanicKey, MechanicInfo> = {
   },
   overcharge: {
     title: '🔥 Overcharge',
-    summary: 'Pushing an ability beyond its normal limits. Overcharged moves are stronger but risk a mishap or stamina drain. The narrator factors this into the outcome.',
+    summary: 'Pushing an ability beyond its normal limits. Overcharged moves deal 1.5–2× damage but risk backfire, fatigue, recoil, or misfires. Available during combat.',
   },
   campaign_xp: {
     title: '⭐ Campaign XP',
