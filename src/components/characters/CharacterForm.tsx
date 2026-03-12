@@ -192,9 +192,10 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
   const [timelineEventsLocal, setTimelineEventsLocal] = useState<any[]>([]);
 
   // Section open states — essentials always visible, rest collapsed on create
+  const hasLoreData = !!(initialData?.lore || (initialData as any)?.appearance_height || (initialData as any)?.appearance_build || (initialData as any)?.appearance_description);
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     identity: mode === 'edit',
-    lore: false,
+    lore: mode === 'edit' && hasLoreData,
     powers: mode === 'edit',
     personality: mode === 'edit',
     stats: false,
@@ -202,8 +203,8 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
 
   // Sub-sections inside Lore
   const [openLoreSubs, setOpenLoreSubs] = useState<Record<string, boolean>>({
-    background: false,
-    appearance: false,
+    background: mode === 'edit' && !!initialData?.lore,
+    appearance: mode === 'edit' && !!(initialData as any)?.appearance_height || !!(initialData as any)?.appearance_build || !!(initialData as any)?.appearance_description,
     timeline: false,
   });
   const toggleLoreSub = (key: string) => setOpenLoreSubs(prev => ({ ...prev, [key]: !prev[key] }));
@@ -460,9 +461,11 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
     const characterData = {
       name: data.formData.name.trim(), level: data.formData.level,
       lore: data.formData.lore.trim() || null, powers: data.formData.powers.trim() || null,
-      abilities: data.formData.abilities.trim() || null, home_planet: data.formData.home_planet.trim() || null,
+      abilities: data.formData.abilities.trim() || null, weapons_items: data.formData.weapons_items.trim() || null,
+      home_planet: data.formData.home_planet.trim() || null, home_moon: data.formData.home_moon.trim() || null,
       race: data.formData.race.trim() || null, sub_race: data.formData.sub_race.trim() || null,
       age: data.formData.age ? parseInt(data.formData.age) : null, sex: data.formData.sex || null,
+      image_url: data.formData.image_url || null,
       personality: data.formData.personality.trim() || null, mentality: data.formData.mentality.trim() || null,
       ...data.stats,
       ...Object.fromEntries(Object.entries(data.appearance).map(([k, v]) => [k, (v as string).trim() || null])),
