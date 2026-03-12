@@ -571,6 +571,10 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
           const memberships = selectedGroupIds.map(gid => ({ group_id: gid, character_id: newChar.id }));
           await supabase.from('character_group_members').insert(memberships);
         }
+        // Save timeline events for the new character
+        if (timelineEventsLocal.length > 0 && newChar) {
+          await saveTimelineEvents(newChar.id, user.id, timelineEventsLocal);
+        }
         toast.success('Character created successfully!');
       } else if (initialData?.id) {
         const { error } = await supabase.from('characters').update(characterData).eq('id', initialData.id);
@@ -1336,7 +1340,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <div className="pt-3">
-                      <CharacterTimeline characterId={initialData?.id || ''} mode={mode} />
+                      <CharacterTimeline characterId={initialData?.id || ''} mode={mode} onEventsChange={setTimelineEventsLocal} />
                     </div>
                   </CollapsibleContent>
                 </Collapsible>

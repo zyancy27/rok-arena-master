@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
-import { Plus, Trash2, ChevronDown, GripVertical, Clock, Eye, EyeOff, Lock, Heart } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, GripVertical, Clock, Eye, EyeOff, Lock, Heart, Loader2 } from 'lucide-react';
 
 interface TimelineEvent {
   id: string;
@@ -28,6 +28,7 @@ interface TimelineEvent {
 interface CharacterTimelineProps {
   characterId: string;
   mode: 'create' | 'edit';
+  onEventsChange?: (events: TimelineEvent[]) => void;
 }
 
 const VISIBILITY_OPTIONS = [
@@ -38,12 +39,15 @@ const VISIBILITY_OPTIONS = [
 
 const COMMON_TAGS = ['war', 'loss', 'betrayal', 'redemption', 'training', 'family', 'discovery', 'love', 'trauma', 'awakening', 'exile', 'victory', 'sacrifice', 'friendship'];
 
-export default function CharacterTimeline({ characterId, mode }: CharacterTimelineProps) {
+export default function CharacterTimeline({ characterId, mode, onEventsChange }: CharacterTimelineProps) {
   const { user } = useAuth();
   const [events, setEvents] = useState<TimelineEvent[]>([]);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [newTagInputs, setNewTagInputs] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSaveRef = useRef<TimelineEvent[] | null>(null);
 
   // Load events for edit mode
   useEffect(() => {
@@ -52,6 +56,11 @@ export default function CharacterTimeline({ characterId, mode }: CharacterTimeli
     }
   }, [characterId, mode]);
 
+  // Notify parent of event changes
+  useEffect(() => {
+    onEventsChange?.(events);
+  }, [events]);
+
   const loadEvents = async () => {
     const { data, error } = await supabase
       .from('character_timeline_events')
@@ -59,6 +68,70 @@ export default function CharacterTimeline({ characterId, mode }: CharacterTimeli
       .eq('character_id', characterId)
       .order('sort_order', { ascending: true });
     if (!error && data) setEvents(data as unknown as TimelineEvent[]);
+  };
+
+  // Auto-save logic for edit mode (debounced)
+  const scheduleSave = useCallback((updatedEvents: TimelineEvent[]) => {
+    if (mode !== 'edit' || !characterId || !user) return;
+    pendingSaveRef.current = updatedEvents;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      const toSave = pendingSaveRef.current;
+      if (toSave) persistEvents(toSave);
+    }, 2000);
+  }, [mode, characterId, user]);
+
+  const persistEvents = async (eventsToSave: TimelineEvent[]) => {
+    if (!user || !characterId) return;
+    setSaving(true);
+    try {
+      for (const ev of eventsToSave) {
+        if (!ev.event_title.trim()) continue;
+        const payload = {
+          character_id: characterId,
+          user_id: user.id,
+          age_or_year: ev.age_or_year,
+          event_title: ev.event_title,
+          event_description: ev.event_description,
+          tags: ev.tags,
+          emotional_weight: ev.emotional_weight,
+          visibility: ev.visibility,
+          sort_order: ev.sort_order,
+        };
+        if (ev.id.startsWith('temp_')) {
+          const { data, error } = await supabase.from('character_timeline_events').insert(payload).select('id').single();
+          if (!error && data) {
+            // Replace temp id with real id
+            setEvents(prev => prev.map(e => e.id === ev.id ? { ...e, id: data.id } : e));
+          }
+        } else {
+          await supabase.from('character_timeline_events').update(payload).eq('id', ev.id);
+        }
+      }
+    } catch {
+      toast.error('Failed to save timeline event');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+      // Flush pending save on unmount
+      if (pendingSaveRef.current && mode === 'edit' && user && characterId) {
+        persistEvents(pendingSaveRef.current);
+      }
+    };
+  }, []);
+
+  const setEventsAndSave = (updater: (prev: TimelineEvent[]) => TimelineEvent[]) => {
+    setEvents(prev => {
+      const next = updater(prev);
+      scheduleSave(next);
+      return next;
+    });
   };
 
   const addEvent = () => {
@@ -88,11 +161,11 @@ export default function CharacterTimeline({ characterId, mode }: CharacterTimeli
   };
 
   const updateEvent = (id: string, field: keyof TimelineEvent, value: any) => {
-    setEvents(prev => prev.map(e => e.id === id ? { ...e, [field]: value } : e));
+    setEventsAndSave(prev => prev.map(e => e.id === id ? { ...e, [field]: value } : e));
   };
 
   const toggleTag = (eventId: string, tag: string) => {
-    setEvents(prev => prev.map(e => {
+    setEventsAndSave(prev => prev.map(e => {
       if (e.id !== eventId) return e;
       const tags = e.tags.includes(tag) ? e.tags.filter(t => t !== tag) : [...e.tags, tag];
       return { ...e, tags };
@@ -119,7 +192,7 @@ export default function CharacterTimeline({ characterId, mode }: CharacterTimeli
   const handleDragOver = (e: React.DragEvent, idx: number) => {
     e.preventDefault();
     if (dragIdx === null || dragIdx === idx) return;
-    setEvents(prev => {
+    setEventsAndSave(prev => {
       const copy = [...prev];
       const [moved] = copy.splice(dragIdx, 1);
       copy.splice(idx, 0, moved);
@@ -129,33 +202,6 @@ export default function CharacterTimeline({ characterId, mode }: CharacterTimeli
   };
   const handleDragEnd = () => setDragIdx(null);
 
-  // Save all events (called from parent form via ref or exposed)
-  const saveEvents = useCallback(async (charId: string) => {
-    if (!user) return;
-    for (const ev of events) {
-      if (!ev.event_title.trim()) continue;
-      const payload = {
-        character_id: charId,
-        user_id: user.id,
-        age_or_year: ev.age_or_year,
-        event_title: ev.event_title,
-        event_description: ev.event_description,
-        tags: ev.tags,
-        emotional_weight: ev.emotional_weight,
-        visibility: ev.visibility,
-        sort_order: ev.sort_order,
-      };
-      if (ev.id.startsWith('temp_')) {
-        await supabase.from('character_timeline_events').insert(payload);
-      } else {
-        await supabase.from('character_timeline_events').update(payload).eq('id', ev.id);
-      }
-    }
-  }, [events, user]);
-
-  // Expose saveEvents for parent
-  (CharacterTimeline as any).__saveEvents = saveEvents;
-
   const emotionalWeightLabel = (w: number) => {
     const labels = ['Minor', 'Moderate', 'Significant', 'Major', 'Defining'];
     return labels[w - 1] || 'Unknown';
@@ -163,6 +209,12 @@ export default function CharacterTimeline({ characterId, mode }: CharacterTimeli
 
   return (
     <div className="space-y-3">
+      {saving && (
+        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground justify-end">
+          <Loader2 className="w-3 h-3 animate-spin" /> Saving...
+        </div>
+      )}
+
       {events.length === 0 && (
         <p className="text-xs text-muted-foreground text-center py-4">
           No timeline events yet. Add defining moments from your character's life.
@@ -303,7 +355,7 @@ export default function CharacterTimeline({ characterId, mode }: CharacterTimeli
   );
 }
 
-// Export the save function so parent can call it
+// Export the save function so parent can call it for create mode
 export async function saveTimelineEvents(characterId: string, userId: string, events: any[]) {
   for (const ev of events) {
     if (!ev.event_title?.trim()) continue;
