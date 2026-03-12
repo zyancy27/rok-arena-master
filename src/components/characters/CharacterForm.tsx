@@ -1260,10 +1260,18 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
               <CardContent className="pt-4 space-y-3">
                 {/* Background sub-section */}
                 <Collapsible open={openLoreSubs.background} onOpenChange={() => toggleLoreSub('background')}>
-                  <CollapsibleTrigger className="w-full flex items-center gap-2 p-2.5 rounded-md border border-border bg-background/50 hover:bg-muted/50 transition-colors text-left">
-                    <FileText className="w-3.5 h-3.5 text-primary shrink-0" />
-                    <span className="text-xs font-medium flex-1">Background & Backstory</span>
-                    <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${openLoreSubs.background ? 'rotate-180' : ''}`} />
+                  <CollapsibleTrigger className="w-full flex items-start gap-2 p-2.5 rounded-md border border-border bg-background/50 hover:bg-muted/50 transition-colors text-left">
+                    <FileText className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium">Background & Backstory</span>
+                        {formData.lore.trim() && <Badge variant="outline" className="text-[9px] h-4 border-primary/30 text-primary">Added</Badge>}
+                      </div>
+                      {formData.lore.trim() && !openLoreSubs.background && (
+                        <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 break-words">{formData.lore.trim()}</p>
+                      )}
+                    </div>
+                    <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform shrink-0 mt-0.5 ${openLoreSubs.background ? 'rotate-180' : ''}`} />
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <div className="pt-3 space-y-1">
@@ -1273,25 +1281,57 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                 </Collapsible>
 
                 {/* Appearance sub-section */}
-                <Collapsible open={openLoreSubs.appearance} onOpenChange={() => toggleLoreSub('appearance')}>
-                  <CollapsibleTrigger className="w-full flex items-center gap-2 p-2.5 rounded-md border border-border bg-background/50 hover:bg-muted/50 transition-colors text-left">
-                    <Eye className="w-3.5 h-3.5 text-primary shrink-0" />
-                    <span className="text-xs font-medium flex-1">Appearance</span>
-                    {Object.values(appearance).some(v => v.trim()) && <Badge variant="outline" className="text-[9px] h-4 border-primary/30 text-primary">Added</Badge>}
-                    <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${openLoreSubs.appearance ? 'rotate-180' : ''}`} />
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <div className="pt-3">
-                      <CharacterAppearance data={appearance} onChange={(field, value) => setAppearance(prev => ({ ...prev, [field]: value }))} />
-                    </div>
-                  </CollapsibleContent>
-                </Collapsible>
+                {(() => {
+                  const filledAppearance = Object.entries(appearance).filter(([, v]) => (v as string).trim());
+                  const appearancePreviewItems = filledAppearance.slice(0, 4).map(([k, v]) => {
+                    const label = k.replace('appearance_', '').replace(/_/g, ' ');
+                    return `${label.charAt(0).toUpperCase() + label.slice(1)}: ${(v as string).trim()}`;
+                  });
+                  return (
+                    <Collapsible open={openLoreSubs.appearance} onOpenChange={() => toggleLoreSub('appearance')}>
+                      <CollapsibleTrigger className="w-full flex items-start gap-2 p-2.5 rounded-md border border-border bg-background/50 hover:bg-muted/50 transition-colors text-left">
+                        <Eye className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium">Appearance</span>
+                            {filledAppearance.length > 0 && (
+                              <Badge variant="outline" className="text-[9px] h-4 border-primary/30 text-primary">
+                                {filledAppearance.length} detail{filledAppearance.length !== 1 ? 's' : ''}
+                              </Badge>
+                            )}
+                          </div>
+                          {filledAppearance.length > 0 && !openLoreSubs.appearance && (
+                            <div className="mt-1 space-y-0.5">
+                              {appearancePreviewItems.map((item, i) => (
+                                <p key={i} className="text-[11px] text-muted-foreground truncate">{item}</p>
+                              ))}
+                              {filledAppearance.length > 4 && (
+                                <p className="text-[10px] text-muted-foreground/60">+{filledAppearance.length - 4} more</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform shrink-0 mt-0.5 ${openLoreSubs.appearance ? 'rotate-180' : ''}`} />
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <div className="pt-3">
+                          <CharacterAppearance data={appearance} onChange={(field, value) => setAppearance(prev => ({ ...prev, [field]: value }))} />
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  );
+                })()}
 
                 {/* Timeline sub-section */}
                 <Collapsible open={openLoreSubs.timeline} onOpenChange={() => toggleLoreSub('timeline')}>
                   <CollapsibleTrigger className="w-full flex items-center gap-2 p-2.5 rounded-md border border-border bg-background/50 hover:bg-muted/50 transition-colors text-left">
                     <Clock className="w-3.5 h-3.5 text-primary shrink-0" />
                     <span className="text-xs font-medium flex-1">Timeline</span>
+                    {timelineEventsLocal.length > 0 && (
+                      <Badge variant="outline" className="text-[9px] h-4 border-primary/30 text-primary">
+                        {timelineEventsLocal.length} event{timelineEventsLocal.length !== 1 ? 's' : ''}
+                      </Badge>
+                    )}
                     <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${openLoreSubs.timeline ? 'rotate-180' : ''}`} />
                   </CollapsibleTrigger>
                   <CollapsibleContent>
