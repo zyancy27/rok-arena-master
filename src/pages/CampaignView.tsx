@@ -2398,7 +2398,6 @@ export default function CampaignView() {
               </TabsContent>
             )}
           </Tabs>
-        </Card>
 
         {/* Join / Start controls when not in narrator tab (recruiting or not joined yet) */}
         {(!myParticipant || !isActive) && (
