@@ -1497,7 +1497,14 @@ OUTPUT FORMAT (JSON):
       "status": <"active"|"defeated"|"fled"|"hiding" — change status when appropriate>,
       "lastAction": "brief description of what the enemy did this turn (attacked, dodged, taunted, tried to flee, etc.)"
     }
-  ] or [] if no active enemy changes
+  ] or [] if no active enemy changes,
+  "sentimentUpdate": {
+    "nickname": "a short nickname for this character (keep if already good, or create/change — 1-3 words, e.g. 'little fox', 'the boulder', 'iron saint')",
+    "sentiment_shift": <number -10 to +10, how much your opinion changed this turn based on their action>,
+    "opinion_summary": "1-2 sentence summary of how you currently feel about this character (updated each turn)",
+    "personality_notes": "brief notes about patterns you've noticed in their behavior",
+    "memorable_moment": "if this turn was noteworthy, a short phrase capturing it (e.g. 'saved the child from the fire', 'betrayed the merchant') — or null if unremarkable"
+  }
 }
 
 SCENE MAP RULES (CRITICAL — generate with EVERY response):
