@@ -819,6 +819,18 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                     <Label className="text-xs">Age</Label>
                     <Input type="number" placeholder="500" value={formData.age} onChange={(e) => handleChange('age', e.target.value)} className="h-9" />
                   </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Sex</Label>
+                    <Select value={formData.sex} onValueChange={(value) => handleChange('sex', value === '__none__' ? '' : value)}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Select..." /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="none">No Sex</SelectItem>
+                        <SelectItem value="__none__" className="text-muted-foreground border-t mt-1 pt-2">Clear</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 {/* Race Info Panel */}
