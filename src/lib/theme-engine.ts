@@ -184,7 +184,7 @@ const TAG_RULES: Array<{ pattern: RegExp; tag: EnvironmentTag }> = [
   { pattern: /nuclear|reactor|radiation|melt.*down|chernobyl|power.*plant|radioactive/, tag: 'radiation' },
   { pattern: /space|orbit|station|vacuum|asteroid|star.*ship|cosmos|galaxy|re.?entry|warp/, tag: 'space' },
   { pattern: /blizzard|snow|ice.*storm|arctic|frozen.*waste|tundra|frost|glacier|polar/, tag: 'blizzard' },
-  { pattern: /forest|jungle|swamp|marsh|grove|canopy|woodland/, tag: 'forest' },
+  { pattern: /forest|jungle|swamp|marsh|grove|canopy|woodland|wilderness|wilds|thicket|glade|meadow|plain|prairie|savanna|steppe|heath|moor|dale|vale/, tag: 'forest' },
   { pattern: /desert|sand\b|dune|oasis|arid|sahara|wasteland/, tag: 'desert' },
   { pattern: /crystal|gem|mine\b|grotto|geode/, tag: 'crystal' },
   { pattern: /underground|cave|cavern|tunnel|burrow|subterranean|catacomb|dungeon|sewer|bunker|basement|cellar|pit|chasm|below.*ground|depth/, tag: 'underground' },
