@@ -1492,6 +1492,7 @@ export default function CampaignView() {
 
    const handleSendMessage = async () => {
     if (!inputMessage.trim() || !myParticipant || !campaign) return;
+    consecutiveAdvancesRef.current = 0; // Reset idle counter when player types
     const messageText = inputMessage.trim();
 
     // Move validation — check before sending
