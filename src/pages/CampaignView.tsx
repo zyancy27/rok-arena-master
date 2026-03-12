@@ -1767,24 +1767,21 @@ export default function CampaignView() {
     <div className="flex flex-col h-[100dvh] overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between gap-2 px-2 py-1.5 shrink-0 bg-background/70 backdrop-blur-md border-b border-border/50 z-20 relative">
-        <div className="flex items-start sm:items-center gap-2 sm:gap-3 min-w-0">
-          <Button variant="ghost" size="sm" className="shrink-0 mt-0.5 sm:mt-0" onClick={() => navigate('/campaigns')}>
+        <div className="flex items-center gap-2 min-w-0">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => navigate('/campaigns')}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <div className="min-w-0 flex-1">
-            <h1 className="text-base sm:text-xl font-bold flex items-center gap-2">
-              <Compass className="w-4 h-4 sm:w-5 sm:h-5 text-primary shrink-0" />
+          <div className="min-w-0">
+            <h1 className="text-sm font-bold flex items-center gap-1.5 truncate">
+              <Compass className="w-4 h-4 text-primary shrink-0" />
               <span className="truncate">{campaign.name}</span>
             </h1>
-             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs sm:text-sm text-muted-foreground mt-0.5">
+            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
               <RealtimeStatus status={realtimeStatus} />
-              <span className="whitespace-nowrap">{getTimeEmoji(campaign.time_of_day)} {campaign.time_of_day}</span>
-              <span className="hidden sm:inline">·</span>
-              <span className="whitespace-nowrap">Day {campaign.day_count}</span>
-              <span className="hidden sm:inline">·</span>
-              <span className="flex items-center gap-1 min-w-0">
-                <MapPin className="w-3 h-3 shrink-0" />
-                <span className="truncate max-w-[140px] sm:max-w-[250px]">{campaign.current_zone}</span>
+              <span>{getTimeEmoji(campaign.time_of_day)} Day {campaign.day_count}</span>
+              <span className="flex items-center gap-0.5 truncate max-w-[100px]">
+                <MapPin className="w-2.5 h-2.5 shrink-0" />
+                <span className="truncate">{campaign.current_zone}</span>
               </span>
             </div>
           </div>
