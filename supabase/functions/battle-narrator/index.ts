@@ -1099,6 +1099,7 @@ async function handleCampaignNarration(
     knownNpcs,
     activeEnemies,
     narrativeSystemsContext,
+    overchargeContext,
   } = body;
 
   // Build conversation history as multi-turn messages for AI continuity
