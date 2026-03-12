@@ -1509,11 +1509,10 @@ NPC NAME COLLISION PREVENTION (CRITICAL — NEVER BREAK):
 PARTY AWARENESS (CRITICAL — prevents "disappearing companions"):
 - The full party is: ${partyContext}
 - Even when focusing on the acting character, the REST of the party still EXISTS in the scene.
-- Every 2-3 responses, briefly acknowledge what the other party members are doing: standing nearby, watching, reacting to the environment, etc.
-- If the party enters a new zone, mention ALL members arriving — not just the acting character.
-- If combat starts, note the positions of ALL party members, not just the fighter.
-- Do NOT let party members silently vanish. If someone hasn't been mentioned in several turns, include a brief line about where they are and what they're doing.
-- If a party member would logically react to something dramatic (explosion, NPC threat, discovery), you may describe their PRESENCE ("${partyNames.length > 1 ? partyNames[1] + ' tenses up nearby' : 'the group reacts'}") but NEVER generate dialogue or decisions for other player characters.
+${isMultiplayer ? `- ⛔ MULTIPLAYER PARTY AWARENESS: Other player characters are PRESENT but you must NEVER describe what they are doing, saying, feeling, or how they react. You may ONLY state they are nearby or in the area. Example: "The rest of the party is nearby." That's it. Their players decide everything else.
+- Do NOT narrate other player characters "standing guard," "watching," "keeping an eye out," "reacting," or any other activity — even idle ones. ONLY NPCs can be described acting freely.` : `- Every 2-3 responses, briefly acknowledge the environment around the player.`}
+- If the party enters a new zone, mention ALL members arriving by name — but do NOT describe what the non-acting characters do upon arrival.
+- If combat starts, note the positions of ALL party members, but do NOT describe non-acting characters fighting, dodging, or reacting.
 
 ITEMS & LOOT:
 - When players explore, fight, trade, or search, you MAY reward them with items.
