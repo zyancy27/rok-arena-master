@@ -42,11 +42,12 @@ export default function CharacterBook() {
       }
       setCharacter(charData);
 
-      const [storyPointsRes, groupsRes, campaignsRes, timelineRes] = await Promise.all([
+      const [storyPointsRes, groupsRes, campaignsRes, timelineRes, sentimentRes] = await Promise.all([
         fetchCharacterStoryPoints(id),
         supabase.from('character_group_members').select('group_id, character_groups(name, description)').eq('character_id', id),
         supabase.from('campaign_participants').select('campaign_id, campaigns(name, description, status)').eq('character_id', id),
         supabase.from('character_timeline_events').select('*').eq('character_id', id).order('sort_order', { ascending: true }),
+        supabase.from('narrator_sentiments' as any).select('*').eq('character_id', id).maybeSingle(),
       ]);
 
       const groups = (groupsRes.data || []).map((g: any) => g.character_groups).filter(Boolean);
@@ -58,6 +59,13 @@ export default function CharacterBook() {
         loreSections: storyPointsRes.loreSections,
         campaignHistory,
         groups,
+        narratorSentiment: sentimentRes.data ? {
+          nickname: (sentimentRes.data as any).nickname,
+          sentiment_score: (sentimentRes.data as any).sentiment_score,
+          opinion_summary: (sentimentRes.data as any).opinion_summary,
+          personality_notes: (sentimentRes.data as any).personality_notes,
+          memorable_moments: (sentimentRes.data as any).memorable_moments,
+        } : null,
       });
 
       setChapters(built);
