@@ -1002,6 +1002,7 @@ export default function CampaignView() {
     combatResult: ReturnType<typeof campaignCombat.processCombatAction>,
     snapshotParticipant: CampaignParticipant,
     snapshotCampaign: Campaign,
+    overchargeContext: string = '',
   ) => {
     setNarratorTyping(true);
     try {
