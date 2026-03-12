@@ -1624,6 +1624,7 @@ export default function CampaignView() {
 
   const handleAdvanceCampaign = async () => {
     if (!myParticipant || !campaign || narratorTyping) return;
+    consecutiveAdvancesRef.current += 1;
     setNarratorTyping(true);
     try {
       const activeParty = participants.filter(p => p.is_active);
