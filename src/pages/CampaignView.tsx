@@ -1829,16 +1829,12 @@ export default function CampaignView() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-        </div>
       </div>
 
-      <div className="flex-1 min-h-0 flex flex-col gap-2">
-        {/* Chat + Narrator */}
-        <Card className={`bg-card-gradient border-border flex flex-col flex-1 min-h-0 transition-shadow duration-500 ${
-          combatPulse === 'red' ? 'animate-combat-pulse-red' : combatPulse === 'green' ? 'animate-combat-pulse-green' : ''
-        }`}>
-          <Tabs defaultValue="adventure" className="flex flex-col flex-1 min-h-0">
-            <div className="border-b border-border px-4">
+      <div className="flex-1 min-h-0 flex flex-col relative">
+        {/* Environment background fills entire chat area */}
+        <Tabs defaultValue="adventure" className="flex flex-col flex-1 min-h-0">
+          <div className="bg-background/60 backdrop-blur-sm border-b border-border/30 px-3 z-10 relative shrink-0">
               <TabsList className="bg-transparent h-auto p-0 gap-4">
                 <TabsTrigger value="adventure" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-1 pb-2 pt-3 text-sm gap-1.5">
                   <Compass className="w-4 h-4" />
