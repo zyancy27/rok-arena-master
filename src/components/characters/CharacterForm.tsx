@@ -547,7 +547,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
         abilities: formData.abilities.trim() || null, weapons_items: formData.weapons_items.trim() || null,
         home_planet: planetName || null, home_moon: moonName || null,
         race: formData.race.trim() || null, sub_race: formData.sub_race.trim() || null,
-        age: formData.age ? parseInt(formData.age) : null, image_url: imageUrl || null,
+        age: formData.age ? parseInt(formData.age) : null, sex: formData.sex || null, image_url: imageUrl || null,
         personality: formData.personality.trim() || null, mentality: formData.mentality.trim() || null,
         user_id: user.id, ...stats,
         ...Object.fromEntries(Object.entries(appearance).map(([k, v]) => [k, (v as string).trim() || null])),
