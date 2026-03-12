@@ -1766,7 +1766,7 @@ export default function CampaignView() {
   return (
     <div className="flex flex-col h-[100dvh] overflow-hidden">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 py-2 shrink-0">
+      <div className="flex items-center justify-between gap-2 px-2 py-1.5 shrink-0 bg-background/70 backdrop-blur-md border-b border-border/50 z-20 relative">
         <div className="flex items-start sm:items-center gap-2 sm:gap-3 min-w-0">
           <Button variant="ghost" size="sm" className="shrink-0 mt-0.5 sm:mt-0" onClick={() => navigate('/campaigns')}>
             <ArrowLeft className="w-4 h-4" />
