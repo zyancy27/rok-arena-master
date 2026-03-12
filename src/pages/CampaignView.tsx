@@ -112,6 +112,7 @@ export default function CampaignView() {
   const [showTacticalMap, setShowTacticalMap] = useState(false);
   const userIsNearBottomRef = useRef(true);
   const introAttemptedRef = useRef(false);
+  const consecutiveAdvancesRef = useRef(0);
   const [showNewMsgIndicator, setShowNewMsgIndicator] = useState(false);
   const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
 
