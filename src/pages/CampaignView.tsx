@@ -496,8 +496,19 @@ export default function CampaignView() {
       });
   };
 
+  const fetchKnownNpcs = async () => {
+    const { data } = await supabase
+      .from('campaign_npcs')
+      .select('name')
+      .eq('campaign_id', campaignId!)
+      .eq('status', 'alive');
+    if (data) {
+      setKnownNpcNames(new Set(data.map((n: any) => n.name)));
+    }
+  };
+
   const fetchAll = async () => {
-    await Promise.all([fetchCampaign(), fetchParticipants(), fetchMessages(), fetchInventory(), fetchJoinRequests(), fetchEnemies()]);
+    await Promise.all([fetchCampaign(), fetchParticipants(), fetchMessages(), fetchInventory(), fetchJoinRequests(), fetchEnemies(), fetchKnownNpcs()]);
     setLoading(false);
   };
 
