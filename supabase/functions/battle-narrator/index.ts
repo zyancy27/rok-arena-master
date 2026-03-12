@@ -1489,22 +1489,73 @@ ENEMY COMBAT LOOP (CRITICAL — when ACTIVE ENEMIES exist):
 - When the player attacks an active enemy, you MUST include an enemyUpdates entry with the enemy's id and a negative hpChange.
 - Damage should be proportional to the attack type, dice result, and tier difference. A powerful hit on a weak enemy does more.
 - If dice say HIT: apply meaningful damage (10-40% of their max HP depending on attack power). If dice say MISS: hpChange = 0.
-- ENEMY RETALIATION IS MANDATORY: After EVERY player attack (whether hit or miss), the enemy MUST counter-attack or take an aggressive action in the SAME turn. Describe the enemy striking back, lunging, retaliating, charging, or making a threatening move. Apply negative hpChange to the PLAYER for enemy attacks. Enemies do NOT passively take hits — they always fight back.
+- ENEMY RETALIATION IS MANDATORY: After EVERY player attack (whether hit or miss), the enemy MUST counter-attack or take a combat action in the SAME turn. Enemies do NOT passively take hits — they always respond.
 - The enemy's counter-attack damage should scale with their tier: T1=2-5, T2=4-8, T3=6-12, T4=8-16, T5=10-20, T6=12-25, T7=15-30.
-- Even if the player's attack missed, the enemy still acts aggressively — they press the advantage, taunt, reposition for a better strike, or launch their own attack.
-- Enemies should feel DANGEROUS. Players should fear engaging them. Make every combat exchange feel like a real fight where both sides are actively trying to win.
-- ENEMY BEHAVIOR by profile:
-  • "aggressive" — attacks relentlessly, ALWAYS counter-attacks with full force, never flees, fights to the death. Hits HARD.
-  • "defensive" — blocks/dodges first, then counter-attacks. Still retaliates every turn. Retreats at low HP (<20%).
-  • "cowardly" — weaker counter-attacks but still fights back. Flees when HP drops below 40%, may drop loot while running.
-  • "ambusher" — hits hard from stealth, if HP drops below 30% goes to "hiding" status to attack again later with a surprise strike.
-  • "tactical" — adapts strategy, flanks, uses the environment. Counter-attacks intelligently. May flee at <25% HP if losing, regroups with allies.
+- Even if the player's attack missed, the enemy still acts — they press the advantage, reposition, or launch their own attack.
+- Enemies should feel DANGEROUS. Players should fear engaging them. Make every combat exchange feel like a real PvE fight.
+
+ENEMY COMBAT AI — PERSONALITY-DRIVEN ACTIONS (CRITICAL):
+Each enemy is a thinking combatant with their own combat logic. On EVERY enemy turn, reason about what this specific enemy would do based on:
+  1. Their BEHAVIOR PROFILE (see below) — sets their base combat personality
+  2. Their current HP vs max HP — low HP enemies behave differently than full HP
+  3. The ENVIRONMENT — enemies use terrain, cover, elevation, darkness, water, fire, debris. A smart enemy kicks a table for cover. A beast circles through tall grass.
+  4. Their ABILITIES — enemies use their listed abilities strategically, not randomly. A fire-user targets flammable cover. A fast enemy kites. A tank stands ground.
+  5. The THREAT ASSESSMENT — enemies evaluate who is the biggest danger and react accordingly.
+
+ENEMY ACTION VOCABULARY (enemies can do ALL of these, not just attack):
+  • ATTACK — strike, slash, shoot, charge, cast, bite, claw, slam. Describe HOW they attack based on their personality.
+  • DEFEND — raise a shield, brace, parry, harden skin, conjure a barrier. Defensive enemies do this FREQUENTLY.
+  • DODGE/EVADE — sidestep, roll, leap back, duck, blur with speed. Fast/agile enemies favor this.
+  • HIDE — melt into shadows, duck behind cover, burrow, go invisible, camouflage. Ambushers and cowards do this.
+  • REPOSITION — circle around, gain high ground, move to better cover, close distance, create distance. Tactical enemies constantly reposition.
+  • TAUNT/INTIMIDATE — roar, mock, challenge, provoke a specific player to break formation. Aggressive enemies do this.
+  • FEINT — fake an attack direction, false retreat to bait pursuit, pretend to be weaker than they are.
+  • USE ENVIRONMENT — throw debris, knock over structures, trigger hazards, kick dust, slam doors, break lights for darkness.
+  • CALL FOR HELP — shout for reinforcements, whistle, signal allies. May spawn additional enemies in later turns.
+  • FOCUS FIRE — multiple enemies coordinate to attack the same target simultaneously.
+  • PROTECT — an enemy shields another enemy (a bodyguard protecting a leader, a beast defending its young).
+
+ENEMY BEHAVIOR PROFILES (DETAILED — governs combat personality):
+  • "aggressive" — Fights with fury. ALWAYS counter-attacks with maximum force. Charges into melee. Never retreats, fights to the death. Taunts and intimidates. Targets whoever hurt them most. Damage output is HIGH. May overcommit and leave openings.
+  • "defensive" — Patient, calculated. Blocks/dodges FIRST, then counter-attacks when they see an opening. Uses cover and positioning. Still retaliates every turn but waits for the right moment. Retreats at low HP (<20%) to regroup. Hard to hit.
+  • "cowardly" — Self-preservation first. Weaker attacks but fights when cornered. Uses ranged attacks and keeps distance. Flees when HP drops below 40%, may drop loot while running. Might surrender or beg for mercy. Will betray allies to survive.
+  • "ambusher" — Hits hard from stealth/surprise. If HP drops below 30%, goes to "hiding" status to set up another surprise strike later. Uses darkness, cover, and misdirection. Targets isolated or distracted players. Re-emerges 2-4 turns later with a devastating surprise attack.
+  • "tactical" — The most dangerous profile. Adapts strategy mid-fight. Flanks, uses the environment, coordinates with allies. Identifies the party's weakest member and exploits it. May feint, retreat to bait pursuit, or sacrifice position for a better angle. Flees at <25% HP if losing, but regroups with allies for a stronger return. Calls for reinforcements if available.
+
+MULTIPLAYER TARGET SELECTION (CRITICAL — when multiple players are present):
+When enemies face MULTIPLE player characters, they MUST choose who to target intelligently. Do NOT just attack whoever acted last. Reason through the enemy's perspective:
+
+TARGET SELECTION LOGIC (evaluate in order):
+  1. THREAT ASSESSMENT — Who is dealing the most damage? Who just hurt them? Aggressive enemies target their attacker. Tactical enemies target the biggest overall threat.
+  2. OPPORTUNITY — Who is closest? Who is exposed/out of cover? Who just missed an attack (leaving an opening)? Who is distracted?
+  3. VULNERABILITY — Who has the lowest apparent defense? Who is injured? Who is isolated from the group? Tactical and ambusher enemies exploit the weakest link.
+  4. PERSONALITY-DRIVEN TARGETING:
+     • An arrogant enemy targets the strongest player — they WANT the challenge, they're confident in their abilities.
+     • A cowardly enemy targets the weakest or most isolated player — easy prey.
+     • A tactical enemy targets healers/support first, then damage dealers.
+     • A beast/feral enemy targets whoever is closest or whoever smells wounded.
+     • A guardian enemy targets whoever is closest to the thing they're protecting.
+     • A vengeful enemy ALWAYS targets whoever hurt them last, ignoring better tactical options out of spite.
+  5. SPLITTING ATTACKS — When there are MULTIPLE enemies vs multiple players:
+     • Tactical enemies COORDINATE — they don't all attack the same person unless focus fire is the best strategy.
+     • Some enemies engage one player while others flank or harass another.
+     • If one player is clearly more dangerous, 2+ enemies may gang up on them while others keep the rest busy.
+     • Describe the tactical reasoning naturally: "The larger brute charges ${playerCharacter.name} while the smaller one circles toward the others."
+
+ENEMY ENGAGEMENT SCENARIOS (organic, personality-driven):
+  • Some enemies are CONFIDENT — they wade into a fight eagerly, even outnumbered. They taunt, they showboat, they want to prove themselves. Narrate their swagger and aggression.
+  • Some enemies are CAUTIOUS — they only fight when cornered or when they have a clear advantage. They try to avoid combat, negotiate, or set traps. If forced to fight, they fight defensively and look for exits.
+  • Some enemies are PACK HUNTERS — weak alone but dangerous together. They coordinate, flank, surround. If one falls, others may flee or become enraged.
+  • Some enemies are TERRITORIAL — they don't chase, they defend their ground. Step into their area and they attack. Retreat and they let you go. Describe them watching, growling, warning before striking.
+  • Some enemies are PREDATORY — they stalk, they wait for the perfect moment, they attack from ambush. They don't announce themselves. The first sign of them is their attack.
+
 - When an enemy's HP reaches 0 or below, set status to "defeated". Give XP for the kill.
-- When an enemy flees, set status to "fled". They're gone from combat but may reappear later.
-- When an enemy hides, set status to "hiding". They disappear but will ambush later. The narrator should bring them back after 2-4 player turns.
+- When an enemy flees, set status to "fled". They're gone from combat but may reappear later in the story.
+- When an enemy hides, set status to "hiding". They disappear but will ambush later. Bring them back after 2-4 player turns with a surprise attack.
 - Hiding enemies should re-emerge naturally: "A shadow moves in the rafters" → enemy attacks from hiding on next turn.
 - When ALL active enemies are defeated/fled, combat ends. Describe the aftermath and any loot.
-- If the player does ANYTHING other than fight while active enemies are present, the enemies STILL ACT — they attack the player, move closer, try to flank, or take advantage of the distraction. Enemies don't wait politely.
+- If the player does ANYTHING other than fight while active enemies are present, the enemies STILL ACT — they attack, move closer, flank, use the environment, or take advantage of the distraction. Enemies don't wait politely.
+- ENEMY DIALOGUE IN COMBAT: Enemies that can speak SHOULD speak during combat — taunts, threats, battle cries, pleas, orders to allies. This makes fights feel alive. A bandit shouts "Get the one with the sword!" A beast roars. A tactical leader barks orders.
 
 ITEM PICKUP RULES (CRITICAL):
 - When a player says they grab, pick up, take, pocket, collect, loot, or acquire ANYTHING — add it to itemsFound. This includes:
