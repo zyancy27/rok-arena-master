@@ -54,6 +54,8 @@ import ConcentrationButton from '@/components/battles/ConcentrationButton';
 import type { CharacterStats } from '@/lib/character-stats';
 import CampaignTacticalMap, { type NarratorSceneMap } from '@/components/campaigns/CampaignTacticalMap';
 import NarratorMessageContent from '@/components/campaigns/NarratorMessageContent';
+import NpcDialogueBubble from '@/components/campaigns/NpcDialogueBubble';
+import { parseNarratorMessage, resolveNpcDisplayName } from '@/lib/npc-dialogue-parser';
 import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import { useNarrationController } from '@/hooks/use-narration-controller';
@@ -104,6 +106,7 @@ export default function CampaignView() {
   const [joinRequests, setJoinRequests] = useState<any[]>([]);
   const [myJoinRequest, setMyJoinRequest] = useState<any | null>(null);
   const [campaignEnemies, setCampaignEnemies] = useState<CampaignEnemy[]>([]);
+  const [knownNpcNames, setKnownNpcNames] = useState<Set<string>>(new Set());
   const [showStatAllocation, setShowStatAllocation] = useState(false);
   const [sceneMap, setSceneMap] = useState<NarratorSceneMap | null>(null);
   const [showTacticalMap, setShowTacticalMap] = useState(false);
@@ -493,8 +496,19 @@ export default function CampaignView() {
       });
   };
 
+  const fetchKnownNpcs = async () => {
+    const { data } = await supabase
+      .from('campaign_npcs')
+      .select('name')
+      .eq('campaign_id', campaignId!)
+      .eq('status', 'alive');
+    if (data) {
+      setKnownNpcNames(new Set(data.map((n: any) => n.name)));
+    }
+  };
+
   const fetchAll = async () => {
-    await Promise.all([fetchCampaign(), fetchParticipants(), fetchMessages(), fetchInventory(), fetchJoinRequests(), fetchEnemies()]);
+    await Promise.all([fetchCampaign(), fetchParticipants(), fetchMessages(), fetchInventory(), fetchJoinRequests(), fetchEnemies(), fetchKnownNpcs()]);
     setLoading(false);
   };
 
@@ -1300,6 +1314,8 @@ export default function CampaignView() {
               }
             }
           }
+          // Refresh known NPC names after updates
+          fetchKnownNpcs();
         }
 
         // Handle enemy spawning from narrator response
@@ -1941,50 +1957,105 @@ export default function CampaignView() {
                       }
 
                       if (isNarrator) {
-                        return (
-                          <div key={msg.id} className="p-3 rounded-lg bg-gradient-to-r from-amber-500/10 via-background/80 to-amber-500/10 border border-amber-500/30 mx-2 animate-fade-in backdrop-blur-sm">
-                            <div className="flex items-start gap-2">
-                              <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
-                                <BookOpen className="w-4 h-4 text-amber-400" />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-xs text-amber-400 font-semibold uppercase tracking-wider">Narrator</span>
-                                  <span className="text-[10px] text-muted-foreground">{new Date(msg.created_at).toLocaleTimeString()}</span>
-                                  {userSettings.audio.narratorVoiceEnabled && (
-                                    narratorVoice.isPlaying && narratorVoice.activeMessageId === msg.id ? (
-                                      <button
-                                        onClick={() => narratorVoice.togglePause()}
-                                        className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
-                                        title={narratorVoice.isPaused ? 'Resume narrator' : 'Pause narrator'}
-                                      >
-                                        {narratorVoice.isPaused ? (
-                                          <Play className="w-3.5 h-3.5 text-amber-400" />
-                                        ) : (
-                                          <VolumeX className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                                        )}
-                                      </button>
-                                    ) : (
-                                      <button
-                                        onClick={() => narratorVoice.narrate(msg.content, msg.id)}
-                                        className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
-                                        title="Listen to narrator"
-                                      >
-                                        <Volume2 className="w-3.5 h-3.5 text-amber-400" />
-                                      </button>
-                                    )
-                                  )}
+                        const segments = parseNarratorMessage(msg.content);
+                        const sceneLocation = activeSceneLocation || campaign.current_zone;
+
+                        // Voice controls (shown once for the whole message)
+                        const voiceControls = userSettings.audio.narratorVoiceEnabled && (
+                          narratorVoice.isPlaying && narratorVoice.activeMessageId === msg.id ? (
+                            <button
+                              onClick={() => narratorVoice.togglePause()}
+                              className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
+                              title={narratorVoice.isPaused ? 'Resume narrator' : 'Pause narrator'}
+                            >
+                              {narratorVoice.isPaused ? (
+                                <Play className="w-3.5 h-3.5 text-amber-400" />
+                              ) : (
+                                <VolumeX className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                              )}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => narratorVoice.narrate(msg.content, msg.id)}
+                              className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
+                              title="Listen to narrator"
+                            >
+                              <Volume2 className="w-3.5 h-3.5 text-amber-400" />
+                            </button>
+                          )
+                        );
+
+                        // If no NPC dialogue segments, render classic narrator bubble
+                        const hasNpcSegments = segments.some(s => s.type === 'npc_dialogue');
+
+                        if (!hasNpcSegments) {
+                          return (
+                            <div key={msg.id} className="p-3 rounded-lg bg-gradient-to-r from-amber-500/10 via-background/80 to-amber-500/10 border border-amber-500/30 mx-2 animate-fade-in backdrop-blur-sm">
+                              <div className="flex items-start gap-2">
+                                <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                                  <BookOpen className="w-4 h-4 text-amber-400" />
                                 </div>
-                                <NarratorMessageContent
-                                  content={msg.content}
-                                  activeSentenceIndex={narratorVoice.activeMessageId === msg.id ? narratorVoice.activeSentenceIndex : -1}
-                                  voiceEnabled={userSettings.audio.narratorVoiceEnabled && userSettings.audio.tapToNarrate}
-                                   onSentenceClick={(sentenceIdx) => {
-                                     narratorVoice.narrateFromSentence(msg.content, msg.id, sentenceIdx);
-                                   }}
-                                />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-xs text-amber-400 font-semibold uppercase tracking-wider">Narrator</span>
+                                    <span className="text-[10px] text-muted-foreground">{new Date(msg.created_at).toLocaleTimeString()}</span>
+                                    {voiceControls}
+                                  </div>
+                                  <NarratorMessageContent
+                                    content={msg.content}
+                                    activeSentenceIndex={narratorVoice.activeMessageId === msg.id ? narratorVoice.activeSentenceIndex : -1}
+                                    voiceEnabled={userSettings.audio.narratorVoiceEnabled && userSettings.audio.tapToNarrate}
+                                    onSentenceClick={(sentenceIdx) => {
+                                      narratorVoice.narrateFromSentence(msg.content, msg.id, sentenceIdx);
+                                    }}
+                                  />
+                                </div>
                               </div>
                             </div>
+                          );
+                        }
+
+                        // Split rendering: narrator segments + NPC dialogue bubbles
+                        return (
+                          <div key={msg.id} className="space-y-2 animate-fade-in">
+                            {segments.map((segment, segIdx) => {
+                              if (segment.type === 'narration') {
+                                return (
+                                  <div key={`${msg.id}-n-${segIdx}`} className="p-3 rounded-lg bg-gradient-to-r from-amber-500/10 via-background/80 to-amber-500/10 border border-amber-500/30 mx-2 backdrop-blur-sm">
+                                    <div className="flex items-start gap-2">
+                                      <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                                        <BookOpen className="w-4 h-4 text-amber-400" />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        {segIdx === 0 && (
+                                          <div className="flex items-center gap-2 mb-1">
+                                            <span className="text-xs text-amber-400 font-semibold uppercase tracking-wider">Narrator</span>
+                                            <span className="text-[10px] text-muted-foreground">{new Date(msg.created_at).toLocaleTimeString()}</span>
+                                            {voiceControls}
+                                          </div>
+                                        )}
+                                        <NarratorMessageContent
+                                          content={segment.text}
+                                          activeSentenceIndex={-1}
+                                          voiceEnabled={false}
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              }
+
+                              // NPC dialogue segment
+                              const displayName = resolveNpcDisplayName(segment.speakerName, knownNpcNames);
+                              return (
+                                <NpcDialogueBubble
+                                  key={`${msg.id}-npc-${segIdx}`}
+                                  speakerName={displayName}
+                                  dialogue={segment.dialogue}
+                                  location={sceneLocation}
+                                />
+                              );
+                            })}
                           </div>
                         );
                       }
