@@ -112,6 +112,13 @@ export default function CampaignView() {
   const [showStatAllocation, setShowStatAllocation] = useState(false);
   const [sceneMap, setSceneMap] = useState<NarratorSceneMap | null>(null);
   const [overchargeEnabled, setOverchargeEnabled] = useState(false);
+  const [narratorSentiment, setNarratorSentiment] = useState<{
+    nickname: string | null;
+    sentiment_score: number;
+    opinion_summary: string | null;
+    personality_notes: string | null;
+    memorable_moments: string[];
+  } | null>(null);
   const [showTacticalMap, setShowTacticalMap] = useState(false);
   const userIsNearBottomRef = useRef(true);
   const introAttemptedRef = useRef(false);
