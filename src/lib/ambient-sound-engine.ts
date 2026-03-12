@@ -595,7 +595,7 @@ const AMBIENT_PROFILES: Partial<Record<EnvironmentTag, AmbientProfile>> = {
   lava: { layers: [lavaLayer()] },
   inferno: { layers: [lavaLayer(), explosionsLayer()] },
   crystal: { layers: [cavernLayer()] },
-  underground: { layers: [cavernLayer(), windLayer(0.03, 180)] },
+  underground: { layers: [cavernLayer(), drippingLayer(), windLayer(0.03, 180)] },
   ruins: { layers: [windLayer(0.05, 250), creakingLayer()] },
   cyberpunk: { layers: [cityLayer()] },
   mech: { layers: [cityLayer(), creakingLayer()] },

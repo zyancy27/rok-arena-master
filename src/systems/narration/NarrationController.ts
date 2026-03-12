@@ -127,6 +127,12 @@ export class NarrationController {
     // Prepare sound triggers only for text from the start point
     this.soundTrigger.prepare(text);
 
+    // Process full narration text through the ambient sound manager
+    // so it can parse ALL cue patterns and schedule sounds with proper timing.
+    // The sound trigger system handles char-index-synchronized triggers separately.
+    const ambientMgr = getNarrationSoundManager();
+    ambientMgr.processNarration(text);
+
     // Set initial highlight
     if (startFromSentence > 0) {
       this.highlight.updateFromCharIndex(startCharIndex);
