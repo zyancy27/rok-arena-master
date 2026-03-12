@@ -91,6 +91,7 @@ interface CharacterFormData {
   race: string;
   sub_race: string;
   age: string;
+  sex: string;
   image_url: string;
   personality: string;
   mentality: string;
