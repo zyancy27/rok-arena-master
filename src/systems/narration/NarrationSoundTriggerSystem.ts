@@ -59,33 +59,17 @@ export class NarrationSoundTriggerSystem {
 
   /**
    * Called by the controller when speech progresses.
-   * Fires any pending triggers whose charIndex has been passed.
+   * Now only used for tracking speech progress — actual sound triggering
+   * is handled by processNarration called with the full text at narration start.
    */
   updateFromCharIndex(charIndex: number) {
-    const now = Date.now();
-
+    // Sound triggers are now handled by NarrationSoundManager.processNarration()
+    // called from NarrationController.narrate() with the full text.
+    // This method is kept for potential future per-word synchronization.
     for (const trigger of this.pending) {
       if (trigger.fired) continue;
-      if (charIndex < trigger.charIndex) break; // sorted, so stop early
-
-      // Throttle: prevent too many sounds stacking
-      if (now - this.lastTriggerAt < this.throttleMs && this.activeSounds >= this.maxConcurrent) continue;
-
+      if (charIndex < trigger.charIndex) break;
       trigger.fired = true;
-      this.lastTriggerAt = now;
-      this.activeSounds++;
-
-      // Let the existing manager handle the actual audio fetch & playback
-      // We call processNarration with just the relevant phrase so it triggers the right cue
-      const phraseEnd = Math.min(trigger.charIndex + 80, this.currentText.length);
-      const phrase = this.currentText.slice(trigger.charIndex, phraseEnd);
-      
-      // Use the ambient manager's processNarration for the cue at this offset
-      // but only the segment around this trigger
-      this.ambientManager.processNarration(phrase);
-
-      // Track completion (approximate)
-      setTimeout(() => { this.activeSounds = Math.max(0, this.activeSounds - 1); }, 4000);
     }
   }
 
