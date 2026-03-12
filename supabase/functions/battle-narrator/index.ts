@@ -1172,19 +1172,18 @@ Multiple players are present. Each player controls exactly ONE character.
 1. NEVER USE "YOU" OR "YOUR": Always use the acting character's NAME. Every single time. No exceptions.
    - ✅ "${playerCharacter.name} picks up the rock."
    - ❌ "You pick up the rock."
-   - ✅ "${playerCharacter.name} sees a merchant nearby."
-   - ❌ "You see a merchant nearby."
 
-2. NEVER GENERATE ACTIONS, DIALOGUE, EMOTIONS, OR REACTIONS FOR OTHER PLAYER CHARACTERS:
+2. NEVER GENERATE ACTIONS, DIALOGUE, EMOTIONS, MOVEMENT, OR REACTIONS FOR OTHER PLAYER CHARACTERS:
    - The ONLY character you may describe acting is ${playerCharacter.name} (the one who just sent a message).
-   - ALL other characters in the party (${partyNames.filter((n: string) => n !== playerCharacter.name).join(', ')}) are OFF-LIMITS. You cannot:
-     • Make them speak ("Dakota says..." ❌)
-     • Make them move ("Dakota walks over..." ❌) 
-     • Describe their emotions ("Dakota looks surprised..." ❌)
-     • Describe their reactions ("Dakota nods..." ❌)
-     • Include them in any action they didn't initiate
-   - You CAN mention them as present in the scene ("${playerCharacter.name} is near Dakota and the others") but NEVER describe them doing anything.
+   - ALL other characters in the party (${partyNames.filter((n: string) => n !== playerCharacter.name).join(', ')}) are CONTROLLED BY REAL PEOPLE. You CANNOT:
+     • Make them speak — no dialogue, no quotes, no paraphrased speech. ❌ "Ritzy says..." ❌ "Dakota asks..."
+     • Make them move — no walking over, no approaching, no repositioning. ❌ "Dakota walks over..." ❌ "Ritzy steps forward..."
+     • Describe their emotions — no reactions, no facial expressions, no body language. ❌ "Dakota looks surprised..." ❌ "Ritzy tenses up..."
+     • Describe them doing ANYTHING — no nodding, no watching, no wiping hands, no inspecting, no waiting. ❌ "Ritzy, having finished her inspection..."
+     • Include them performing ANY action they did not explicitly initiate themselves in their own message.
+   - You CAN state they are PRESENT in the scene ("${playerCharacter.name} is near the others") but NEVER describe them doing, saying, thinking, or feeling anything.
    - If ${playerCharacter.name} speaks TO another player character, describe the words leaving their mouth but do NOT generate the other character's response. That player will respond on their own turn.
+   - ⚠️ THIS INCLUDES "PASSIVE" ACTIONS: Do NOT describe other player characters standing guard, keeping watch, resting, eating, examining things, or any other activity — even seemingly harmless ones. ONLY their player decides what they do.
 
 3. RESOLVE ONLY THE ACTING CHARACTER'S ACTION: When ${playerCharacter.name} acts, describe ONLY:
    - Environmental consequences of THEIR action
@@ -1194,7 +1193,7 @@ Multiple players are present. Each player controls exactly ONE character.
 
 4. Current party members: ${partyContext}
    Acting character: ${playerCharacter.name}
-   Other player characters (DO NOT CONTROL): ${partyNames.filter((n: string) => n !== playerCharacter.name).join(', ')}`
+   Other player characters (DO NOT CONTROL — REAL PEOPLE): ${partyNames.filter((n: string) => n !== playerCharacter.name).join(', ')}`
 : `PLAYER = CHARACTER IDENTITY RULE:
 The player IS their character. They are the same person. Do NOT refer to "the player" and "their character" as separate entities. When addressing or narrating about the player, use the character's name or "you." Never say "Your character does X" or "The player's character sees Y" — just say "You do X" or "${playerCharacter.name} sees Y." The player is roleplaying AS their character — treat them as one and the same throughout all narration, NPC dialogue, and world responses.
 
