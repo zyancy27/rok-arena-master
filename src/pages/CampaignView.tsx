@@ -2311,7 +2311,7 @@ export default function CampaignView() {
                 {/* Input */}
                 {isActive && myParticipant?.is_active && (
                   <div className="p-3 border-t border-border/40 bg-background/60 backdrop-blur-sm relative z-10 shrink-0 space-y-2">
-                    <form onSubmit={e => { e.preventDefault(); handleSendMessage(); }} className="flex gap-2">
+                    <form onSubmit={e => { e.preventDefault(); handleSendMessage(); }} className="flex gap-2 items-end">
                       <VoiceTextarea
                         placeholder={isSoloMode ? "Describe your solo action..." : "Describe your action..."}
                         value={inputMessage}
@@ -2321,7 +2321,14 @@ export default function CampaignView() {
                         style={{ maxHeight: '300px' }}
                         onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
                       />
-                      <Button type="submit" disabled={sending || !inputMessage.trim()} size="sm" className="gap-1.5 self-end">
+                      {campaignEnemies.filter(e => e.status === 'active' || e.status === 'hiding').length > 0 && (
+                        <OverchargeToggle
+                          enabled={overchargeEnabled}
+                          onToggle={setOverchargeEnabled}
+                          disabled={sending}
+                        />
+                      )}
+                      <Button type="submit" disabled={sending || !inputMessage.trim()} size="sm" className="gap-1.5">
                         <Send className="w-4 h-4" />
                       </Button>
                     </form>
