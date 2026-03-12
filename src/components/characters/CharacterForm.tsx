@@ -222,6 +222,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
     race: initialData?.race || '',
     sub_race: initialData?.sub_race || '',
     age: initialData?.age || '',
+    sex: (initialData as any)?.sex || '',
     image_url: initialData?.image_url || '',
     personality: (initialData as any)?.personality || '',
     mentality: (initialData as any)?.mentality || '',
