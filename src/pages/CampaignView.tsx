@@ -1829,6 +1829,7 @@ export default function CampaignView() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+        </div>
       </div>
 
       <div className={`flex-1 min-h-0 flex flex-col relative transition-shadow duration-500 ${
