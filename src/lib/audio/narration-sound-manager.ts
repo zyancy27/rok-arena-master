@@ -342,7 +342,7 @@ class NarrationSoundManager {
     if (cue.family === 'vocal') {
       vol *= 0.4;
     }
-    return Math.min(vol, 0.25); // hard ceiling lowered
+    return Math.min(vol, 0.35); // hard ceiling
   }
 
   private updateActiveVolumes() {

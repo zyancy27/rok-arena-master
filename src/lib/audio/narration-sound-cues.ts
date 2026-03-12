@@ -77,10 +77,21 @@ const NATURE_CUES: SoundCue[] = [
     patterns: [
       /\b(drip|dripping|water\s*drop|drops?\s*of\s*water)\b/i,
       /\b(condensation\s*(drip|fall)|moisture\s*(drip|gather))\b/i,
+      /\b(steady\s*drip|drip\s*of\s*water)\b/i,
     ],
     prompt: 'water dripping slowly in cave or dark space, echoing drops',
-    duration: 10, category: 'persistent', volumeCeiling: 0.2, cooldownMs: 10000,
+    duration: 10, category: 'persistent', volumeCeiling: 0.25, cooldownMs: 10000,
     fadeInMs: 1500, fadeOutMs: 2000, priority: 2, family: 'water',
+  },
+  {
+    id: 'pool_water',
+    patterns: [
+      /\b(pool|pond|basin|still\s*water|standing\s*water|shallow\s*water)\b/i,
+      /\b(water\s*(shimmer|glow|rippl|lap|settle|slosh))\b/i,
+    ],
+    prompt: 'gentle underground pool water, soft rippling, quiet lapping against stone',
+    duration: 10, category: 'persistent', volumeCeiling: 0.2, cooldownMs: 12000,
+    fadeInMs: 2000, fadeOutMs: 2500, priority: 2, family: 'water',
   },
   {
     id: 'thunder_distant',
