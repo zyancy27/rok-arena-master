@@ -8,7 +8,7 @@ import { splitNarrationSegments, getNpcVoiceSettings } from '@/lib/audio/npc-voi
 
 export type NarratorSceneContext =
   | 'exploration' | 'peaceful' | 'danger' | 'combat'
-  | 'tragic' | 'victory' | 'npc' | 'default';
+  | 'tragic' | 'victory' | 'npc' | 'whisper' | 'default';
 
 export interface SpeechBoundaryEvent {
   /** Character index in the full text that the narrator has reached */
