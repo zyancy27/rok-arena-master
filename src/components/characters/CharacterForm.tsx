@@ -739,7 +739,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
             <Card className="border-border bg-card/50">
               <CardContent className="pt-4 space-y-4">
                 {/* Race & Age row */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">Race</Label>
                     {availableRaces.length > 0 && !useCustomRace ? (
