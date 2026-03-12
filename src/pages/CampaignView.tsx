@@ -112,6 +112,13 @@ export default function CampaignView() {
   const [showStatAllocation, setShowStatAllocation] = useState(false);
   const [sceneMap, setSceneMap] = useState<NarratorSceneMap | null>(null);
   const [overchargeEnabled, setOverchargeEnabled] = useState(false);
+  const [narratorSentiment, setNarratorSentiment] = useState<{
+    nickname: string | null;
+    sentiment_score: number;
+    opinion_summary: string | null;
+    personality_notes: string | null;
+    memorable_moments: string[];
+  } | null>(null);
   const [showTacticalMap, setShowTacticalMap] = useState(false);
   const userIsNearBottomRef = useRef(true);
   const introAttemptedRef = useRef(false);
@@ -318,6 +325,13 @@ export default function CampaignView() {
     };
   }, [user, campaignId]);
 
+  // Fetch narrator sentiment when participant character is known
+  useEffect(() => {
+    if (myParticipant?.character_id) {
+      fetchNarratorSentiment(myParticipant.character_id);
+    }
+  }, [myParticipant?.character_id]);
+
   // ── Auto-generate narrator intro if campaign is active but has no narrator message ──
   useEffect(() => {
     if (
@@ -508,6 +522,23 @@ export default function CampaignView() {
       .eq('status', 'alive');
     if (data) {
       setKnownNpcNames(new Set(data.map((n: any) => n.name)));
+    }
+  };
+
+  const fetchNarratorSentiment = async (characterId: string) => {
+    const { data } = await supabase
+      .from('narrator_sentiments' as any)
+      .select('*')
+      .eq('character_id', characterId)
+      .maybeSingle();
+    if (data) {
+      setNarratorSentiment({
+        nickname: (data as any).nickname,
+        sentiment_score: (data as any).sentiment_score ?? 0,
+        opinion_summary: (data as any).opinion_summary,
+        personality_notes: (data as any).personality_notes,
+        memorable_moments: (data as any).memorable_moments || [],
+      });
     }
   };
 
@@ -1144,6 +1175,7 @@ export default function CampaignView() {
           activeEnemies: activeEnemiesList,
           narrativeSystemsContext,
           overchargeContext: overchargeContext || undefined,
+          narratorSentiment: narratorSentiment || undefined,
         },
       });
 
@@ -1393,6 +1425,49 @@ export default function CampaignView() {
             }
           }
           fetchEnemies();
+        }
+
+        // Handle narrator sentiment update
+        if (data.sentimentUpdate && typeof data.sentimentUpdate === 'object' && snapshotParticipant?.character_id) {
+          const su = data.sentimentUpdate;
+          const currentScore = narratorSentiment?.sentiment_score ?? 0;
+          const newScore = Math.max(-100, Math.min(100, currentScore + (su.sentiment_shift || 0)));
+          const newMoments = [...(narratorSentiment?.memorable_moments || [])];
+          if (su.memorable_moment && typeof su.memorable_moment === 'string') {
+            newMoments.push(su.memorable_moment);
+            if (newMoments.length > 20) newMoments.shift();
+          }
+
+          const updatedSentiment = {
+            nickname: su.nickname || narratorSentiment?.nickname || null,
+            sentiment_score: newScore,
+            opinion_summary: su.opinion_summary || narratorSentiment?.opinion_summary || null,
+            personality_notes: su.personality_notes || narratorSentiment?.personality_notes || null,
+            memorable_moments: newMoments,
+          };
+          setNarratorSentiment(updatedSentiment);
+
+          // Upsert to database
+          const { data: existing } = await supabase
+            .from('narrator_sentiments' as any)
+            .select('id')
+            .eq('character_id', snapshotParticipant.character_id)
+            .maybeSingle();
+
+          if (existing) {
+            await supabase.from('narrator_sentiments' as any)
+              .update({
+                ...updatedSentiment,
+                updated_at: new Date().toISOString(),
+              } as any)
+              .eq('character_id', snapshotParticipant.character_id);
+          } else {
+            await supabase.from('narrator_sentiments' as any)
+              .insert({
+                character_id: snapshotParticipant.character_id,
+                ...updatedSentiment,
+              } as any);
+          }
         }
 
         // ─── Unified level-up check (handles XP from narrator + enemy defeats, supports multi-level) ───

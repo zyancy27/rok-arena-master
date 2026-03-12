@@ -58,6 +58,14 @@ export interface CharacterBookData {
   created_at?: string;
 }
 
+export interface NarratorSentimentData {
+  nickname?: string | null;
+  sentiment_score?: number;
+  opinion_summary?: string | null;
+  personality_notes?: string | null;
+  memorable_moments?: string[];
+}
+
 export function buildCharacterBookChapters(
   character: CharacterBookData,
   extras?: {
@@ -66,6 +74,7 @@ export function buildCharacterBookChapters(
     loreSections?: any[];
     campaignHistory?: any[];
     groups?: any[];
+    narratorSentiment?: NarratorSentimentData | null;
   }
 ): CharacterBookChapter[] {
   const chapters: CharacterBookChapter[] = [];
@@ -86,6 +95,35 @@ export function buildCharacterBookChapters(
   if (character.mentality) overviewSections.push({ title: 'Mentality', content: character.mentality });
 
   chapters.push({ id: 'overview', title: 'Character Overview', icon: '👤', sections: overviewSections });
+
+  // Narrator's View (sentiment chapter — only if sentiment data exists)
+  const sentiment = extras?.narratorSentiment;
+  if (sentiment && (sentiment.nickname || sentiment.opinion_summary || (sentiment.sentiment_score !== undefined && sentiment.sentiment_score !== 0))) {
+    const sentimentSections: CharacterBookSection[] = [];
+    const score = sentiment.sentiment_score ?? 0;
+    const feeling = score >= 50 ? '💕 Adored' : score >= 20 ? '😊 Liked' : score >= -20 ? '😐 Neutral' : score >= -50 ? '😒 Unimpressed' : '💢 Disliked';
+    
+    const sentimentItems: { label: string; value: string }[] = [
+      { label: 'The Narrator Calls Them', value: sentiment.nickname ? `"${sentiment.nickname}"` : 'No nickname yet' },
+      { label: 'How She Feels', value: feeling },
+    ];
+    sentimentSections.push({ title: 'Narrator\'s Impression', items: sentimentItems });
+    
+    if (sentiment.opinion_summary) {
+      sentimentSections.push({ title: 'Her Opinion', content: `"${sentiment.opinion_summary}"` });
+    }
+    if (sentiment.personality_notes) {
+      sentimentSections.push({ title: 'What She\'s Noticed', content: sentiment.personality_notes });
+    }
+    if (sentiment.memorable_moments && sentiment.memorable_moments.length > 0) {
+      sentimentSections.push({ 
+        title: 'Moments She Remembers', 
+        listItems: sentiment.memorable_moments.slice(-10),
+      });
+    }
+    
+    chapters.push({ id: 'narrator-view', title: 'The Narrator\'s View', icon: '🔮', sections: sentimentSections });
+  }
 
   // 2. Identity & Origin
   const identitySections: CharacterBookSection[] = [];
