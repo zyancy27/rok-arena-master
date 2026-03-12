@@ -59,6 +59,8 @@ import { parseNarratorMessage, resolveNpcDisplayName } from '@/lib/npc-dialogue-
 import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import { useNarrationController } from '@/hooks/use-narration-controller';
+import OverchargeToggle from '@/components/battles/OverchargeToggle';
+import { resolveOvercharge, getOverchargeContext } from '@/lib/battle-overcharge';
 // Helper: build bag content for the inline backpack bubble
 function buildBagContent(campaignItems: InventoryItem[], characterWeapons: string | null) {
   const items: { name: string; type: string; rarity: string; equipped: boolean }[] = [];
