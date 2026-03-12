@@ -116,10 +116,11 @@ export default function CampaignView() {
   // ── Narrator Voice & Chat Sounds ──
   const { settings: userSettings } = useUserSettings();
   const { hasAIAccess } = useSubscription();
-  const narratorVoice = useNarratorVoice({
+  const narratorVoice = useNarrationController({
     enabled: userSettings.audio.narratorVoiceEnabled,
-    autoRead: userSettings.audio.narratorAutoRead,
-    volume: userSettings.audio.narratorVoiceVolume * userSettings.audio.masterVolume,
+    voiceVolume: userSettings.audio.narratorVoiceVolume * userSettings.audio.masterVolume,
+    soundVolume: userSettings.audio.narrationAmbientVolume * userSettings.audio.masterVolume,
+    tapToNarrate: userSettings.audio.tapToNarrate,
     hasAIAccess,
   });
   const narratorVoiceRef = useRef(narratorVoice);
