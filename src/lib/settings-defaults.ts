@@ -140,6 +140,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
     narrationAmbientVolume: 0.5,
     narrationEventCueVolume: 0.5,
     narrationReduceVocalSounds: false,
+    tapToNarrate: true,
   },
   visual: {
     vfxIntensity: 'medium',
