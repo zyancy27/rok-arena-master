@@ -61,10 +61,10 @@ function parseWeaponItems(raw: string): WeaponItem[] {
   });
 }
 
-function serializeWeaponItems(items: WeaponItem[]): string {
-  const filtered = items.filter(i => i.name.trim());
-  if (filtered.length === 0) return '';
-  return JSON.stringify(filtered);
+function serializeWeaponItems(items: WeaponItem[], filterEmpty = true): string {
+  const result = filterEmpty ? items.filter(i => i.name.trim()) : items;
+  if (result.length === 0) return '';
+  return JSON.stringify(result);
 }
 
 const iconMap = {
