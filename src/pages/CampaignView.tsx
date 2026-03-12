@@ -1552,6 +1552,7 @@ export default function CampaignView() {
     combatResult: ReturnType<typeof campaignCombat.processCombatAction>,
     participant: CampaignParticipant,
     campaignSnap: Campaign,
+    overchargeContext: string = '',
   ) => {
     setSending(true);
     try {
