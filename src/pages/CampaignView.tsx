@@ -1988,7 +1988,7 @@ export default function CampaignView() {
                                 <NarratorMessageContent
                                   content={msg.content}
                                   activeSentenceIndex={narratorVoice.activeMessageId === msg.id ? narratorVoice.activeSentenceIndex : -1}
-                                  voiceEnabled={userSettings.audio.narratorVoiceEnabled}
+                                  voiceEnabled={userSettings.audio.narratorVoiceEnabled && userSettings.audio.tapToNarrate}
                                    onSentenceClick={(sentenceIdx) => {
                                      narratorVoice.narrateFromSentence(msg.content, msg.id, sentenceIdx);
                                    }}
