@@ -2447,6 +2447,18 @@ export type Database = {
         Row: {
           abilities: string | null
           age: number | null
+          appearance_aura: string | null
+          appearance_build: string | null
+          appearance_clothing_style: string | null
+          appearance_description: string | null
+          appearance_distinct_features: string | null
+          appearance_eyes: string | null
+          appearance_hair: string | null
+          appearance_height: string | null
+          appearance_movement_style: string | null
+          appearance_posture: string | null
+          appearance_typical_expression: string | null
+          appearance_voice: string | null
           created_at: string | null
           home_moon: string | null
           home_planet: string | null
@@ -2460,6 +2472,7 @@ export type Database = {
           powers: string | null
           race: string | null
           race_id: string | null
+          sex: string | null
           solar_system_id: string | null
           stat_battle_iq: number | null
           stat_durability: number | null
@@ -2478,6 +2491,18 @@ export type Database = {
         Insert: {
           abilities?: never
           age?: number | null
+          appearance_aura?: string | null
+          appearance_build?: string | null
+          appearance_clothing_style?: string | null
+          appearance_description?: string | null
+          appearance_distinct_features?: string | null
+          appearance_eyes?: string | null
+          appearance_hair?: string | null
+          appearance_height?: string | null
+          appearance_movement_style?: string | null
+          appearance_posture?: string | null
+          appearance_typical_expression?: string | null
+          appearance_voice?: string | null
           created_at?: string | null
           home_moon?: string | null
           home_planet?: string | null
@@ -2491,6 +2516,7 @@ export type Database = {
           powers?: never
           race?: string | null
           race_id?: string | null
+          sex?: string | null
           solar_system_id?: string | null
           stat_battle_iq?: number | null
           stat_durability?: number | null
@@ -2509,6 +2535,18 @@ export type Database = {
         Update: {
           abilities?: never
           age?: number | null
+          appearance_aura?: string | null
+          appearance_build?: string | null
+          appearance_clothing_style?: string | null
+          appearance_description?: string | null
+          appearance_distinct_features?: string | null
+          appearance_eyes?: string | null
+          appearance_hair?: string | null
+          appearance_height?: string | null
+          appearance_movement_style?: string | null
+          appearance_posture?: string | null
+          appearance_typical_expression?: string | null
+          appearance_voice?: string | null
           created_at?: string | null
           home_moon?: string | null
           home_planet?: string | null
@@ -2522,6 +2560,7 @@ export type Database = {
           powers?: never
           race?: string | null
           race_id?: string | null
+          sex?: string | null
           solar_system_id?: string | null
           stat_battle_iq?: number | null
           stat_durability?: number | null
