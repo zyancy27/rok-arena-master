@@ -2236,7 +2236,7 @@ export default function CampaignView() {
 
                 {/* Input */}
                 {isActive && myParticipant?.is_active && (
-                  <div className="p-3 border-t border-border relative z-10 shrink-0 space-y-2">
+                  <div className="p-3 border-t border-border/40 bg-background/60 backdrop-blur-sm relative z-10 shrink-0 space-y-2">
                     <form onSubmit={e => { e.preventDefault(); handleSendMessage(); }} className="flex gap-2">
                       <VoiceTextarea
                         placeholder={isSoloMode ? "Describe your solo action..." : "Describe your action..."}
