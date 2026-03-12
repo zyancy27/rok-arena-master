@@ -91,6 +91,7 @@ interface CharacterFormData {
   race: string;
   sub_race: string;
   age: string;
+  sex: string;
   image_url: string;
   personality: string;
   mentality: string;
@@ -221,6 +222,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
     race: initialData?.race || '',
     sub_race: initialData?.sub_race || '',
     age: initialData?.age || '',
+    sex: (initialData as any)?.sex || '',
     image_url: initialData?.image_url || '',
     personality: (initialData as any)?.personality || '',
     mentality: (initialData as any)?.mentality || '',
@@ -460,7 +462,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
       lore: data.formData.lore.trim() || null, powers: data.formData.powers.trim() || null,
       abilities: data.formData.abilities.trim() || null, home_planet: data.formData.home_planet.trim() || null,
       race: data.formData.race.trim() || null, sub_race: data.formData.sub_race.trim() || null,
-      age: data.formData.age ? parseInt(data.formData.age) : null,
+      age: data.formData.age ? parseInt(data.formData.age) : null, sex: data.formData.sex || null,
       personality: data.formData.personality.trim() || null, mentality: data.formData.mentality.trim() || null,
       ...data.stats,
       ...Object.fromEntries(Object.entries(data.appearance).map(([k, v]) => [k, (v as string).trim() || null])),
@@ -545,7 +547,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
         abilities: formData.abilities.trim() || null, weapons_items: formData.weapons_items.trim() || null,
         home_planet: planetName || null, home_moon: moonName || null,
         race: formData.race.trim() || null, sub_race: formData.sub_race.trim() || null,
-        age: formData.age ? parseInt(formData.age) : null, image_url: imageUrl || null,
+        age: formData.age ? parseInt(formData.age) : null, sex: formData.sex || null, image_url: imageUrl || null,
         personality: formData.personality.trim() || null, mentality: formData.mentality.trim() || null,
         user_id: user.id, ...stats,
         ...Object.fromEntries(Object.entries(appearance).map(([k, v]) => [k, (v as string).trim() || null])),
@@ -737,7 +739,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
             <Card className="border-border bg-card/50">
               <CardContent className="pt-4 space-y-4">
                 {/* Race & Age row */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">Race</Label>
                     {availableRaces.length > 0 && !useCustomRace ? (
@@ -816,6 +818,18 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                   <div className="space-y-1">
                     <Label className="text-xs">Age</Label>
                     <Input type="number" placeholder="500" value={formData.age} onChange={(e) => handleChange('age', e.target.value)} className="h-9" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Sex</Label>
+                    <Select value={formData.sex} onValueChange={(value) => handleChange('sex', value === '__none__' ? '' : value)}>
+                      <SelectTrigger className="h-9"><SelectValue placeholder="Select..." /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="none">No Sex</SelectItem>
+                        <SelectItem value="__none__" className="text-muted-foreground border-t mt-1 pt-2">Clear</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 

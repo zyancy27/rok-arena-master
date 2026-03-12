@@ -1299,6 +1299,7 @@ export type Database = {
           powers: string | null
           race: string | null
           race_id: string | null
+          sex: string | null
           solar_system_id: string | null
           stat_battle_iq: number | null
           stat_durability: number | null
@@ -1342,6 +1343,7 @@ export type Database = {
           powers?: string | null
           race?: string | null
           race_id?: string | null
+          sex?: string | null
           solar_system_id?: string | null
           stat_battle_iq?: number | null
           stat_durability?: number | null
@@ -1385,6 +1387,7 @@ export type Database = {
           powers?: string | null
           race?: string | null
           race_id?: string | null
+          sex?: string | null
           solar_system_id?: string | null
           stat_battle_iq?: number | null
           stat_durability?: number | null

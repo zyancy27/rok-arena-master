@@ -20,6 +20,7 @@ interface CharacterData {
   race: string;
   sub_race: string;
   age: string;
+  sex: string;
   image_url: string;
   user_id: string;
   personality: string;

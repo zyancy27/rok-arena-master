@@ -1,0 +1,1 @@
+ALTER TABLE public.characters ADD COLUMN sex text DEFAULT NULL;
