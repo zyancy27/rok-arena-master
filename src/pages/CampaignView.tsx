@@ -122,6 +122,12 @@ export default function CampaignView() {
     soundVolume: userSettings.audio.narrationAmbientVolume * userSettings.audio.masterVolume,
     tapToNarrate: userSettings.audio.tapToNarrate,
     hasAIAccess,
+    // Narration-triggered ambient sound settings (synced through controller)
+    ambientEnabled: userSettings.audio.narrationAmbientEnabled,
+    ambientIntensity: userSettings.audio.narrationAmbientIntensity,
+    ambientVolume: userSettings.audio.narrationAmbientVolume,
+    masterVolume: userSettings.audio.masterVolume,
+    reduceVocalSounds: userSettings.audio.narrationReduceVocalSounds,
   });
   const narratorVoiceRef = useRef(narratorVoice);
   narratorVoiceRef.current = narratorVoice;
@@ -132,15 +138,6 @@ export default function CampaignView() {
     chatSoundsEngine.setEnabled(userSettings.audio.chatSoundsEnabled);
     chatSoundsEngine.setVolume(userSettings.audio.chatSoundsVolume * userSettings.audio.masterVolume);
   }, [userSettings.audio.chatSoundsEnabled, userSettings.audio.chatSoundsVolume, userSettings.audio.masterVolume]);
-
-  // Narration-aware ambient sounds
-  const narrationAmbient = useNarrationAmbient({
-    enabled: campaign?.status === 'active',
-    audioSettings: userSettings.audio,
-    hasAIAccess,
-  });
-  const narrationAmbientRef = useRef(narrationAmbient);
-  narrationAmbientRef.current = narrationAmbient;
 
   // Pending send context held while concentration prompt is active
   const pendingSendRef = useRef<{
