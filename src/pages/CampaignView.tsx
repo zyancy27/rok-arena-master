@@ -1764,32 +1764,29 @@ export default function CampaignView() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto flex flex-col h-[100dvh] overflow-hidden px-2 sm:px-0">
+    <div className="flex flex-col h-[100dvh] overflow-hidden">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 py-2 shrink-0">
-        <div className="flex items-start sm:items-center gap-2 sm:gap-3 min-w-0">
-          <Button variant="ghost" size="sm" className="shrink-0 mt-0.5 sm:mt-0" onClick={() => navigate('/campaigns')}>
+      <div className="flex items-center justify-between gap-2 px-2 py-1.5 shrink-0 bg-background/70 backdrop-blur-md border-b border-border/50 z-20 relative">
+        <div className="flex items-center gap-2 min-w-0">
+          <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => navigate('/campaigns')}>
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <div className="min-w-0 flex-1">
-            <h1 className="text-base sm:text-xl font-bold flex items-center gap-2">
-              <Compass className="w-4 h-4 sm:w-5 sm:h-5 text-primary shrink-0" />
+          <div className="min-w-0">
+            <h1 className="text-sm font-bold flex items-center gap-1.5 truncate">
+              <Compass className="w-4 h-4 text-primary shrink-0" />
               <span className="truncate">{campaign.name}</span>
             </h1>
-             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs sm:text-sm text-muted-foreground mt-0.5">
+            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
               <RealtimeStatus status={realtimeStatus} />
-              <span className="whitespace-nowrap">{getTimeEmoji(campaign.time_of_day)} {campaign.time_of_day}</span>
-              <span className="hidden sm:inline">·</span>
-              <span className="whitespace-nowrap">Day {campaign.day_count}</span>
-              <span className="hidden sm:inline">·</span>
-              <span className="flex items-center gap-1 min-w-0">
-                <MapPin className="w-3 h-3 shrink-0" />
-                <span className="truncate max-w-[140px] sm:max-w-[250px]">{campaign.current_zone}</span>
+              <span>{getTimeEmoji(campaign.time_of_day)} Day {campaign.day_count}</span>
+              <span className="flex items-center gap-0.5 truncate max-w-[100px]">
+                <MapPin className="w-2.5 h-2.5 shrink-0" />
+                <span className="truncate">{campaign.current_zone}</span>
               </span>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 sm:gap-2 ml-auto sm:ml-0 shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           {isActive && sceneMap && (
             <Button
               variant={showTacticalMap ? 'secondary' : 'ghost'}
@@ -1835,13 +1832,15 @@ export default function CampaignView() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 flex flex-col gap-2">
-        {/* Chat + Narrator */}
-        <Card className={`bg-card-gradient border-border flex flex-col flex-1 min-h-0 transition-shadow duration-500 ${
+      <div className={`flex-1 min-h-0 flex flex-col relative transition-shadow duration-500 ${
           combatPulse === 'red' ? 'animate-combat-pulse-red' : combatPulse === 'green' ? 'animate-combat-pulse-green' : ''
         }`}>
-          <Tabs defaultValue="adventure" className="flex flex-col flex-1 min-h-0">
-            <div className="border-b border-border px-4">
+        {/* Persistent Environment Background — fills entire content area */}
+        <EnvironmentChatBackground location={activeSceneLocation || campaign.current_zone} />
+        <BattlefieldEffectsOverlay effects={battlefieldEffects} className="z-[1]" />
+
+        <Tabs defaultValue="adventure" className="flex flex-col flex-1 min-h-0 relative z-[2]">
+          <div className="bg-background/60 backdrop-blur-sm border-b border-border/30 px-3 z-10 relative shrink-0">
               <TabsList className="bg-transparent h-auto p-0 gap-4">
                 <TabsTrigger value="adventure" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-1 pb-2 pt-3 text-sm gap-1.5">
                   <Compass className="w-4 h-4" />
@@ -1867,11 +1866,6 @@ export default function CampaignView() {
 
             <TabsContent value="adventure" className="flex-1 flex flex-col mt-0 min-h-0 data-[state=inactive]:hidden">
               <div className="relative flex flex-col flex-1 min-h-0">
-                {/* Persistent Environment Background — dynamically tracks scene changes */}
-                <EnvironmentChatBackground location={activeSceneLocation || campaign.current_zone} />
-
-                {/* Battlefield Effects Overlay */}
-                <BattlefieldEffectsOverlay effects={battlefieldEffects} className="z-[1]" />
 
                 {/* Narrator-driven Tactical Map */}
                 {showTacticalMap && sceneMap && (
@@ -2242,7 +2236,7 @@ export default function CampaignView() {
 
                 {/* Input */}
                 {isActive && myParticipant?.is_active && (
-                  <div className="p-3 border-t border-border relative z-10 shrink-0 space-y-2">
+                  <div className="p-3 border-t border-border/40 bg-background/60 backdrop-blur-sm relative z-10 shrink-0 space-y-2">
                     <form onSubmit={e => { e.preventDefault(); handleSendMessage(); }} className="flex gap-2">
                       <VoiceTextarea
                         placeholder={isSoloMode ? "Describe your solo action..." : "Describe your action..."}
@@ -2405,7 +2399,6 @@ export default function CampaignView() {
               </TabsContent>
             )}
           </Tabs>
-        </Card>
 
         {/* Join / Start controls when not in narrator tab (recruiting or not joined yet) */}
         {(!myParticipant || !isActive) && (
