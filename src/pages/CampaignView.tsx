@@ -1508,6 +1508,16 @@ export default function CampaignView() {
     updateTypingStatus(false);
     setSending(true);
 
+    // Resolve overcharge if toggled and in combat
+    const inCombat = campaignEnemies.filter(e => e.status === 'active' || e.status === 'hiding').length > 0;
+    const overchargeResult = inCombat && overchargeEnabled
+      ? resolveOvercharge(true)
+      : null;
+    const overchargeContext = overchargeResult
+      ? getOverchargeContext(overchargeResult, myParticipant.character?.name || 'The character')
+      : '';
+    if (overchargeEnabled) setOverchargeEnabled(false); // Reset after use
+
     try {
       // Detect solo/rejoin intent from the player's message
       const soloIntent = detectSoloIntent(messageText);
@@ -1524,7 +1534,7 @@ export default function CampaignView() {
       }
 
       // Continue with normal send
-      await continueSend(messageText, soloIntent, combatResult, myParticipant, campaign);
+      await continueSend(messageText, soloIntent, combatResult, myParticipant, campaign, overchargeContext);
 
     } catch (err) {
       console.error('Campaign message error:', err);
