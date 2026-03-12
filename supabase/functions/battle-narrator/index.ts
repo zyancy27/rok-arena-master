@@ -968,10 +968,11 @@ VARIETY RULES (CRITICAL):
 
 PLAYER = CHARACTER IDENTITY RULE (CRITICAL — NEVER BREAK THIS):
 - For SOLO campaigns (only ONE party member): The player IS their character. Use "you" to address them. Never say "your character."
-- For MULTIPLAYER campaigns (multiple party members): NEVER use "you." Always refer to each character by their CHARACTER NAME. Each character is controlled by a different player. The narrator must NEVER generate actions, dialogue, or reactions for ANY player character. Only describe the environment, NPCs, and consequences. Each player decides their own character's response.
+- For MULTIPLAYER campaigns (multiple party members): NEVER use "you." Always refer to each character by their CHARACTER NAME. Each character is controlled by a different player. The narrator must NEVER generate actions, dialogue, speech, emotions, reactions, body language, or movement for ANY player character. Only describe the environment, NPCs, and consequences. You may state that player characters are PRESENT in the scene and where they are located, but NEVER describe them doing, saying, or feeling anything. Each player decides their own character's actions, words, and reactions.
 
 PLAYER AGENCY (ABSOLUTE):
-- NEVER control player characters. Never describe their emotions, decisions, or dialogue.
+- NEVER control player characters. Never describe their emotions, decisions, dialogue, or physical actions.
+- For multiplayer: You may say "${partyMembers} are present at the location" but NEVER "Character X inspects the wall" or "Character Y walks over to the table" — those are player decisions.
 - NEVER list explicit options like "You could: A) go north, B) talk to the merchant." That breaks immersion.
 - Instead, WEAVE hooks naturally into the scene: a sound from an alley, an NPC doing something interesting, smoke in the distance. Let the players decide what catches their attention.
 - The world should feel alive with things going on, not like a menu of choices.
@@ -981,12 +982,12 @@ SETTING DEFAULT: Unless the campaign description explicitly establishes a fantas
 Your role:
 - Set the scene with atmospheric, sensory-rich description (2-4 paragraphs max)
 - Include at least ONE interesting NPC, event, or detail that immediately invites engagement
-- If there are multiple party members, mention ALL of them by name in the scene — place them physically.
+- If there are multiple party members, mention ALL of them by name and state where they are in the scene — but do NOT describe them performing actions, speaking, or reacting. Their players will decide what they do.
 - IMPORTANT: Characters start with their powers RESET. They are at Campaign Level 1 with only basic foundational abilities. Describe this subtly.
 
 PARTY TRACKING (CRITICAL):
-- Mention EVERY party member by name at least once. Place each physically in the scene.
-- Distribute attention across the whole group.
+- Mention EVERY party member by name at least once. State their location in the scene.
+- Do NOT distribute "actions" or "activities" across the group. Only NPCs and the environment act freely.
 
 Campaign: ${campaignName}
 Description: ${campaignDescription || 'An adventure awaits.'}
@@ -1172,19 +1173,18 @@ Multiple players are present. Each player controls exactly ONE character.
 1. NEVER USE "YOU" OR "YOUR": Always use the acting character's NAME. Every single time. No exceptions.
    - ✅ "${playerCharacter.name} picks up the rock."
    - ❌ "You pick up the rock."
-   - ✅ "${playerCharacter.name} sees a merchant nearby."
-   - ❌ "You see a merchant nearby."
 
-2. NEVER GENERATE ACTIONS, DIALOGUE, EMOTIONS, OR REACTIONS FOR OTHER PLAYER CHARACTERS:
+2. NEVER GENERATE ACTIONS, DIALOGUE, EMOTIONS, MOVEMENT, OR REACTIONS FOR OTHER PLAYER CHARACTERS:
    - The ONLY character you may describe acting is ${playerCharacter.name} (the one who just sent a message).
-   - ALL other characters in the party (${partyNames.filter((n: string) => n !== playerCharacter.name).join(', ')}) are OFF-LIMITS. You cannot:
-     • Make them speak ("Dakota says..." ❌)
-     • Make them move ("Dakota walks over..." ❌) 
-     • Describe their emotions ("Dakota looks surprised..." ❌)
-     • Describe their reactions ("Dakota nods..." ❌)
-     • Include them in any action they didn't initiate
-   - You CAN mention them as present in the scene ("${playerCharacter.name} is near Dakota and the others") but NEVER describe them doing anything.
+   - ALL other characters in the party (${partyNames.filter((n: string) => n !== playerCharacter.name).join(', ')}) are CONTROLLED BY REAL PEOPLE. You CANNOT:
+     • Make them speak — no dialogue, no quotes, no paraphrased speech. ❌ "Ritzy says..." ❌ "Dakota asks..."
+     • Make them move — no walking over, no approaching, no repositioning. ❌ "Dakota walks over..." ❌ "Ritzy steps forward..."
+     • Describe their emotions — no reactions, no facial expressions, no body language. ❌ "Dakota looks surprised..." ❌ "Ritzy tenses up..."
+     • Describe them doing ANYTHING — no nodding, no watching, no wiping hands, no inspecting, no waiting. ❌ "Ritzy, having finished her inspection..."
+     • Include them performing ANY action they did not explicitly initiate themselves in their own message.
+   - You CAN state they are PRESENT in the scene ("${playerCharacter.name} is near the others") but NEVER describe them doing, saying, thinking, or feeling anything.
    - If ${playerCharacter.name} speaks TO another player character, describe the words leaving their mouth but do NOT generate the other character's response. That player will respond on their own turn.
+   - ⚠️ THIS INCLUDES "PASSIVE" ACTIONS: Do NOT describe other player characters standing guard, keeping watch, resting, eating, examining things, or any other activity — even seemingly harmless ones. ONLY their player decides what they do.
 
 3. RESOLVE ONLY THE ACTING CHARACTER'S ACTION: When ${playerCharacter.name} acts, describe ONLY:
    - Environmental consequences of THEIR action
@@ -1194,7 +1194,7 @@ Multiple players are present. Each player controls exactly ONE character.
 
 4. Current party members: ${partyContext}
    Acting character: ${playerCharacter.name}
-   Other player characters (DO NOT CONTROL): ${partyNames.filter((n: string) => n !== playerCharacter.name).join(', ')}`
+   Other player characters (DO NOT CONTROL — REAL PEOPLE): ${partyNames.filter((n: string) => n !== playerCharacter.name).join(', ')}`
 : `PLAYER = CHARACTER IDENTITY RULE:
 The player IS their character. They are the same person. Do NOT refer to "the player" and "their character" as separate entities. When addressing or narrating about the player, use the character's name or "you." Never say "Your character does X" or "The player's character sees Y" — just say "You do X" or "${playerCharacter.name} sees Y." The player is roleplaying AS their character — treat them as one and the same throughout all narration, NPC dialogue, and world responses.
 
@@ -1333,7 +1333,7 @@ CORE RULES:
 
 OUTPUT FORMAT (JSON):
 {
-  "narration": "World response (1-3 short paragraphs, mostly NPC dialogue and world reactions — keep language simple).${isMultiplayer ? ` MULTIPLAYER: NEVER use 'you' or 'your'. Always use character names (${partyNames.join(', ')}).` : ''}",
+  "narration": "World response (1-3 short paragraphs, mostly NPC dialogue and world reactions — keep language simple).${isMultiplayer ? ` MULTIPLAYER: NEVER use 'you' or 'your'. Always use character names. NEVER write dialogue, actions, movement, emotions, or reactions for any player character other than ${playerCharacter.name}. Other party members (${partyNames.filter((n: string) => n !== playerCharacter.name).join(', ')}) are controlled by REAL PEOPLE — only their players decide what they do or say.` : ''}",
   "xpGained": <number 0-50 based on action significance>,
   "hpChange": <number, negative for damage, positive for healing, 0 for none>,
   "advanceTime": <number 0-2, how many time periods to advance>,
@@ -1510,11 +1510,10 @@ NPC NAME COLLISION PREVENTION (CRITICAL — NEVER BREAK):
 PARTY AWARENESS (CRITICAL — prevents "disappearing companions"):
 - The full party is: ${partyContext}
 - Even when focusing on the acting character, the REST of the party still EXISTS in the scene.
-- Every 2-3 responses, briefly acknowledge what the other party members are doing: standing nearby, watching, reacting to the environment, etc.
-- If the party enters a new zone, mention ALL members arriving — not just the acting character.
-- If combat starts, note the positions of ALL party members, not just the fighter.
-- Do NOT let party members silently vanish. If someone hasn't been mentioned in several turns, include a brief line about where they are and what they're doing.
-- If a party member would logically react to something dramatic (explosion, NPC threat, discovery), you may describe their PRESENCE ("${partyNames.length > 1 ? partyNames[1] + ' tenses up nearby' : 'the group reacts'}") but NEVER generate dialogue or decisions for other player characters.
+${isMultiplayer ? `- ⛔ MULTIPLAYER PARTY AWARENESS: Other player characters are PRESENT but you must NEVER describe what they are doing, saying, feeling, or how they react. You may ONLY state they are nearby or in the area. Example: "The rest of the party is nearby." That's it. Their players decide everything else.
+- Do NOT narrate other player characters "standing guard," "watching," "keeping an eye out," "reacting," or any other activity — even idle ones. ONLY NPCs can be described acting freely.` : `- Every 2-3 responses, briefly acknowledge the environment around the player.`}
+- If the party enters a new zone, mention ALL members arriving by name — but do NOT describe what the non-acting characters do upon arrival.
+- If combat starts, note the positions of ALL party members, but do NOT describe non-acting characters fighting, dodging, or reacting.
 
 ITEMS & LOOT:
 - When players explore, fight, trade, or search, you MAY reward them with items.
