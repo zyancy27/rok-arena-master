@@ -1340,7 +1340,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <div className="pt-3">
-                      <CharacterTimeline characterId={initialData?.id || ''} mode={mode} />
+                      <CharacterTimeline characterId={initialData?.id || ''} mode={mode} onEventsChange={setTimelineEventsLocal} />
                     </div>
                   </CollapsibleContent>
                 </Collapsible>
