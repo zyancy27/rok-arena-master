@@ -1866,11 +1866,6 @@ export default function CampaignView() {
 
             <TabsContent value="adventure" className="flex-1 flex flex-col mt-0 min-h-0 data-[state=inactive]:hidden">
               <div className="relative flex flex-col flex-1 min-h-0">
-                {/* Persistent Environment Background — dynamically tracks scene changes */}
-                <EnvironmentChatBackground location={activeSceneLocation || campaign.current_zone} />
-
-                {/* Battlefield Effects Overlay */}
-                <BattlefieldEffectsOverlay effects={battlefieldEffects} className="z-[1]" />
 
                 {/* Narrator-driven Tactical Map */}
                 {showTacticalMap && sceneMap && (
