@@ -239,10 +239,10 @@ export default function CampaignView() {
 
   const campaignTrades = useCampaignTrades(campaignId, myParticipant?.id);
 
-  // Ambient environment sounds for campaign
+  // Ambient environment sounds for campaign — uses scene location when available, falls back to zone
   const { muted: ambientMuted, toggleMute: toggleAmbientMute } = useAmbientSound({
     enabled: campaign?.status === 'active',
-    location: campaign?.current_zone,
+    location: activeSceneLocation || campaign?.current_zone,
   });
 
   // Join / swap dialog
