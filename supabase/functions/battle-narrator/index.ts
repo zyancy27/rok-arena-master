@@ -1812,6 +1812,7 @@ ${isMultiplayer ? `MULTIPLAYER: Respond using "${playerCharacter.name}" — NEVE
         npcUpdates: Array.isArray(parsed.npcUpdates) ? parsed.npcUpdates : [],
         enemySpawned: parsed.enemySpawned && typeof parsed.enemySpawned === 'object' && parsed.enemySpawned.name ? parsed.enemySpawned : null,
         enemyUpdates: Array.isArray(parsed.enemyUpdates) ? parsed.enemyUpdates : [],
+        sentimentUpdate: parsed.sentimentUpdate && typeof parsed.sentimentUpdate === 'object' ? parsed.sentimentUpdate : null,
       }),
       { headers: { ...cors, "Content-Type": "application/json" } }
     );
