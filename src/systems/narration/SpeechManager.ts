@@ -8,7 +8,7 @@ import { splitNarrationSegments, getNpcVoiceSettings } from '@/lib/audio/npc-voi
 
 export type NarratorSceneContext =
   | 'exploration' | 'peaceful' | 'danger' | 'combat'
-  | 'tragic' | 'victory' | 'npc' | 'default';
+  | 'tragic' | 'victory' | 'npc' | 'whisper' | 'default';
 
 export interface SpeechBoundaryEvent {
   /** Character index in the full text that the narrator has reached */
@@ -22,7 +22,11 @@ export type StateCallback = (state: 'playing' | 'paused' | 'stopped') => void;
 
 function detectSceneContext(text: string): NarratorSceneContext {
   const t = text.toLowerCase();
-  if (/\b(attack|strikes?|slash|punch|dodge|block|parry|combat|fight|clash|lunge|charge|arrow|spell hits)\b/.test(t)) return 'combat';
+  // Whisper detection — stealth/caution takes priority when no active combat
+  const isStealth = /\b(sneak|creep|tiptoe|crouch|stealth|silently|quietly|cautious|carefully|slip past|stay hidden|keep low|move slow|edge closer|peer around|lurk|skulk|inch forward)\b/.test(t);
+  const isCombat = /\b(attack|strikes?|slash|punch|dodge|block|parry|combat|fight|clash|lunge|charge|arrow|spell hits)\b/.test(t);
+  if (isStealth && !isCombat) return 'whisper';
+  if (isCombat) return 'combat';
   if (/\b(victor|triumph|defeat|falls? (to|unconscious)|crumbles|vanquish|won|celebrate)\b/.test(t)) return 'victory';
   if (/\b(danger|threat|rumbl|creep|shadow|lurk|growl|hiss|scream|trembl|stalk|ominous|dread)\b/.test(t)) return 'danger';
   if (/[""\u201C].{8,}[""\u201D]/.test(text)) return 'npc';

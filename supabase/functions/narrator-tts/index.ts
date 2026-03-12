@@ -21,6 +21,7 @@ const VOICE_PRESETS: Record<string, {
   tragic:      { stability: 0.82, similarity_boost: 0.96, style: 0.04, speed: 1.05 },
   victory:     { stability: 0.75, similarity_boost: 0.95, style: 0.08, speed: 1.15 },
   npc:         { stability: 0.55, similarity_boost: 0.90, style: 0.20, speed: 1.18 },
+  whisper:     { stability: 0.88, similarity_boost: 0.97, style: 0.02, speed: 0.92 },
   default:     { stability: 0.74, similarity_boost: 0.95, style: 0.06, speed: 1.15 },
 };
 
