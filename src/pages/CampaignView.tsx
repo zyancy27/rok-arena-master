@@ -1314,6 +1314,8 @@ export default function CampaignView() {
               }
             }
           }
+          // Refresh known NPC names after updates
+          fetchKnownNpcs();
         }
 
         // Handle enemy spawning from narrator response
