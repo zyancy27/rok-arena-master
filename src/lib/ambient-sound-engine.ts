@@ -354,6 +354,69 @@ function cavernLayer(): AmbientLayer {
   };
 }
 
+function drippingLayer(): AmbientLayer {
+  return {
+    id: 'dripping',
+    create: (ctx, dest) => {
+      // Prominent water dripping with echo — louder and more frequent than cavern drips
+      const dripOsc = ctx.createOscillator();
+      dripOsc.type = 'sine';
+      dripOsc.frequency.value = 1400;
+      const dripGain = ctx.createGain();
+      dripGain.gain.value = 0;
+
+      // Reverb delay for cave echo
+      const delay = ctx.createDelay(1);
+      delay.delayTime.value = 0.35;
+      const delayGain = ctx.createGain();
+      delayGain.gain.value = 0.25;
+
+      const scheduleDrips = () => {
+        const now = ctx.currentTime;
+        for (let i = 0; i < 25; i++) {
+          const t = now + 1.5 + Math.random() * 20;
+          const freq = 1200 + Math.random() * 800;
+          dripOsc.frequency.setValueAtTime(freq, t);
+          dripOsc.frequency.linearRampToValueAtTime(freq * 0.6, t + 0.06);
+          dripGain.gain.setValueAtTime(0, t);
+          dripGain.gain.linearRampToValueAtTime(0.06, t + 0.008);
+          dripGain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+          // Secondary smaller drip shortly after
+          if (Math.random() > 0.5) {
+            const t2 = t + 0.15 + Math.random() * 0.2;
+            const freq2 = freq * 1.3;
+            dripOsc.frequency.setValueAtTime(freq2, t2);
+            dripGain.gain.setValueAtTime(0, t2);
+            dripGain.gain.linearRampToValueAtTime(0.03, t2 + 0.005);
+            dripGain.gain.exponentialRampToValueAtTime(0.001, t2 + 0.15);
+          }
+        }
+      };
+
+      const gain = ctx.createGain();
+      gain.gain.value = 0.1;
+
+      dripOsc.connect(dripGain);
+      dripGain.connect(delay);
+      delay.connect(delayGain);
+      delayGain.connect(delay); // feedback
+      dripGain.connect(gain);
+      delayGain.connect(gain);
+      gain.connect(dest);
+
+      return {
+        start: () => { dripOsc.start(); scheduleDrips(); },
+        stop: async (fadeMs = 2000) => {
+          gain.gain.linearRampToValueAtTime(0, ctx.currentTime + fadeMs / 1000);
+          await new Promise(r => setTimeout(r, fadeMs));
+          try { dripOsc.stop(); } catch {}
+        },
+        setVolume: (v) => { gain.gain.value = v * 0.1; },
+      };
+    },
+  };
+}
+
 function cityLayer(): AmbientLayer {
   return {
     id: 'city',
