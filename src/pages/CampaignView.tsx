@@ -1427,6 +1427,49 @@ export default function CampaignView() {
           fetchEnemies();
         }
 
+        // Handle narrator sentiment update
+        if (data.sentimentUpdate && typeof data.sentimentUpdate === 'object' && snapshotParticipant?.character_id) {
+          const su = data.sentimentUpdate;
+          const currentScore = narratorSentiment?.sentiment_score ?? 0;
+          const newScore = Math.max(-100, Math.min(100, currentScore + (su.sentiment_shift || 0)));
+          const newMoments = [...(narratorSentiment?.memorable_moments || [])];
+          if (su.memorable_moment && typeof su.memorable_moment === 'string') {
+            newMoments.push(su.memorable_moment);
+            if (newMoments.length > 20) newMoments.shift();
+          }
+
+          const updatedSentiment = {
+            nickname: su.nickname || narratorSentiment?.nickname || null,
+            sentiment_score: newScore,
+            opinion_summary: su.opinion_summary || narratorSentiment?.opinion_summary || null,
+            personality_notes: su.personality_notes || narratorSentiment?.personality_notes || null,
+            memorable_moments: newMoments,
+          };
+          setNarratorSentiment(updatedSentiment);
+
+          // Upsert to database
+          const { data: existing } = await supabase
+            .from('narrator_sentiments' as any)
+            .select('id')
+            .eq('character_id', snapshotParticipant.character_id)
+            .maybeSingle();
+
+          if (existing) {
+            await supabase.from('narrator_sentiments' as any)
+              .update({
+                ...updatedSentiment,
+                updated_at: new Date().toISOString(),
+              } as any)
+              .eq('character_id', snapshotParticipant.character_id);
+          } else {
+            await supabase.from('narrator_sentiments' as any)
+              .insert({
+                character_id: snapshotParticipant.character_id,
+                ...updatedSentiment,
+              } as any);
+          }
+        }
+
         // ─── Unified level-up check (handles XP from narrator + enemy defeats, supports multi-level) ───
         if (totalXpGained > 0) {
           let currentXp = snapshotParticipant.campaign_xp + totalXpGained;
