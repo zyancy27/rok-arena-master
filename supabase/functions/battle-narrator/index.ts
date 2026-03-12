@@ -1332,7 +1332,7 @@ CORE RULES:
 
 OUTPUT FORMAT (JSON):
 {
-  "narration": "World response (1-3 short paragraphs, mostly NPC dialogue and world reactions — keep language simple).${isMultiplayer ? ` MULTIPLAYER: NEVER use 'you' or 'your'. Always use character names (${partyNames.join(', ')}).` : ''}",
+  "narration": "World response (1-3 short paragraphs, mostly NPC dialogue and world reactions — keep language simple).${isMultiplayer ? ` MULTIPLAYER: NEVER use 'you' or 'your'. Always use character names. NEVER write dialogue, actions, movement, emotions, or reactions for any player character other than ${playerCharacter.name}. Other party members (${partyNames.filter((n: string) => n !== playerCharacter.name).join(', ')}) are controlled by REAL PEOPLE — only their players decide what they do or say.` : ''}",
   "xpGained": <number 0-50 based on action significance>,
   "hpChange": <number, negative for damage, positive for healing, 0 for none>,
   "advanceTime": <number 0-2, how many time periods to advance>,
