@@ -518,6 +518,23 @@ export default function CampaignView() {
     }
   };
 
+  const fetchNarratorSentiment = async (characterId: string) => {
+    const { data } = await supabase
+      .from('narrator_sentiments' as any)
+      .select('*')
+      .eq('character_id', characterId)
+      .maybeSingle();
+    if (data) {
+      setNarratorSentiment({
+        nickname: (data as any).nickname,
+        sentiment_score: (data as any).sentiment_score ?? 0,
+        opinion_summary: (data as any).opinion_summary,
+        personality_notes: (data as any).personality_notes,
+        memorable_moments: (data as any).memorable_moments || [],
+      });
+    }
+  };
+
   const fetchAll = async () => {
     await Promise.all([fetchCampaign(), fetchParticipants(), fetchMessages(), fetchInventory(), fetchJoinRequests(), fetchEnemies(), fetchKnownNpcs()]);
     setLoading(false);
