@@ -61,10 +61,10 @@ function parseWeaponItems(raw: string): WeaponItem[] {
   });
 }
 
-function serializeWeaponItems(items: WeaponItem[]): string {
-  const filtered = items.filter(i => i.name.trim());
-  if (filtered.length === 0) return '';
-  return JSON.stringify(filtered);
+function serializeWeaponItems(items: WeaponItem[], filterEmpty = true): string {
+  const result = filterEmpty ? items.filter(i => i.name.trim()) : items;
+  if (result.length === 0) return '';
+  return JSON.stringify(result);
 }
 
 const iconMap = {
@@ -997,7 +997,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
                   {(() => {
                     const items = parseWeaponItems(formData.weapons_items);
                     const updateItems = (newItems: WeaponItem[]) => handleChange('weapons_items', serializeWeaponItems(newItems));
-                    const addItem = () => updateItems([...items, { name: '', description: '' }]);
+                    const addItem = () => handleChange('weapons_items', serializeWeaponItems([...items, { name: '', description: '' }], false));
                     const removeItem = (idx: number) => updateItems(items.filter((_, i) => i !== idx));
                     const updateItem = (idx: number, field: keyof WeaponItem, value: string) => {
                       const copy = [...items];
