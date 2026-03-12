@@ -106,11 +106,11 @@ const STEPS: OnboardingStep[] = [
     title: 'Overcharge & Risk',
     icon: <Flame className="w-6 h-6" />,
     description:
-      'Toggle Overcharge before an attack for 1.5–2× potency — but with a 30% chance of a risk misfire.',
+      'Toggle Overcharge before an attack for 1.5–2× potency — but with a 30% chance of a painful consequence.',
     details: [
       'Toggle the ⚡ Overcharge button before sending your move',
       'Success = massive damage amplification',
-      'Failure = risk misfire, momentum loss, and psychological penalty',
+      'Failure = backfire, fatigue, recoil, misfire, or exposure',
       'Edge State reduces risk chance during Overcharge',
     ],
     tip: 'Overcharge is high-risk, high-reward. Use it when your momentum is high to minimize risk chance.',

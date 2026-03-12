@@ -59,6 +59,8 @@ import { parseNarratorMessage, resolveNpcDisplayName } from '@/lib/npc-dialogue-
 import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import { useNarrationController } from '@/hooks/use-narration-controller';
+import OverchargeToggle from '@/components/battles/OverchargeToggle';
+import { resolveOvercharge, getOverchargeContext } from '@/lib/battle-overcharge';
 // Helper: build bag content for the inline backpack bubble
 function buildBagContent(campaignItems: InventoryItem[], characterWeapons: string | null) {
   const items: { name: string; type: string; rarity: string; equipped: boolean }[] = [];
@@ -109,6 +111,7 @@ export default function CampaignView() {
   const [knownNpcNames, setKnownNpcNames] = useState<Set<string>>(new Set());
   const [showStatAllocation, setShowStatAllocation] = useState(false);
   const [sceneMap, setSceneMap] = useState<NarratorSceneMap | null>(null);
+  const [overchargeEnabled, setOverchargeEnabled] = useState(false);
   const [showTacticalMap, setShowTacticalMap] = useState(false);
   const userIsNearBottomRef = useRef(true);
   const introAttemptedRef = useRef(false);
@@ -999,6 +1002,7 @@ export default function CampaignView() {
     combatResult: ReturnType<typeof campaignCombat.processCombatAction>,
     snapshotParticipant: CampaignParticipant,
     snapshotCampaign: Campaign,
+    overchargeContext: string = '',
   ) => {
     setNarratorTyping(true);
     try {
@@ -1139,6 +1143,7 @@ export default function CampaignView() {
           knownNpcs,
           activeEnemies: activeEnemiesList,
           narrativeSystemsContext,
+          overchargeContext: overchargeContext || undefined,
         },
       });
 
@@ -1505,6 +1510,16 @@ export default function CampaignView() {
     updateTypingStatus(false);
     setSending(true);
 
+    // Resolve overcharge if toggled and in combat
+    const inCombat = campaignEnemies.filter(e => e.status === 'active' || e.status === 'hiding').length > 0;
+    const overchargeResult = inCombat && overchargeEnabled
+      ? resolveOvercharge(true)
+      : null;
+    const overchargeContext = overchargeResult
+      ? getOverchargeContext(overchargeResult, myParticipant.character?.name || 'The character')
+      : '';
+    if (overchargeEnabled) setOverchargeEnabled(false); // Reset after use
+
     try {
       // Detect solo/rejoin intent from the player's message
       const soloIntent = detectSoloIntent(messageText);
@@ -1521,7 +1536,7 @@ export default function CampaignView() {
       }
 
       // Continue with normal send
-      await continueSend(messageText, soloIntent, combatResult, myParticipant, campaign);
+      await continueSend(messageText, soloIntent, combatResult, myParticipant, campaign, overchargeContext);
 
     } catch (err) {
       console.error('Campaign message error:', err);
@@ -1539,6 +1554,7 @@ export default function CampaignView() {
     combatResult: ReturnType<typeof campaignCombat.processCombatAction>,
     participant: CampaignParticipant,
     campaignSnap: Campaign,
+    overchargeContext: string = '',
   ) => {
     setSending(true);
     try {
@@ -1596,7 +1612,7 @@ export default function CampaignView() {
       setSending(false);
 
       // Fire narrator response in background (non-blocking)
-      fireNarratorResponse(messageText, soloIntent, combatResult, participant, campaignSnap);
+      fireNarratorResponse(messageText, soloIntent, combatResult, participant, campaignSnap, overchargeContext);
     } catch (err) {
       console.error('Campaign message error:', err);
       toast.error('Failed to send message');
@@ -2311,7 +2327,7 @@ export default function CampaignView() {
                 {/* Input */}
                 {isActive && myParticipant?.is_active && (
                   <div className="p-3 border-t border-border/40 bg-background/60 backdrop-blur-sm relative z-10 shrink-0 space-y-2">
-                    <form onSubmit={e => { e.preventDefault(); handleSendMessage(); }} className="flex gap-2">
+                    <form onSubmit={e => { e.preventDefault(); handleSendMessage(); }} className="flex gap-2 items-end">
                       <VoiceTextarea
                         placeholder={isSoloMode ? "Describe your solo action..." : "Describe your action..."}
                         value={inputMessage}
@@ -2321,7 +2337,14 @@ export default function CampaignView() {
                         style={{ maxHeight: '300px' }}
                         onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
                       />
-                      <Button type="submit" disabled={sending || !inputMessage.trim()} size="sm" className="gap-1.5 self-end">
+                      {campaignEnemies.filter(e => e.status === 'active' || e.status === 'hiding').length > 0 && (
+                        <OverchargeToggle
+                          enabled={overchargeEnabled}
+                          onToggle={setOverchargeEnabled}
+                          disabled={sending}
+                        />
+                      )}
+                      <Button type="submit" disabled={sending || !inputMessage.trim()} size="sm" className="gap-1.5">
                         <Send className="w-4 h-4" />
                       </Button>
                     </form>

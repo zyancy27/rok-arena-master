@@ -1099,6 +1099,7 @@ async function handleCampaignNarration(
     knownNpcs,
     activeEnemies,
     narrativeSystemsContext,
+    overchargeContext,
   } = body;
 
   // Build conversation history as multi-turn messages for AI continuity
@@ -1669,9 +1670,11 @@ Story Context: ${JSON.stringify(storyContext || {})}${narrativeSystemsContext ? 
     ? `\n\n[DEFENSE ROLL: ${defenseResult.success ? 'SUCCESS' : 'FAILED'} — Defense ${defenseResult.defenseTotal} vs Incoming ${defenseResult.incomingTotal}]`
     : '';
 
+  const overchargeBlock = overchargeContext ? `\n\n${overchargeContext}` : '';
+
   const userMessage = `${playerCharacter.name} (Campaign Lv.${playerCharacter.campaignLevel}, HP: ${playerCharacter.hp}/${playerCharacter.hpMax}, Original Tier: ${playerCharacter.originalLevel}) acts:${itemsInfo}${allCampaignItems}${equippedCampaignItems}
 
-"${playerAction}"${diceContext}
+"${playerAction}"${diceContext}${overchargeBlock}
 
 ${isMultiplayer ? `MULTIPLAYER: Respond using "${playerCharacter.name}" — NEVER "you". Do NOT describe other player characters acting.` : ''}Respond as the WORLD — let NPCs speak, environments react, and consequences unfold. Only use narrator voice if no NPC or environmental element can carry the response. If the character uses an equipped item, reference it naturally. You may reward items if the action warrants it.${diceResult ? (diceResult.hit ? ' The attack HIT — describe the impact.' : ' The attack MISSED — describe the failure.') : ''}${defenseResult ? (defenseResult.success ? ' The defense SUCCEEDED.' : ' The defense FAILED — the player takes the hit.') : ''}`;
 
