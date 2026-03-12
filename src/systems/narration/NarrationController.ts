@@ -13,6 +13,8 @@ import { SpeechManager, type NarratorSceneContext } from './SpeechManager';
 import { NarrationHighlightManager } from './NarrationHighlightManager';
 import { NarrationSoundTriggerSystem } from './NarrationSoundTriggerSystem';
 import { TapToNarrateManager } from './TapToNarrateManager';
+import { getNarrationSoundManager } from '@/lib/audio/narration-sound-manager';
+import type { AmbientIntensityLevel } from '@/lib/audio/narration-sound-rules';
 
 export type NarrationState = 'idle' | 'playing' | 'paused';
 
@@ -47,15 +49,18 @@ export class NarrationController {
 
     // Wire speech state changes
     this.unsubState = this.speech.onStateChange((s) => {
+      const ambientMgr = getNarrationSoundManager();
       if (s === 'stopped') {
         this.highlight.reset();
         this.soundTrigger.setNarratorSpeaking(false);
+        ambientMgr.setNarratorSpeaking(false);
         this.setState('idle');
         this.activeMessageId = null;
       } else if (s === 'paused') {
         this.setState('paused');
       } else if (s === 'playing') {
         this.soundTrigger.setNarratorSpeaking(true);
+        ambientMgr.setNarratorSpeaking(true);
         this.setState('playing');
       }
     });
@@ -78,6 +83,23 @@ export class NarrationController {
 
   getState(): NarrationState { return this.state; }
   getActiveMessageId(): string | null { return this.activeMessageId; }
+
+  /**
+   * Configure the narration-triggered ambient sound system.
+   * Call this when user settings change.
+   */
+  configureAmbientSounds(opts: {
+    enabled: boolean;
+    intensityLevel: AmbientIntensityLevel;
+    masterVolume: number;
+    reduceVocalSounds: boolean;
+  }) {
+    const mgr = getNarrationSoundManager();
+    mgr.setEnabled(opts.enabled);
+    mgr.setIntensityLevel(opts.intensityLevel);
+    mgr.setMasterVolume(opts.masterVolume);
+    mgr.setReduceVocalSounds(opts.reduceVocalSounds);
+  }
 
   /**
    * Start narrating a text. Cancels any existing narration first.
@@ -136,6 +158,7 @@ export class NarrationController {
     this.highlight.reset();
     this.soundTrigger.reset();
     this.soundTrigger.setNarratorSpeaking(false);
+    getNarrationSoundManager().setNarratorSpeaking(false);
     this.activeMessageId = null;
     this.fullText = '';
     this.setState('idle');
