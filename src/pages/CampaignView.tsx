@@ -106,6 +106,7 @@ export default function CampaignView() {
   const [joinRequests, setJoinRequests] = useState<any[]>([]);
   const [myJoinRequest, setMyJoinRequest] = useState<any | null>(null);
   const [campaignEnemies, setCampaignEnemies] = useState<CampaignEnemy[]>([]);
+  const [knownNpcNames, setKnownNpcNames] = useState<Set<string>>(new Set());
   const [showStatAllocation, setShowStatAllocation] = useState(false);
   const [sceneMap, setSceneMap] = useState<NarratorSceneMap | null>(null);
   const [showTacticalMap, setShowTacticalMap] = useState(false);
