@@ -7,15 +7,23 @@ const corsHeaders = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// NARRATIVE ORCHESTRATOR — The Dungeon Master's Brain
+// NARRATIVE ORCHESTRATOR — The Dungeon Master's Brain (v3)
 //
-// Central coordination layer that determines:
-//   • which systems run
-//   • in what order
-//   • what context each receives
-//   • how results combine into the final response
-//
-// Pipeline: action → simulation → sentiment → narration → sound → voice
+// Pipeline:
+//   Player Action
+//   → Priority Classification
+//   → Narrative Director (mode detection)
+//   → Regional Grid (zone data)
+//   → World Context (sentiment, events, NPCs)
+//   → Priority Gating (suppress irrelevant systems)
+//   → Lore Consistency (proactive rules)
+//   → Character Psychology (emotional state)
+//   → Relationship Context
+//   → Story Gravity (theme biasing)
+//   → Battle Narrator (enriched context)
+//   → Sound Extraction
+//   → Sentiment Update
+//   → Response
 // ═══════════════════════════════════════════════════════════════
 
 // ─── Event Priority System ─────────────────────────────────────
@@ -29,20 +37,109 @@ interface PipelineEvent {
 
 function classifyEventPriority(action: string, context: any): EventPriority {
   const lower = action.toLowerCase();
-  // Critical: combat outcomes, death, major discoveries
   if (context.diceResult || context.defenseResult) return 'critical';
   if (/\b(die|death|kill|destroy|explode|collapse)\b/.test(lower)) return 'critical';
   if (context.activeEnemies?.length > 0) return 'critical';
-  // Important: NPC dialogue, world events
   if (/\b(talk|ask|speak|say|tell|question|negotiate|trade|buy|sell)\b/.test(lower)) return 'important';
   if (context.knownNpcs?.length > 0 && /\b(approach|greet|wave|call)\b/.test(lower)) return 'important';
-  // Ambient: exploration, environmental descriptions
   return 'ambient';
+}
+
+// ─── Narrative Priority Engine (Server-side) ───────────────────
+type NarrativeFocus = 'combat' | 'environment' | 'dialogue' | 'exploration' | 'discovery' | 'investigation' | 'social' | 'economy' | 'travel' | 'rest' | 'crisis';
+
+interface PriorityStack {
+  activeFocuses: NarrativeFocus[];
+  suppressedSystems: string[];
+  dominantMode: NarrativeFocus;
+}
+
+function calculateServerPriorityStack(action: string, context: any): PriorityStack {
+  const scores: Record<NarrativeFocus, number> = {
+    combat: 0, environment: 5, dialogue: 0, exploration: 5,
+    discovery: 0, investigation: 0, social: 0, economy: 0,
+    travel: 0, rest: 0, crisis: 0,
+  };
+  const lower = action.toLowerCase();
+
+  // Combat signals
+  if (/\b(attack|strike|slash|stab|shoot|cast|fight|block|dodge|parry|charge|fire)\b/i.test(lower)) scores.combat += 40;
+  if (context.activeEnemies?.length > 0) scores.combat += 30 + (context.activeEnemies.length * 10);
+  
+  // Dialogue signals
+  if (/\b(talk|speak|ask|say|tell|question|negotiate|greet|converse)\b/i.test(lower)) scores.dialogue += 35;
+  if (context.knownNpcs?.length > 0 && /\b(approach|greet|wave)\b/i.test(lower)) scores.dialogue += 25;
+
+  // Investigation
+  if (/\b(search|examine|inspect|investigate|look|study|analyze|check|read)\b/i.test(lower)) scores.investigation += 30;
+
+  // Exploration / Travel
+  if (/\b(explore|wander|travel|walk|move|head|go|enter|leave|climb)\b/i.test(lower)) scores.exploration += 25;
+
+  // Social / Economy
+  if (/\b(trade|buy|sell|barter|haggle|shop|merchant|market)\b/i.test(lower)) { scores.social += 25; scores.economy += 25; }
+
+  // Rest
+  if (/\b(rest|sleep|camp|meditate|heal|recover|wait)\b/i.test(lower)) scores.rest += 35;
+
+  // Environmental interaction
+  if (/\b(use|activate|open|close|push|pull|break|destroy|build|repair)\b/i.test(lower)) scores.environment += 20;
+
+  // Crisis from danger
+  const dangerLevel = context.dangerLevel || 0;
+  if (dangerLevel >= 8) scores.crisis += 40;
+  if (dangerLevel >= 5) { scores.combat += 15; scores.environment += 10; }
+
+  // Sort and pick top focuses
+  const sorted = Object.entries(scores).sort(([, a], [, b]) => b - a) as [NarrativeFocus, number][];
+  const activeFocuses = sorted.filter(([, s]) => s >= 15).slice(0, 3).map(([f]) => f);
+  const dominantMode = sorted[0][0];
+
+  // Determine suppressed systems
+  const suppressed: string[] = [];
+  const hasCombat = activeFocuses.includes('combat') || activeFocuses.includes('crisis');
+  if (hasCombat) suppressed.push('economy_details', 'rumor_mentions', 'exploration_hints', 'rest_descriptions');
+  if (activeFocuses.includes('rest')) suppressed.push('combat_details', 'hazard_escalation', 'enemy_behavior');
+  if (activeFocuses.includes('dialogue') && !hasCombat) suppressed.push('environment_details', 'hazard_escalation');
+
+  return { activeFocuses, suppressedSystems: [...new Set(suppressed)], dominantMode };
+}
+
+// ─── Narrative Director (Server-side mode detection) ───────────
+type NarrativeMode = 'exploration' | 'combat' | 'dialogue' | 'investigation' | 'travel' | 'rest' | 'crisis' | 'mystery' | 'stealth';
+
+interface NarrativeDirective {
+  mode: NarrativeMode;
+  tone: string;
+  pacing: string;
+  emphasize: string[];
+  deemphasize: string[];
+}
+
+function detectNarrativeMode(action: string, context: any, priority: PriorityStack): NarrativeDirective {
+  const mode = priority.dominantMode as NarrativeMode;
+  
+  const CONFIGS: Record<string, { tone: string; pacing: string; emphasize: string[]; deemphasize: string[] }> = {
+    combat: { tone: 'intense and tactical', pacing: 'urgent', emphasize: ['combat_descriptions', 'tactical_terrain', 'injury_effects'], deemphasize: ['economy', 'lore_exposition'] },
+    dialogue: { tone: 'character-driven', pacing: 'measured', emphasize: ['npc_personality', 'relationships', 'information'], deemphasize: ['environment_details', 'combat'] },
+    exploration: { tone: 'curious and atmospheric', pacing: 'measured', emphasize: ['environment', 'discovery_hints', 'world_building'], deemphasize: ['combat_mechanics'] },
+    investigation: { tone: 'analytical and suspenseful', pacing: 'slow', emphasize: ['clues', 'environmental_details', 'npc_reactions'], deemphasize: ['combat', 'economy'] },
+    crisis: { tone: 'tense and high-stakes', pacing: 'urgent', emphasize: ['threats', 'consequences', 'decision_pressure'], deemphasize: ['casual_descriptions', 'economy'] },
+    rest: { tone: 'contemplative', pacing: 'slow', emphasize: ['character_reflection', 'recovery', 'ambient_sounds'], deemphasize: ['combat', 'threat_warnings'] },
+    travel: { tone: 'scenic', pacing: 'brisk', emphasize: ['landscape', 'regional_changes', 'encounters'], deemphasize: ['detailed_combat', 'economy'] },
+    mystery: { tone: 'atmospheric and suspenseful', pacing: 'slow', emphasize: ['clues', 'atmosphere', 'secrets'], deemphasize: ['combat', 'economy'] },
+    social: { tone: 'character-driven', pacing: 'measured', emphasize: ['npc_personality', 'relationships'], deemphasize: ['combat'] },
+    economy: { tone: 'grounded', pacing: 'measured', emphasize: ['prices', 'supply', 'merchant_personality'], deemphasize: ['combat'] },
+    stealth: { tone: 'tense', pacing: 'measured', emphasize: ['sound_cues', 'enemy_awareness', 'cover'], deemphasize: ['loud_descriptions'] },
+    discovery: { tone: 'wonder', pacing: 'slow', emphasize: ['environment', 'clues', 'history'], deemphasize: ['combat'] },
+  };
+
+  const config = CONFIGS[mode] || CONFIGS.exploration;
+  return { mode: mode as NarrativeMode, ...config };
 }
 
 // ─── Shared Pipeline Context ───────────────────────────────────
 interface OrchestratorContext {
-  // Input
   player_action: string;
   character_state: any;
   world_state: any;
@@ -50,16 +147,14 @@ interface OrchestratorContext {
   npc_context: any[];
   active_enemies: any[];
   conversation_history: any[];
-
-  // Pipeline results (populated as pipeline progresses)
   event_priority: EventPriority;
+  priority_stack: PriorityStack;
+  narrative_directive: NarrativeDirective | null;
   battle_results: any | null;
   narrator_sentiment: any | null;
   narration_result: any | null;
   sound_events: SoundEvent[];
   errors: PipelineError[];
-
-  // Cached data (fetched once, reused)
   cached_sentiment: any | null;
   auth_header: string;
   api_key: string;
@@ -82,38 +177,29 @@ interface PipelineError {
 function extractSoundEvents(narrationText: string): SoundEvent[] {
   if (!narrationText) return [];
   const events: SoundEvent[] = [];
-  const lower = narrationText.toLowerCase();
 
   const soundPatterns: { pattern: RegExp; type: string; intensity: 'soft' | 'medium' | 'loud' }[] = [
-    // Metal
     { pattern: /metal\s+(groan|creak|screech|clang|ring)s?/gi, type: 'metal_impact', intensity: 'medium' },
     { pattern: /sword\s+(clash|clang|ring)s?|blade\s+(clash|ring)s?/gi, type: 'sword_clash', intensity: 'loud' },
     { pattern: /chains?\s+(rattle|clank|clink)s?/gi, type: 'chains', intensity: 'medium' },
-    // Water
     { pattern: /water\s+(roar|rush|crash|splash)s?/gi, type: 'waterfall', intensity: 'loud' },
     { pattern: /rain\s+(hammer|pound|pelt|drum)s?/gi, type: 'rain_heavy', intensity: 'medium' },
     { pattern: /drip|water\s+drops?/gi, type: 'water_drip', intensity: 'soft' },
-    // Fire
     { pattern: /fire\s+(crackle|roar|hiss)s?|flame\s+(flicker|dance|lick)s?/gi, type: 'fire_crackle', intensity: 'medium' },
     { pattern: /explosion|blast|detonat/gi, type: 'explosion', intensity: 'loud' },
-    // Nature
     { pattern: /wind\s+(howl|whistle|gust|moan)s?/gi, type: 'wind_gust', intensity: 'medium' },
     { pattern: /thunder\s+(crack|boom|rumble|roll)s?|lightning\s+(strike|flash|crack)s?/gi, type: 'thunder_crack', intensity: 'loud' },
     { pattern: /branch(es)?\s+(snap|crack|break)/gi, type: 'branches', intensity: 'soft' },
     { pattern: /bird|birdsong/gi, type: 'birds', intensity: 'soft' },
-    // Structural
     { pattern: /(wall|floor|ceiling|structure|building|roof|pillar)\s+(collapse|crumble|shatter|crack|buckle)s?/gi, type: 'collapse', intensity: 'loud' },
     { pattern: /glass\s+(shatter|break|crack)s?/gi, type: 'glass', intensity: 'medium' },
     { pattern: /door\s+(slam|bang|creak|open)s?/gi, type: 'door_open', intensity: 'medium' },
-    // Combat
     { pattern: /impact|crash|slam|smash/gi, type: 'impact', intensity: 'loud' },
     { pattern: /arrow\s+(whistle|whoosh|fly|streak)/gi, type: 'arrow', intensity: 'medium' },
-    // Atmospheric
     { pattern: /heartbeat|pulse/gi, type: 'heartbeat', intensity: 'soft' },
     { pattern: /silence|quiet|still/gi, type: 'silence', intensity: 'soft' },
     { pattern: /crowd\s+(gasp|roar|murmur|cheer)s?/gi, type: 'crowd', intensity: 'medium' },
     { pattern: /footstep|boot|step/gi, type: 'footsteps', intensity: 'soft' },
-    // Magic/Energy
     { pattern: /energy\s+(surge|pulse|crackle|hum)s?|magic|arcane/gi, type: 'magic', intensity: 'medium' },
     { pattern: /rumbl(e|ing)|tremor|quake/gi, type: 'rumble', intensity: 'medium' },
   ];
@@ -122,15 +208,10 @@ function extractSoundEvents(narrationText: string): SoundEvent[] {
     pattern.lastIndex = 0;
     const match = pattern.exec(narrationText);
     if (match) {
-      events.push({
-        type,
-        trigger_phrase: match[0],
-        intensity,
-      });
+      events.push({ type, trigger_phrase: match[0], intensity });
     }
   }
 
-  // Deduplicate by type
   const seen = new Set<string>();
   return events.filter(e => {
     if (seen.has(e.type)) return false;
@@ -152,7 +233,6 @@ async function fetchWorldContext(
       { auth: { persistSession: false } },
     );
 
-    // Batch: sentiment + campaign state + world simulation data in parallel
     const [sentimentResult, campaignResult, worldEventsResult, worldRumorsResult, worldStateResult] = await Promise.all([
       supabaseAdmin
         .from('narrator_sentiments')
@@ -233,7 +313,6 @@ async function fetchWorldContext(
       };
     }
 
-    // Attach living world data to context
     ctx.world_state = {
       ...ctx.world_state,
       active_world_events: worldEventsResult?.data || [],
@@ -255,7 +334,6 @@ async function callBattleNarrator(
   originalBody: any,
 ): Promise<void> {
   try {
-    // Inject narrator sentiment AND living world context into the request
     const livingWorldContext = buildLivingWorldContext(ctx);
     const enrichedBody = {
       ...originalBody,
@@ -284,7 +362,6 @@ async function callBattleNarrator(
     const result = await response.json();
     ctx.narration_result = result;
 
-    // Extract sound events from narration text
     const narrationText = result.narration || result.intro || '';
     if (narrationText) {
       ctx.sound_events = extractSoundEvents(narrationText);
@@ -295,23 +372,39 @@ async function callBattleNarrator(
       error: e instanceof Error ? e.message : 'Unknown error',
       recoverable: true,
     });
-    // Fallback narration
     ctx.narration_result = { narration: 'The world responds to your actions...' };
   }
 }
 
-// ─── Build Living World Context for Narrator ───────────────────
+// ─── Build Living World Context for Narrator (with Priority Gating) ──
 function buildLivingWorldContext(ctx: OrchestratorContext): string {
   const parts: string[] = [];
   const ws = ctx.world_state;
+  const ps = ctx.priority_stack;
+  const directive = ctx.narrative_directive;
+  const suppressed = new Set(ps.suppressedSystems);
 
-  // Active world events (high impact first)
+  // ── NARRATIVE DIRECTOR FRAME ──
+  if (directive) {
+    parts.push(`NARRATIVE DIRECTOR:`);
+    parts.push(`MODE: ${directive.mode.toUpperCase()} | TONE: ${directive.tone} | PACING: ${directive.pacing}`);
+    parts.push(`EMPHASIZE: ${directive.emphasize.join(', ')}`);
+    parts.push(`MINIMIZE: ${directive.deemphasize.join(', ')}`);
+  }
+
+  // ── PRIORITY FOCUS ──
+  parts.push(`\nNARRATIVE PRIORITY: ${ps.activeFocuses.join(' > ')}`);
+  if (ps.suppressedSystems.length > 0) {
+    parts.push(`SUPPRESSED (do not emphasize): ${ps.suppressedSystems.join(', ')}`);
+  }
+
+  // ── ACTIVE WORLD EVENTS (only if not suppressed) ──
   const events = ws.active_world_events || [];
-  if (events.length > 0) {
+  if (events.length > 0 && !suppressed.has('exploration_hints')) {
     const highImpact = events.filter((e: any) => e.impact_level >= 5);
     const nearby = events.filter((e: any) => e.player_proximity >= 5);
     if (highImpact.length > 0) {
-      parts.push('MAJOR WORLD EVENTS (reference naturally when appropriate):');
+      parts.push('\nMAJOR WORLD EVENTS:');
       for (const e of highImpact.slice(0, 3)) {
         parts.push(`- [${e.event_type}] at ${e.location}: ${e.description}`);
       }
@@ -324,47 +417,47 @@ function buildLivingWorldContext(ctx: OrchestratorContext): string {
     }
   }
 
-  // Rumors
+  // ── RUMORS (only if not suppressed) ──
   const rumors = ws.world_rumors || [];
-  if (rumors.length > 0) {
-    parts.push('WORLD RUMORS (NPCs may mention, travelers may whisper about):');
+  if (rumors.length > 0 && !suppressed.has('rumor_mentions')) {
+    parts.push('\nWORLD RUMORS (NPCs may mention):');
     for (const r of rumors.slice(0, 3)) {
       parts.push(`- "${r.rumor_text}" (from ${r.origin_location})`);
     }
   }
 
-  // Regional states
+  // ── REGIONAL CONDITIONS ──
   const regions = ws.regional_states || [];
   if (regions.length > 0) {
-    parts.push('REGIONAL CONDITIONS:');
+    parts.push('\nREGIONAL CONDITIONS:');
     for (const r of regions) {
       const conds = (r.environment_conditions as any)?.conditions || [];
       const weather = (r.environment_conditions as any)?.weather || '';
       const creatureActivity = (r.environment_conditions as any)?.creature_activity;
       parts.push(`- ${r.region_name}: danger ${r.danger_level}/10${conds.length ? ', ' + conds.join(', ') : ''}${weather ? ', weather: ' + weather : ''}`);
-      if (r.npc_activity_summary) parts.push(`  NPC activity: ${r.npc_activity_summary}`);
+      if (r.npc_activity_summary && !suppressed.has('environment_details')) parts.push(`  NPC activity: ${r.npc_activity_summary}`);
       if (r.faction_activity_summary) parts.push(`  Factions: ${r.faction_activity_summary}`);
       if (creatureActivity?.description) parts.push(`  Creatures: ${creatureActivity.description} (threat: ${creatureActivity.threat_level}/5)`);
     }
   }
 
-  // Story arcs from campaign state
+  // ── STORY ARCS (always active — they're central) ──
   const campaignState = ctx.campaign_state || {};
   const storyCtx = campaignState.story_context || {};
   const activeArcs = storyCtx.active_arcs || [];
   if (activeArcs.length > 0) {
-    parts.push('ACTIVE STORY ARCS (reference naturally, advance through narration):');
+    parts.push('\nACTIVE STORY ARCS:');
     for (const arc of activeArcs.slice(0, 3)) {
-      parts.push(`- "${arc.title}" [${arc.stage}]: ${arc.stage_description || arc.stakes || 'Unfolding...'}. Locations: ${(arc.locations || []).join(', ')}. Key figures: ${(arc.participants || []).join(', ')}`);
+      parts.push(`- "${arc.title}" [${arc.stage}]: ${arc.stage_description || arc.stakes || 'Unfolding...'}. Locations: ${(arc.locations || []).join(', ')}`);
     }
   }
 
-  // Economy state
+  // ── ECONOMY (only when relevant) ──
   const worldStateJson = campaignState.world_state || {};
   const economy = worldStateJson.economy || {};
   const economyKeys = Object.keys(economy);
-  if (economyKeys.length > 0) {
-    parts.push('LIVING ECONOMY (affects shop prices and availability):');
+  if (economyKeys.length > 0 && !suppressed.has('economy_details') && (ps.activeFocuses.includes('economy') || ps.activeFocuses.includes('social'))) {
+    parts.push('\nLIVING ECONOMY:');
     for (const key of economyKeys.slice(0, 4)) {
       const e = economy[key];
       const modifier = e.price_modifier || 1.0;
@@ -373,78 +466,99 @@ function buildLivingWorldContext(ctx: OrchestratorContext): string {
     }
   }
 
-  // Location history
+  // ── LOCATION HISTORY ──
   const locHistory = worldStateJson.location_history || {};
   const currentZone = campaignState.current_zone || '';
   const zoneHistory = locHistory[currentZone];
   if (zoneHistory && zoneHistory.length > 0) {
-    parts.push('LOCATION MEMORY (what happened HERE before):');
+    parts.push('\nLOCATION MEMORY (what happened HERE):');
     for (const entry of zoneHistory.slice(-3)) {
       parts.push(`- Day ${entry.day}: ${entry.event}${entry.permanent ? ' (permanent)' : ''}`);
     }
   }
 
-  // Discoverable locations nearby
+  // ── DISCOVERABLE LOCATIONS (only during exploration/discovery) ──
   const discoveries = worldStateJson.discoverable_locations || [];
   const undiscovered = discoveries.filter((d: any) => !d.discovered);
-  if (undiscovered.length > 0) {
-    parts.push('DISCOVERABLE LOCATIONS (hint at these through environmental clues):');
+  if (undiscovered.length > 0 && !suppressed.has('exploration_hints') && (ps.activeFocuses.includes('exploration') || ps.activeFocuses.includes('discovery'))) {
+    parts.push('\nDISCOVERABLE LOCATIONS (hint via environmental clues):');
     for (const d of undiscovered.slice(0, 2)) {
       parts.push(`- [${d.type}] near ${d.location}: ${d.description} (danger: ${d.danger_level}/10)`);
     }
   }
 
-  // Player influence effects
+  // ── PLAYER INFLUENCE ──
   const playerInfluence = worldStateJson.player_influence || [];
   const recentInfluence = playerInfluence.filter((i: any) => i.permanence !== 'temporary' || (i.day && i.day >= (campaignState.day_count || 1) - 3));
   if (recentInfluence.length > 0) {
-    parts.push('PLAYER INFLUENCE ON WORLD (consequences of player actions):');
+    parts.push('\nPLAYER INFLUENCE ON WORLD:');
     for (const inf of recentInfluence.slice(-3)) {
       parts.push(`- ${inf.cause} → ${inf.effect} (${inf.permanence})`);
     }
   }
 
-  // Creature activity
-  const creatures = worldStateJson.creature_activity;
-  if (creatures?.description) {
-    parts.push(`CREATURE ACTIVITY: ${creatures.description} (threat: ${creatures.threat_level}/5, types: ${(creatures.creature_types || []).join(', ')})`);
+  // ── CHARACTER PSYCHOLOGY (from campaign world_state) ──
+  const psychology = worldStateJson.character_psychology;
+  if (psychology) {
+    parts.push('\nCHARACTER PSYCHOLOGY:');
+    if (psychology.dominant_emotion) parts.push(`Dominant emotion: ${psychology.dominant_emotion}`);
+    if (psychology.strong_traits?.length > 0) parts.push(`Strong traits: ${psychology.strong_traits.join(', ')}`);
+    if (psychology.recent_trauma?.length > 0) parts.push(`Recent trauma: ${psychology.recent_trauma.join('; ')} — reflect in character behavior`);
+    if (psychology.fears?.length > 0) parts.push(`Fears: ${psychology.fears.join(', ')}`);
   }
 
-  // DM Situation Frame
+  // ── RELATIONSHIP CONTEXT ──
+  const relationships = worldStateJson.character_relationships;
+  if (relationships && Array.isArray(relationships) && relationships.length > 0) {
+    parts.push('\nCHARACTER RELATIONSHIPS:');
+    for (const rel of relationships.slice(0, 5)) {
+      parts.push(`- ${rel.source} → ${rel.target}: ${rel.tone} (trust:${rel.trust} respect:${rel.respect} fear:${rel.fear})`);
+    }
+  }
+
+  // ── LORE CONSISTENCY RULES ──
+  const loreRules = worldStateJson.lore_rules;
+  if (loreRules) {
+    parts.push('\nLORE RULES (never violate):');
+    if (loreRules.technology_level) parts.push(`- Technology level: ${loreRules.technology_level}. Do NOT reference higher technology.`);
+    if (loreRules.world_rules?.length > 0) {
+      for (const rule of loreRules.world_rules.slice(0, 5)) {
+        parts.push(`- ${rule}`);
+      }
+    }
+  }
+
+  // ── DM SITUATION FRAME (condensed, priority-aware) ──
   if (parts.length > 0) {
     const dangerMax = (ws.regional_states || []).reduce((max: number, r: any) => Math.max(max, r.danger_level || 0), 0);
-    const hasHighEvents = events.some((e: any) => e.impact_level >= 7);
-    const hasNearbyActivity = events.some((e: any) => e.player_proximity >= 5);
     
-    parts.push('\nDM SITUATION FRAME (integrated narrative intelligence):');
-    if (hasHighEvents) parts.push('- Major world events are unfolding. Reference them when narratively appropriate to reinforce the living world.');
-    if (hasNearbyActivity) parts.push('- Nearby activity creates immediate situational hooks the narrator can weave into the scene.');
-    if (dangerMax >= 7) parts.push('- Regional danger is HIGH. Pacing should lean toward tension and urgency. Injuries more likely. Economy prices elevated. NPCs are fearful or aggressive.');
-    else if (dangerMax >= 4) parts.push('- Regional danger is MODERATE. Balance exploration with alertness. NPCs may be nervous or wary.');
-    else parts.push('- Regional danger is LOW. Favor atmospheric exploration and character-driven moments. NPCs are relaxed and approachable.');
-    if (rumors.length > 0) parts.push('- Active rumors exist. NPCs should naturally mention them in conversation to provide story hooks.');
-    if (activeArcs.length > 0) parts.push(`- ${activeArcs.length} story arc(s) active. Weave references naturally — don't force exposition.`);
-    if (economyKeys.length > 0) parts.push('- Economy has shifted. Merchants should reference supply/demand changes when trading.');
-    if (undiscovered.length > 0) parts.push('- Undiscovered locations nearby. Drop environmental hints (tracks, distant smoke, strange sounds) to guide exploration.');
-    if (recentInfluence.length > 0) parts.push('- Player actions have changed the world. NPCs and environments should reflect these changes.');
+    parts.push('\nDM SITUATION FRAME:');
+    if (dangerMax >= 7) parts.push('- Regional danger HIGH. Lean toward tension. Injuries likely. NPCs fearful/aggressive.');
+    else if (dangerMax >= 4) parts.push('- Regional danger MODERATE. Balance exploration with alertness.');
+    else parts.push('- Regional danger LOW. Favor atmospheric exploration and character moments.');
+
+    // Only include system reminders relevant to current mode
+    parts.push('\nACTIVE SYSTEMS (apply based on narrative mode):');
     
-    // Core integrated systems reminder
-    parts.push('\nINTEGRATED NARRATIVE SYSTEMS (apply automatically):');
-    parts.push('- CHARACTER RELATIONSHIPS: Track trust, respect, fear, rivalry between characters. NPCs remember past interactions and behave accordingly.');
-    parts.push('- NPC MEMORY: NPCs remember help, trade, insults, violence, betrayal. Their behavior changes based on history with the player.');
-    parts.push('- NPC PERSONALITY: Each NPC has temperament, speech style, profession, goals, secrets, fears. Dialogue must reflect these.');
-    parts.push('- STORY ARCS: Track ongoing narrative arcs through stages (seed→developing→escalating→climax→resolved). Reference active arcs naturally.');
-    parts.push('- LIVING LOCATIONS: Locations remember battles, destruction, NPC deaths. Narration should reflect location history.');
-    parts.push('- LIVING ECONOMY: Shop prices shift with danger and trade disruptions. Merchants reference supply issues.');
-    parts.push('- INJURY SYSTEM: Combat causes arm/leg injuries, bleeding, fatigue, broken weapons. Injuries affect capabilities.');
-    parts.push('- TACTICAL ENVIRONMENT: Combat narration references terrain, lighting, cover, elevation, obstacles.');
-    parts.push('- EXPLORATION DISCOVERIES: Players discover caves, ruins, camps, paths dynamically. Store in world memory.');
-    parts.push('- PLAYER INFLUENCE: Major actions change the world permanently. World simulation reflects these changes.');
-    parts.push('- CREATIVITY RECOGNITION: Reward creative player actions with richer narrative responses and unexpected positive outcomes.');
-    parts.push('- REPUTATION SYSTEM: NPCs react to player reputation. Heroic deeds spread. Villainous acts create enemies.');
-    parts.push('- RUMOR SYSTEM: Rumors spread through settlements. NPCs mention them naturally. Some are true, some exaggerated.');
-    parts.push('- CAMPAIGN JOURNAL: Major discoveries, alliances, battles, and decisions are automatically recorded.');
-    parts.push('- NARRATIVE ATTENTION: Evaluate events by importance, danger, story relevance, rarity, emotional impact. Only high-priority events get emphasis.');
+    if (ps.activeFocuses.includes('combat') || ps.activeFocuses.includes('crisis')) {
+      parts.push('- TACTICAL ENVIRONMENT: Reference terrain, lighting, cover, elevation in combat.');
+      parts.push('- INJURY SYSTEM: Combat causes injuries affecting capabilities.');
+    }
+    if (ps.activeFocuses.includes('dialogue') || ps.activeFocuses.includes('social')) {
+      parts.push('- NPC MEMORY: NPCs remember past interactions. Behavior changes based on history.');
+      parts.push('- NPC PERSONALITY: Each NPC has temperament, speech style, goals, secrets. Reflect in dialogue.');
+      parts.push('- REPUTATION: NPCs react to player reputation.');
+    }
+    if (ps.activeFocuses.includes('exploration') || ps.activeFocuses.includes('discovery')) {
+      parts.push('- EXPLORATION DISCOVERIES: Hint at hidden locations through environmental clues.');
+      parts.push('- LIVING LOCATIONS: Narration reflects location history.');
+    }
+    // Always active
+    parts.push('- STORY ARCS: Reference active arcs naturally.');
+    parts.push('- PLAYER INFLUENCE: World reflects consequences of player actions.');
+    parts.push('- CREATIVITY RECOGNITION: Reward creative solutions with richer narrative responses.');
+    parts.push('- CHARACTER PSYCHOLOGY: Reflect emotional state and trauma in character behavior.');
+    parts.push('- LORE CONSISTENCY: Never contradict established world rules or character background.');
   }
 
   if (parts.length === 0) return '';
@@ -470,7 +584,6 @@ async function updateSentimentInDb(
     const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
     const clamp100 = (v: number) => clamp(v, 0, 100);
 
-    // Calculate new values
     const newSentiment = clamp(
       (prev.sentiment_score ?? 0) + (su.sentiment_shift ?? 0),
       -100, 100,
@@ -495,7 +608,6 @@ async function updateSentimentInDb(
     const newStoryEngagement = clamp100((prev.story_engagement_score ?? 50) + (beh.story_engagement ?? 0));
     const newStoryCompat = clamp100((prev.story_compatibility ?? 50) + (su.story_compatibility_shift ?? 0));
 
-    // Derive relationship stage
     const avgPositive = (newCuriosity + newRespect + newTrust + newAmusement + newIntrigue + newStoryValue) / 6;
     let stage: string;
     if (newDisappointment > 70 && avgPositive < 30) stage = 'Disappointed';
@@ -507,14 +619,12 @@ async function updateSentimentInDb(
     else if (avgPositive >= 20) stage = 'Observed';
     else stage = 'Unknown';
 
-    // Build observations and nickname history
     const observations = [...(prev.narrator_observations || [])];
     if (su.narrator_observation) observations.push(su.narrator_observation);
     const nicknameHistory = [...(prev.nickname_history || [])];
     if (su.nickname && su.nickname !== prev.nickname && su.nickname !== nicknameHistory[nicknameHistory.length - 1]) {
       nicknameHistory.push(su.nickname);
     }
-    // Build memorable moments
     const moments = [...(prev.memorable_moments || [])];
     if (su.memorable_moment) moments.push(su.memorable_moment);
 
@@ -578,7 +688,6 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    // Verify auth
     const supabaseClient = createClient(
       SUPABASE_URL,
       Deno.env.get('SUPABASE_ANON_KEY')!,
@@ -593,7 +702,6 @@ serve(async (req) => {
       );
     }
 
-    // AI subscription check
     const supabaseAdmin = createClient(
       SUPABASE_URL,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
@@ -631,6 +739,25 @@ serve(async (req) => {
       ...narratorPayload
     } = body;
 
+    // ─── Step 1: Classify Event Priority ───────────────────────
+    const eventPriority = classifyEventPriority(
+      narratorPayload.playerAction || '',
+      { diceResult: narratorPayload.diceResult, defenseResult: narratorPayload.defenseResult, activeEnemies: narratorPayload.activeEnemies, knownNpcs: narratorPayload.knownNpcs },
+    );
+
+    // ─── Step 2: Calculate Priority Stack (gates systems) ──────
+    const priorityStack = calculateServerPriorityStack(
+      narratorPayload.playerAction || '',
+      { activeEnemies: narratorPayload.activeEnemies, knownNpcs: narratorPayload.knownNpcs, dangerLevel: narratorPayload.dangerLevel || 0 },
+    );
+
+    // ─── Step 3: Detect Narrative Mode ─────────────────────────
+    const narrativeDirective = detectNarrativeMode(
+      narratorPayload.playerAction || '',
+      narratorPayload,
+      priorityStack,
+    );
+
     // ─── Initialize Pipeline Context ───────────────────────────
     const ctx: OrchestratorContext = {
       player_action: narratorPayload.playerAction || '',
@@ -640,7 +767,9 @@ serve(async (req) => {
       npc_context: narratorPayload.knownNpcs || [],
       active_enemies: narratorPayload.activeEnemies || [],
       conversation_history: narratorPayload.conversationHistory || [],
-      event_priority: 'ambient',
+      event_priority: eventPriority,
+      priority_stack: priorityStack,
+      narrative_directive: narrativeDirective,
       battle_results: null,
       narrator_sentiment: null,
       narration_result: null,
@@ -652,36 +781,29 @@ serve(async (req) => {
       supabase_url: SUPABASE_URL,
     };
 
-    // ─── Step 1: Classify Event Priority ───────────────────────
-    ctx.event_priority = classifyEventPriority(
-      ctx.player_action,
-      { diceResult: narratorPayload.diceResult, defenseResult: narratorPayload.defenseResult, activeEnemies: ctx.active_enemies, knownNpcs: ctx.npc_context },
-    );
-
-    // ─── Step 2: Fetch World Context (sentiment + campaign state) ──
+    // ─── Step 4: Fetch World Context (gated by priority) ───────
     if (characterId) {
       await fetchWorldContext(ctx, characterId, campaignId);
     }
 
-    // ─── Step 3: Call Battle Narrator (the core narration engine) ──
+    // ─── Step 5: Call Battle Narrator (enriched context) ────────
     await callBattleNarrator(ctx, narratorPayload);
 
-    // ─── Step 4: Update Sentiment in DB (async, non-blocking for response) ──
+    // ─── Step 6: Update Sentiment (async, non-blocking) ────────
     if (characterId && ctx.narration_result?.sentimentUpdate) {
-      // Fire and don't await — let it complete in background
       updateSentimentInDb(ctx, characterId).catch((e) => {
         console.error('Background sentiment update failed:', e);
       });
     }
 
-    // ─── Step 5: Build Orchestrated Response ───────────────────
+    // ─── Step 7: Build Orchestrated Response ───────────────────
     const orchestratedResponse = {
-      // Pass through all original narration result fields
       ...ctx.narration_result,
-
-      // Orchestrator additions
       _orchestrator: {
         event_priority: ctx.event_priority,
+        narrative_mode: narrativeDirective.mode,
+        active_focuses: priorityStack.activeFocuses,
+        suppressed_systems: priorityStack.suppressedSystems,
         sound_events: ctx.sound_events,
         narrator_sentiment: ctx.narrator_sentiment
           ? {
