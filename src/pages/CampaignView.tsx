@@ -112,6 +112,7 @@ export default function CampaignView() {
   const [showStatAllocation, setShowStatAllocation] = useState(false);
   const [sceneMap, setSceneMap] = useState<NarratorSceneMap | null>(null);
   const [overchargeEnabled, setOverchargeEnabled] = useState(false);
+  const playerMessageCountRef = useRef(0);
   const [narratorSentiment, setNarratorSentiment] = useState<{
     nickname: string | null;
     sentiment_score: number;
@@ -1805,6 +1806,22 @@ export default function CampaignView() {
 
       // Fire narrator response in background (non-blocking)
       fireNarratorResponse(messageText, soloIntent, combatResult, participant, campaignSnap, overchargeContext);
+
+      // Trigger world simulation every 6 player messages
+      playerMessageCountRef.current += 1;
+      if (playerMessageCountRef.current % 6 === 0 && campaignSnap) {
+        supabase.functions.invoke('world-simulation', {
+          body: {
+            campaignId: campaignSnap.id,
+            currentZone: campaignSnap.current_zone,
+            dayCount: campaignSnap.day_count,
+            difficultyScale: campaignSnap.difficulty_scale,
+            partyLevel: participant.campaign_level,
+            timeOfDay: campaignSnap.time_of_day,
+            environmentTags: campaignSnap.environment_tags,
+          },
+        }).catch(e => console.warn('[WorldSim] Background simulation failed:', e));
+      }
     } catch (err) {
       console.error('Campaign message error:', err);
       toast.error('Failed to send message');

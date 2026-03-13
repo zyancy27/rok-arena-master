@@ -41,3 +41,9 @@ verify_jwt = false
 
 [functions.narrator-ambient-sfx]
 verify_jwt = false
+
+[functions.story-orchestrator]
+verify_jwt = false
+
+[functions.world-simulation]
+verify_jwt = false

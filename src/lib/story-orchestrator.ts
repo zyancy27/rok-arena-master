@@ -28,6 +28,11 @@ export interface OrchestratorMeta {
     respect: number;
     trust: number;
   } | null;
+  living_world?: {
+    active_events_count: number;
+    rumors_count: number;
+    danger_level: number;
+  };
   pipeline_errors?: Array<{
     step: string;
     error: string;

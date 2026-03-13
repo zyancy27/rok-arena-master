@@ -152,8 +152,8 @@ async function fetchWorldContext(
       { auth: { persistSession: false } },
     );
 
-    // Batch: sentiment + campaign state in parallel
-    const [sentimentResult, campaignResult] = await Promise.all([
+    // Batch: sentiment + campaign state + world simulation data in parallel
+    const [sentimentResult, campaignResult, worldEventsResult, worldRumorsResult, worldStateResult] = await Promise.all([
       supabaseAdmin
         .from('narrator_sentiments')
         .select('*')
@@ -165,6 +165,30 @@ async function fetchWorldContext(
             .select('world_state, story_context, environment_tags, current_zone, time_of_day, day_count, difficulty_scale')
             .eq('id', campaignId)
             .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      campaignId
+        ? supabaseAdmin
+            .from('world_events')
+            .select('event_type, location, description, impact_level, story_relevance, player_proximity, participants')
+            .eq('campaign_id', campaignId)
+            .eq('resolved', false)
+            .order('impact_level', { ascending: false })
+            .limit(10)
+        : Promise.resolve({ data: null, error: null }),
+      campaignId
+        ? supabaseAdmin
+            .from('world_rumors')
+            .select('rumor_text, origin_location, spread_level')
+            .eq('campaign_id', campaignId)
+            .order('created_at', { ascending: false })
+            .limit(5)
+        : Promise.resolve({ data: null, error: null }),
+      campaignId
+        ? supabaseAdmin
+            .from('world_state')
+            .select('region_name, environment_conditions, danger_level, npc_activity_summary, faction_activity_summary')
+            .eq('campaign_id', campaignId)
+            .limit(5)
         : Promise.resolve({ data: null, error: null }),
     ]);
 
@@ -208,6 +232,14 @@ async function fetchWorldContext(
         difficulty_scale: campaignResult.data.difficulty_scale,
       };
     }
+
+    // Attach living world data to context
+    ctx.world_state = {
+      ...ctx.world_state,
+      active_world_events: worldEventsResult?.data || [],
+      world_rumors: worldRumorsResult?.data || [],
+      regional_states: worldStateResult?.data || [],
+    };
   } catch (e) {
     ctx.errors.push({
       step: 'fetch_world_context',
@@ -223,10 +255,12 @@ async function callBattleNarrator(
   originalBody: any,
 ): Promise<void> {
   try {
-    // Inject narrator sentiment into the request
+    // Inject narrator sentiment AND living world context into the request
+    const livingWorldContext = buildLivingWorldContext(ctx);
     const enrichedBody = {
       ...originalBody,
       narratorSentiment: ctx.narrator_sentiment,
+      livingWorldContext,
     };
 
     const response = await fetch(
@@ -264,6 +298,55 @@ async function callBattleNarrator(
     // Fallback narration
     ctx.narration_result = { narration: 'The world responds to your actions...' };
   }
+}
+
+// ─── Build Living World Context for Narrator ───────────────────
+function buildLivingWorldContext(ctx: OrchestratorContext): string {
+  const parts: string[] = [];
+  const ws = ctx.world_state;
+
+  // Active world events (high impact first)
+  const events = ws.active_world_events || [];
+  if (events.length > 0) {
+    const highImpact = events.filter((e: any) => e.impact_level >= 5);
+    const nearby = events.filter((e: any) => e.player_proximity >= 5);
+    if (highImpact.length > 0) {
+      parts.push('MAJOR WORLD EVENTS (reference naturally when appropriate):');
+      for (const e of highImpact.slice(0, 3)) {
+        parts.push(`- [${e.event_type}] at ${e.location}: ${e.description}`);
+      }
+    }
+    if (nearby.length > 0) {
+      parts.push('NEARBY ACTIVITY:');
+      for (const e of nearby.slice(0, 3)) {
+        parts.push(`- ${e.description} (${e.location})`);
+      }
+    }
+  }
+
+  // Rumors
+  const rumors = ws.world_rumors || [];
+  if (rumors.length > 0) {
+    parts.push('WORLD RUMORS (NPCs may mention, travelers may whisper about):');
+    for (const r of rumors.slice(0, 3)) {
+      parts.push(`- "${r.rumor_text}" (from ${r.origin_location})`);
+    }
+  }
+
+  // Regional states
+  const regions = ws.regional_states || [];
+  if (regions.length > 0) {
+    parts.push('REGIONAL CONDITIONS:');
+    for (const r of regions) {
+      const conds = (r.environment_conditions as any)?.conditions || [];
+      parts.push(`- ${r.region_name}: danger ${r.danger_level}/10${conds.length ? ', ' + conds.join(', ') : ''}`);
+      if (r.npc_activity_summary) parts.push(`  NPC activity: ${r.npc_activity_summary}`);
+      if (r.faction_activity_summary) parts.push(`  Factions: ${r.faction_activity_summary}`);
+    }
+  }
+
+  if (parts.length === 0) return '';
+  return '\n\nLIVING WORLD STATE:\n' + parts.join('\n');
 }
 
 // ─── Pipeline Step: Update Sentiment in DB ─────────────────────
@@ -508,6 +591,11 @@ serve(async (req) => {
               trust: ctx.narrator_sentiment.trust,
             }
           : null,
+        living_world: {
+          active_events_count: (ctx.world_state.active_world_events || []).length,
+          rumors_count: (ctx.world_state.world_rumors || []).length,
+          danger_level: (ctx.world_state.regional_states || []).reduce((max: number, r: any) => Math.max(max, r.danger_level || 0), 0),
+        },
         pipeline_errors: ctx.errors.length > 0 ? ctx.errors : undefined,
       },
     };
