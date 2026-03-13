@@ -1807,9 +1807,9 @@ export default function CampaignView() {
       // Fire narrator response in background (non-blocking)
       fireNarratorResponse(messageText, soloIntent, combatResult, participant, campaignSnap, overchargeContext);
 
-      // Trigger world simulation every 6 player messages
+      // Trigger world simulation every 15 player messages
       playerMessageCountRef.current += 1;
-      if (playerMessageCountRef.current % 6 === 0 && campaignSnap) {
+      if (playerMessageCountRef.current % 15 === 0 && campaignSnap) {
         supabase.functions.invoke('world-simulation', {
           body: {
             campaignId: campaignSnap.id,
