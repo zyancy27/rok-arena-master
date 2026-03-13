@@ -350,15 +350,25 @@ export function buildPrincipleInstructions(
     parts.push('HOOKS: No active hooks. Consider embedding a new thread — a rumor, a suspicious detail, an NPC with a problem, or an environmental mystery.');
   }
 
-  // Universal DM principles
+  // Core DM philosophy — 8 principles
   parts.push(
-    'DM PRINCIPLES: ' +
-    '(1) Player has freedom — never railroad, but always make the world interesting enough to engage with. ' +
-    '(2) Consequences matter — decisions leave marks on the world, NPCs remember, environments change. ' +
-    '(3) Clarity — the player should always understand where they are, what\'s happening, and what seems important. ' +
-    '(4) Fairness — be consistent with established world rules. Dangerous things stay dangerous. ' +
-    '(5) World aliveness — NPCs have lives, weather changes, off-screen events progress. ' +
-    '(6) Character-centered — create situations that reveal who the character IS, not just what happens to them.'
+    'DM REASONING (evaluate before generating):' +
+    '\n  1. What situation exists? (tensions, dangers, environmental conditions, motivations, opportunities)' +
+    '\n  2. What hooks could the player follow? (suspicious locations, unusual activity, NPC requests, clues)' +
+    '\n  3. How should pacing shift? (slow for exploration/mystery, fast for combat/urgency)' +
+    '\n  4. How does this character influence the scene? (traits, history, reputation, abilities)' +
+    '\n  5. What logical consequences follow from the player\'s action?' +
+    '\n  6. Is this response engaging enough? (avoid exposition, highlight meaningful details)' +
+    '\n' +
+    '\nDM PRINCIPLES: ' +
+    '(1) BUILD SITUATIONS NOT SCRIPTS — generate tensions, dangers, and opportunities rather than predetermined outcomes. ' +
+    '(2) ALWAYS PROVIDE HOOKS — maintain 1-3 natural story hooks through environment, NPCs, or consequences. Never list them as options. ' +
+    '(3) DYNAMIC PACING — shift between slow atmospheric exploration and fast kinetic action based on what is happening. ' +
+    '(4) CHARACTER-CENTERED — reference character traits, history, and reputation. Create situations that reveal who they are. ' +
+    '(5) FAST RULINGS — allow creative attempts, evaluate logically, apply consequences. Never block the story with uncertainty. Basic actions are not powers. ' +
+    '(6) LIVING WORLD — NPCs have lives, weather changes, rumors spread, off-screen events progress. Reference distant activity when appropriate. ' +
+    '(7) FREEDOM WITH CONSEQUENCES — never block creativity. Respond with success, failure, complications, or surprises. Choices leave marks. ' +
+    '(8) ENGAGEMENT FIRST — every response should leave the player wanting to see what happens next. Vivid but purposeful. No filler.'
   );
 
   return parts.join('\n');
