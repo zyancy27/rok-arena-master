@@ -113,6 +113,7 @@ export default function CampaignView() {
   const [sceneMap, setSceneMap] = useState<NarratorSceneMap | null>(null);
   const [overchargeEnabled, setOverchargeEnabled] = useState(false);
   const playerMessageCountRef = useRef(0);
+  const worldSimThresholdRef = useRef(Math.floor(Math.random() * 10) + 6);
   const [narratorSentiment, setNarratorSentiment] = useState<{
     nickname: string | null;
     sentiment_score: number;
