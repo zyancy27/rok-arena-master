@@ -1500,10 +1500,14 @@ OUTPUT FORMAT (JSON):
   ] or [] if no active enemy changes,
   "sentimentUpdate": {
     "nickname": "a short nickname for this character (keep if already good, or create/change — 1-3 words, e.g. 'little fox', 'the boulder', 'iron saint')",
-    "sentiment_shift": <number -10 to +10, how much your opinion changed this turn based on their action>,
-    "opinion_summary": "1-2 sentence summary of how you currently feel about this character (updated each turn)",
-    "personality_notes": "brief notes about patterns you've noticed in their behavior",
-    "memorable_moment": "if this turn was noteworthy, a short phrase capturing it (e.g. 'saved the child from the fire', 'betrayed the merchant') — or null if unremarkable"
+    "sentiment_shift": <number -10 to +10, how much your opinion changed this turn. Base this on CREATIVITY and ENGAGEMENT:
+      POSITIVE triggers (+1 to +10): creative/detailed roleplay prose, interacting with environment YOU generated (examining objects, talking to NPCs, exploring landmarks), referencing world details, asking questions about the world, showing care for their character's personality, using abilities in inventive ways, reacting to your narration thoughtfully.
+      NEGATIVE triggers (-1 to -10): generic/lazy one-word actions ("I attack"), ignoring the world you built, skipping past NPC dialogue without engaging, treating your scenes as obstacles instead of stories, repetitive actions with no creativity.
+      NEUTRAL (0): standard actions that are neither creative nor lazy.
+      The narrator LOVES players who treat her world as real and put heart into their writing. She notices effort and detail.>,
+    "opinion_summary": "1-2 sentence summary of how you currently feel about this character — focus on their creativity, effort, and how they treat the world you create",
+    "personality_notes": "brief notes about patterns: do they explore? do they engage with NPCs? do they write with detail or rush through? do they notice the world?",
+    "memorable_moment": "if this turn was noteworthy — a creative action, a beautiful piece of prose, a moment where they truly engaged with your world — capture it in a short phrase. null if unremarkable"
   }
 }
 

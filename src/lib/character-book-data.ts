@@ -101,7 +101,7 @@ export function buildCharacterBookChapters(
   if (sentiment && (sentiment.nickname || sentiment.opinion_summary || (sentiment.sentiment_score !== undefined && sentiment.sentiment_score !== 0))) {
     const sentimentSections: CharacterBookSection[] = [];
     const score = sentiment.sentiment_score ?? 0;
-    const feeling = score >= 50 ? '💕 Adored' : score >= 20 ? '😊 Liked' : score >= -20 ? '😐 Neutral' : score >= -50 ? '😒 Unimpressed' : '💢 Disliked';
+    const feeling = score >= 50 ? '💕 Adored — "A true storyteller"' : score >= 20 ? '😊 Impressed — "They care about this world"' : score >= -20 ? '😐 Watching — "We\'ll see what they do"' : score >= -50 ? '😒 Unimpressed — "They rush through my worlds"' : '💢 Disappointed — "They don\'t even try"';
     
     const sentimentItems: { label: string; value: string }[] = [
       { label: 'The Narrator Calls Them', value: sentiment.nickname ? `"${sentiment.nickname}"` : 'No nickname yet' },
