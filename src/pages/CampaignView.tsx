@@ -649,7 +649,7 @@ export default function CampaignView() {
       .from('campaign_enemies' as any)
       .select('*')
       .eq('campaign_id', campaignId)
-      .in('status', ['active', 'hiding'])
+      .in('status', ['active', 'hiding', 'defeated', 'fled'])
       .order('created_at', { ascending: true });
     if (data) setCampaignEnemies(data as unknown as CampaignEnemy[]);
   };
@@ -1272,25 +1272,33 @@ export default function CampaignView() {
           fetchInventory();
         }
 
-        // Handle items consumed/used/given away
+        // Handle items consumed/used/given away — only if the player's message references the item
         if (data.itemsUsed && Array.isArray(data.itemsUsed) && data.itemsUsed.length > 0) {
+          const confirmedUsed: string[] = [];
           for (const usedItem of data.itemsUsed) {
-            // Find matching campaign inventory item by name (case-insensitive)
+            const itemName = (usedItem.name || '').toLowerCase();
+            if (!itemName) continue;
+            // Only remove if the player actually referenced the item in their message
+            const playerMentioned = messageText.toLowerCase().includes(itemName) ||
+              messageText.toLowerCase().includes(itemName.replace(/\s+/g, ''));
+            if (!playerMentioned) continue;
             const match = inventory.find(i =>
-              i.item_name.toLowerCase() === (usedItem.name || '').toLowerCase()
+              i.item_name.toLowerCase() === itemName
             );
             if (match) {
               await supabase.from('campaign_inventory').delete().eq('id', match.id);
+              confirmedUsed.push(usedItem.name);
             }
           }
-          const usedNames = data.itemsUsed.map((i: any) => i.name).join(', ');
-          await supabase.from('campaign_messages').insert({
-            campaign_id: snapshotCampaign.id,
-            sender_type: 'system',
-            content: `📦 Items used: ${usedNames}`,
-            channel: 'in_universe',
-          });
-          fetchInventory();
+          if (confirmedUsed.length > 0) {
+            await supabase.from('campaign_messages').insert({
+              campaign_id: snapshotCampaign.id,
+              sender_type: 'system',
+              content: `📦 Items used: ${confirmedUsed.join(', ')}`,
+              channel: 'in_universe',
+            });
+            fetchInventory();
+          }
         }
 
         // Persist NPC changes from AI response
@@ -1490,6 +1498,7 @@ export default function CampaignView() {
             .update({
               campaign_xp: currentXp,
               campaign_level: currentLevel,
+              xp_to_next_level: CAMPAIGN_STARTING_ABILITIES.xpForLevel(currentLevel + 1),
               available_stat_points: snapshotParticipant.available_stat_points + earnedStatPoints,
             })
             .eq('id', snapshotParticipant.id);
@@ -1803,6 +1812,28 @@ export default function CampaignView() {
             spawned_at_zone: campaign.current_zone,
             spawned_at_day: campaign.day_count,
           });
+          fetchEnemies();
+        }
+        // Handle enemy updates from advance story
+        if (data.enemyUpdates && Array.isArray(data.enemyUpdates)) {
+          for (const eu of data.enemyUpdates) {
+            if (!eu.id) continue;
+            const enemy = campaignEnemies.find(e => e.id === eu.id);
+            if (!enemy) continue;
+            const newHp = eu.hpChange ? Math.max(0, enemy.hp + eu.hpChange) : enemy.hp;
+            const newStatus = newHp <= 0 ? 'defeated' : (eu.status || enemy.status);
+            await supabase.from('campaign_enemies' as any)
+              .update({ hp: newHp, status: newStatus, last_action: eu.lastAction || null } as any)
+              .eq('id', eu.id);
+            if (newStatus === 'defeated' && enemy.status !== 'defeated') {
+              await supabase.from('campaign_messages').insert({
+                campaign_id: campaign.id,
+                sender_type: 'system',
+                content: `💀 **${enemy.name}** has been defeated!`,
+                channel: 'in_universe',
+              });
+            }
+          }
           fetchEnemies();
         }
       }
