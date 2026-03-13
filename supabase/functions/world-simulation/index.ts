@@ -705,6 +705,63 @@ Respond ONLY with valid JSON:
       updatedWorldState.lore_rules = lore;
     }
 
+    // Emergent events (from world conditions)
+    if (simulation.emergent_events?.length > 0) {
+      const emergent = updatedWorldState.emergent_events || [];
+      for (const ee of simulation.emergent_events.slice(0, 2)) {
+        emergent.push({
+          title: ee.title,
+          category: ee.category,
+          description: ee.description,
+          cause: ee.cause,
+          urgency: ee.urgency || 'developing',
+          gravity: Math.min(10, Math.max(1, ee.gravity || 5)),
+          affected_npcs: ee.affected_npcs || [],
+          escalation: ee.escalation || '',
+          region: ee.region || currentZone,
+          day: dayCount,
+          resolved: false,
+        });
+      }
+      // Keep only recent unresolved + cap
+      updatedWorldState.emergent_events = emergent
+        .filter((e: any) => !e.resolved)
+        .slice(-15);
+    }
+
+    // Character identity discovery observations
+    if (simulation.character_identity_observations?.length > 0) {
+      const identity = updatedWorldState.character_identity_discovery || {
+        emerging_tendencies: [],
+        pending_reflection: null,
+      };
+      const tendencies = identity.emerging_tendencies || [];
+      for (const obs of simulation.character_identity_observations.slice(0, 3)) {
+        const existing = tendencies.find((t: any) => t.tendency === obs.tendency);
+        if (existing) {
+          existing.confidence = Math.min(100, Math.max(0, obs.confidence || existing.confidence));
+          existing.count = (existing.count || 0) + (obs.observation_count || 1);
+          existing.last_example = obs.example_action || existing.last_example;
+        } else {
+          tendencies.push({
+            tendency: obs.tendency,
+            confidence: Math.min(100, Math.max(0, obs.confidence || 15)),
+            count: obs.observation_count || 1,
+            last_example: obs.example_action || '',
+          });
+        }
+        // Set reflection if provided and confidence is high enough
+        if (obs.narrator_reflection && (obs.confidence || 0) >= 40) {
+          identity.pending_reflection = obs.narrator_reflection;
+        }
+      }
+      // Sort by confidence, keep top tendencies
+      identity.emerging_tendencies = tendencies
+        .sort((a: any, b: any) => (b.confidence || 0) - (a.confidence || 0))
+        .slice(0, 8);
+      updatedWorldState.character_identity_discovery = identity;
+    }
+
     // Persist updated world_state and story_context to campaign
     dbOps.push(
       supabaseAdmin.from('campaigns').update({
