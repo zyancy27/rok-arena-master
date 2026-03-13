@@ -649,7 +649,7 @@ export default function CampaignView() {
       .from('campaign_enemies' as any)
       .select('*')
       .eq('campaign_id', campaignId)
-      .in('status', ['active', 'hiding'])
+      .in('status', ['active', 'hiding', 'defeated', 'fled'])
       .order('created_at', { ascending: true });
     if (data) setCampaignEnemies(data as unknown as CampaignEnemy[]);
   };
