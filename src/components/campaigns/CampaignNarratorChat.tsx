@@ -124,7 +124,8 @@ export default function CampaignNarratorChat({
   const [partyOpen, setPartyOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [showMap, setShowMap] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesViewportRef = useRef<HTMLDivElement>(null);
+  const userIsNearBottomRef = useRef(true);
 
   // Force tactical map regeneration when zone/location changes
   const mapLocationKey = chosenLocation || currentZone || campaignName;
@@ -158,14 +159,16 @@ export default function CampaignNarratorChat({
     }
   }, [mechanicDiscoveries.length]);
 
-  const scrollToBottom = () => {
-    setTimeout(() => {
-      scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    const viewport = messagesViewportRef.current;
+    if (!viewport) return;
+    viewport.scrollTo({ top: viewport.scrollHeight, behavior });
   };
 
   useEffect(() => {
-    scrollToBottom();
+    if (!userIsNearBottomRef.current) return;
+    const timer = setTimeout(() => scrollToBottom('smooth'), 50);
+    return () => clearTimeout(timer);
   }, [messages]);
 
   const sendNarratorQuery = async (queryText: string) => {
