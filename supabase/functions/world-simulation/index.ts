@@ -355,6 +355,28 @@ Respond ONLY with valid JSON:
       "rule": "<rule text>",
       "priority": <1-10>
     }
+  ],
+  "emergent_events": [
+    {
+      "title": "<event name>",
+      "category": "<security|economy|environment|social|discovery|faction|creature|infrastructure>",
+      "description": "<1-2 sentences>",
+      "cause": "<clear reason this happened>",
+      "urgency": "<background|developing|imminent|active>",
+      "gravity": <1-10>,
+      "affected_npcs": ["<names>"],
+      "escalation": "<what happens if ignored>",
+      "region": "<region name>"
+    }
+  ],
+  "character_identity_observations": [
+    {
+      "tendency": "<protective|curious|cautious|reckless|compassionate|cold|stubborn|prideful|loyal|self_sacrificing|opportunistic|diplomatic|analytical|instinctive|defiant>",
+      "confidence": <0-100>,
+      "example_action": "<brief description of what the player did>",
+      "observation_count": <number>,
+      "narrator_reflection": "<subtle reflection line or null>"
+    }
   ]
 }`;
 
