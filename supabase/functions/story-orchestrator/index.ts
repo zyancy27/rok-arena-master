@@ -376,6 +376,146 @@ async function callBattleNarrator(
   }
 }
 
+// ─── Tension Classification (Server-side Pressure Engine v2) ──
+type TensionLevel = 'low_pressure' | 'rising_tension' | 'urgent_danger' | 'crisis' | 'aftermath';
+
+interface TensionClassification {
+  level: TensionLevel;
+  intensity: number;
+  guidance: { tone: string; pacing: string; npcUrgency: string; environmentEmphasis: string; detailFocus: string };
+  sources: string[];
+}
+
+function classifyServerTension(ctx: OrchestratorContext): TensionClassification {
+  let intensity = 0;
+  const sources: string[] = [];
+
+  // Enemy threat
+  const enemies = ctx.active_enemies?.length || 0;
+  if (enemies > 0) { intensity += Math.min(40, enemies * 15); sources.push(`enemy_threat:${enemies}`); }
+
+  // Environmental danger
+  const dangerLevel = (ctx.world_state?.regional_states || []).reduce((max: number, r: any) => Math.max(max, r.danger_level || 0), 0);
+  if (dangerLevel >= 4) { intensity += dangerLevel * 5; sources.push(`environmental_danger:${dangerLevel}`); }
+
+  // Faction conflicts
+  const factions = ctx.world_state?.regional_states?.reduce((sum: number, r: any) => {
+    const fa = r.faction_activity_summary;
+    return sum + (fa && /conflict|war|tension|dispute/i.test(fa) ? 1 : 0);
+  }, 0) || 0;
+  if (factions > 0) { intensity += factions * 12; sources.push(`world_instability:${factions}`); }
+
+  // Unresolved events
+  const unresolvedCount = (ctx.world_state?.active_world_events || []).length;
+  if (unresolvedCount >= 2) { intensity += unresolvedCount * 6; sources.push(`uncertainty:${unresolvedCount}`); }
+
+  intensity = Math.min(100, intensity);
+
+  // Tension guidance map
+  const GUIDANCE: Record<TensionLevel, TensionClassification['guidance']> = {
+    low_pressure: { tone: 'Calm, reflective', pacing: 'Slow and atmospheric', npcUrgency: 'Relaxed, routine', environmentEmphasis: 'Ambient details, beauty, subtle foreshadowing', detailFocus: 'Character moments, world-building' },
+    rising_tension: { tone: 'Uneasy, something building', pacing: 'Measured but alert', npcUrgency: 'Wary, conversations have edge', environmentEmphasis: 'Signs of change — shifting winds, distant sounds', detailFocus: 'Threats just out of sight' },
+    urgent_danger: { tone: 'Intense and focused', pacing: 'Fast, short sentences', npcUrgency: 'Alarmed, seeking shelter or sides', environmentEmphasis: 'Hostile terrain, closing opportunities', detailFocus: 'Immediate threats, tactical options' },
+    crisis: { tone: 'Maximum intensity', pacing: 'Urgent, kinetic', npcUrgency: 'Panicking, fleeing, fighting', environmentEmphasis: 'Active destruction, collapsing terrain', detailFocus: 'Survival, sacrifice, what the character protects' },
+    aftermath: { tone: 'Quiet weight, the storm passed', pacing: 'Slow, heavy', npcUrgency: 'Stunned, grieving, cautiously hopeful', environmentEmphasis: 'Damage, debris, changed landscape', detailFocus: 'Consequences, reflection, identity after the storm' },
+  };
+
+  let level: TensionLevel;
+  if (intensity >= 71) level = 'crisis';
+  else if (intensity >= 46) level = 'urgent_danger';
+  else if (intensity >= 21) level = 'rising_tension';
+  else level = 'low_pressure';
+
+  return { level, intensity, guidance: GUIDANCE[level], sources };
+}
+
+// ─── Emergent Events Detection (Server-side) ──────────────────
+interface EmergentEventHint {
+  title: string;
+  description: string;
+  cause: string;
+  gravity: number;
+  urgency: string;
+}
+
+function detectEmergentHints(ctx: OrchestratorContext): EmergentEventHint[] {
+  const hints: EmergentEventHint[] = [];
+  const regions = ctx.world_state?.regional_states || [];
+  const events = ctx.world_state?.active_world_events || [];
+
+  for (const region of regions) {
+    const danger = region.danger_level || 0;
+    const factionStr = region.faction_activity_summary || '';
+    const hasFactionConflict = /conflict|war|tension|dispute/i.test(factionStr);
+
+    // Security events from low guard presence + high danger
+    if (danger >= 5 && !events.some((e: any) => e.event_type === 'bandit_activity' && e.location === region.region_name)) {
+      hints.push({
+        title: 'Security deteriorating',
+        description: `Danger level ${danger}/10 in ${region.region_name} with insufficient security response`,
+        cause: `Sustained high danger without adequate guard presence`,
+        gravity: Math.min(9, danger + 1),
+        urgency: danger >= 7 ? 'imminent' : 'developing',
+      });
+    }
+
+    // Faction power shifts
+    if (hasFactionConflict) {
+      hints.push({
+        title: 'Faction tensions escalating',
+        description: `${factionStr} in ${region.region_name}`,
+        cause: 'Unresolved faction disputes',
+        gravity: 7,
+        urgency: 'developing',
+      });
+    }
+  }
+
+  // Economy-driven events from world_state
+  const ws = ctx.campaign_state?.world_state || {};
+  const economy = ws.economy || {};
+  for (const [key, val] of Object.entries(economy)) {
+    const e = val as any;
+    if (e.price_modifier > 1.5) {
+      hints.push({
+        title: `${key} shortage`,
+        description: `Severe price spike in ${key} (×${e.price_modifier.toFixed(1)})`,
+        cause: e.reason || 'Supply disruption',
+        gravity: 6,
+        urgency: e.price_modifier > 2.0 ? 'active' : 'developing',
+      });
+    }
+  }
+
+  return hints.slice(0, 4); // cap
+}
+
+// ─── Character Identity Discovery Context (Server-side) ───────
+function buildIdentityDiscoveryContext(ctx: OrchestratorContext): string {
+  const ws = ctx.campaign_state?.world_state || {};
+  const identity = ws.character_identity_discovery;
+  if (!identity) return '';
+
+  const parts: string[] = [];
+  const tendencies = identity.emerging_tendencies || [];
+  if (tendencies.length > 0) {
+    parts.push('CHARACTER TENDENCIES (observed through behavior, NOT assigned):');
+    for (const t of tendencies) {
+      parts.push(`- ${t.tendency}: observed ${t.count || '?'} times (confidence: ${t.confidence || '?'}%)`);
+    }
+    parts.push('These can shift. Do NOT announce them. Reflect them subtly in narration.');
+    parts.push('The character discovers who they are through play. Never force an arc or destiny.');
+  }
+
+  const reflection = identity.pending_reflection;
+  if (reflection) {
+    parts.push(`\nIDENTITY REFLECTION (weave naturally if appropriate):`);
+    parts.push(`"${reflection}"`);
+  }
+
+  return parts.join('\n');
+}
+
 // ─── Build Living World Context for Narrator (with Priority Gating) ──
 function buildLivingWorldContext(ctx: OrchestratorContext): string {
   const parts: string[] = [];
@@ -384,9 +524,22 @@ function buildLivingWorldContext(ctx: OrchestratorContext): string {
   const directive = ctx.narrative_directive;
   const suppressed = new Set(ps.suppressedSystems);
 
+  // ── TENSION CLASSIFICATION (Narrative Pressure Engine v2) ──
+  const tension = classifyServerTension(ctx);
+  parts.push(`NARRATIVE TENSION: ${tension.level.replace(/_/g, ' ').toUpperCase()} (intensity: ${tension.intensity}/100)`);
+  parts.push(`Tone: ${tension.guidance.tone}`);
+  parts.push(`Pacing: ${tension.guidance.pacing}`);
+  parts.push(`NPC behavior: ${tension.guidance.npcUrgency}`);
+  parts.push(`Environment focus: ${tension.guidance.environmentEmphasis}`);
+  parts.push(`Detail focus: ${tension.guidance.detailFocus}`);
+  if (tension.sources.length > 0) {
+    parts.push(`Pressure sources: ${tension.sources.join(', ')}`);
+  }
+  parts.push('Tension creates situations that REVEAL character. Never remove player freedom.');
+
   // ── NARRATIVE DIRECTOR FRAME ──
   if (directive) {
-    parts.push(`NARRATIVE DIRECTOR:`);
+    parts.push(`\nNARRATIVE DIRECTOR:`);
     parts.push(`MODE: ${directive.mode.toUpperCase()} | TONE: ${directive.tone} | PACING: ${directive.pacing}`);
     parts.push(`EMPHASIZE: ${directive.emphasize.join(', ')}`);
     parts.push(`MINIMIZE: ${directive.deemphasize.join(', ')}`);
@@ -396,6 +549,23 @@ function buildLivingWorldContext(ctx: OrchestratorContext): string {
   parts.push(`\nNARRATIVE PRIORITY: ${ps.activeFocuses.join(' > ')}`);
   if (ps.suppressedSystems.length > 0) {
     parts.push(`SUPPRESSED (do not emphasize): ${ps.suppressedSystems.join(', ')}`);
+  }
+
+  // ── EMERGENT EVENTS (world-condition-driven) ──
+  const emergentHints = detectEmergentHints(ctx);
+  if (emergentHints.length > 0) {
+    parts.push('\nEMERGENT WORLD EVENTS (arose from world conditions, not scripted):');
+    for (const e of emergentHints) {
+      parts.push(`- "${e.title}" (gravity: ${e.gravity}/10, ${e.urgency}): ${e.description}`);
+      parts.push(`  Cause: ${e.cause}`);
+    }
+    parts.push('Reference these naturally. They are logical consequences of world state.');
+  }
+
+  // ── CHARACTER IDENTITY DISCOVERY ──
+  const identityCtx = buildIdentityDiscoveryContext(ctx);
+  if (identityCtx) {
+    parts.push(`\n${identityCtx}`);
   }
 
   // ── ACTIVE WORLD EVENTS (only if not suppressed) ──
@@ -528,6 +698,12 @@ function buildLivingWorldContext(ctx: OrchestratorContext): string {
     }
   }
 
+  // ── NARRATIVE PHILOSOPHY ──
+  parts.push('\nNARRATIVE PHILOSOPHY:');
+  parts.push('- The world creates situations. The player responds. The system observes. The narrator reflects.');
+  parts.push('- No forced arcs. No destiny. Character-driven storytelling through interaction and consequence.');
+  parts.push('- Player freedom is absolute. The world reacts logically to choices.');
+
   // ── DM SITUATION FRAME (condensed, priority-aware) ──
   if (parts.length > 0) {
     const dangerMax = (ws.regional_states || []).reduce((max: number, r: any) => Math.max(max, r.danger_level || 0), 0);
@@ -559,6 +735,8 @@ function buildLivingWorldContext(ctx: OrchestratorContext): string {
     parts.push('- CREATIVITY RECOGNITION: Reward creative solutions with richer narrative responses.');
     parts.push('- CHARACTER PSYCHOLOGY: Reflect emotional state and trauma in character behavior.');
     parts.push('- LORE CONSISTENCY: Never contradict established world rules or character background.');
+    parts.push('- IDENTITY DISCOVERY: Observe character patterns. Reflect subtly. Never force outcomes.');
+    parts.push('- EMERGENT EVENTS: World events emerge from conditions. Reference their causes naturally.');
   }
 
   if (parts.length === 0) return '';
