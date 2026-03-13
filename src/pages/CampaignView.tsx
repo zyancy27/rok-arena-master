@@ -554,6 +554,23 @@ export default function CampaignView() {
         opinion_summary: (data as any).opinion_summary,
         personality_notes: (data as any).personality_notes,
         memorable_moments: (data as any).memorable_moments || [],
+        relationship_stage: (data as any).relationship_stage,
+        curiosity: (data as any).curiosity,
+        respect: (data as any).respect,
+        trust: (data as any).trust,
+        amusement: (data as any).amusement,
+        disappointment: (data as any).disappointment,
+        intrigue: (data as any).intrigue,
+        story_value: (data as any).story_value,
+        creativity_score: (data as any).creativity_score,
+        world_interaction_score: (data as any).world_interaction_score,
+        npc_interaction_score: (data as any).npc_interaction_score,
+        exploration_score: (data as any).exploration_score,
+        combat_style_score: (data as any).combat_style_score,
+        story_engagement_score: (data as any).story_engagement_score,
+        story_compatibility: (data as any).story_compatibility,
+        narrator_observations: (data as any).narrator_observations || [],
+        nickname_history: (data as any).nickname_history || [],
       });
     }
   };
