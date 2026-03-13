@@ -1687,37 +1687,88 @@ export type Database = {
       }
       narrator_sentiments: {
         Row: {
+          amusement: number
           character_id: string
+          combat_style_score: number
           created_at: string
+          creativity_score: number
+          curiosity: number
+          disappointment: number
+          exploration_score: number
           id: string
+          intrigue: number
           memorable_moments: string[]
+          narrator_observations: string[]
           nickname: string | null
+          nickname_history: string[]
+          npc_interaction_score: number
           opinion_summary: string | null
           personality_notes: string | null
+          relationship_stage: string
+          respect: number
           sentiment_score: number
+          story_compatibility: number
+          story_engagement_score: number
+          story_value: number
+          trust: number
           updated_at: string
+          world_interaction_score: number
         }
         Insert: {
+          amusement?: number
           character_id: string
+          combat_style_score?: number
           created_at?: string
+          creativity_score?: number
+          curiosity?: number
+          disappointment?: number
+          exploration_score?: number
           id?: string
+          intrigue?: number
           memorable_moments?: string[]
+          narrator_observations?: string[]
           nickname?: string | null
+          nickname_history?: string[]
+          npc_interaction_score?: number
           opinion_summary?: string | null
           personality_notes?: string | null
+          relationship_stage?: string
+          respect?: number
           sentiment_score?: number
+          story_compatibility?: number
+          story_engagement_score?: number
+          story_value?: number
+          trust?: number
           updated_at?: string
+          world_interaction_score?: number
         }
         Update: {
+          amusement?: number
           character_id?: string
+          combat_style_score?: number
           created_at?: string
+          creativity_score?: number
+          curiosity?: number
+          disappointment?: number
+          exploration_score?: number
           id?: string
+          intrigue?: number
           memorable_moments?: string[]
+          narrator_observations?: string[]
           nickname?: string | null
+          nickname_history?: string[]
+          npc_interaction_score?: number
           opinion_summary?: string | null
           personality_notes?: string | null
+          relationship_stage?: string
+          respect?: number
           sentiment_score?: number
+          story_compatibility?: number
+          story_engagement_score?: number
+          story_value?: number
+          trust?: number
           updated_at?: string
+          world_interaction_score?: number
         }
         Relationships: [
           {
