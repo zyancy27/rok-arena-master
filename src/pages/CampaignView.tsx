@@ -112,6 +112,7 @@ export default function CampaignView() {
   const [showStatAllocation, setShowStatAllocation] = useState(false);
   const [sceneMap, setSceneMap] = useState<NarratorSceneMap | null>(null);
   const [overchargeEnabled, setOverchargeEnabled] = useState(false);
+  const playerMessageCountRef = useRef(0);
   const [narratorSentiment, setNarratorSentiment] = useState<{
     nickname: string | null;
     sentiment_score: number;
