@@ -22,6 +22,8 @@ export type MechanicKey =
   | 'mental_attack'
   | 'charge_attack'
   | 'overcharge'
+  | 'momentum'
+  | 'psychology'
   // Campaign-specific mechanics
   | 'campaign_xp'
   | 'campaign_level_up'
