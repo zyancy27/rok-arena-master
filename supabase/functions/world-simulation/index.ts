@@ -837,6 +837,84 @@ Respond ONLY with valid JSON:
       updatedWorldState.character_identity_discovery = identity;
     }
 
+    // Character contradictions
+    if (simulation.character_contradictions?.recurring_shifts?.length > 0) {
+      updatedWorldState.character_contradictions = {
+        recurring_shifts: simulation.character_contradictions.recurring_shifts.slice(0, 5),
+      };
+    }
+
+    // Values under pressure
+    if (simulation.values_under_pressure?.top_values?.length > 0) {
+      updatedWorldState.character_values = {
+        top_values: simulation.values_under_pressure.top_values.slice(0, 5),
+        recent_dilemma: simulation.values_under_pressure.recent_dilemma || null,
+      };
+    }
+
+    // Personal triggers
+    if (simulation.personal_triggers?.active_triggers?.length > 0) {
+      updatedWorldState.personal_triggers = {
+        active_triggers: simulation.personal_triggers.active_triggers.slice(0, 8),
+      };
+    }
+
+    // Silence patterns
+    if (simulation.silence_patterns?.patterns?.length > 0) {
+      const existing = updatedWorldState.character_silence?.patterns || [];
+      for (const sp of simulation.silence_patterns.patterns) {
+        const ex = existing.find((e: any) => e.subject === sp.subject);
+        if (ex) { ex.count = (ex.count || 0) + (sp.count || 1); }
+        else { existing.push({ subject: sp.subject, category: sp.category, count: sp.count || 1 }); }
+      }
+      updatedWorldState.character_silence = { patterns: existing.slice(0, 10) };
+    }
+
+    // Reputation updates
+    if (simulation.reputation_updates?.length > 0) {
+      const repId = updatedWorldState.reputation_vs_identity || { reputation: [], conflicts: [] };
+      for (const ru of simulation.reputation_updates.slice(0, 3)) {
+        const ex = repId.reputation.find((r: any) => r.trait === ru.trait && r.region === ru.region);
+        if (ex) { ex.strength = Math.min(100, (ex.strength || 0) + (ru.strength || 10) * 0.3); }
+        else { repId.reputation.push({ trait: ru.trait, strength: ru.strength || 30, source: ru.source, region: ru.region }); }
+      }
+      // Detect conflicts with identity
+      const tendencies = (updatedWorldState.character_identity_discovery?.emerging_tendencies || []).map((t: any) => t.tendency);
+      if (tendencies.length > 0) {
+        const OPPOSITES: Record<string, string[]> = {
+          dangerous: ['compassionate', 'diplomatic', 'protective'],
+          merciless: ['compassionate', 'self_sacrificing', 'protective'],
+          feared: ['compassionate', 'diplomatic'],
+          cowardly: ['defiant', 'protective', 'self_sacrificing'],
+          heroic: ['cold', 'opportunistic'],
+        };
+        repId.conflicts = [];
+        for (const r of repId.reputation) {
+          const opps = OPPOSITES[r.trait] || [];
+          for (const t of tendencies) {
+            if (opps.includes(t)) {
+              repId.conflicts.push({ reputation: r.trait, identity: t, divergence: Math.min(100, (r.strength || 30) * 0.7 + 30) });
+            }
+          }
+        }
+      }
+      updatedWorldState.reputation_vs_identity = repId;
+    }
+
+    // Memory weight events
+    if (simulation.memory_weight_events?.length > 0) {
+      const memWeight = updatedWorldState.memory_weight || { defining_moments: [], major_memories: [] };
+      for (const mw of simulation.memory_weight_events.slice(0, 2)) {
+        const entry = { event: mw.event, weight: mw.weight, factors: mw.factors, valence: mw.valence, day: dayCount };
+        if (mw.is_defining || mw.weight >= 70) {
+          memWeight.defining_moments = [...(memWeight.defining_moments || []), entry].slice(-5);
+        } else {
+          memWeight.major_memories = [...(memWeight.major_memories || []), entry].slice(-10);
+        }
+      }
+      updatedWorldState.memory_weight = memWeight;
+    }
+
     // Persist updated world_state and story_context to campaign
     dbOps.push(
       supabaseAdmin.from('campaigns').update({
