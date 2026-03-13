@@ -207,6 +207,18 @@ Generate ALL of the following in a single JSON response. Each system feeds into 
 
 19. CHARACTER IDENTITY OBSERVATIONS (0-3): Based on recent player actions, observe behavioral patterns WITHOUT assigning destiny. Track tendencies like: protective, curious, cautious, reckless, compassionate, cold, stubborn, prideful, loyal, self_sacrificing, opportunistic. These are evolving observations, not fixed traits. Include a confidence percentage and a brief example action. If a pattern is strong enough, suggest a subtle narrator reflection line.
 
+20. CHARACTER CONTRADICTIONS (0-2): Detect when recent player actions CONTRADICT established behavioral tendencies. If the character is usually cautious but just charged recklessly, note it. Include whether it indicates growth, stress, emotional shift, or surprise. These are NOT judgments — they are observations.
+
+21. VALUES UNDER PRESSURE (0-3): Based on choices made during intense moments (combat, danger, moral dilemmas), identify what the character PROTECTS or PRIORITIZES. Values: survival, loyalty, honor, truth, mercy, power, freedom, duty, justice, curiosity, family, knowledge, pride, compassion, order. Track what was chosen OVER what.
+
+22. PERSONAL TRIGGERS (0-3): Using character timeline and past events, identify keywords, locations, symbols, sounds, or objects in the current environment that connect to character history. Generate a subtle resonance line the narrator can use.
+
+23. SILENCE PATTERNS (0-2): If the player has been avoiding certain topics, people, or decisions, note the pattern. Silence is storytelling.
+
+24. REPUTATION UPDATES (0-3): Track how the world's perception of the character changes based on actions. Reputation traits: dangerous, heroic, reckless, honorable, unpredictable, merciless, wise, cowardly, mysterious, trustworthy, cunning, generous, ruthless, kind, feared, respected.
+
+25. MEMORY WEIGHT EVENTS (0-2): Determine which recent events are significant enough to become weighted memories. Factor in: emotional intensity, first experiences, relationship changes, identity revelations, survival threats, loss, betrayal, sacrifice, discovery, moral choices. Assign weight 0-100 and mark truly pivotal ones as defining.
+
 Respond ONLY with valid JSON:
 {
   "world_events": [
