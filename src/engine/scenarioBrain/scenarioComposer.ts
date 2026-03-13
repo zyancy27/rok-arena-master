@@ -144,8 +144,6 @@ export function composeScenario(
     tags: deriveTagsFromScenario(environment, situation, hazards),
     situationLayer: buildSituationLayer(environment, situation, hazards, urgency, rng),
   };
-    tags: deriveTagsFromScenario(environment, situation, hazards),
-  };
 }
 
 // ── Tag Derivation ──────────────────────────────────────────────
