@@ -582,6 +582,10 @@ export type Database = {
           last_seen_day: number | null
           metadata: Json | null
           name: string
+          npc_current_activity: string | null
+          npc_goal: string | null
+          npc_motivation: string | null
+          npc_relationships: Json
           personality: string | null
           role: string
           status: string
@@ -598,6 +602,10 @@ export type Database = {
           last_seen_day?: number | null
           metadata?: Json | null
           name: string
+          npc_current_activity?: string | null
+          npc_goal?: string | null
+          npc_motivation?: string | null
+          npc_relationships?: Json
           personality?: string | null
           role?: string
           status?: string
@@ -614,6 +622,10 @@ export type Database = {
           last_seen_day?: number | null
           metadata?: Json | null
           name?: string
+          npc_current_activity?: string | null
+          npc_goal?: string | null
+          npc_motivation?: string | null
+          npc_relationships?: Json
           personality?: string | null
           role?: string
           status?: string
@@ -1480,6 +1492,56 @@ export type Database = {
           id?: number
         }
         Relationships: []
+      }
+      factions: {
+        Row: {
+          allies: Json
+          campaign_id: string
+          created_at: string
+          current_conflicts: Json
+          faction_goals: string | null
+          faction_name: string
+          id: string
+          military_strength: number
+          rivals: Json
+          territory_regions: Json
+          updated_at: string
+        }
+        Insert: {
+          allies?: Json
+          campaign_id: string
+          created_at?: string
+          current_conflicts?: Json
+          faction_goals?: string | null
+          faction_name: string
+          id?: string
+          military_strength?: number
+          rivals?: Json
+          territory_regions?: Json
+          updated_at?: string
+        }
+        Update: {
+          allies?: Json
+          campaign_id?: string
+          created_at?: string
+          current_conflicts?: Json
+          faction_goals?: string | null
+          faction_name?: string
+          id?: string
+          military_strength?: number
+          rivals?: Json
+          territory_regions?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "factions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       friendships: {
         Row: {
@@ -2376,6 +2438,154 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      world_events: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          description: string
+          event_type: string
+          id: string
+          impact_level: number
+          location: string | null
+          participants: Json
+          player_proximity: number
+          resolved: boolean
+          story_relevance: number
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          description?: string
+          event_type?: string
+          id?: string
+          impact_level?: number
+          location?: string | null
+          participants?: Json
+          player_proximity?: number
+          resolved?: boolean
+          story_relevance?: number
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          description?: string
+          event_type?: string
+          id?: string
+          impact_level?: number
+          location?: string | null
+          participants?: Json
+          player_proximity?: number
+          resolved?: boolean
+          story_relevance?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "world_events_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      world_rumors: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          id: string
+          origin_location: string | null
+          related_event_id: string | null
+          rumor_text: string
+          spread_level: number
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          id?: string
+          origin_location?: string | null
+          related_event_id?: string | null
+          rumor_text: string
+          spread_level?: number
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          origin_location?: string | null
+          related_event_id?: string | null
+          rumor_text?: string
+          spread_level?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "world_rumors_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "world_rumors_related_event_id_fkey"
+            columns: ["related_event_id"]
+            isOneToOne: false
+            referencedRelation: "world_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      world_state: {
+        Row: {
+          active_events: Json
+          campaign_id: string
+          created_at: string
+          danger_level: number
+          environment_conditions: Json
+          faction_activity_summary: string | null
+          id: string
+          last_simulated_at: string
+          npc_activity_summary: string | null
+          region_name: string
+          updated_at: string
+        }
+        Insert: {
+          active_events?: Json
+          campaign_id: string
+          created_at?: string
+          danger_level?: number
+          environment_conditions?: Json
+          faction_activity_summary?: string | null
+          id?: string
+          last_simulated_at?: string
+          npc_activity_summary?: string | null
+          region_name?: string
+          updated_at?: string
+        }
+        Update: {
+          active_events?: Json
+          campaign_id?: string
+          created_at?: string
+          danger_level?: number
+          environment_conditions?: Json
+          faction_activity_summary?: string | null
+          id?: string
+          last_simulated_at?: string
+          npc_activity_summary?: string | null
+          region_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "world_state_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
