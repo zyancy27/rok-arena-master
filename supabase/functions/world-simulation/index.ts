@@ -465,7 +465,7 @@ Respond ONLY with valid JSON:
         model: 'google/gemini-2.5-flash',
         messages: [{ role: 'user', content: simulationPrompt }],
         temperature: 0.9,
-        max_tokens: 3000,
+        max_tokens: 4500,
       }),
     });
 
