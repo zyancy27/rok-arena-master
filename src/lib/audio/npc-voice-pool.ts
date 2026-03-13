@@ -180,17 +180,28 @@ export function splitNarrationSegments(
       if (npcName && npcGenderMap) {
         gender = npcGenderMap[npcName.trim().toLowerCase()];
       }
-      if (!gender && npcName) {
-        // Infer from pronouns near the dialogue (look at ~80 chars before and after)
-        const contextStart = Math.max(0, match.index - 80);
-        const contextEnd = Math.min(text.length, match.index + match[0].length + 80);
+      if (!gender) {
+        // Infer from pronouns near the dialogue (look at ~150 chars before and after for better context)
+        const contextStart = Math.max(0, match.index - 150);
+        const contextEnd = Math.min(text.length, match.index + match[0].length + 150);
         const nearby = text.slice(contextStart, contextEnd).toLowerCase();
-        const femaleSignals = /\b(she|her|herself|woman|girl|lady|queen|princess|priestess|duchess|empress|matron|maiden|mother|sister|daughter|mistress|goddess)\b/i;
-        const maleSignals = /\b(he|his|himself|man|boy|lord|king|prince|priest|duke|emperor|father|brother|son|master|god)\b/i;
+        const femaleSignals = /\b(she|her|herself|woman|girl|lady|queen|princess|priestess|duchess|empress|matron|maiden|mother|sister|daughter|mistress|goddess|spectral\s*woman)\b/i;
+        const maleSignals = /\b(he\b|his\b|himself|man\b|boy|lord|king|prince|priest|duke|emperor|father|brother|son\b|master|god\b)\b/i;
         const hasFemale = femaleSignals.test(nearby);
         const hasMale = maleSignals.test(nearby);
         if (hasFemale && !hasMale) gender = 'female';
         else if (hasMale && !hasFemale) gender = 'male';
+        // When both signals present, prefer female if female signals are closer to the dialogue
+        else if (hasFemale && hasMale) {
+          const femaleMatch = nearby.match(femaleSignals);
+          const maleMatch = nearby.match(maleSignals);
+          if (femaleMatch && maleMatch) {
+            const dialoguePos = match.index - contextStart;
+            const femalePos = Math.abs((nearby.indexOf(femaleMatch[0])) - dialoguePos);
+            const malePos = Math.abs((nearby.indexOf(maleMatch[0])) - dialoguePos);
+            gender = femalePos <= malePos ? 'female' : 'male';
+          }
+        }
       }
 
       const voiceProfile = npcName
