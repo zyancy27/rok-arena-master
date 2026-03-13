@@ -594,3 +594,59 @@ export type {
   RelationshipEvent as RelSimEvent,
   RelationshipNetwork,
 } from './relationshipSimulation';
+
+// ── System 34 — Narrative Pressure Engine v2 ───────────────────
+export {
+  detectPressureSources,
+  classifyTension,
+  createPressureEngineV2State,
+  updatePressureEngine,
+  buildPressureV2NarratorContext,
+  buildPressureSimulationContext,
+} from './narrativePressureEngine_v2';
+export type {
+  PressureSourceType,
+  PressureSource as PressureSourceV2,
+  TensionLevel,
+  TensionClassification,
+  TensionGuidance,
+  PressureEngineV2State,
+} from './narrativePressureEngine_v2';
+
+// ── System 35 — Emergent Event Engine ──────────────────────────
+export {
+  createEmergentEventState,
+  shouldGenerateEvent,
+  generateEmergentEvent,
+  evolveEmergentEvents,
+  resolveEmergentEvent,
+  getActiveEmergentEvents,
+  buildEmergentEventNarratorContext,
+  buildEmergentSimulationContext,
+} from './emergentEventEngine';
+export type {
+  EmergentEventCategory,
+  EmergentEventUrgency,
+  EmergentEvent,
+  EmergentEventEngineState,
+  WorldConditions,
+} from './emergentEventEngine';
+
+// ── System 36 — Character Identity Discovery Engine ────────────
+export {
+  createDiscoveryProfile,
+  observeBehavior,
+  decayTendencies,
+  shouldReflect,
+  generateReflection as generateDiscoveryReflection,
+  buildDiscoveryNarratorContext,
+  buildDiscoverySummary,
+} from './characterIdentityDiscoveryEngine';
+export type {
+  CharacterTendency,
+  TendencyObservation,
+  DiscoveryProfile,
+  ObservationSource,
+  BehavioralObservation,
+  IdentityReflection,
+} from './characterIdentityDiscoveryEngine';
