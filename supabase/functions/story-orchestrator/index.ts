@@ -975,6 +975,9 @@ serve(async (req) => {
     }
 
     // ─── Step 7: Build Orchestrated Response ───────────────────
+    const tension = classifyServerTension(ctx);
+    const emergentHints = detectEmergentHints(ctx);
+
     const orchestratedResponse = {
       ...ctx.narration_result,
       _orchestrator: {
@@ -983,6 +986,10 @@ serve(async (req) => {
         active_focuses: priorityStack.activeFocuses,
         suppressed_systems: priorityStack.suppressedSystems,
         sound_events: ctx.sound_events,
+        tension_level: tension.level,
+        tension_intensity: tension.intensity,
+        tension_sources: tension.sources,
+        emergent_events_count: emergentHints.length,
         narrator_sentiment: ctx.narrator_sentiment
           ? {
               nickname: ctx.narrator_sentiment.nickname,
