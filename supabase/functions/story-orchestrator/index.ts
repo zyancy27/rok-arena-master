@@ -339,13 +339,78 @@ function buildLivingWorldContext(ctx: OrchestratorContext): string {
     parts.push('REGIONAL CONDITIONS:');
     for (const r of regions) {
       const conds = (r.environment_conditions as any)?.conditions || [];
-      parts.push(`- ${r.region_name}: danger ${r.danger_level}/10${conds.length ? ', ' + conds.join(', ') : ''}`);
+      const weather = (r.environment_conditions as any)?.weather || '';
+      const creatureActivity = (r.environment_conditions as any)?.creature_activity;
+      parts.push(`- ${r.region_name}: danger ${r.danger_level}/10${conds.length ? ', ' + conds.join(', ') : ''}${weather ? ', weather: ' + weather : ''}`);
       if (r.npc_activity_summary) parts.push(`  NPC activity: ${r.npc_activity_summary}`);
       if (r.faction_activity_summary) parts.push(`  Factions: ${r.faction_activity_summary}`);
+      if (creatureActivity?.description) parts.push(`  Creatures: ${creatureActivity.description} (threat: ${creatureActivity.threat_level}/5)`);
     }
   }
 
-  // DM Situation Frame with integrated systems awareness
+  // Story arcs from campaign state
+  const campaignState = ctx.campaign_state || {};
+  const storyCtx = campaignState.story_context || {};
+  const activeArcs = storyCtx.active_arcs || [];
+  if (activeArcs.length > 0) {
+    parts.push('ACTIVE STORY ARCS (reference naturally, advance through narration):');
+    for (const arc of activeArcs.slice(0, 3)) {
+      parts.push(`- "${arc.title}" [${arc.stage}]: ${arc.stage_description || arc.stakes || 'Unfolding...'}. Locations: ${(arc.locations || []).join(', ')}. Key figures: ${(arc.participants || []).join(', ')}`);
+    }
+  }
+
+  // Economy state
+  const worldStateJson = campaignState.world_state || {};
+  const economy = worldStateJson.economy || {};
+  const economyKeys = Object.keys(economy);
+  if (economyKeys.length > 0) {
+    parts.push('LIVING ECONOMY (affects shop prices and availability):');
+    for (const key of economyKeys.slice(0, 4)) {
+      const e = economy[key];
+      const modifier = e.price_modifier || 1.0;
+      const label = modifier > 1.2 ? 'EXPENSIVE' : modifier < 0.8 ? 'CHEAP' : 'normal';
+      parts.push(`- ${key}: ${label} (×${modifier.toFixed(1)}) — ${e.reason}`);
+    }
+  }
+
+  // Location history
+  const locHistory = worldStateJson.location_history || {};
+  const currentZone = campaignState.current_zone || '';
+  const zoneHistory = locHistory[currentZone];
+  if (zoneHistory && zoneHistory.length > 0) {
+    parts.push('LOCATION MEMORY (what happened HERE before):');
+    for (const entry of zoneHistory.slice(-3)) {
+      parts.push(`- Day ${entry.day}: ${entry.event}${entry.permanent ? ' (permanent)' : ''}`);
+    }
+  }
+
+  // Discoverable locations nearby
+  const discoveries = worldStateJson.discoverable_locations || [];
+  const undiscovered = discoveries.filter((d: any) => !d.discovered);
+  if (undiscovered.length > 0) {
+    parts.push('DISCOVERABLE LOCATIONS (hint at these through environmental clues):');
+    for (const d of undiscovered.slice(0, 2)) {
+      parts.push(`- [${d.type}] near ${d.location}: ${d.description} (danger: ${d.danger_level}/10)`);
+    }
+  }
+
+  // Player influence effects
+  const playerInfluence = worldStateJson.player_influence || [];
+  const recentInfluence = playerInfluence.filter((i: any) => i.permanence !== 'temporary' || (i.day && i.day >= (campaignState.day_count || 1) - 3));
+  if (recentInfluence.length > 0) {
+    parts.push('PLAYER INFLUENCE ON WORLD (consequences of player actions):');
+    for (const inf of recentInfluence.slice(-3)) {
+      parts.push(`- ${inf.cause} → ${inf.effect} (${inf.permanence})`);
+    }
+  }
+
+  // Creature activity
+  const creatures = worldStateJson.creature_activity;
+  if (creatures?.description) {
+    parts.push(`CREATURE ACTIVITY: ${creatures.description} (threat: ${creatures.threat_level}/5, types: ${(creatures.creature_types || []).join(', ')})`);
+  }
+
+  // DM Situation Frame
   if (parts.length > 0) {
     const dangerMax = (ws.regional_states || []).reduce((max: number, r: any) => Math.max(max, r.danger_level || 0), 0);
     const hasHighEvents = events.some((e: any) => e.impact_level >= 7);
@@ -354,25 +419,32 @@ function buildLivingWorldContext(ctx: OrchestratorContext): string {
     parts.push('\nDM SITUATION FRAME (integrated narrative intelligence):');
     if (hasHighEvents) parts.push('- Major world events are unfolding. Reference them when narratively appropriate to reinforce the living world.');
     if (hasNearbyActivity) parts.push('- Nearby activity creates immediate situational hooks the narrator can weave into the scene.');
-    if (dangerMax >= 7) parts.push('- Regional danger is HIGH. Pacing should lean toward tension and urgency. Injuries are more likely. Economy prices elevated.');
-    else if (dangerMax >= 4) parts.push('- Regional danger is MODERATE. Balance exploration with alertness. NPCs may be nervous.');
-    else parts.push('- Regional danger is LOW. Favor atmospheric exploration and character-driven moments. NPCs are relaxed.');
+    if (dangerMax >= 7) parts.push('- Regional danger is HIGH. Pacing should lean toward tension and urgency. Injuries more likely. Economy prices elevated. NPCs are fearful or aggressive.');
+    else if (dangerMax >= 4) parts.push('- Regional danger is MODERATE. Balance exploration with alertness. NPCs may be nervous or wary.');
+    else parts.push('- Regional danger is LOW. Favor atmospheric exploration and character-driven moments. NPCs are relaxed and approachable.');
     if (rumors.length > 0) parts.push('- Active rumors exist. NPCs should naturally mention them in conversation to provide story hooks.');
+    if (activeArcs.length > 0) parts.push(`- ${activeArcs.length} story arc(s) active. Weave references naturally — don't force exposition.`);
+    if (economyKeys.length > 0) parts.push('- Economy has shifted. Merchants should reference supply/demand changes when trading.');
+    if (undiscovered.length > 0) parts.push('- Undiscovered locations nearby. Drop environmental hints (tracks, distant smoke, strange sounds) to guide exploration.');
+    if (recentInfluence.length > 0) parts.push('- Player actions have changed the world. NPCs and environments should reflect these changes.');
     
-    // Integrated systems guidance
+    // Core integrated systems reminder
     parts.push('\nINTEGRATED NARRATIVE SYSTEMS (apply automatically):');
     parts.push('- CHARACTER RELATIONSHIPS: Track trust, respect, fear, rivalry between characters. NPCs remember past interactions and behave accordingly.');
     parts.push('- NPC MEMORY: NPCs remember help, trade, insults, violence, betrayal. Their behavior changes based on history with the player.');
-    parts.push('- STORY ARCS: Track ongoing narrative arcs through stages (seed→active→escalating→climax→resolved). Reference active arcs naturally.');
-    parts.push('- LIVING LOCATIONS: Locations remember battles fought, structures destroyed, and NPC deaths. Narration should reflect location history.');
-    parts.push('- LIVING ECONOMY: Shop prices shift based on danger levels and trade disruptions. Merchants reference supply issues when relevant.');
-    parts.push('- INJURY SYSTEM: Combat consequences include arm/leg injuries, bleeding, fatigue, broken weapons. Injuries affect capabilities.');
-    parts.push('- TACTICAL ENVIRONMENT: Combat narration must reference terrain, lighting, cover, elevation, and obstacles.');
+    parts.push('- NPC PERSONALITY: Each NPC has temperament, speech style, profession, goals, secrets, fears. Dialogue must reflect these.');
+    parts.push('- STORY ARCS: Track ongoing narrative arcs through stages (seed→developing→escalating→climax→resolved). Reference active arcs naturally.');
+    parts.push('- LIVING LOCATIONS: Locations remember battles, destruction, NPC deaths. Narration should reflect location history.');
+    parts.push('- LIVING ECONOMY: Shop prices shift with danger and trade disruptions. Merchants reference supply issues.');
+    parts.push('- INJURY SYSTEM: Combat causes arm/leg injuries, bleeding, fatigue, broken weapons. Injuries affect capabilities.');
+    parts.push('- TACTICAL ENVIRONMENT: Combat narration references terrain, lighting, cover, elevation, obstacles.');
     parts.push('- EXPLORATION DISCOVERIES: Players discover caves, ruins, camps, paths dynamically. Store in world memory.');
-    parts.push('- PLAYER INFLUENCE: Major actions change the world (defeat bandits → safer trade routes). World simulation must reflect these changes.');
+    parts.push('- PLAYER INFLUENCE: Major actions change the world permanently. World simulation reflects these changes.');
     parts.push('- CREATIVITY RECOGNITION: Reward creative player actions with richer narrative responses and unexpected positive outcomes.');
-    parts.push('- NARRATIVE ATTENTION: Evaluate events by importance, danger, story relevance, rarity, and emotional impact. Only high-priority events get emphasis.');
-    parts.push('- CAMPAIGN JOURNAL: Automatically record major discoveries, alliances, battles, decisions, and new locations.');
+    parts.push('- REPUTATION SYSTEM: NPCs react to player reputation. Heroic deeds spread. Villainous acts create enemies.');
+    parts.push('- RUMOR SYSTEM: Rumors spread through settlements. NPCs mention them naturally. Some are true, some exaggerated.');
+    parts.push('- CAMPAIGN JOURNAL: Major discoveries, alliances, battles, and decisions are automatically recorded.');
+    parts.push('- NARRATIVE ATTENTION: Evaluate events by importance, danger, story relevance, rarity, emotional impact. Only high-priority events get emphasis.');
   }
 
   if (parts.length === 0) return '';
