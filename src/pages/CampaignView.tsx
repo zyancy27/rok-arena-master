@@ -2499,7 +2499,7 @@ export default function CampaignView() {
             </TabsContent>
 
             {isActive && myParticipant?.is_active && (
-              <TabsContent value="narrator" className="flex-1 flex flex-col mt-0 data-[state=inactive]:hidden">
+              <TabsContent value="narrator" className="flex-1 flex flex-col mt-0 min-h-0 data-[state=inactive]:hidden">
                 <CampaignNarratorChat
                   campaignId={campaign.id}
                   campaignName={campaign.name}
