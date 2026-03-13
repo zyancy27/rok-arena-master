@@ -11,6 +11,27 @@ import { generateVariation, type VariationRange } from './scenarioRandomizer';
 
 // ── Output Types ────────────────────────────────────────────────
 
+export interface SituationLayer {
+  /** Structured participants in the scene */
+  participants: string[];
+  /** Notable objects / interactables */
+  objects: string[];
+  /** Environmental pressure description */
+  pressure: string;
+  /** Opportunities available */
+  opportunities: string[];
+  /** Active story thread hints */
+  storyThreadHints: string[];
+  /** Visibility conditions */
+  visibility: 'clear' | 'reduced' | 'poor' | 'none';
+  /** Terrain type */
+  terrain: string;
+  /** Cover availability */
+  coverAvailable: boolean;
+  /** Elevation variance */
+  hasElevation: boolean;
+}
+
 export interface ComposedScenario {
   /** Environment type (e.g. "hydroelectric dam") */
   environment: string;
@@ -28,9 +49,27 @@ export interface ComposedScenario {
   fingerprint: ScenarioFingerprint;
   /** Tags for theme engine integration */
   tags: string[];
+  /** Structured situation layer */
+  situationLayer: SituationLayer;
 }
 
 const MAX_REROLL_ATTEMPTS = 8;
+
+/** Generate a situation layer from scenario components */
+function buildSituationLayer(environment: string, situation: string, hazards: string[], urgency: string, rng: () => number): SituationLayer {
+  const visMap: Record<string, SituationLayer['visibility']> = { fog: 'poor', smoke: 'poor', darkness: 'none', mist: 'reduced', dust: 'reduced' };
+  let visibility: SituationLayer['visibility'] = 'clear';
+  for (const [kw, vis] of Object.entries(visMap)) {
+    if (hazards.some(h => h.toLowerCase().includes(kw)) || environment.toLowerCase().includes(kw)) { visibility = vis; break; }
+  }
+  const objPool = ['broken wall','overturned vehicle','collapsed beam','control panel','supply crate','pipe junction','fallen tree','metal debris','abandoned equipment','structural pillar'];
+  const objects = [objPool[Math.floor(rng() * objPool.length)], objPool[Math.floor(rng() * objPool.length)]];
+  const oppPool = ['unstable structure could be collapsed onto hazards','elevated position offers tactical advantage','environmental element could be redirected','cover available for flanking'];
+  const opportunities = [oppPool[Math.floor(rng() * oppPool.length)]];
+  const pressureDesc: Record<string, string> = { minor: 'Conditions manageable but shifting', moderate: 'Environmental pressure building', severe: 'Conditions deteriorating rapidly', catastrophic: 'Total collapse imminent' };
+  return { participants: [], objects, pressure: pressureDesc[urgency] || pressureDesc.moderate, opportunities, storyThreadHints: [], visibility, terrain: environment, coverAvailable: rng() > 0.3, hasElevation: rng() > 0.5 };
+}
+
 
 /**
  * Compose a unique scenario from context, with memory deduplication.
@@ -79,6 +118,7 @@ export function composeScenario(
       variation,
       fingerprint,
       tags,
+      situationLayer: buildSituationLayer(environment, situation, hazards, urgency, rng),
     };
   }
 
@@ -102,6 +142,7 @@ export function composeScenario(
     variation: generateVariation(rng),
     fingerprint,
     tags: deriveTagsFromScenario(environment, situation, hazards),
+    situationLayer: buildSituationLayer(environment, situation, hazards, urgency, rng),
   };
 }
 

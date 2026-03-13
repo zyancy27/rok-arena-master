@@ -377,3 +377,126 @@ export type {
   ThreadEngineState,
   ThreadDetectionContext,
 } from './narrativeThreadEngine';
+
+// ── System 25 — Unified Narrative Systems ───────────────────────
+export {
+  // Character Relationship Web
+  createRelationshipWeb,
+  getRelationship,
+  updateRelationship,
+  buildRelationshipContext,
+  // NPC Personality
+  buildNpcPersonalityContext,
+  // NPC Memory
+  createNpcMemoryBank,
+  recordNpcMemory,
+  getNpcMemoriesAbout,
+  buildNpcMemoryContext,
+  // Story Arc System
+  createStoryArcTracker,
+  addStoryArc,
+  advanceArc,
+  buildStoryArcContext,
+  detectArcProgression,
+  // Exploration Discovery
+  createDiscoveryRegistry,
+  registerDiscovery,
+  buildDiscoveryContext,
+  // Living Location
+  createLocationMemorySystem,
+  recordLocationEvent,
+  buildLocationHistoryContext,
+  // Living Economy
+  createLivingEconomy,
+  updateEconomyPrices,
+  buildEconomyContext,
+  // Injury System
+  createInjuryTracker,
+  addInjury,
+  healInjury,
+  buildInjuryContext,
+  // Tactical Environment Combat
+  buildTacticalCombatContext,
+  // Rumor System
+  createRumorTracker,
+  addRumor,
+  buildRumorContext,
+  // Campaign Journal
+  createCampaignJournal,
+  addJournalEntry,
+  buildJournalContext,
+  // Player Influence
+  createPlayerInfluenceTracker,
+  recordInfluence,
+  buildInfluenceContext,
+  // Narrative Attention
+  calculateAttentionScore,
+  shouldEmphasize,
+  buildAttentionContext,
+  // Creativity Recognition
+  createCreativityTracker,
+  detectCreativity,
+  recordCreativity,
+  buildCreativityContext,
+  // Unified builder
+  buildUnifiedNarrativeContext,
+} from './narrativeSystems';
+export type {
+  RelationshipEdge,
+  RelationshipWeb,
+  NpcPersonality,
+  NpcMemoryEntry,
+  NpcMemoryBank,
+  QuestStage,
+  StoryArc,
+  StoryArcTracker,
+  DiscoveryType,
+  ExplorationDiscovery,
+  DiscoveryRegistry,
+  LocationHistory,
+  LocationEvent,
+  LocationMemorySystem,
+  EconomyItem,
+  LivingEconomy,
+  InjuryType,
+  ActiveInjury,
+  InjuryTracker,
+  TacticalEnvironment,
+  Rumor,
+  RumorTracker,
+  JournalEntryType,
+  JournalEntry,
+  CampaignJournal,
+  WorldInfluence,
+  PlayerInfluenceTracker,
+  NarrativeEvent,
+  CreativitySignal,
+  CreativityTracker,
+  NarrativeSystemsSnapshot,
+} from './narrativeSystems';
+
+// ── System 26 — Situation Model ────────────────────────────────
+export {
+  buildSituationPrompt,
+  createDefaultSituation,
+} from './situationModel';
+export type {
+  Situation,
+  SituationParticipant,
+  SituationObject,
+  SituationHazard,
+  StoryThread,
+  EnvironmentCondition,
+  SituationPressure,
+  Opportunity,
+} from './situationModel';
+
+// ── System 27 — Action Classification ──────────────────────────
+export {
+  classifyNarrativeAction,
+  buildActionClassificationContext,
+} from './actionClassification';
+export type {
+  NarrativeActionType,
+  NarrativeActionClassification,
+} from './actionClassification';

@@ -345,19 +345,34 @@ function buildLivingWorldContext(ctx: OrchestratorContext): string {
     }
   }
 
-  // Situation framing for DM reasoning
+  // DM Situation Frame with integrated systems awareness
   if (parts.length > 0) {
     const dangerMax = (ws.regional_states || []).reduce((max: number, r: any) => Math.max(max, r.danger_level || 0), 0);
     const hasHighEvents = events.some((e: any) => e.impact_level >= 7);
     const hasNearbyActivity = events.some((e: any) => e.player_proximity >= 5);
     
-    parts.push('\nDM SITUATION FRAME:');
+    parts.push('\nDM SITUATION FRAME (integrated narrative intelligence):');
     if (hasHighEvents) parts.push('- Major world events are unfolding. Reference them when narratively appropriate to reinforce the living world.');
     if (hasNearbyActivity) parts.push('- Nearby activity creates immediate situational hooks the narrator can weave into the scene.');
-    if (dangerMax >= 7) parts.push('- Regional danger is HIGH. Pacing should lean toward tension and urgency.');
-    else if (dangerMax >= 4) parts.push('- Regional danger is MODERATE. Balance exploration with alertness.');
-    else parts.push('- Regional danger is LOW. Favor atmospheric exploration and character-driven moments.');
-    if (rumors.length > 0) parts.push('- Active rumors exist. NPCs may naturally mention them in conversation to provide story hooks.');
+    if (dangerMax >= 7) parts.push('- Regional danger is HIGH. Pacing should lean toward tension and urgency. Injuries are more likely. Economy prices elevated.');
+    else if (dangerMax >= 4) parts.push('- Regional danger is MODERATE. Balance exploration with alertness. NPCs may be nervous.');
+    else parts.push('- Regional danger is LOW. Favor atmospheric exploration and character-driven moments. NPCs are relaxed.');
+    if (rumors.length > 0) parts.push('- Active rumors exist. NPCs should naturally mention them in conversation to provide story hooks.');
+    
+    // Integrated systems guidance
+    parts.push('\nINTEGRATED NARRATIVE SYSTEMS (apply automatically):');
+    parts.push('- CHARACTER RELATIONSHIPS: Track trust, respect, fear, rivalry between characters. NPCs remember past interactions and behave accordingly.');
+    parts.push('- NPC MEMORY: NPCs remember help, trade, insults, violence, betrayal. Their behavior changes based on history with the player.');
+    parts.push('- STORY ARCS: Track ongoing narrative arcs through stages (seed→active→escalating→climax→resolved). Reference active arcs naturally.');
+    parts.push('- LIVING LOCATIONS: Locations remember battles fought, structures destroyed, and NPC deaths. Narration should reflect location history.');
+    parts.push('- LIVING ECONOMY: Shop prices shift based on danger levels and trade disruptions. Merchants reference supply issues when relevant.');
+    parts.push('- INJURY SYSTEM: Combat consequences include arm/leg injuries, bleeding, fatigue, broken weapons. Injuries affect capabilities.');
+    parts.push('- TACTICAL ENVIRONMENT: Combat narration must reference terrain, lighting, cover, elevation, and obstacles.');
+    parts.push('- EXPLORATION DISCOVERIES: Players discover caves, ruins, camps, paths dynamically. Store in world memory.');
+    parts.push('- PLAYER INFLUENCE: Major actions change the world (defeat bandits → safer trade routes). World simulation must reflect these changes.');
+    parts.push('- CREATIVITY RECOGNITION: Reward creative player actions with richer narrative responses and unexpected positive outcomes.');
+    parts.push('- NARRATIVE ATTENTION: Evaluate events by importance, danger, story relevance, rarity, and emotional impact. Only high-priority events get emphasis.');
+    parts.push('- CAMPAIGN JOURNAL: Automatically record major discoveries, alliances, battles, decisions, and new locations.');
   }
 
   if (parts.length === 0) return '';
