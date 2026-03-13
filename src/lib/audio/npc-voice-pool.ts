@@ -85,8 +85,9 @@ function getCache(): Record<string, string> {
 /**
  * Get a consistent voice for a given NPC name.
  * Persists across sessions so the same NPC always keeps its voice.
+ * If genderHint is provided, the voice will match the requested gender.
  */
-export function getVoiceForNpc(npcName: string): NpcVoiceProfile {
+export function getVoiceForNpc(npcName: string, genderHint?: 'male' | 'female'): NpcVoiceProfile {
   const key = npcName.trim().toLowerCase();
   const cache = getCache();
 
@@ -97,8 +98,21 @@ export function getVoiceForNpc(npcName: string): NpcVoiceProfile {
     if (profile) return profile;
   }
 
-  // Assign next available voice from pool (wraps around)
-  const profile = VOICE_POOL[nextPoolIndex % VOICE_POOL.length];
+  // Filter pool by gender if hint is provided
+  const candidatePool = genderHint
+    ? VOICE_POOL.filter(p => p.gender === genderHint)
+    : VOICE_POOL;
+
+  // Find a voice from the candidate pool not yet assigned
+  const usedIds = new Set(Object.values(cache));
+  let profile = candidatePool.find(p => !usedIds.has(p.voiceId));
+
+  // Fallback: wrap around within the gendered pool
+  if (!profile) {
+    const genderedIndex = nextPoolIndex % candidatePool.length;
+    profile = candidatePool[genderedIndex];
+  }
+
   nextPoolIndex++;
   cache[key] = profile.voiceId;
   saveAssignments(cache);
