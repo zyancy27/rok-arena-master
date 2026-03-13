@@ -96,6 +96,14 @@ const MECHANIC_EXPLANATIONS: Record<MechanicKey, MechanicInfo> = {
     title: '🔥 Overcharge',
     summary: 'Pushing an ability beyond its normal limits. Overcharged moves deal 1.5–2× damage but risk backfire, fatigue, recoil, or misfires. Available during combat.',
   },
+  momentum: {
+    title: '🔥 Momentum & Edge State',
+    summary: 'Landing combos, counters, and exploiting physics builds Momentum (0–100). At 100 you enter Edge State for 1–2 turns — halving risk chance and boosting damage. Getting interrupted, misfiring, or taking critical hits drains Momentum.',
+  },
+  psychology: {
+    title: '🧠 Psychological State',
+    summary: 'Hidden stats — Confidence, Fear, Resolve, and Rage — shift based on combat events. They influence accuracy, risk chance, momentum gain, and how the narrator portrays your character\'s composure. Dominating boosts confidence; getting outplayed raises fear.',
+  },
   campaign_xp: {
     title: '⭐ Campaign XP',
     summary: 'Your actions in the campaign earn Experience Points. Combat victories, exploration, creative problem-solving, and story progress all reward XP. Accumulate enough to level up your campaign character.',
