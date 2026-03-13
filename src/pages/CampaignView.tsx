@@ -1272,25 +1272,33 @@ export default function CampaignView() {
           fetchInventory();
         }
 
-        // Handle items consumed/used/given away
+        // Handle items consumed/used/given away — only if the player's message references the item
         if (data.itemsUsed && Array.isArray(data.itemsUsed) && data.itemsUsed.length > 0) {
+          const confirmedUsed: string[] = [];
           for (const usedItem of data.itemsUsed) {
-            // Find matching campaign inventory item by name (case-insensitive)
+            const itemName = (usedItem.name || '').toLowerCase();
+            if (!itemName) continue;
+            // Only remove if the player actually referenced the item in their message
+            const playerMentioned = messageText.toLowerCase().includes(itemName) ||
+              messageText.toLowerCase().includes(itemName.replace(/\s+/g, ''));
+            if (!playerMentioned) continue;
             const match = inventory.find(i =>
-              i.item_name.toLowerCase() === (usedItem.name || '').toLowerCase()
+              i.item_name.toLowerCase() === itemName
             );
             if (match) {
               await supabase.from('campaign_inventory').delete().eq('id', match.id);
+              confirmedUsed.push(usedItem.name);
             }
           }
-          const usedNames = data.itemsUsed.map((i: any) => i.name).join(', ');
-          await supabase.from('campaign_messages').insert({
-            campaign_id: snapshotCampaign.id,
-            sender_type: 'system',
-            content: `📦 Items used: ${usedNames}`,
-            channel: 'in_universe',
-          });
-          fetchInventory();
+          if (confirmedUsed.length > 0) {
+            await supabase.from('campaign_messages').insert({
+              campaign_id: snapshotCampaign.id,
+              sender_type: 'system',
+              content: `📦 Items used: ${confirmedUsed.join(', ')}`,
+              channel: 'in_universe',
+            });
+            fetchInventory();
+          }
         }
 
         // Persist NPC changes from AI response
