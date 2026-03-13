@@ -152,8 +152,8 @@ async function fetchWorldContext(
       { auth: { persistSession: false } },
     );
 
-    // Batch: sentiment + campaign state in parallel
-    const [sentimentResult, campaignResult] = await Promise.all([
+    // Batch: sentiment + campaign state + world simulation data in parallel
+    const [sentimentResult, campaignResult, worldEventsResult, worldRumorsResult, worldStateResult] = await Promise.all([
       supabaseAdmin
         .from('narrator_sentiments')
         .select('*')
@@ -165,6 +165,30 @@ async function fetchWorldContext(
             .select('world_state, story_context, environment_tags, current_zone, time_of_day, day_count, difficulty_scale')
             .eq('id', campaignId)
             .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      campaignId
+        ? supabaseAdmin
+            .from('world_events')
+            .select('event_type, location, description, impact_level, story_relevance, player_proximity, participants')
+            .eq('campaign_id', campaignId)
+            .eq('resolved', false)
+            .order('impact_level', { ascending: false })
+            .limit(10)
+        : Promise.resolve({ data: null, error: null }),
+      campaignId
+        ? supabaseAdmin
+            .from('world_rumors')
+            .select('rumor_text, origin_location, spread_level')
+            .eq('campaign_id', campaignId)
+            .order('created_at', { ascending: false })
+            .limit(5)
+        : Promise.resolve({ data: null, error: null }),
+      campaignId
+        ? supabaseAdmin
+            .from('world_state')
+            .select('region_name, environment_conditions, danger_level, npc_activity_summary, faction_activity_summary')
+            .eq('campaign_id', campaignId)
+            .limit(5)
         : Promise.resolve({ data: null, error: null }),
     ]);
 
@@ -208,6 +232,14 @@ async function fetchWorldContext(
         difficulty_scale: campaignResult.data.difficulty_scale,
       };
     }
+
+    // Attach living world data to context
+    ctx.world_state = {
+      ...ctx.world_state,
+      active_world_events: worldEventsResult?.data || [],
+      world_rumors: worldRumorsResult?.data || [],
+      regional_states: worldStateResult?.data || [],
+    };
   } catch (e) {
     ctx.errors.push({
       step: 'fetch_world_context',
