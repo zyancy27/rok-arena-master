@@ -1873,7 +1873,7 @@ export default function CampaignView() {
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] overflow-hidden">
+    <div className="flex flex-col h-[100dvh] overflow-x-hidden">
       {/* Header */}
       <div className="flex items-center justify-between gap-2 px-2 py-1.5 shrink-0 bg-background/70 backdrop-blur-md border-b border-border/50 z-20 relative">
         <div className="flex items-center gap-2 min-w-0">
