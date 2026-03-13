@@ -2005,15 +2005,12 @@ export default function CampaignView() {
                   </div>
                 )}
 
-                <ScrollArea
-                  className="flex-1 p-4 relative z-10"
-                  style={{ minHeight: 0 }}
-                  onScrollCapture={(e) => {
-                    const el = e.currentTarget.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-                    if (el) {
-                      const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-                      userIsNearBottomRef.current = distFromBottom < 120;
-                    }
+                <div
+                  className="flex-1 min-h-0 overflow-y-auto p-4 relative z-10"
+                  onScroll={(e) => {
+                    const el = e.currentTarget;
+                    const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+                    userIsNearBottomRef.current = distFromBottom < 120;
                   }}
                 >
                   <div className="space-y-4">
