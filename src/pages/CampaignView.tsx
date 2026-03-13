@@ -2286,7 +2286,7 @@ export default function CampaignView() {
 
                     <div ref={messagesEndRef} />
                   </div>
-                </ScrollArea>
+                </div>
 
                 {/* Enemy tracker moved to top — remove from here */}
 
