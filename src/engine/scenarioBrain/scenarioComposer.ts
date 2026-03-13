@@ -118,6 +118,7 @@ export function composeScenario(
       variation,
       fingerprint,
       tags,
+      situationLayer: buildSituationLayer(environment, situation, hazards, urgency, rng),
     };
   }
 
