@@ -345,6 +345,21 @@ function buildLivingWorldContext(ctx: OrchestratorContext): string {
     }
   }
 
+  // Situation framing for DM reasoning
+  if (parts.length > 0) {
+    const dangerMax = (ws.regional_states || []).reduce((max: number, r: any) => Math.max(max, r.danger_level || 0), 0);
+    const hasHighEvents = events.some((e: any) => e.impact_level >= 7);
+    const hasNearbyActivity = events.some((e: any) => e.player_proximity >= 5);
+    
+    parts.push('\nDM SITUATION FRAME:');
+    if (hasHighEvents) parts.push('- Major world events are unfolding. Reference them when narratively appropriate to reinforce the living world.');
+    if (hasNearbyActivity) parts.push('- Nearby activity creates immediate situational hooks the narrator can weave into the scene.');
+    if (dangerMax >= 7) parts.push('- Regional danger is HIGH. Pacing should lean toward tension and urgency.');
+    else if (dangerMax >= 4) parts.push('- Regional danger is MODERATE. Balance exploration with alertness.');
+    else parts.push('- Regional danger is LOW. Favor atmospheric exploration and character-driven moments.');
+    if (rumors.length > 0) parts.push('- Active rumors exist. NPCs may naturally mention them in conversation to provide story hooks.');
+  }
+
   if (parts.length === 0) return '';
   return '\n\nLIVING WORLD STATE:\n' + parts.join('\n');
 }
