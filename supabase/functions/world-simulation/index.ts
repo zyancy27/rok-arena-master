@@ -193,6 +193,16 @@ Generate ALL of the following in a single JSON response. Each system feeds into 
 
 12. CREATURE ACTIVITY (0-1): What wildlife, monsters, or creatures are doing in the region. Migrations, territorial behavior, nesting, hunting patterns.
 
+13. REGIONAL GRID UPDATE (1-3): Independent simulation data for nearby regions. Each region has its own danger_level, weather, faction_presence, and events that evolve independently.
+
+14. STORY GRAVITY EVENTS (0-2): Events that should naturally pull player attention. Each has a gravity_score (1-10) based on danger, NPC involvement, proximity, story importance. Higher gravity events evolve if ignored.
+
+15. CHARACTER PSYCHOLOGY EVENTS (0-2): Based on recent actions, infer psychological impacts on the player character. Combat damage increases fear, ally support increases confidence, betrayal decreases trust.
+
+16. RELATIONSHIP UPDATES (0-3): How NPCs' relationships with the player and each other have shifted. Track trust, respect, fear, loyalty changes.
+
+17. LORE CONSISTENCY RULES (0-2): Any new world rules or lore facts established by narration that should be enforced going forward.
+
 Respond ONLY with valid JSON:
 {
   "world_events": [
@@ -297,7 +307,51 @@ Respond ONLY with valid JSON:
     "description": "<what creatures are doing in the region>",
     "threat_level": <0-5>,
     "creature_types": ["<types>"]
-  }
+  },
+  "regional_grid": [
+    {
+      "region_id": "<region_name>",
+      "danger_level": <0-10>,
+      "weather": "<current weather>",
+      "faction_presence": [{"name": "<faction>", "control": <0-100>, "hostility": <0-10>}],
+      "active_event": "<brief description or null>",
+      "evolving_threat": "<description of threat that worsens if ignored, or null>",
+      "gravity_score": <1-10>
+    }
+  ],
+  "story_gravity_events": [
+    {
+      "event_description": "<what's pulling attention>",
+      "gravity_score": <1-10>,
+      "evolution_if_ignored": "<what happens if players don't engage>",
+      "location": "<where>"
+    }
+  ],
+  "psychology_events": [
+    {
+      "event_type": "<combat_damage|ally_support|betrayal|victory|defeat|death_witnessed|rescue|threat|kindness|loss>",
+      "severity": <1-10>,
+      "description": "<what happened psychologically>"
+    }
+  ],
+  "relationship_updates": [
+    {
+      "source": "<character/NPC name>",
+      "target": "<character/NPC name>",
+      "tone": "<fearful|hostile|respectful|friendly|suspicious|loyal|neutral>",
+      "trust_change": <-10 to 10>,
+      "respect_change": <-10 to 10>,
+      "fear_change": <-10 to 10>,
+      "reason": "<why>"
+    }
+  ],
+  "lore_rules": [
+    {
+      "category": "<technology_level|world_lore|faction_history|power_rules>",
+      "rule": "<rule text>",
+      "priority": <1-10>
+    }
+  ]
 }`;
 
     const aiResponse = await fetch('https://api.lovable.dev/v1/chat/completions', {
