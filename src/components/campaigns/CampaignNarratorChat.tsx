@@ -418,7 +418,15 @@ export default function CampaignNarratorChat({
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 min-h-0 p-3">
+      <div
+        ref={messagesViewportRef}
+        className="flex-1 min-h-0 overflow-y-auto p-3"
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+          userIsNearBottomRef.current = distFromBottom < 120;
+        }}
+      >
         {messages.length === 0 && !isLoading ? (
           <div className="flex flex-col items-center justify-center h-full gap-2 text-center py-6">
             <Sparkles className="w-6 h-6 text-amber-400/50" />
@@ -469,10 +477,9 @@ export default function CampaignNarratorChat({
                 </div>
               </div>
             )}
-            <div ref={scrollRef} />
           </div>
         )}
-      </ScrollArea>
+      </div>
 
       {/* Input */}
       <div className="p-3 border-t border-border">
