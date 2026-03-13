@@ -87,6 +87,72 @@ export interface NarratorSentimentData {
   nickname_history?: string[];
 }
 
+// ── Helper functions for narrator sentiment display ──
+
+function deriveRelationshipStage(score: number, sentiment: NarratorSentimentData): string {
+  const avg = ((sentiment.curiosity ?? 50) + (sentiment.respect ?? 50) + (sentiment.trust ?? 50) +
+    (sentiment.amusement ?? 50) + (sentiment.intrigue ?? 50) + (sentiment.story_value ?? 50)) / 6;
+  const dis = sentiment.disappointment ?? 0;
+  if (dis > 70) return 'disappointed';
+  if (dis > 50 && avg < 30) return 'irritated';
+  if (avg < 25) return 'unimpressed';
+  if (avg < 35) return 'dismissive';
+  if (avg >= 80) return 'beloved_storyteller';
+  if (avg >= 65) return 'compelling';
+  if (avg >= 55) return 'noteworthy';
+  if (avg >= 45) return 'interesting';
+  if (avg >= 35) return 'observed';
+  return 'unknown';
+}
+
+function getStageDisplay(stage: string): string {
+  const map: Record<string, string> = {
+    unknown: '👁️ Unknown — "I haven\'t formed an opinion yet"',
+    observed: '🔍 Observed — "I\'m watching them"',
+    interesting: '✨ Interesting — "They\'ve caught my attention"',
+    noteworthy: '📝 Noteworthy — "There is something about them"',
+    compelling: '🌟 Compelling — "I find myself drawn to their story"',
+    beloved_storyteller: '💕 Beloved Storyteller — "They bring my world to life"',
+    dismissive: '😶 Dismissive — "Hardly worth the ink"',
+    unimpressed: '😒 Unimpressed — "They rush through my worlds"',
+    irritated: '😤 Irritated — "They waste the stories I give them"',
+    disappointed: '💔 Disappointed — "I expected more"',
+  };
+  return map[stage] || map.unknown;
+}
+
+function getDimensionLabel(value: number, isNegative = false): string {
+  if (isNegative) {
+    if (value >= 80) return '💢 Deep — "This one truly frustrates me"';
+    if (value >= 60) return '😔 Growing — "I notice their indifference"';
+    if (value >= 40) return '😐 Mild — "Small things, but they add up"';
+    if (value >= 20) return '🤷 Slight — "A passing thought"';
+    return '✨ Minimal — "Nothing worth noting"';
+  }
+  if (value >= 85) return '🔥 Extraordinary';
+  if (value >= 70) return '⭐ High';
+  if (value >= 55) return '📈 Growing';
+  if (value >= 40) return '📊 Moderate';
+  if (value >= 25) return '📉 Low';
+  return '❄️ Minimal';
+}
+
+function getBehaviorLabel(value: number): string {
+  if (value >= 80) return '🌟 Exceptional';
+  if (value >= 65) return '✨ Strong';
+  if (value >= 50) return '📊 Average';
+  if (value >= 35) return '📉 Below Average';
+  return '⚠️ Lacking';
+}
+
+function getStoryCompatibilityText(value: number): string {
+  if (value >= 80) return '"Their choices weave perfectly into the tale I\'m telling. It\'s as if they can feel where the story wants to go."';
+  if (value >= 60) return '"They follow the threads I lay down, sometimes in ways I didn\'t expect."';
+  if (value >= 40) return '"They walk their own path. Not always where the story leads, but not against it either."';
+  if (value >= 20) return '"They seem unaware of the larger story unfolding around them."';
+  return '"They ignore every hook, every thread, every door I open for them."';
+}
+
 export function buildCharacterBookChapters(
   character: CharacterBookData,
   extras?: {
