@@ -1814,6 +1814,28 @@ export default function CampaignView() {
           });
           fetchEnemies();
         }
+        // Handle enemy updates from advance story
+        if (data.enemyUpdates && Array.isArray(data.enemyUpdates)) {
+          for (const eu of data.enemyUpdates) {
+            if (!eu.id) continue;
+            const enemy = campaignEnemies.find(e => e.id === eu.id);
+            if (!enemy) continue;
+            const newHp = eu.hpChange ? Math.max(0, enemy.hp + eu.hpChange) : enemy.hp;
+            const newStatus = newHp <= 0 ? 'defeated' : (eu.status || enemy.status);
+            await supabase.from('campaign_enemies' as any)
+              .update({ hp: newHp, status: newStatus, last_action: eu.lastAction || null } as any)
+              .eq('id', eu.id);
+            if (newStatus === 'defeated' && enemy.status !== 'defeated') {
+              await supabase.from('campaign_messages').insert({
+                campaign_id: campaign.id,
+                sender_type: 'system',
+                content: `💀 **${enemy.name}** has been defeated!`,
+                channel: 'in_universe',
+              });
+            }
+          }
+          fetchEnemies();
+        }
       }
       // Feed advance response back into narrative subsystems
       if (!error && data?.narration) {
