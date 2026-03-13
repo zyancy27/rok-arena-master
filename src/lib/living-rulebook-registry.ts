@@ -157,7 +157,26 @@ export const LIVING_RULE_ENTRIES: LivingRuleEntry[] = [
     relatedKeys: ['concentration', 'overcharge', 'charge_attack'],
   },
 
-  // ── Character Mechanics ──
+  // ── Advanced Combat Systems ──
+  {
+    mechanicKey: 'momentum',
+    title: 'Momentum & Edge State',
+    icon: '🔥',
+    chapter: 'Advanced Systems',
+    description: 'Each fighter has a hidden Momentum meter (0–100). Landing combos, successful counters, and physics exploits build Momentum. At 100, you enter Edge State for 1–2 turns — halving risk chance and boosting damage multipliers. Getting interrupted, misfiring, or taking critical hits drains Momentum rapidly.',
+    example: 'You chain three consecutive hits, building momentum to 95. On your next turn you land another combo — the system triggers Edge State! For the next two turns your attacks deal bonus damage and Overcharge risk is halved.',
+    relatedKeys: ['overcharge', 'psychology', 'critical_hit', 'charge_attack'],
+  },
+  {
+    mechanicKey: 'psychology',
+    title: 'Psychological Warfare',
+    icon: '🧠',
+    chapter: 'Advanced Systems',
+    description: 'Four hidden psychological stats — Confidence, Fear, Resolve, and Rage — shift in response to combat events. Dominating raises confidence; getting outplayed raises fear; taking damage fuels rage. These influence accuracy modifiers, risk chance, momentum gain rate, and how the narrator portrays your character\'s composure. Players see only subtle visual cues, never raw numbers.',
+    example: 'After landing three unanswered hits, your confidence rises — the narrator describes your character\'s movements becoming fluid and assured. Your opponent\'s fear rises, slightly reducing their accuracy on the next roll.',
+    relatedKeys: ['momentum', 'overcharge', 'stat_modification', 'concentration'],
+  },
+
   {
     mechanicKey: 'construct',
     title: 'Constructs',
