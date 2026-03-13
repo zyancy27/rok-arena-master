@@ -60,6 +60,7 @@ import { useUserSettings } from '@/hooks/use-user-settings';
 import { useNarrationController } from '@/hooks/use-narration-controller';
 import OverchargeToggle from '@/components/battles/OverchargeToggle';
 import { resolveOvercharge, getOverchargeContext } from '@/lib/battle-overcharge';
+import { invokeOrchestrator } from '@/lib/story-orchestrator';
 // Helper: build bag content for the inline backpack bubble
 function buildBagContent(campaignItems: InventoryItem[], characterWeapons: string | null) {
   const items: { name: string; type: string; rarity: string; equipped: boolean }[] = [];
@@ -1161,55 +1162,55 @@ export default function CampaignView() {
         snapshotCampaign.current_zone,
       );
 
-      const { data, error } = await supabase.functions.invoke('battle-narrator', {
-        body: {
-          type: 'campaign_narration',
-          campaignId: snapshotCampaign.id,
-          playerCharacter: {
-            name: snapshotParticipant.character?.name,
-            campaignLevel: snapshotParticipant.campaign_level,
-            originalLevel: snapshotParticipant.character?.level,
-            hp: snapshotParticipant.campaign_hp,
-            hpMax: snapshotParticipant.campaign_hp_max,
-            powers: snapshotParticipant.character?.powers,
-            abilities: snapshotParticipant.character?.abilities,
-            weaponsItems: (snapshotParticipant.character as any)?.weapons_items,
-            strengthStat: (snapshotParticipant.character as any)?.stat_strength ?? 50,
-            isSolo: snapshotParticipant.is_solo ?? false,
-            soloIntent: soloIntent,
-            equippedCampaignItems: equippedCampaignItems.map(i => ({
-              item_name: i.item_name,
-              item_type: i.item_type,
-              item_rarity: i.item_rarity,
-              description: i.description,
-            })),
-            allCampaignItems: inventory.map(i => ({
-              id: i.id,
-              item_name: i.item_name,
-              item_type: i.item_type,
-              item_rarity: i.item_rarity,
-              description: i.description,
-              is_equipped: i.is_equipped,
-            })),
-            loreContext,
-          },
-          playerAction: messageText,
-          currentZone: snapshotCampaign.current_zone,
-          timeOfDay: snapshotCampaign.time_of_day,
-          dayCount: snapshotCampaign.day_count,
-          partyContext,
-          worldState: snapshotCampaign.world_state,
-          storyContext: snapshotCampaign.story_context,
-          campaignDescription: snapshotCampaign.description,
-          maxAllowedTier: CAMPAIGN_STARTING_ABILITIES.maxPowerTierAtLevel(snapshotParticipant.campaign_level),
-          ...(combatResult.narratorDiceContext || {}),
-          conversationHistory,
-          knownNpcs,
-          activeEnemies: activeEnemiesList,
-          narrativeSystemsContext,
-          overchargeContext: overchargeContext || undefined,
-          narratorSentiment: narratorSentiment || undefined,
+      const { data, error } = await invokeOrchestrator({
+        pipelineType: 'campaign_narration',
+        characterId: snapshotParticipant.character_id,
+        campaignId: snapshotCampaign.id,
+        type: 'campaign_narration',
+        playerCharacter: {
+          name: snapshotParticipant.character?.name,
+          campaignLevel: snapshotParticipant.campaign_level,
+          originalLevel: snapshotParticipant.character?.level,
+          hp: snapshotParticipant.campaign_hp,
+          hpMax: snapshotParticipant.campaign_hp_max,
+          powers: snapshotParticipant.character?.powers,
+          abilities: snapshotParticipant.character?.abilities,
+          weaponsItems: (snapshotParticipant.character as any)?.weapons_items,
+          strengthStat: (snapshotParticipant.character as any)?.stat_strength ?? 50,
+          isSolo: snapshotParticipant.is_solo ?? false,
+          soloIntent: soloIntent,
+          equippedCampaignItems: equippedCampaignItems.map(i => ({
+            item_name: i.item_name,
+            item_type: i.item_type,
+            item_rarity: i.item_rarity,
+            description: i.description,
+          })),
+          allCampaignItems: inventory.map(i => ({
+            id: i.id,
+            item_name: i.item_name,
+            item_type: i.item_type,
+            item_rarity: i.item_rarity,
+            description: i.description,
+            is_equipped: i.is_equipped,
+          })),
+          loreContext,
         },
+        playerAction: messageText,
+        currentZone: snapshotCampaign.current_zone,
+        timeOfDay: snapshotCampaign.time_of_day,
+        dayCount: snapshotCampaign.day_count,
+        partyContext,
+        worldState: snapshotCampaign.world_state,
+        storyContext: snapshotCampaign.story_context,
+        campaignDescription: snapshotCampaign.description,
+        maxAllowedTier: CAMPAIGN_STARTING_ABILITIES.maxPowerTierAtLevel(snapshotParticipant.campaign_level),
+        ...(combatResult.narratorDiceContext || {}),
+        conversationHistory,
+        knownNpcs,
+        activeEnemies: activeEnemiesList,
+        narrativeSystemsContext,
+        overchargeContext: overchargeContext || undefined,
+        narratorSentiment: narratorSentiment || undefined,
       });
 
       if (!error && data?.narration) {
@@ -1860,25 +1861,25 @@ export default function CampaignView() {
         campaign.current_zone,
       );
 
-      const { data, error } = await supabase.functions.invoke('battle-narrator', {
-        body: {
-          type: 'campaign_narration',
-          campaignId: campaign.id,
-          playerAction: `[ADVANCE STORY] The party is idle.${consecutiveAdvancesRef.current >= 3 ? ' [IDLE ESCALATION — the players have pressed "Progress Story" ' + consecutiveAdvancesRef.current + ' times in a row without typing anything. The world MUST force an interaction NOW — an enemy ambush, an NPC approaching with urgent news, a sudden environmental event, a creature attack, or something that DEMANDS the player respond. Do NOT describe calm scenes. Make something happen TO them that they MUST react to.]' : ' Move the campaign forward organically — introduce a new event, encounter, discovery, environmental change, NPC interaction, or plot development that fits the current situation and keeps things interesting. Do NOT wait for player input; make something happen in the world around them.'}`,
-          currentZone: campaign.current_zone,
-          timeOfDay: campaign.time_of_day,
-          dayCount: campaign.day_count,
-          worldState: campaign.world_state,
-          storyContext: campaign.story_context,
-          campaignDescription: campaign.description,
-          environmentTags: campaign.environment_tags,
-          conversationHistory: history,
-          partyContext: partyCtx,
-          playerCharacter: { name: myParticipant.character?.name },
-          isMultiplayer: !isSoloCampaign,
-          partyNames: allPartyNames,
-          narrativeSystemsContext: advanceNarrativeContext,
-        },
+      const { data, error } = await invokeOrchestrator({
+        pipelineType: 'campaign_narration',
+        characterId: myParticipant.character_id,
+        campaignId: campaign.id,
+        type: 'campaign_narration',
+        playerAction: `[ADVANCE STORY] The party is idle.${consecutiveAdvancesRef.current >= 3 ? ' [IDLE ESCALATION — the players have pressed "Progress Story" ' + consecutiveAdvancesRef.current + ' times in a row without typing anything. The world MUST force an interaction NOW — an enemy ambush, an NPC approaching with urgent news, a sudden environmental event, a creature attack, or something that DEMANDS the player respond. Do NOT describe calm scenes. Make something happen TO them that they MUST react to.]' : ' Move the campaign forward organically — introduce a new event, encounter, discovery, environmental change, NPC interaction, or plot development that fits the current situation and keeps things interesting. Do NOT wait for player input; make something happen in the world around them.'}`,
+        currentZone: campaign.current_zone,
+        timeOfDay: campaign.time_of_day,
+        dayCount: campaign.day_count,
+        worldState: campaign.world_state,
+        storyContext: campaign.story_context,
+        campaignDescription: campaign.description,
+        environmentTags: campaign.environment_tags,
+        conversationHistory: history,
+        partyContext: partyCtx,
+        playerCharacter: { name: myParticipant.character?.name },
+        isMultiplayer: !isSoloCampaign,
+        partyNames: allPartyNames,
+        narrativeSystemsContext: advanceNarrativeContext,
       });
 
       if (!error && data?.narration) {
