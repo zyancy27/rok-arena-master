@@ -2621,6 +2621,7 @@ export default function MockBattle() {
       const userMomentumEvents = detectMomentumEvents(currentInput, true, userHitLanded, false, false);
       if (userMomentumEvents.length > 0) {
         setUserMomentum(prev => applyMomentumEvents(prev, userMomentumEvents, userPsych.fear, userPsych.resolve));
+        triggerMechanicDiscovery('momentum');
       }
       // Tick Edge State for user
       setUserMomentum(prev => tickEdgeState(prev));
