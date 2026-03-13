@@ -111,7 +111,7 @@ serve(async (req) => {
     const economyState = worldStateJson.economy || {};
     const playerInfluence = worldStateJson.player_influence || [];
 
-    // ─── AI-powered world simulation with all 22 systems ──────
+    // ─── AI-powered world simulation with all 28 systems ──────
     const simulationPrompt = `You are a COMPREHENSIVE World Simulation Engine for a living fantasy world. You simulate ALL aspects of the world evolving INDEPENDENTLY of player actions.
 
 You must think like a Dungeon Master maintaining a living world behind the scenes. Everything you generate becomes context that the narrator uses to make the world feel alive.
@@ -206,6 +206,18 @@ Generate ALL of the following in a single JSON response. Each system feeds into 
 18. EMERGENT EVENTS (0-2): Unscripted events that emerge LOGICALLY from world conditions. A bandit camp forms because guards are stretched thin. A market shortage appears because a road became unsafe. A creature migrates due to environmental change. A flooded route reveals an old ruin. Each event must have a clear cause, affected NPCs, and an escalation path if ignored.
 
 19. CHARACTER IDENTITY OBSERVATIONS (0-3): Based on recent player actions, observe behavioral patterns WITHOUT assigning destiny. Track tendencies like: protective, curious, cautious, reckless, compassionate, cold, stubborn, prideful, loyal, self_sacrificing, opportunistic. These are evolving observations, not fixed traits. Include a confidence percentage and a brief example action. If a pattern is strong enough, suggest a subtle narrator reflection line.
+
+20. CHARACTER CONTRADICTIONS (0-2): Detect when recent player actions CONTRADICT established behavioral tendencies. If the character is usually cautious but just charged recklessly, note it. Include whether it indicates growth, stress, emotional shift, or surprise. These are NOT judgments — they are observations.
+
+21. VALUES UNDER PRESSURE (0-3): Based on choices made during intense moments (combat, danger, moral dilemmas), identify what the character PROTECTS or PRIORITIZES. Values: survival, loyalty, honor, truth, mercy, power, freedom, duty, justice, curiosity, family, knowledge, pride, compassion, order. Track what was chosen OVER what.
+
+22. PERSONAL TRIGGERS (0-3): Using character timeline and past events, identify keywords, locations, symbols, sounds, or objects in the current environment that connect to character history. Generate a subtle resonance line the narrator can use.
+
+23. SILENCE PATTERNS (0-2): If the player has been avoiding certain topics, people, or decisions, note the pattern. Silence is storytelling.
+
+24. REPUTATION UPDATES (0-3): Track how the world's perception of the character changes based on actions. Reputation traits: dangerous, heroic, reckless, honorable, unpredictable, merciless, wise, cowardly, mysterious, trustworthy, cunning, generous, ruthless, kind, feared, respected.
+
+25. MEMORY WEIGHT EVENTS (0-2): Determine which recent events are significant enough to become weighted memories. Factor in: emotional intensity, first experiences, relationship changes, identity revelations, survival threats, loss, betrayal, sacrifice, discovery, moral choices. Assign weight 0-100 and mark truly pivotal ones as defining.
 
 Respond ONLY with valid JSON:
 {
@@ -377,6 +389,69 @@ Respond ONLY with valid JSON:
       "observation_count": <number>,
       "narrator_reflection": "<subtle reflection line or null>"
     }
+  ],
+  "character_contradictions": {
+    "recurring_shifts": [
+      {
+        "tendency": "<established tendency being contradicted>",
+        "contradicted_by": "<what the action signals instead>",
+        "count": <number of times>,
+        "interpretation": "<growth|stress|emotional_shift|surprise>"
+      }
+    ]
+  },
+  "values_under_pressure": {
+    "top_values": [
+      {
+        "value": "<survival|loyalty|honor|truth|mercy|power|freedom|duty|justice|curiosity|family|knowledge|pride|compassion|order>",
+        "count": <times chosen under pressure>,
+        "avg_pressure": <0-100>,
+        "chosen_over": ["<competing values>"]
+      }
+    ],
+    "recent_dilemma": {
+      "chosen": "<value>",
+      "rejected": "<value>",
+      "context": "<brief description>"
+    }
+  },
+  "personal_triggers": {
+    "active_triggers": [
+      {
+        "category": "<location|symbol|sound|smell|object|faction|phrase|weather|creature|name>",
+        "keywords": ["<trigger words>"],
+        "origin": "<timeline event this relates to>",
+        "weight": <1-5>,
+        "valence": "<positive|negative|complex>",
+        "resonance_line": "<subtle narrator line when triggered>"
+      }
+    ]
+  },
+  "silence_patterns": {
+    "patterns": [
+      {
+        "subject": "<what is being avoided>",
+        "category": "<topic|person|question|confrontation|emotion|decision>",
+        "count": <avoidance count>
+      }
+    ]
+  },
+  "reputation_updates": [
+    {
+      "trait": "<dangerous|heroic|reckless|honorable|unpredictable|merciless|wise|cowardly|mysterious|trustworthy|cunning|generous|ruthless|kind|feared|respected>",
+      "strength": <0-100>,
+      "source": "<what caused this reputation>",
+      "region": "<region or 'global'>"
+    }
+  ],
+  "memory_weight_events": [
+    {
+      "event": "<what happened>",
+      "weight": <0-100>,
+      "factors": ["<emotional_intensity|first_experience|relationship_change|identity_revelation|survival_threat|loss|victory|betrayal|sacrifice|discovery|world_impact|moral_choice|witnessed_death|promise_made|fear_confronted>"],
+      "valence": "<positive|negative|complex|neutral>",
+      "is_defining": <true|false>
+    }
   ]
 }`;
 
@@ -390,7 +465,7 @@ Respond ONLY with valid JSON:
         model: 'google/gemini-2.5-flash',
         messages: [{ role: 'user', content: simulationPrompt }],
         temperature: 0.9,
-        max_tokens: 3000,
+        max_tokens: 4500,
       }),
     });
 
@@ -760,6 +835,84 @@ Respond ONLY with valid JSON:
         .sort((a: any, b: any) => (b.confidence || 0) - (a.confidence || 0))
         .slice(0, 8);
       updatedWorldState.character_identity_discovery = identity;
+    }
+
+    // Character contradictions
+    if (simulation.character_contradictions?.recurring_shifts?.length > 0) {
+      updatedWorldState.character_contradictions = {
+        recurring_shifts: simulation.character_contradictions.recurring_shifts.slice(0, 5),
+      };
+    }
+
+    // Values under pressure
+    if (simulation.values_under_pressure?.top_values?.length > 0) {
+      updatedWorldState.character_values = {
+        top_values: simulation.values_under_pressure.top_values.slice(0, 5),
+        recent_dilemma: simulation.values_under_pressure.recent_dilemma || null,
+      };
+    }
+
+    // Personal triggers
+    if (simulation.personal_triggers?.active_triggers?.length > 0) {
+      updatedWorldState.personal_triggers = {
+        active_triggers: simulation.personal_triggers.active_triggers.slice(0, 8),
+      };
+    }
+
+    // Silence patterns
+    if (simulation.silence_patterns?.patterns?.length > 0) {
+      const existing = updatedWorldState.character_silence?.patterns || [];
+      for (const sp of simulation.silence_patterns.patterns) {
+        const ex = existing.find((e: any) => e.subject === sp.subject);
+        if (ex) { ex.count = (ex.count || 0) + (sp.count || 1); }
+        else { existing.push({ subject: sp.subject, category: sp.category, count: sp.count || 1 }); }
+      }
+      updatedWorldState.character_silence = { patterns: existing.slice(0, 10) };
+    }
+
+    // Reputation updates
+    if (simulation.reputation_updates?.length > 0) {
+      const repId = updatedWorldState.reputation_vs_identity || { reputation: [], conflicts: [] };
+      for (const ru of simulation.reputation_updates.slice(0, 3)) {
+        const ex = repId.reputation.find((r: any) => r.trait === ru.trait && r.region === ru.region);
+        if (ex) { ex.strength = Math.min(100, (ex.strength || 0) + (ru.strength || 10) * 0.3); }
+        else { repId.reputation.push({ trait: ru.trait, strength: ru.strength || 30, source: ru.source, region: ru.region }); }
+      }
+      // Detect conflicts with identity
+      const tendencies = (updatedWorldState.character_identity_discovery?.emerging_tendencies || []).map((t: any) => t.tendency);
+      if (tendencies.length > 0) {
+        const OPPOSITES: Record<string, string[]> = {
+          dangerous: ['compassionate', 'diplomatic', 'protective'],
+          merciless: ['compassionate', 'self_sacrificing', 'protective'],
+          feared: ['compassionate', 'diplomatic'],
+          cowardly: ['defiant', 'protective', 'self_sacrificing'],
+          heroic: ['cold', 'opportunistic'],
+        };
+        repId.conflicts = [];
+        for (const r of repId.reputation) {
+          const opps = OPPOSITES[r.trait] || [];
+          for (const t of tendencies) {
+            if (opps.includes(t)) {
+              repId.conflicts.push({ reputation: r.trait, identity: t, divergence: Math.min(100, (r.strength || 30) * 0.7 + 30) });
+            }
+          }
+        }
+      }
+      updatedWorldState.reputation_vs_identity = repId;
+    }
+
+    // Memory weight events
+    if (simulation.memory_weight_events?.length > 0) {
+      const memWeight = updatedWorldState.memory_weight || { defining_moments: [], major_memories: [] };
+      for (const mw of simulation.memory_weight_events.slice(0, 2)) {
+        const entry = { event: mw.event, weight: mw.weight, factors: mw.factors, valence: mw.valence, day: dayCount };
+        if (mw.is_defining || mw.weight >= 70) {
+          memWeight.defining_moments = [...(memWeight.defining_moments || []), entry].slice(-5);
+        } else {
+          memWeight.major_memories = [...(memWeight.major_memories || []), entry].slice(-10);
+        }
+      }
+      updatedWorldState.memory_weight = memWeight;
     }
 
     // Persist updated world_state and story_context to campaign

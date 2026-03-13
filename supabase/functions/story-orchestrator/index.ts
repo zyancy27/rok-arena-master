@@ -516,6 +516,81 @@ function buildIdentityDiscoveryContext(ctx: OrchestratorContext): string {
   return parts.join('\n');
 }
 
+// ─── Character Depth Context Builder ──────────────────────────
+function buildCharacterDepthContext(ctx: OrchestratorContext): string {
+  const ws = ctx.campaign_state?.world_state || {};
+  const parts: string[] = [];
+
+  // Contradiction patterns
+  const contradictions = ws.character_contradictions;
+  if (contradictions?.recurring_shifts?.length > 0) {
+    parts.push('CHARACTER CONTRADICTIONS (observed, not forced):');
+    for (const shift of contradictions.recurring_shifts.slice(0, 3)) {
+      parts.push(`- ${shift.tendency}: contradicted ${shift.count} times — may indicate growth or internal conflict`);
+    }
+    parts.push('When contradictions occur, acknowledge subtly. Never judge or block.');
+  }
+
+  // Values under pressure
+  const values = ws.character_values;
+  if (values?.top_values?.length > 0) {
+    parts.push('\nVALUES UNDER PRESSURE (what the character protects when it matters):');
+    for (const v of values.top_values.slice(0, 3)) {
+      const overStr = v.chosen_over?.length > 0 ? ` (chosen over: ${v.chosen_over.join(', ')})` : '';
+      parts.push(`- ${v.value}: chosen ${v.count} times under pressure${overStr}`);
+    }
+    parts.push('These reveal core character. Reflect subtly. Never announce directly.');
+  }
+
+  // Personal triggers
+  const triggers = ws.personal_triggers;
+  if (triggers?.active_triggers?.length > 0) {
+    parts.push('\nPERSONAL TRIGGERS (character history → present resonance):');
+    for (const t of triggers.active_triggers.slice(0, 4)) {
+      parts.push(`- [${t.category}] keywords: ${(t.keywords || []).slice(0, 3).join(', ')} → from "${t.origin}" (weight: ${t.weight}/5, ${t.valence})`);
+    }
+    parts.push('If the scene naturally contains these elements, weave emotional resonance subtly.');
+  }
+
+  // Silence patterns
+  const silence = ws.character_silence;
+  if (silence?.patterns?.length > 0) {
+    parts.push('\nCHARACTER SILENCE PATTERNS (what the character avoids):');
+    for (const p of silence.patterns.slice(0, 3)) {
+      parts.push(`- Avoids "${p.subject}" (${p.category}): ${p.count} times`);
+    }
+    parts.push('Silence communicates. Acknowledge it rarely but meaningfully.');
+  }
+
+  // Reputation vs Identity
+  const repId = ws.reputation_vs_identity;
+  if (repId?.reputation?.length > 0) {
+    parts.push('\nEXTERNAL REPUTATION:');
+    for (const r of repId.reputation.slice(0, 3)) {
+      parts.push(`- ${r.trait} (strength: ${r.strength}%, region: ${r.region})`);
+    }
+    if (repId.conflicts?.length > 0) {
+      parts.push('REPUTATION vs IDENTITY CONFLICTS:');
+      for (const c of repId.conflicts.slice(0, 2)) {
+        parts.push(`- World sees "${c.reputation}" but character acts "${c.identity}" (divergence: ${c.divergence}%)`);
+      }
+      parts.push('NPCs react based on REPUTATION. Narration may note the gap subtly.');
+    }
+  }
+
+  // Memory weight
+  const memWeight = ws.memory_weight;
+  if (memWeight?.defining_moments?.length > 0) {
+    parts.push('\nDEFINING MOMENTS (shape everything):');
+    for (const m of memWeight.defining_moments.slice(0, 3)) {
+      parts.push(`- "${m.event}" (weight: ${m.weight}, factors: ${(m.factors || []).slice(0, 3).join(', ')})`);
+    }
+    parts.push('Reference defining moments when contextually appropriate. Don\'t force them.');
+  }
+
+  return parts.join('\n');
+}
+
 // ─── Build Living World Context for Narrator (with Priority Gating) ──
 function buildLivingWorldContext(ctx: OrchestratorContext): string {
   const parts: string[] = [];
@@ -698,6 +773,12 @@ function buildLivingWorldContext(ctx: OrchestratorContext): string {
     }
   }
 
+  // ── CHARACTER DEPTH SYSTEMS ──
+  const characterDepth = buildCharacterDepthContext(ctx);
+  if (characterDepth) {
+    parts.push(`\n${characterDepth}`);
+  }
+
   // ── NARRATIVE PHILOSOPHY ──
   parts.push('\nNARRATIVE PHILOSOPHY:');
   parts.push('- The world creates situations. The player responds. The system observes. The narrator reflects.');
@@ -737,6 +818,12 @@ function buildLivingWorldContext(ctx: OrchestratorContext): string {
     parts.push('- LORE CONSISTENCY: Never contradict established world rules or character background.');
     parts.push('- IDENTITY DISCOVERY: Observe character patterns. Reflect subtly. Never force outcomes.');
     parts.push('- EMERGENT EVENTS: World events emerge from conditions. Reference their causes naturally.');
+    parts.push('- CONTRADICTION ENGINE: When character acts against established patterns, acknowledge subtly.');
+    parts.push('- VALUES UNDER PRESSURE: Note what the character protects when stakes are high.');
+    parts.push('- PERSONAL TRIGGERS: Connect character history to present environmental moments.');
+    parts.push('- SILENCE ENGINE: When silence is meaningful, acknowledge it rarely but powerfully.');
+    parts.push('- REPUTATION vs IDENTITY: NPCs react to reputation. Narration may note the gap.');
+    parts.push('- MEMORY WEIGHT: Reference defining moments naturally. Let minor memories fade.');
   }
 
   if (parts.length === 0) return '';
