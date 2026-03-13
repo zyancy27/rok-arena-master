@@ -698,6 +698,12 @@ function buildLivingWorldContext(ctx: OrchestratorContext): string {
     }
   }
 
+  // ── CHARACTER DEPTH SYSTEMS ──
+  const characterDepth = buildCharacterDepthContext(ctx);
+  if (characterDepth) {
+    parts.push(`\n${characterDepth}`);
+  }
+
   // ── NARRATIVE PHILOSOPHY ──
   parts.push('\nNARRATIVE PHILOSOPHY:');
   parts.push('- The world creates situations. The player responds. The system observes. The narrator reflects.');
