@@ -11,6 +11,27 @@ import { generateVariation, type VariationRange } from './scenarioRandomizer';
 
 // ── Output Types ────────────────────────────────────────────────
 
+export interface SituationLayer {
+  /** Structured participants in the scene */
+  participants: string[];
+  /** Notable objects / interactables */
+  objects: string[];
+  /** Environmental pressure description */
+  pressure: string;
+  /** Opportunities available */
+  opportunities: string[];
+  /** Active story thread hints */
+  storyThreadHints: string[];
+  /** Visibility conditions */
+  visibility: 'clear' | 'reduced' | 'poor' | 'none';
+  /** Terrain type */
+  terrain: string;
+  /** Cover availability */
+  coverAvailable: boolean;
+  /** Elevation variance */
+  hasElevation: boolean;
+}
+
 export interface ComposedScenario {
   /** Environment type (e.g. "hydroelectric dam") */
   environment: string;
@@ -28,6 +49,8 @@ export interface ComposedScenario {
   fingerprint: ScenarioFingerprint;
   /** Tags for theme engine integration */
   tags: string[];
+  /** Structured situation layer */
+  situationLayer: SituationLayer;
 }
 
 const MAX_REROLL_ATTEMPTS = 8;
