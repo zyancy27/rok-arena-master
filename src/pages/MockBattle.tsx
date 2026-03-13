@@ -2621,6 +2621,7 @@ export default function MockBattle() {
       const userMomentumEvents = detectMomentumEvents(currentInput, true, userHitLanded, false, false);
       if (userMomentumEvents.length > 0) {
         setUserMomentum(prev => applyMomentumEvents(prev, userMomentumEvents, userPsych.fear, userPsych.resolve));
+        triggerMechanicDiscovery('momentum');
       }
       // Tick Edge State for user
       setUserMomentum(prev => tickEdgeState(prev));
@@ -2765,6 +2766,9 @@ export default function MockBattle() {
         const oppPsychEvents = detectPsychEvents(currentInput, false);
         for (const evt of oppPsychEvents) {
           setOpponentPsych(prev => applyPsychEvent(prev, evt));
+        }
+        if (aiPsychEvents.length > 0 || oppPsychEvents.length > 0) {
+          triggerMechanicDiscovery('psychology');
         }
       }
       
