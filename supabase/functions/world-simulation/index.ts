@@ -7,12 +7,17 @@ const corsHeaders = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// WORLD SIMULATION — Living World Engine
+// WORLD SIMULATION — Living World Engine (v2)
 //
 // Generates evolving world events, NPC activity, faction behavior,
-// and environmental changes that feed into the story-orchestrator.
+// economy shifts, rumor propagation, location history, exploration
+// discoveries, story arc progression, and player influence effects.
 //
-// Triggered every 6 player messages from CampaignView.
+// This is the "behind-the-scenes" world that evolves independently
+// of player actions, then feeds into the story-orchestrator so the
+// battle-narrator can reference a living, breathing world.
+//
+// Triggered every 6-15 player messages from CampaignView.
 // ═══════════════════════════════════════════════════════════════
 
 const EVENT_TYPES = [
@@ -21,6 +26,8 @@ const EVENT_TYPES = [
   'ruin_discovery', 'lost_expedition', 'magical_anomaly',
   'trade_disruption', 'territorial_dispute', 'mysterious_traveler',
   'plague_outbreak', 'celestial_event', 'resource_discovery',
+  'economy_shift', 'exploration_discovery', 'reputation_event',
+  'story_arc_progression', 'npc_autonomous_action', 'location_change',
 ];
 
 const ENVIRONMENT_CONDITIONS = [
@@ -39,6 +46,10 @@ interface SimulationRequest {
   partyLevel: number;
   timeOfDay: string;
   environmentTags?: string[];
+  /** Recent player actions summary for influence tracking */
+  recentPlayerActions?: string[];
+  /** Character names in the party */
+  partyMembers?: string[];
 }
 
 serve(async (req) => {
@@ -60,7 +71,11 @@ serve(async (req) => {
     });
 
     const body: SimulationRequest = await req.json();
-    const { campaignId, currentZone, dayCount, difficultyScale, partyLevel, timeOfDay, environmentTags } = body;
+    const {
+      campaignId, currentZone, dayCount, difficultyScale,
+      partyLevel, timeOfDay, environmentTags,
+      recentPlayerActions, partyMembers,
+    } = body;
 
     if (!campaignId) {
       return new Response(
@@ -76,16 +91,30 @@ serve(async (req) => {
       { data: factions },
       { data: existingState },
       { data: existingRumors },
+      { data: campaignData },
+      { data: recentLogs },
     ] = await Promise.all([
       supabaseAdmin.from('world_events').select('*').eq('campaign_id', campaignId).eq('resolved', false).limit(20),
       supabaseAdmin.from('campaign_npcs').select('*').eq('campaign_id', campaignId).eq('status', 'alive').limit(30),
       supabaseAdmin.from('factions').select('*').eq('campaign_id', campaignId).limit(10),
       supabaseAdmin.from('world_state').select('*').eq('campaign_id', campaignId).limit(5),
       supabaseAdmin.from('world_rumors').select('*').eq('campaign_id', campaignId).order('created_at', { ascending: false }).limit(10),
+      supabaseAdmin.from('campaigns').select('story_context, world_state').eq('id', campaignId).maybeSingle(),
+      supabaseAdmin.from('campaign_logs').select('event_type, event_data').eq('campaign_id', campaignId).order('created_at', { ascending: false }).limit(15),
     ]);
 
-    // ─── AI-powered world simulation ──────────────────────────
-    const simulationPrompt = `You are a World Simulation Engine for a living fantasy world. Generate evolving world events that happen INDEPENDENTLY of player actions.
+    // Extract story arcs and location history from campaign story_context
+    const storyContext = (campaignData?.story_context as any) || {};
+    const worldStateJson = (campaignData?.world_state as any) || {};
+    const activeArcs = storyContext.active_arcs || [];
+    const locationHistory = worldStateJson.location_history || {};
+    const economyState = worldStateJson.economy || {};
+    const playerInfluence = worldStateJson.player_influence || [];
+
+    // ─── AI-powered world simulation with all 22 systems ──────
+    const simulationPrompt = `You are a COMPREHENSIVE World Simulation Engine for a living fantasy world. You simulate ALL aspects of the world evolving INDEPENDENTLY of player actions.
+
+You must think like a Dungeon Master maintaining a living world behind the scenes. Everything you generate becomes context that the narrator uses to make the world feel alive.
 
 CURRENT WORLD STATE:
 - Current Zone: ${currentZone}
@@ -93,70 +122,182 @@ CURRENT WORLD STATE:
 - Time: ${timeOfDay}
 - Difficulty Scale: ${difficultyScale}
 - Party Level: ${partyLevel}
+- Party Members: ${(partyMembers || []).join(', ') || 'Unknown'}
 - Environment Tags: ${JSON.stringify(environmentTags || [])}
 
 ACTIVE EVENTS (do not duplicate):
 ${JSON.stringify((existingEvents || []).map(e => ({ type: e.event_type, location: e.location, description: e.description })), null, 2)}
 
-KNOWN NPCs:
+KNOWN NPCs (with personalities, goals, memory):
 ${JSON.stringify((npcs || []).map(n => ({
   name: n.name, role: n.role, zone: n.current_zone,
-  goal: n.npc_goal, activity: n.npc_current_activity,
+  goal: n.npc_goal, motivation: n.npc_motivation,
+  activity: n.npc_current_activity, personality: n.personality,
+  relationships: n.npc_relationships,
+  backstory: n.backstory ? n.backstory.substring(0, 100) : null,
 })), null, 2)}
 
 FACTIONS:
 ${JSON.stringify((factions || []).map(f => ({
   name: f.faction_name, goals: f.faction_goals,
   territory: f.territory_regions, strength: f.military_strength,
-  conflicts: f.current_conflicts,
+  conflicts: f.current_conflicts, allies: f.allies, rivals: f.rivals,
 })), null, 2)}
 
 RECENT RUMORS:
 ${JSON.stringify((existingRumors || []).map(r => r.rumor_text).slice(0, 5))}
 
-Generate 1-3 new world events and 1-2 rumors. Make them feel like a living world evolving on its own.
-NPCs should occasionally pursue their goals, factions should have minor conflicts.
-Events should be varied — not always combat. Include discoveries, anomalies, trade issues, migrations, etc.
+ACTIVE STORY ARCS:
+${JSON.stringify(activeArcs.length > 0 ? activeArcs : 'No active arcs — consider seeding one')}
+
+LOCATION HISTORY (what happened at key places):
+${JSON.stringify(locationHistory)}
+
+ECONOMY STATE:
+${JSON.stringify(economyState)}
+
+PLAYER INFLUENCE LOG (major player actions that changed the world):
+${JSON.stringify(playerInfluence.slice(-10))}
+
+RECENT PLAYER ACTIONS (for influence tracking):
+${JSON.stringify(recentPlayerActions || [])}
+
+RECENT CAMPAIGN EVENTS:
+${JSON.stringify((recentLogs || []).map(l => ({ type: l.event_type, data: l.event_data })).slice(0, 8))}
+
+─── YOUR SIMULATION TASKS ───
+
+Generate ALL of the following in a single JSON response. Each system feeds into the narrator's world knowledge.
+
+1. WORLD EVENTS (1-3): New events happening in the world. Varied — not always combat. Include discoveries, anomalies, trade issues, migrations, NPC autonomous actions, economy shifts, etc.
+
+2. RUMORS (1-2): What travelers, villagers, and merchants whisper about. Rumors should hint at world events, NPC activities, or mysteries. Some may be true, some exaggerated, some false.
+
+3. NPC UPDATES (0-5): NPCs pursuing their OWN goals independently. A merchant travels to restock. A guard investigates a disturbance. A scholar researches something. NPCs have lives beyond the player.
+
+4. NPC MEMORY UPDATES (0-3): Based on recent player actions, update how NPCs feel about the party. If players helped someone, that NPC remembers. If players caused destruction, nearby NPCs notice.
+
+5. ENVIRONMENT UPDATE: Current weather, danger level, environmental conditions for the region.
+
+6. FACTION UPDATES (0-3): Faction conflicts, alliances, territorial changes. Factions act on their goals.
+
+7. STORY ARC PROGRESSION (0-2): Advance existing story arcs by one stage, or seed a new arc if none exist. Arcs have stages: seed → developing → escalating → climax → resolved.
+
+8. ECONOMY SHIFTS (0-2): Price changes based on trade disruptions, resource discoveries, faction conflicts. What's expensive? What's cheap? What's unavailable?
+
+9. EXPLORATION DISCOVERIES (0-2): New locations, ruins, camps, hidden paths that exist in the world now — discoverable if the player explores in that direction.
+
+10. LOCATION HISTORY UPDATES (0-2): Record what has happened at specific locations (battles, destruction, NPC deaths, environmental changes).
+
+11. PLAYER INFLUENCE EFFECTS (0-2): Consequences of recent player actions on the world. If players defeated bandits, trade routes are safer. If players destroyed something, it stays destroyed.
+
+12. CREATURE ACTIVITY (0-1): What wildlife, monsters, or creatures are doing in the region. Migrations, territorial behavior, nesting, hunting patterns.
 
 Respond ONLY with valid JSON:
 {
   "world_events": [
     {
-      "event_type": "<one of: npc_conflict, faction_skirmish, creature_migration, environmental_disaster, ancient_artifact_activation, ruin_discovery, lost_expedition, magical_anomaly, trade_disruption, territorial_dispute, mysterious_traveler, celestial_event, resource_discovery>",
-      "location": "<region or zone name>",
-      "participants": ["<names of involved NPCs or factions>"],
-      "description": "<1-2 sentence vivid description>",
+      "event_type": "<type>",
+      "location": "<region or zone>",
+      "participants": ["<names>"],
+      "description": "<1-2 sentences>",
       "impact_level": <1-10>,
       "story_relevance": <1-10>,
-      "player_proximity": <0-10 how close to current zone>
+      "player_proximity": <0-10>
     }
   ],
   "rumors": [
     {
-      "rumor_text": "<what travelers/villagers whisper about>",
-      "origin_location": "<where the rumor started>",
-      "spread_level": <1-5>
+      "rumor_text": "<what people whisper>",
+      "origin_location": "<where it started>",
+      "spread_level": <1-5>,
+      "is_true": <true|false>,
+      "related_event": "<event_type or null>"
     }
   ],
   "npc_updates": [
     {
-      "npc_name": "<name of existing NPC>",
-      "new_activity": "<what they are doing now>",
-      "new_zone": "<where they moved to, or null>"
+      "npc_name": "<name>",
+      "new_activity": "<what they are doing>",
+      "new_zone": "<where they moved, or null>",
+      "new_goal": "<updated goal, or null>",
+      "mood": "<current emotional state>"
+    }
+  ],
+  "npc_memory_updates": [
+    {
+      "npc_name": "<name>",
+      "memory_type": "<help|trade|insult|violence|betrayal|kindness|reputation>",
+      "memory_description": "<what they remember>",
+      "disposition_shift": <-10 to 10>
     }
   ],
   "environment_update": {
     "conditions": ["<condition tags>"],
     "danger_level": <0-10>,
-    "summary": "<brief description of current environment state>"
+    "summary": "<brief environment description>",
+    "weather": "<current weather>",
+    "time_feeling": "<how the time of day feels>"
   },
   "faction_updates": [
     {
       "faction_name": "<name>",
-      "new_conflict": "<brief description or null>",
-      "strength_change": <-5 to +5>
+      "new_conflict": "<description or null>",
+      "strength_change": <-5 to 5>,
+      "territory_change": "<gained or lost territory, or null>",
+      "new_ally": "<faction name or null>",
+      "new_rival": "<faction name or null>"
     }
-  ]
+  ],
+  "story_arc_updates": [
+    {
+      "arc_title": "<title>",
+      "new_stage": "<seed|developing|escalating|climax|resolved>",
+      "stage_description": "<what happened in this stage>",
+      "locations_involved": ["<location names>"],
+      "participants_involved": ["<NPC or faction names>"],
+      "stakes": "<what's at risk>",
+      "is_new_arc": <true|false>
+    }
+  ],
+  "economy_shifts": [
+    {
+      "item_category": "<weapons|armor|consumables|services|rare_materials>",
+      "price_modifier": <0.5 to 2.0>,
+      "reason": "<why prices changed>",
+      "affected_zone": "<zone name or 'all'>"
+    }
+  ],
+  "exploration_discoveries": [
+    {
+      "discovery_type": "<cave|ruin|camp|path|battlefield|shrine|settlement|anomaly>",
+      "location": "<where it can be found>",
+      "description": "<1-2 sentences>",
+      "danger_level": <1-10>,
+      "loot_potential": "<none|low|medium|high>"
+    }
+  ],
+  "location_history_updates": [
+    {
+      "location": "<place name>",
+      "event": "<what happened here>",
+      "day": ${dayCount},
+      "permanent": <true|false>
+    }
+  ],
+  "player_influence_effects": [
+    {
+      "cause": "<what the player did>",
+      "effect": "<how the world changed>",
+      "affected_zone": "<zone or 'regional'>",
+      "permanence": "<temporary|lasting|permanent>"
+    }
+  ],
+  "creature_activity": {
+    "description": "<what creatures are doing in the region>",
+    "threat_level": <0-5>,
+    "creature_types": ["<types>"]
+  }
 }`;
 
     const aiResponse = await fetch('https://api.lovable.dev/v1/chat/completions', {
@@ -169,7 +310,7 @@ Respond ONLY with valid JSON:
         model: 'google/gemini-2.5-flash',
         messages: [{ role: 'user', content: simulationPrompt }],
         temperature: 0.9,
-        max_tokens: 2000,
+        max_tokens: 3000,
       }),
     });
 
@@ -220,19 +361,41 @@ Respond ONLY with valid JSON:
       dbOps.push(supabaseAdmin.from('world_rumors').insert(rumorsToInsert));
     }
 
-    // Update NPC activities
+    // Update NPC activities and memory
     if (simulation.npc_updates?.length > 0 && npcs?.length) {
       for (const update of simulation.npc_updates.slice(0, 5)) {
         const matchingNpc = npcs.find(n => n.name.toLowerCase() === update.npc_name?.toLowerCase());
         if (matchingNpc) {
-          const updateData: any = {};
+          const updateData: any = { updated_at: new Date().toISOString() };
           if (update.new_activity) updateData.npc_current_activity = update.new_activity;
           if (update.new_zone) updateData.current_zone = update.new_zone;
-          if (Object.keys(updateData).length > 0) {
-            dbOps.push(
-              supabaseAdmin.from('campaign_npcs').update(updateData).eq('id', matchingNpc.id)
-            );
+          if (update.new_goal) updateData.npc_goal = update.new_goal;
+          if (Object.keys(updateData).length > 1) {
+            dbOps.push(supabaseAdmin.from('campaign_npcs').update(updateData).eq('id', matchingNpc.id));
           }
+        }
+      }
+    }
+
+    // Apply NPC memory updates (store in npc_relationships metadata)
+    if (simulation.npc_memory_updates?.length > 0 && npcs?.length) {
+      for (const memUpdate of simulation.npc_memory_updates.slice(0, 3)) {
+        const matchingNpc = npcs.find(n => n.name.toLowerCase() === memUpdate.npc_name?.toLowerCase());
+        if (matchingNpc) {
+          const existingMeta = (matchingNpc.metadata as any) || {};
+          const memories = existingMeta.player_memories || [];
+          memories.push({
+            type: memUpdate.memory_type,
+            description: memUpdate.memory_description,
+            day: dayCount,
+            disposition_shift: memUpdate.disposition_shift || 0,
+          });
+          dbOps.push(
+            supabaseAdmin.from('campaign_npcs').update({
+              metadata: { ...existingMeta, player_memories: memories.slice(-20) },
+              updated_at: new Date().toISOString(),
+            }).eq('id', matchingNpc.id)
+          );
         }
       }
     }
@@ -244,7 +407,13 @@ Respond ONLY with valid JSON:
         supabaseAdmin.from('world_state').upsert({
           campaign_id: campaignId,
           region_name: currentZone,
-          environment_conditions: { conditions: env.conditions || [], summary: env.summary || '' },
+          environment_conditions: {
+            conditions: env.conditions || [],
+            summary: env.summary || '',
+            weather: env.weather || '',
+            time_feeling: env.time_feeling || '',
+            creature_activity: simulation.creature_activity || null,
+          },
           danger_level: Math.min(10, Math.max(0, env.danger_level || 0)),
           npc_activity_summary: simulation.npc_updates?.map((u: any) => `${u.npc_name}: ${u.new_activity}`).join('; ') || null,
           faction_activity_summary: simulation.faction_updates?.map((f: any) => `${f.faction_name}: ${f.new_conflict || 'stable'}`).join('; ') || null,
@@ -263,10 +432,16 @@ Respond ONLY with valid JSON:
           const newStrength = Math.min(100, Math.max(0, matchingFaction.military_strength + (fu.strength_change || 0)));
           const newConflicts = [...(matchingFaction.current_conflicts as any[] || [])];
           if (fu.new_conflict) newConflicts.push(fu.new_conflict);
+          const newAllies = [...(matchingFaction.allies as any[] || [])];
+          if (fu.new_ally) newAllies.push(fu.new_ally);
+          const newRivals = [...(matchingFaction.rivals as any[] || [])];
+          if (fu.new_rival) newRivals.push(fu.new_rival);
           dbOps.push(
             supabaseAdmin.from('factions').update({
               military_strength: newStrength,
               current_conflicts: newConflicts.slice(-10),
+              allies: [...new Set(newAllies)].slice(-10),
+              rivals: [...new Set(newRivals)].slice(-10),
               updated_at: new Date().toISOString(),
             }).eq('id', matchingFaction.id)
           );
@@ -274,7 +449,140 @@ Respond ONLY with valid JSON:
       }
     }
 
-    // Resolve old events (older than 10 simulation cycles / stale)
+    // Persist story arcs, economy, location history, and player influence into campaign.world_state
+    const updatedWorldState: any = { ...worldStateJson };
+
+    // Story arc updates
+    if (simulation.story_arc_updates?.length > 0) {
+      const arcs = [...(storyContext.active_arcs || [])];
+      for (const arcUpdate of simulation.story_arc_updates.slice(0, 2)) {
+        if (arcUpdate.is_new_arc) {
+          arcs.push({
+            title: arcUpdate.arc_title,
+            stage: arcUpdate.new_stage || 'seed',
+            stage_description: arcUpdate.stage_description,
+            locations: arcUpdate.locations_involved || [],
+            participants: arcUpdate.participants_involved || [],
+            stakes: arcUpdate.stakes || '',
+            started_day: dayCount,
+          });
+        } else {
+          const existing = arcs.find((a: any) => a.title?.toLowerCase() === arcUpdate.arc_title?.toLowerCase());
+          if (existing) {
+            existing.stage = arcUpdate.new_stage || existing.stage;
+            existing.stage_description = arcUpdate.stage_description || existing.stage_description;
+            if (arcUpdate.locations_involved) existing.locations = [...new Set([...(existing.locations || []), ...arcUpdate.locations_involved])];
+            if (arcUpdate.participants_involved) existing.participants = [...new Set([...(existing.participants || []), ...arcUpdate.participants_involved])];
+          }
+        }
+      }
+      // Remove resolved arcs (keep in history)
+      const resolvedArcs = arcs.filter((a: any) => a.stage === 'resolved');
+      const activeArcsFinal = arcs.filter((a: any) => a.stage !== 'resolved');
+      updatedWorldState.resolved_arcs = [...(updatedWorldState.resolved_arcs || []), ...resolvedArcs].slice(-20);
+      storyContext.active_arcs = activeArcsFinal.slice(-10);
+    }
+
+    // Economy shifts
+    if (simulation.economy_shifts?.length > 0) {
+      const economy = updatedWorldState.economy || {};
+      for (const shift of simulation.economy_shifts.slice(0, 2)) {
+        economy[shift.item_category] = {
+          price_modifier: Math.min(2.0, Math.max(0.5, shift.price_modifier || 1.0)),
+          reason: shift.reason,
+          affected_zone: shift.affected_zone || 'all',
+          updated_day: dayCount,
+        };
+      }
+      updatedWorldState.economy = economy;
+    }
+
+    // Exploration discoveries
+    if (simulation.exploration_discoveries?.length > 0) {
+      const discoveries = updatedWorldState.discoverable_locations || [];
+      for (const disc of simulation.exploration_discoveries.slice(0, 2)) {
+        discoveries.push({
+          type: disc.discovery_type,
+          location: disc.location,
+          description: disc.description,
+          danger_level: disc.danger_level || 1,
+          loot_potential: disc.loot_potential || 'low',
+          discovered: false,
+          generated_day: dayCount,
+        });
+      }
+      updatedWorldState.discoverable_locations = discoveries.slice(-20);
+    }
+
+    // Location history
+    if (simulation.location_history_updates?.length > 0) {
+      const locHistory = updatedWorldState.location_history || {};
+      for (const locUpdate of simulation.location_history_updates.slice(0, 2)) {
+        const key = locUpdate.location || currentZone;
+        if (!locHistory[key]) locHistory[key] = [];
+        locHistory[key].push({
+          event: locUpdate.event,
+          day: locUpdate.day || dayCount,
+          permanent: locUpdate.permanent || false,
+        });
+        locHistory[key] = locHistory[key].slice(-10);
+      }
+      updatedWorldState.location_history = locHistory;
+    }
+
+    // Player influence effects
+    if (simulation.player_influence_effects?.length > 0) {
+      const influences = updatedWorldState.player_influence || [];
+      for (const inf of simulation.player_influence_effects.slice(0, 2)) {
+        influences.push({
+          cause: inf.cause,
+          effect: inf.effect,
+          zone: inf.affected_zone,
+          permanence: inf.permanence || 'temporary',
+          day: dayCount,
+        });
+      }
+      updatedWorldState.player_influence = influences.slice(-30);
+    }
+
+    // Creature activity
+    if (simulation.creature_activity) {
+      updatedWorldState.creature_activity = {
+        ...simulation.creature_activity,
+        updated_day: dayCount,
+      };
+    }
+
+    // Persist updated world_state and story_context to campaign
+    dbOps.push(
+      supabaseAdmin.from('campaigns').update({
+        world_state: updatedWorldState,
+        story_context: storyContext,
+        updated_at: new Date().toISOString(),
+      }).eq('id', campaignId)
+    );
+
+    // Log major simulation events to campaign_logs
+    const logEntries: any[] = [];
+    if (simulation.story_arc_updates?.length > 0) {
+      logEntries.push({
+        campaign_id: campaignId,
+        event_type: 'world_simulation_arc',
+        event_data: { arcs: simulation.story_arc_updates },
+      });
+    }
+    if (simulation.player_influence_effects?.length > 0) {
+      logEntries.push({
+        campaign_id: campaignId,
+        event_type: 'world_simulation_influence',
+        event_data: { effects: simulation.player_influence_effects },
+      });
+    }
+    if (logEntries.length > 0) {
+      dbOps.push(supabaseAdmin.from('campaign_logs').insert(logEntries));
+    }
+
+    // Resolve old events (older than 7 days)
     dbOps.push(
       supabaseAdmin.from('world_events')
         .update({ resolved: true, updated_at: new Date().toISOString() })
@@ -292,6 +600,10 @@ Respond ONLY with valid JSON:
         events_generated: simulation.world_events?.length || 0,
         rumors_generated: simulation.rumors?.length || 0,
         npc_updates: simulation.npc_updates?.length || 0,
+        arcs_updated: simulation.story_arc_updates?.length || 0,
+        economy_shifts: simulation.economy_shifts?.length || 0,
+        discoveries: simulation.exploration_discoveries?.length || 0,
+        influence_effects: simulation.player_influence_effects?.length || 0,
         simulation_summary: simulation,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
