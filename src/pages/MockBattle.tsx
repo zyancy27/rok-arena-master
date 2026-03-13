@@ -2767,6 +2767,9 @@ export default function MockBattle() {
         for (const evt of oppPsychEvents) {
           setOpponentPsych(prev => applyPsychEvent(prev, evt));
         }
+        if (aiPsychEvents.length > 0 || oppPsychEvents.length > 0) {
+          triggerMechanicDiscovery('psychology');
+        }
       }
       
       // Store opponent's action for defense validation next turn
