@@ -650,3 +650,100 @@ export type {
   BehavioralObservation,
   IdentityReflection,
 } from './characterIdentityDiscoveryEngine';
+
+// ── System 37 — Character Contradiction Engine ─────────────────
+export {
+  createContradictionState,
+  detectContradiction,
+  shouldReflectContradiction,
+  generateContradictionReflection,
+  buildContradictionNarratorContext,
+} from './characterContradictionEngine';
+export type {
+  ContradictionDetection,
+  ContradictionReflection,
+  ContradictionEngineState,
+} from './characterContradictionEngine';
+
+// ── System 38 — Values Under Pressure ──────────────────────────
+export {
+  createValuesState,
+  detectValueSignal,
+  recordValueSignal,
+  recordDilemma,
+  getTopValues,
+  shouldReflectValues,
+  generateValueReflection,
+  buildValuesNarratorContext,
+} from './valuesUnderPressure';
+export type {
+  CoreValue,
+  ValueSignal,
+  ValueProfile,
+  ValuesUnderPressureState,
+} from './valuesUnderPressure';
+
+// ── System 39 — Personal Trigger System ────────────────────────
+export {
+  createTriggerState,
+  buildTriggersFromTimeline,
+  scanForTriggers,
+  buildTriggerNarratorContext,
+} from './personalTriggerSystem';
+export type {
+  TriggerCategory,
+  PersonalTrigger,
+  TriggerMatch,
+  PersonalTriggerState,
+} from './personalTriggerSystem';
+
+// ── System 40 — Character Silence Engine ───────────────────────
+export {
+  createSilenceState,
+  detectSilence,
+  shouldAcknowledgeSilence,
+  generateSilenceAcknowledgement,
+  buildSilenceNarratorContext,
+} from './characterSilenceEngine';
+export type {
+  SilencePattern,
+  SilenceEvent,
+  SilenceEngineState,
+} from './characterSilenceEngine';
+
+// ── System 41 — Reputation vs Identity ─────────────────────────
+export {
+  createReputationIdentityState,
+  recordReputation,
+  detectConflicts,
+  getDominantReputation,
+  shouldReflectConflict,
+  generateConflictReflection,
+  buildReputationIdentityContext,
+} from './reputationVsIdentity';
+export type {
+  ReputationTrait,
+  ReputationEntry,
+  IdentityConflict,
+  ReputationIdentityState,
+} from './reputationVsIdentity';
+
+// ── System 42 — Memory Weight System ───────────────────────────
+export {
+  createMemoryWeightState,
+  detectMemoryFactors,
+  calculateWeight,
+  getSignificance,
+  recordMemory,
+  decayMemories,
+  referenceMemory,
+  findRelevantMemories,
+  getDefiningMoments,
+  buildMemoryWeightContext,
+} from './memoryWeightSystem';
+export type {
+  MemorySignificance,
+  WeightedMemory,
+  MemoryFactor,
+  MemoryWeightState,
+} from './memoryWeightSystem';

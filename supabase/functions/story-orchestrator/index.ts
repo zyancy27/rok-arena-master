@@ -743,6 +743,12 @@ function buildLivingWorldContext(ctx: OrchestratorContext): string {
     parts.push('- LORE CONSISTENCY: Never contradict established world rules or character background.');
     parts.push('- IDENTITY DISCOVERY: Observe character patterns. Reflect subtly. Never force outcomes.');
     parts.push('- EMERGENT EVENTS: World events emerge from conditions. Reference their causes naturally.');
+    parts.push('- CONTRADICTION ENGINE: When character acts against established patterns, acknowledge subtly.');
+    parts.push('- VALUES UNDER PRESSURE: Note what the character protects when stakes are high.');
+    parts.push('- PERSONAL TRIGGERS: Connect character history to present environmental moments.');
+    parts.push('- SILENCE ENGINE: When silence is meaningful, acknowledge it rarely but powerfully.');
+    parts.push('- REPUTATION vs IDENTITY: NPCs react to reputation. Narration may note the gap.');
+    parts.push('- MEMORY WEIGHT: Reference defining moments naturally. Let minor memories fade.');
   }
 
   if (parts.length === 0) return '';
