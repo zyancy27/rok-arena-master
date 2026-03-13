@@ -377,6 +377,69 @@ Respond ONLY with valid JSON:
       "observation_count": <number>,
       "narrator_reflection": "<subtle reflection line or null>"
     }
+  ],
+  "character_contradictions": {
+    "recurring_shifts": [
+      {
+        "tendency": "<established tendency being contradicted>",
+        "contradicted_by": "<what the action signals instead>",
+        "count": <number of times>,
+        "interpretation": "<growth|stress|emotional_shift|surprise>"
+      }
+    ]
+  },
+  "values_under_pressure": {
+    "top_values": [
+      {
+        "value": "<survival|loyalty|honor|truth|mercy|power|freedom|duty|justice|curiosity|family|knowledge|pride|compassion|order>",
+        "count": <times chosen under pressure>,
+        "avg_pressure": <0-100>,
+        "chosen_over": ["<competing values>"]
+      }
+    ],
+    "recent_dilemma": {
+      "chosen": "<value>",
+      "rejected": "<value>",
+      "context": "<brief description>"
+    }
+  },
+  "personal_triggers": {
+    "active_triggers": [
+      {
+        "category": "<location|symbol|sound|smell|object|faction|phrase|weather|creature|name>",
+        "keywords": ["<trigger words>"],
+        "origin": "<timeline event this relates to>",
+        "weight": <1-5>,
+        "valence": "<positive|negative|complex>",
+        "resonance_line": "<subtle narrator line when triggered>"
+      }
+    ]
+  },
+  "silence_patterns": {
+    "patterns": [
+      {
+        "subject": "<what is being avoided>",
+        "category": "<topic|person|question|confrontation|emotion|decision>",
+        "count": <avoidance count>
+      }
+    ]
+  },
+  "reputation_updates": [
+    {
+      "trait": "<dangerous|heroic|reckless|honorable|unpredictable|merciless|wise|cowardly|mysterious|trustworthy|cunning|generous|ruthless|kind|feared|respected>",
+      "strength": <0-100>,
+      "source": "<what caused this reputation>",
+      "region": "<region or 'global'>"
+    }
+  ],
+  "memory_weight_events": [
+    {
+      "event": "<what happened>",
+      "weight": <0-100>,
+      "factors": ["<emotional_intensity|first_experience|relationship_change|identity_revelation|survival_threat|loss|victory|betrayal|sacrifice|discovery|world_impact|moral_choice|witnessed_death|promise_made|fear_confronted>"],
+      "valence": "<positive|negative|complex|neutral>",
+      "is_defining": <true|false>
+    }
   ]
 }`;
 
