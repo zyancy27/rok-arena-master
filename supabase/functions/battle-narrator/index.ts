@@ -1499,15 +1499,34 @@ OUTPUT FORMAT (JSON):
     }
   ] or [] if no active enemy changes,
   "sentimentUpdate": {
-    "nickname": "a short nickname for this character (keep if already good, or create/change — 1-3 words, e.g. 'little fox', 'the boulder', 'iron saint')",
-    "sentiment_shift": <number -10 to +10, how much your opinion changed this turn. Base this on CREATIVITY and ENGAGEMENT:
+    "nickname": "a short nickname for this character. Evolve it over time — early on use observational nicknames ('the quiet one'), later use earned ones ('iron saint', 'world-walker'). Keep if still fitting, change when your perception shifts. 1-3 words.",
+    "sentiment_shift": <number -10 to +10, how much your overall opinion changed this turn. Base this on CREATIVITY and ENGAGEMENT:
       POSITIVE triggers (+1 to +10): creative/detailed roleplay prose, interacting with environment YOU generated (examining objects, talking to NPCs, exploring landmarks), referencing world details, asking questions about the world, showing care for their character's personality, using abilities in inventive ways, reacting to your narration thoughtfully.
       NEGATIVE triggers (-1 to -10): generic/lazy one-word actions ("I attack"), ignoring the world you built, skipping past NPC dialogue without engaging, treating your scenes as obstacles instead of stories, repetitive actions with no creativity.
       NEUTRAL (0): standard actions that are neither creative nor lazy.
       The narrator LOVES players who treat her world as real and put heart into their writing. She notices effort and detail.>,
-    "opinion_summary": "1-2 sentence summary of how you currently feel about this character — focus on their creativity, effort, and how they treat the world you create",
+    "opinion_summary": "1-2 sentence summary of how you currently feel about this character — written as your private thoughts, like a storyteller's journal entry about a character she is watching unfold",
     "personality_notes": "brief notes about patterns: do they explore? do they engage with NPCs? do they write with detail or rush through? do they notice the world?",
-    "memorable_moment": "if this turn was noteworthy — a creative action, a beautiful piece of prose, a moment where they truly engaged with your world — capture it in a short phrase. null if unremarkable"
+    "memorable_moment": "if this turn was noteworthy — a creative action, a beautiful piece of prose, a moment of bravery, sacrifice, cleverness, kindness, cruelty, or recklessness — capture it in a short phrase with a tag like [bravery] or [cleverness]. null if unremarkable",
+    "relationship_dimensions": {
+      "curiosity_shift": <number -5 to +5, how interested you are in what they will do next. Increases when they surprise you, make unpredictable choices, or ask questions about the world. Decreases when they are predictable or formulaic.>,
+      "respect_shift": <number -5 to +5, how much you admire their actions. Increases with thoughtful tactics, moral complexity, meaningful character choices. Decreases with lazy shortcuts or disregard for consequences.>,
+      "trust_shift": <number -5 to +5, whether you believe they act with purpose and consistency. Increases when they stay true to their character or show growth. Decreases with random/contradictory behavior.>,
+      "amusement_shift": <number -5 to +5, how entertaining they are. Increases with wit, clever dialogue, unexpected humor, dramatic flair. Decreases with dullness.>,
+      "disappointment_shift": <number -5 to +5, your frustration with shallow engagement. Increases with rushed/generic actions, ignoring your world. Decreases when they start engaging more deeply.>,
+      "intrigue_shift": <number -5 to +5, how mysterious or unpredictable the character is. Increases when they do something you didn't expect. Decreases with total predictability.>,
+      "story_value_shift": <number -5 to +5, how important you believe they are to the unfolding story. Increases when they embrace narrative themes, follow story hooks, create dramatic moments. Decreases when they ignore the plot.>
+    },
+    "behavior_scores": {
+      "creativity": <number -3 to +3, shift based on how creative this specific action was>,
+      "world_interaction": <number -3 to +3, did they interact with the environment, objects, or scenery you created?>,
+      "npc_interaction": <number -3 to +3, did they engage meaningfully with NPCs — dialogue, questions, reactions?>,
+      "exploration": <number -3 to +3, did they explore, investigate, or show curiosity about the location?>,
+      "combat_style": <number -3 to +3, in combat — did they fight with flair and tactics, or just spam attacks?>,
+      "story_engagement": <number -3 to +3, did they engage with the ongoing story threads, or ignore them?>
+    },
+    "story_compatibility_shift": <number -3 to +3, how well their actions this turn aligned with the story themes>,
+    "narrator_observation": "a brief private narrator thought about this character this turn — like a margin note in the storyteller's journal. e.g. 'They stopped to listen to the old woman's story. I did not expect that.' or 'Another swing. No thought behind it.' — null if nothing noteworthy"
   }
 }
 

@@ -64,6 +64,27 @@ export interface NarratorSentimentData {
   opinion_summary?: string | null;
   personality_notes?: string | null;
   memorable_moments?: string[];
+  // Relationship dimensions
+  relationship_stage?: string | null;
+  curiosity?: number;
+  respect?: number;
+  trust?: number;
+  amusement?: number;
+  disappointment?: number;
+  intrigue?: number;
+  story_value?: number;
+  // Behavior patterns
+  creativity_score?: number;
+  world_interaction_score?: number;
+  npc_interaction_score?: number;
+  exploration_score?: number;
+  combat_style_score?: number;
+  story_engagement_score?: number;
+  // Story compatibility
+  story_compatibility?: number;
+  // Observations & nickname history
+  narrator_observations?: string[];
+  nickname_history?: string[];
 }
 
 export function buildCharacterBookChapters(
