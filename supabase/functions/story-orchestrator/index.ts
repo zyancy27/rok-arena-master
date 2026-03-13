@@ -591,6 +591,11 @@ serve(async (req) => {
               trust: ctx.narrator_sentiment.trust,
             }
           : null,
+        living_world: {
+          active_events_count: (ctx.world_state.active_world_events || []).length,
+          rumors_count: (ctx.world_state.world_rumors || []).length,
+          danger_level: (ctx.world_state.regional_states || []).reduce((max: number, r: any) => Math.max(max, r.danger_level || 0), 0),
+        },
         pipeline_errors: ctx.errors.length > 0 ? ctx.errors : undefined,
       },
     };
