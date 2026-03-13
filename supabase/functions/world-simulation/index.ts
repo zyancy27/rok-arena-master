@@ -203,6 +203,10 @@ Generate ALL of the following in a single JSON response. Each system feeds into 
 
 17. LORE CONSISTENCY RULES (0-2): Any new world rules or lore facts established by narration that should be enforced going forward.
 
+18. EMERGENT EVENTS (0-2): Unscripted events that emerge LOGICALLY from world conditions. A bandit camp forms because guards are stretched thin. A market shortage appears because a road became unsafe. A creature migrates due to environmental change. A flooded route reveals an old ruin. Each event must have a clear cause, affected NPCs, and an escalation path if ignored.
+
+19. CHARACTER IDENTITY OBSERVATIONS (0-3): Based on recent player actions, observe behavioral patterns WITHOUT assigning destiny. Track tendencies like: protective, curious, cautious, reckless, compassionate, cold, stubborn, prideful, loyal, self_sacrificing, opportunistic. These are evolving observations, not fixed traits. Include a confidence percentage and a brief example action. If a pattern is strong enough, suggest a subtle narrator reflection line.
+
 Respond ONLY with valid JSON:
 {
   "world_events": [
