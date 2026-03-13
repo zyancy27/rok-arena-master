@@ -607,6 +607,78 @@ Respond ONLY with valid JSON:
       };
     }
 
+    // Regional grid data
+    if (simulation.regional_grid?.length > 0) {
+      const grid = updatedWorldState.regional_grid || {};
+      for (const region of simulation.regional_grid.slice(0, 3)) {
+        grid[region.region_id] = {
+          danger_level: Math.min(10, Math.max(0, region.danger_level || 0)),
+          weather: region.weather || 'clear',
+          faction_presence: region.faction_presence || [],
+          active_event: region.active_event || null,
+          evolving_threat: region.evolving_threat || null,
+          gravity_score: Math.min(10, Math.max(1, region.gravity_score || 1)),
+          updated_day: dayCount,
+        };
+      }
+      updatedWorldState.regional_grid = grid;
+    }
+
+    // Story gravity events
+    if (simulation.story_gravity_events?.length > 0) {
+      const gravityEvents = updatedWorldState.story_gravity_events || [];
+      for (const ge of simulation.story_gravity_events.slice(0, 2)) {
+        gravityEvents.push({
+          description: ge.event_description,
+          gravity_score: ge.gravity_score,
+          evolution_if_ignored: ge.evolution_if_ignored,
+          location: ge.location,
+          day: dayCount,
+          resolved: false,
+        });
+      }
+      updatedWorldState.story_gravity_events = gravityEvents.slice(-15);
+    }
+
+    // Character psychology events
+    if (simulation.psychology_events?.length > 0) {
+      const psych = updatedWorldState.character_psychology || { events: [] };
+      for (const pe of simulation.psychology_events.slice(0, 2)) {
+        psych.events = [...(psych.events || []), { ...pe, day: dayCount }].slice(-20);
+      }
+      psych.dominant_emotion = simulation.psychology_events[0]?.event_type === 'combat_damage' ? 'fear' : 
+        simulation.psychology_events[0]?.event_type === 'victory' ? 'confidence' : psych.dominant_emotion;
+      updatedWorldState.character_psychology = psych;
+    }
+
+    // Relationship updates
+    if (simulation.relationship_updates?.length > 0) {
+      const rels = updatedWorldState.character_relationships || [];
+      for (const ru of simulation.relationship_updates.slice(0, 3)) {
+        const existing = rels.find((r: any) => r.source === ru.source && r.target === ru.target);
+        if (existing) {
+          existing.tone = ru.tone;
+          existing.trust = Math.min(100, Math.max(0, (existing.trust || 50) + (ru.trust_change || 0)));
+          existing.respect = Math.min(100, Math.max(0, (existing.respect || 50) + (ru.respect_change || 0)));
+          existing.fear = Math.min(100, Math.max(0, (existing.fear || 10) + (ru.fear_change || 0)));
+          existing.reason = ru.reason;
+        } else {
+          rels.push({ source: ru.source, target: ru.target, tone: ru.tone, trust: 50 + (ru.trust_change || 0), respect: 50 + (ru.respect_change || 0), fear: 10 + (ru.fear_change || 0), reason: ru.reason });
+        }
+      }
+      updatedWorldState.character_relationships = rels.slice(-30);
+    }
+
+    // Lore consistency rules
+    if (simulation.lore_rules?.length > 0) {
+      const lore = updatedWorldState.lore_rules || { world_rules: [] };
+      for (const lr of simulation.lore_rules.slice(0, 2)) {
+        if (lr.category === 'technology_level') lore.technology_level = lr.rule;
+        else lore.world_rules = [...(lore.world_rules || []), lr.rule].slice(-20);
+      }
+      updatedWorldState.lore_rules = lore;
+    }
+
     // Persist updated world_state and story_context to campaign
     dbOps.push(
       supabaseAdmin.from('campaigns').update({
