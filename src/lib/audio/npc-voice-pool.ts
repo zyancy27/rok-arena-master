@@ -147,14 +147,16 @@ export interface NarrationSegment {
  * Split narrator text into narrator prose vs NPC quoted dialogue segments.
  * Detects patterns like:  NpcName says, "dialogue"  or  "dialogue," NpcName replies.
  * Also handles inline quotes without attribution as generic NPC.
+ *
+ * @param npcGenderMap Optional map of NPC name (lowercase) → gender for voice matching.
+ *   If not provided, the system infers gender from surrounding pronoun context (she/her → female).
  */
-export function splitNarrationSegments(text: string): NarrationSegment[] {
+export function splitNarrationSegments(
+  text: string,
+  npcGenderMap?: Record<string, 'male' | 'female'>,
+): NarrationSegment[] {
   const segments: NarrationSegment[] = [];
   
-  // Match NPC dialogue with attribution:
-  // Pattern A: Name says/speaks/etc, "dialogue"  or  Name: "dialogue"
-  // Pattern B: "dialogue," Name says/replies/etc.
-  // Pattern C: standalone "dialogue" (no clear attribution)
   const dialogueRegex = /(?:(\b[A-Z][a-zA-Z''-]+(?:\s+[A-Z][a-zA-Z''-]+)?)\s+(?:says?|speaks?|replies?|responds?|whispers?|shouts?|yells?|mutters?|growls?|hisses?|calls?\s*out|declares?|asks?|exclaims?|announces?|murmurs?|snaps?|barks?|snarls?|cries?\s*out)[,:]?\s*)?["\u201C]([^"\u201D]+)["\u201D](?:[,.]?\s*(?:(\b[A-Z][a-zA-Z''-]+(?:\s+[A-Z][a-zA-Z''-]+)?)\s+(?:says?|speaks?|replies?|responds?|whispers?|shouts?|mutters?|growls?|adds?|continues?)))?/g;
   
   let lastIndex = 0;
@@ -173,7 +175,27 @@ export function splitNarrationSegments(text: string): NarrationSegment[] {
     const dialogue = match[2];
     
     if (dialogue && dialogue.trim()) {
-      const voiceProfile = npcName ? getVoiceForNpc(npcName) : getVoiceForNpc('_unnamed_npc');
+      // Determine gender from the map, or infer from surrounding context
+      let gender: 'male' | 'female' | undefined;
+      if (npcName && npcGenderMap) {
+        gender = npcGenderMap[npcName.trim().toLowerCase()];
+      }
+      if (!gender && npcName) {
+        // Infer from pronouns near the dialogue (look at ~80 chars before and after)
+        const contextStart = Math.max(0, match.index - 80);
+        const contextEnd = Math.min(text.length, match.index + match[0].length + 80);
+        const nearby = text.slice(contextStart, contextEnd).toLowerCase();
+        const femaleSignals = /\b(she|her|herself|woman|girl|lady|queen|princess|priestess|duchess|empress|matron|maiden|mother|sister|daughter|mistress|goddess)\b/i;
+        const maleSignals = /\b(he|his|himself|man|boy|lord|king|prince|priest|duke|emperor|father|brother|son|master|god)\b/i;
+        const hasFemale = femaleSignals.test(nearby);
+        const hasMale = maleSignals.test(nearby);
+        if (hasFemale && !hasMale) gender = 'female';
+        else if (hasMale && !hasFemale) gender = 'male';
+      }
+
+      const voiceProfile = npcName
+        ? getVoiceForNpc(npcName, gender)
+        : getVoiceForNpc('_unnamed_npc', gender);
       segments.push({
         type: 'npc',
         text: dialogue.trim(),
