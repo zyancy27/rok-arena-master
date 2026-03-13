@@ -2015,9 +2015,9 @@ export default function CampaignView() {
                 )}
 
                 {/* Enemy Tracker — above chat for visibility */}
-                {campaignEnemies.length > 0 && (
+                {campaignEnemies.filter(e => e.status === 'active' || e.status === 'hiding').length > 0 && (
                   <div className="px-3 pt-3 pb-1 relative z-10">
-                    <CampaignEnemyTracker enemies={campaignEnemies} />
+                    <CampaignEnemyTracker enemies={campaignEnemies.filter(e => e.status === 'active' || e.status === 'hiding')} />
                   </div>
                 )}
 
