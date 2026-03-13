@@ -203,6 +203,10 @@ Generate ALL of the following in a single JSON response. Each system feeds into 
 
 17. LORE CONSISTENCY RULES (0-2): Any new world rules or lore facts established by narration that should be enforced going forward.
 
+18. EMERGENT EVENTS (0-2): Unscripted events that emerge LOGICALLY from world conditions. A bandit camp forms because guards are stretched thin. A market shortage appears because a road became unsafe. A creature migrates due to environmental change. A flooded route reveals an old ruin. Each event must have a clear cause, affected NPCs, and an escalation path if ignored.
+
+19. CHARACTER IDENTITY OBSERVATIONS (0-3): Based on recent player actions, observe behavioral patterns WITHOUT assigning destiny. Track tendencies like: protective, curious, cautious, reckless, compassionate, cold, stubborn, prideful, loyal, self_sacrificing, opportunistic. These are evolving observations, not fixed traits. Include a confidence percentage and a brief example action. If a pattern is strong enough, suggest a subtle narrator reflection line.
+
 Respond ONLY with valid JSON:
 {
   "world_events": [
@@ -350,6 +354,28 @@ Respond ONLY with valid JSON:
       "category": "<technology_level|world_lore|faction_history|power_rules>",
       "rule": "<rule text>",
       "priority": <1-10>
+    }
+  ],
+  "emergent_events": [
+    {
+      "title": "<event name>",
+      "category": "<security|economy|environment|social|discovery|faction|creature|infrastructure>",
+      "description": "<1-2 sentences>",
+      "cause": "<clear reason this happened>",
+      "urgency": "<background|developing|imminent|active>",
+      "gravity": <1-10>,
+      "affected_npcs": ["<names>"],
+      "escalation": "<what happens if ignored>",
+      "region": "<region name>"
+    }
+  ],
+  "character_identity_observations": [
+    {
+      "tendency": "<protective|curious|cautious|reckless|compassionate|cold|stubborn|prideful|loyal|self_sacrificing|opportunistic|diplomatic|analytical|instinctive|defiant>",
+      "confidence": <0-100>,
+      "example_action": "<brief description of what the player did>",
+      "observation_count": <number>,
+      "narrator_reflection": "<subtle reflection line or null>"
     }
   ]
 }`;
@@ -677,6 +703,63 @@ Respond ONLY with valid JSON:
         else lore.world_rules = [...(lore.world_rules || []), lr.rule].slice(-20);
       }
       updatedWorldState.lore_rules = lore;
+    }
+
+    // Emergent events (from world conditions)
+    if (simulation.emergent_events?.length > 0) {
+      const emergent = updatedWorldState.emergent_events || [];
+      for (const ee of simulation.emergent_events.slice(0, 2)) {
+        emergent.push({
+          title: ee.title,
+          category: ee.category,
+          description: ee.description,
+          cause: ee.cause,
+          urgency: ee.urgency || 'developing',
+          gravity: Math.min(10, Math.max(1, ee.gravity || 5)),
+          affected_npcs: ee.affected_npcs || [],
+          escalation: ee.escalation || '',
+          region: ee.region || currentZone,
+          day: dayCount,
+          resolved: false,
+        });
+      }
+      // Keep only recent unresolved + cap
+      updatedWorldState.emergent_events = emergent
+        .filter((e: any) => !e.resolved)
+        .slice(-15);
+    }
+
+    // Character identity discovery observations
+    if (simulation.character_identity_observations?.length > 0) {
+      const identity = updatedWorldState.character_identity_discovery || {
+        emerging_tendencies: [],
+        pending_reflection: null,
+      };
+      const tendencies = identity.emerging_tendencies || [];
+      for (const obs of simulation.character_identity_observations.slice(0, 3)) {
+        const existing = tendencies.find((t: any) => t.tendency === obs.tendency);
+        if (existing) {
+          existing.confidence = Math.min(100, Math.max(0, obs.confidence || existing.confidence));
+          existing.count = (existing.count || 0) + (obs.observation_count || 1);
+          existing.last_example = obs.example_action || existing.last_example;
+        } else {
+          tendencies.push({
+            tendency: obs.tendency,
+            confidence: Math.min(100, Math.max(0, obs.confidence || 15)),
+            count: obs.observation_count || 1,
+            last_example: obs.example_action || '',
+          });
+        }
+        // Set reflection if provided and confidence is high enough
+        if (obs.narrator_reflection && (obs.confidence || 0) >= 40) {
+          identity.pending_reflection = obs.narrator_reflection;
+        }
+      }
+      // Sort by confidence, keep top tendencies
+      identity.emerging_tendencies = tendencies
+        .sort((a: any, b: any) => (b.confidence || 0) - (a.confidence || 0))
+        .slice(0, 8);
+      updatedWorldState.character_identity_discovery = identity;
     }
 
     // Persist updated world_state and story_context to campaign
