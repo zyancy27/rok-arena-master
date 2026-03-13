@@ -111,7 +111,7 @@ serve(async (req) => {
     const economyState = worldStateJson.economy || {};
     const playerInfluence = worldStateJson.player_influence || [];
 
-    // ─── AI-powered world simulation with all 22 systems ──────
+    // ─── AI-powered world simulation with all 28 systems ──────
     const simulationPrompt = `You are a COMPREHENSIVE World Simulation Engine for a living fantasy world. You simulate ALL aspects of the world evolving INDEPENDENTLY of player actions.
 
 You must think like a Dungeon Master maintaining a living world behind the scenes. Everything you generate becomes context that the narrator uses to make the world feel alive.
