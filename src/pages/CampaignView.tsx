@@ -10,7 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { VoiceTextarea } from '@/components/ui/voice-textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -1874,7 +1873,7 @@ export default function CampaignView() {
   };
 
   return (
-    <div className="flex flex-col h-[100dvh] overflow-hidden">
+    <div className="flex flex-col h-[100dvh] overflow-x-hidden">
       {/* Header */}
       <div className="flex items-center justify-between gap-2 px-2 py-1.5 shrink-0 bg-background/70 backdrop-blur-md border-b border-border/50 z-20 relative">
         <div className="flex items-center gap-2 min-w-0">
@@ -2006,15 +2005,12 @@ export default function CampaignView() {
                   </div>
                 )}
 
-                <ScrollArea
-                  className="flex-1 p-4 relative z-10"
-                  style={{ minHeight: 0 }}
-                  onScrollCapture={(e) => {
-                    const el = e.currentTarget.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
-                    if (el) {
-                      const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-                      userIsNearBottomRef.current = distFromBottom < 120;
-                    }
+                <div
+                  className="flex-1 min-h-0 overflow-y-auto p-4 relative z-10"
+                  onScroll={(e) => {
+                    const el = e.currentTarget;
+                    const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+                    userIsNearBottomRef.current = distFromBottom < 120;
                   }}
                 >
                   <div className="space-y-4">
@@ -2290,7 +2286,7 @@ export default function CampaignView() {
 
                     <div ref={messagesEndRef} />
                   </div>
-                </ScrollArea>
+                </div>
 
                 {/* Enemy tracker moved to top — remove from here */}
 
@@ -2500,7 +2496,7 @@ export default function CampaignView() {
             </TabsContent>
 
             {isActive && myParticipant?.is_active && (
-              <TabsContent value="narrator" className="flex-1 flex flex-col mt-0 data-[state=inactive]:hidden">
+              <TabsContent value="narrator" className="flex-1 flex flex-col mt-0 min-h-0 data-[state=inactive]:hidden">
                 <CampaignNarratorChat
                   campaignId={campaign.id}
                   campaignName={campaign.name}

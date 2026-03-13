@@ -6,7 +6,6 @@
 import { useState, useRef, useEffect, useMemo, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -125,7 +124,8 @@ export default function CampaignNarratorChat({
   const [partyOpen, setPartyOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [showMap, setShowMap] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesViewportRef = useRef<HTMLDivElement>(null);
+  const userIsNearBottomRef = useRef(true);
 
   // Force tactical map regeneration when zone/location changes
   const mapLocationKey = chosenLocation || currentZone || campaignName;
@@ -159,14 +159,16 @@ export default function CampaignNarratorChat({
     }
   }, [mechanicDiscoveries.length]);
 
-  const scrollToBottom = () => {
-    setTimeout(() => {
-      scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+  const scrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    const viewport = messagesViewportRef.current;
+    if (!viewport) return;
+    viewport.scrollTo({ top: viewport.scrollHeight, behavior });
   };
 
   useEffect(() => {
-    scrollToBottom();
+    if (!userIsNearBottomRef.current) return;
+    const timer = setTimeout(() => scrollToBottom('smooth'), 50);
+    return () => clearTimeout(timer);
   }, [messages]);
 
   const sendNarratorQuery = async (queryText: string) => {
@@ -416,7 +418,15 @@ export default function CampaignNarratorChat({
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 min-h-0 p-3">
+      <div
+        ref={messagesViewportRef}
+        className="flex-1 min-h-0 overflow-y-auto p-3"
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+          userIsNearBottomRef.current = distFromBottom < 120;
+        }}
+      >
         {messages.length === 0 && !isLoading ? (
           <div className="flex flex-col items-center justify-center h-full gap-2 text-center py-6">
             <Sparkles className="w-6 h-6 text-amber-400/50" />
@@ -467,10 +477,9 @@ export default function CampaignNarratorChat({
                 </div>
               </div>
             )}
-            <div ref={scrollRef} />
           </div>
         )}
-      </ScrollArea>
+      </div>
 
       {/* Input */}
       <div className="p-3 border-t border-border">
