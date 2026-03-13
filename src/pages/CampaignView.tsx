@@ -117,6 +117,23 @@ export default function CampaignView() {
     opinion_summary: string | null;
     personality_notes: string | null;
     memorable_moments: string[];
+    relationship_stage?: string;
+    curiosity?: number;
+    respect?: number;
+    trust?: number;
+    amusement?: number;
+    disappointment?: number;
+    intrigue?: number;
+    story_value?: number;
+    creativity_score?: number;
+    world_interaction_score?: number;
+    npc_interaction_score?: number;
+    exploration_score?: number;
+    combat_style_score?: number;
+    story_engagement_score?: number;
+    story_compatibility?: number;
+    narrator_observations?: string[];
+    nickname_history?: string[];
   } | null>(null);
   const [showTacticalMap, setShowTacticalMap] = useState(false);
   const userIsNearBottomRef = useRef(true);
@@ -537,6 +554,23 @@ export default function CampaignView() {
         opinion_summary: (data as any).opinion_summary,
         personality_notes: (data as any).personality_notes,
         memorable_moments: (data as any).memorable_moments || [],
+        relationship_stage: (data as any).relationship_stage,
+        curiosity: (data as any).curiosity,
+        respect: (data as any).respect,
+        trust: (data as any).trust,
+        amusement: (data as any).amusement,
+        disappointment: (data as any).disappointment,
+        intrigue: (data as any).intrigue,
+        story_value: (data as any).story_value,
+        creativity_score: (data as any).creativity_score,
+        world_interaction_score: (data as any).world_interaction_score,
+        npc_interaction_score: (data as any).npc_interaction_score,
+        exploration_score: (data as any).exploration_score,
+        combat_style_score: (data as any).combat_style_score,
+        story_engagement_score: (data as any).story_engagement_score,
+        story_compatibility: (data as any).story_compatibility,
+        narrator_observations: (data as any).narrator_observations || [],
+        nickname_history: (data as any).nickname_history || [],
       });
     }
   };
@@ -1445,12 +1479,86 @@ export default function CampaignView() {
             if (newMoments.length > 20) newMoments.shift();
           }
 
+          // Clamp helper
+          const clamp = (v: number, min = 0, max = 100) => Math.max(min, Math.min(max, v));
+          const rd = su.relationship_dimensions || {};
+          const bs = su.behavior_scores || {};
+
+          // Update relationship dimensions
+          const newCuriosity = clamp((narratorSentiment?.curiosity ?? 50) + (rd.curiosity_shift || 0));
+          const newRespect = clamp((narratorSentiment?.respect ?? 50) + (rd.respect_shift || 0));
+          const newTrust = clamp((narratorSentiment?.trust ?? 50) + (rd.trust_shift || 0));
+          const newAmusement = clamp((narratorSentiment?.amusement ?? 50) + (rd.amusement_shift || 0));
+          const newDisappointment = clamp((narratorSentiment?.disappointment ?? 0) + (rd.disappointment_shift || 0));
+          const newIntrigue = clamp((narratorSentiment?.intrigue ?? 50) + (rd.intrigue_shift || 0));
+          const newStoryValue = clamp((narratorSentiment?.story_value ?? 50) + (rd.story_value_shift || 0));
+
+          // Update behavior scores
+          const newCreativity = clamp((narratorSentiment?.creativity_score ?? 50) + (bs.creativity || 0));
+          const newWorldInteraction = clamp((narratorSentiment?.world_interaction_score ?? 50) + (bs.world_interaction || 0));
+          const newNpcInteraction = clamp((narratorSentiment?.npc_interaction_score ?? 50) + (bs.npc_interaction || 0));
+          const newExploration = clamp((narratorSentiment?.exploration_score ?? 50) + (bs.exploration || 0));
+          const newCombatStyle = clamp((narratorSentiment?.combat_style_score ?? 50) + (bs.combat_style || 0));
+          const newStoryEngagement = clamp((narratorSentiment?.story_engagement_score ?? 50) + (bs.story_engagement || 0));
+          const newStoryCompat = clamp((narratorSentiment?.story_compatibility ?? 50) + (su.story_compatibility_shift || 0));
+
+          // Narrator observations
+          const newObservations = [...(narratorSentiment?.narrator_observations || [])];
+          if (su.narrator_observation && typeof su.narrator_observation === 'string') {
+            newObservations.push(su.narrator_observation);
+            if (newObservations.length > 30) newObservations.shift();
+          }
+
+          // Nickname history
+          const newNicknameHistory = [...(narratorSentiment?.nickname_history || [])];
+          const currentNickname = narratorSentiment?.nickname;
+          const newNickname = su.nickname || currentNickname || null;
+          if (newNickname && newNickname !== currentNickname && currentNickname) {
+            if (!newNicknameHistory.includes(currentNickname)) {
+              newNicknameHistory.push(currentNickname);
+            }
+          }
+          if (newNickname && !newNicknameHistory.includes(newNickname)) {
+            newNicknameHistory.push(newNickname);
+          }
+
+          // Derive relationship stage from dimensions
+          const avgPositive = (newCuriosity + newRespect + newTrust + newAmusement + newIntrigue + newStoryValue) / 6;
+          let stage = 'unknown';
+          if (newDisappointment > 70) stage = 'disappointed';
+          else if (newDisappointment > 50 && avgPositive < 30) stage = 'irritated';
+          else if (avgPositive < 25) stage = 'unimpressed';
+          else if (avgPositive < 35) stage = 'dismissive';
+          else if (avgPositive >= 80) stage = 'beloved_storyteller';
+          else if (avgPositive >= 65) stage = 'compelling';
+          else if (avgPositive >= 55) stage = 'noteworthy';
+          else if (avgPositive >= 45) stage = 'interesting';
+          else if (avgPositive >= 35) stage = 'observed';
+          else stage = 'unknown';
+
           const updatedSentiment = {
-            nickname: su.nickname || narratorSentiment?.nickname || null,
+            nickname: newNickname,
             sentiment_score: newScore,
             opinion_summary: su.opinion_summary || narratorSentiment?.opinion_summary || null,
             personality_notes: su.personality_notes || narratorSentiment?.personality_notes || null,
             memorable_moments: newMoments,
+            relationship_stage: stage,
+            curiosity: newCuriosity,
+            respect: newRespect,
+            trust: newTrust,
+            amusement: newAmusement,
+            disappointment: newDisappointment,
+            intrigue: newIntrigue,
+            story_value: newStoryValue,
+            creativity_score: newCreativity,
+            world_interaction_score: newWorldInteraction,
+            npc_interaction_score: newNpcInteraction,
+            exploration_score: newExploration,
+            combat_style_score: newCombatStyle,
+            story_engagement_score: newStoryEngagement,
+            story_compatibility: newStoryCompat,
+            narrator_observations: newObservations,
+            nickname_history: newNicknameHistory,
           };
           setNarratorSentiment(updatedSentiment);
 

@@ -64,6 +64,93 @@ export interface NarratorSentimentData {
   opinion_summary?: string | null;
   personality_notes?: string | null;
   memorable_moments?: string[];
+  // Relationship dimensions
+  relationship_stage?: string | null;
+  curiosity?: number;
+  respect?: number;
+  trust?: number;
+  amusement?: number;
+  disappointment?: number;
+  intrigue?: number;
+  story_value?: number;
+  // Behavior patterns
+  creativity_score?: number;
+  world_interaction_score?: number;
+  npc_interaction_score?: number;
+  exploration_score?: number;
+  combat_style_score?: number;
+  story_engagement_score?: number;
+  // Story compatibility
+  story_compatibility?: number;
+  // Observations & nickname history
+  narrator_observations?: string[];
+  nickname_history?: string[];
+}
+
+// ── Helper functions for narrator sentiment display ──
+
+function deriveRelationshipStage(score: number, sentiment: NarratorSentimentData): string {
+  const avg = ((sentiment.curiosity ?? 50) + (sentiment.respect ?? 50) + (sentiment.trust ?? 50) +
+    (sentiment.amusement ?? 50) + (sentiment.intrigue ?? 50) + (sentiment.story_value ?? 50)) / 6;
+  const dis = sentiment.disappointment ?? 0;
+  if (dis > 70) return 'disappointed';
+  if (dis > 50 && avg < 30) return 'irritated';
+  if (avg < 25) return 'unimpressed';
+  if (avg < 35) return 'dismissive';
+  if (avg >= 80) return 'beloved_storyteller';
+  if (avg >= 65) return 'compelling';
+  if (avg >= 55) return 'noteworthy';
+  if (avg >= 45) return 'interesting';
+  if (avg >= 35) return 'observed';
+  return 'unknown';
+}
+
+function getStageDisplay(stage: string): string {
+  const map: Record<string, string> = {
+    unknown: '👁️ Unknown — "I haven\'t formed an opinion yet"',
+    observed: '🔍 Observed — "I\'m watching them"',
+    interesting: '✨ Interesting — "They\'ve caught my attention"',
+    noteworthy: '📝 Noteworthy — "There is something about them"',
+    compelling: '🌟 Compelling — "I find myself drawn to their story"',
+    beloved_storyteller: '💕 Beloved Storyteller — "They bring my world to life"',
+    dismissive: '😶 Dismissive — "Hardly worth the ink"',
+    unimpressed: '😒 Unimpressed — "They rush through my worlds"',
+    irritated: '😤 Irritated — "They waste the stories I give them"',
+    disappointed: '💔 Disappointed — "I expected more"',
+  };
+  return map[stage] || map.unknown;
+}
+
+function getDimensionLabel(value: number, isNegative = false): string {
+  if (isNegative) {
+    if (value >= 80) return '💢 Deep — "This one truly frustrates me"';
+    if (value >= 60) return '😔 Growing — "I notice their indifference"';
+    if (value >= 40) return '😐 Mild — "Small things, but they add up"';
+    if (value >= 20) return '🤷 Slight — "A passing thought"';
+    return '✨ Minimal — "Nothing worth noting"';
+  }
+  if (value >= 85) return '🔥 Extraordinary';
+  if (value >= 70) return '⭐ High';
+  if (value >= 55) return '📈 Growing';
+  if (value >= 40) return '📊 Moderate';
+  if (value >= 25) return '📉 Low';
+  return '❄️ Minimal';
+}
+
+function getBehaviorLabel(value: number): string {
+  if (value >= 80) return '🌟 Exceptional';
+  if (value >= 65) return '✨ Strong';
+  if (value >= 50) return '📊 Average';
+  if (value >= 35) return '📉 Below Average';
+  return '⚠️ Lacking';
+}
+
+function getStoryCompatibilityText(value: number): string {
+  if (value >= 80) return '"Their choices weave perfectly into the tale I\'m telling. It\'s as if they can feel where the story wants to go."';
+  if (value >= 60) return '"They follow the threads I lay down, sometimes in ways I didn\'t expect."';
+  if (value >= 40) return '"They walk their own path. Not always where the story leads, but not against it either."';
+  if (value >= 20) return '"They seem unaware of the larger story unfolding around them."';
+  return '"They ignore every hook, every thread, every door I open for them."';
 }
 
 export function buildCharacterBookChapters(
@@ -101,27 +188,104 @@ export function buildCharacterBookChapters(
   if (sentiment && (sentiment.nickname || sentiment.opinion_summary || (sentiment.sentiment_score !== undefined && sentiment.sentiment_score !== 0))) {
     const sentimentSections: CharacterBookSection[] = [];
     const score = sentiment.sentiment_score ?? 0;
-    const feeling = score >= 50 ? '💕 Adored — "A true storyteller"' : score >= 20 ? '😊 Impressed — "They care about this world"' : score >= -20 ? '😐 Watching — "We\'ll see what they do"' : score >= -50 ? '😒 Unimpressed — "They rush through my worlds"' : '💢 Disappointed — "They don\'t even try"';
-    
+
+    // Relationship stage display
+    const stage = sentiment.relationship_stage || deriveRelationshipStage(score, sentiment);
+    const stageDisplay = getStageDisplay(stage);
+
     const sentimentItems: { label: string; value: string }[] = [
       { label: 'The Narrator Calls Them', value: sentiment.nickname ? `"${sentiment.nickname}"` : 'No nickname yet' },
-      { label: 'How She Feels', value: feeling },
+      { label: 'Relationship', value: stageDisplay },
     ];
     sentimentSections.push({ title: 'Narrator\'s Impression', items: sentimentItems });
-    
+
     if (sentiment.opinion_summary) {
-      sentimentSections.push({ title: 'Her Opinion', content: `"${sentiment.opinion_summary}"` });
+      sentimentSections.push({ title: 'Her Private Thoughts', content: `"${sentiment.opinion_summary}"` });
     }
+
+    // Relationship dimensions
+    const dims = [
+      { label: 'Curiosity', value: sentiment.curiosity, icon: '🔍', desc: 'How interested she is in what they\'ll do next' },
+      { label: 'Respect', value: sentiment.respect, icon: '👑', desc: 'How much she admires their actions' },
+      { label: 'Trust', value: sentiment.trust, icon: '🤝', desc: 'Whether she believes they act with purpose' },
+      { label: 'Amusement', value: sentiment.amusement, icon: '😏', desc: 'How entertaining their actions are' },
+      { label: 'Intrigue', value: sentiment.intrigue, icon: '🌀', desc: 'How mysterious or unpredictable they are' },
+      { label: 'Story Value', value: sentiment.story_value, icon: '📖', desc: 'How important she thinks they are to the story' },
+    ].filter(d => d.value !== undefined && d.value !== 50);
+
+    if (dims.length > 0) {
+      sentimentSections.push({
+        title: 'How She Sees Them',
+        items: dims.map(d => ({
+          label: `${d.icon} ${d.label}`,
+          value: getDimensionLabel(d.value!),
+        })),
+      });
+    }
+
+    // Disappointment (shown separately if notable)
+    if (sentiment.disappointment !== undefined && sentiment.disappointment > 15) {
+      sentimentSections.push({
+        title: '😔 Her Disappointment',
+        content: getDimensionLabel(sentiment.disappointment, true),
+      });
+    }
+
+    // Behavior patterns observed
+    const behaviors = [
+      { label: 'Creativity', value: sentiment.creativity_score },
+      { label: 'World Interaction', value: sentiment.world_interaction_score },
+      { label: 'NPC Engagement', value: sentiment.npc_interaction_score },
+      { label: 'Exploration', value: sentiment.exploration_score },
+      { label: 'Combat Style', value: sentiment.combat_style_score },
+      { label: 'Story Engagement', value: sentiment.story_engagement_score },
+    ].filter(b => b.value !== undefined && b.value !== 50);
+
+    if (behaviors.length > 0) {
+      sentimentSections.push({
+        title: 'Behavior Patterns Observed',
+        items: behaviors.map(b => ({
+          label: b.label,
+          value: getBehaviorLabel(b.value!),
+        })),
+      });
+    }
+
+    // Story compatibility
+    if (sentiment.story_compatibility !== undefined && sentiment.story_compatibility !== 50) {
+      sentimentSections.push({
+        title: '🎭 Story Compatibility',
+        content: getStoryCompatibilityText(sentiment.story_compatibility),
+      });
+    }
+
     if (sentiment.personality_notes) {
       sentimentSections.push({ title: 'What She\'s Noticed', content: sentiment.personality_notes });
     }
+
+    // Narrator observations (journal margin notes)
+    if (sentiment.narrator_observations && sentiment.narrator_observations.length > 0) {
+      sentimentSections.push({
+        title: '📝 Narrator\'s Journal',
+        listItems: sentiment.narrator_observations.slice(-8).map(o => `"${o}"`),
+      });
+    }
+
     if (sentiment.memorable_moments && sentiment.memorable_moments.length > 0) {
       sentimentSections.push({ 
         title: 'Moments She Remembers', 
         listItems: sentiment.memorable_moments.slice(-10),
       });
     }
-    
+
+    // Nickname evolution
+    if (sentiment.nickname_history && sentiment.nickname_history.length > 1) {
+      sentimentSections.push({
+        title: '🏷️ Evolving Nicknames',
+        listItems: sentiment.nickname_history.slice(-6),
+      });
+    }
+
     chapters.push({ id: 'narrator-view', title: 'The Narrator\'s View', icon: '🔮', sections: sentimentSections });
   }
 
