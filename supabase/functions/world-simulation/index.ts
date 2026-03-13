@@ -193,6 +193,16 @@ Generate ALL of the following in a single JSON response. Each system feeds into 
 
 12. CREATURE ACTIVITY (0-1): What wildlife, monsters, or creatures are doing in the region. Migrations, territorial behavior, nesting, hunting patterns.
 
+13. REGIONAL GRID UPDATE (1-3): Independent simulation data for nearby regions. Each region has its own danger_level, weather, faction_presence, and events that evolve independently.
+
+14. STORY GRAVITY EVENTS (0-2): Events that should naturally pull player attention. Each has a gravity_score (1-10) based on danger, NPC involvement, proximity, story importance. Higher gravity events evolve if ignored.
+
+15. CHARACTER PSYCHOLOGY EVENTS (0-2): Based on recent actions, infer psychological impacts on the player character. Combat damage increases fear, ally support increases confidence, betrayal decreases trust.
+
+16. RELATIONSHIP UPDATES (0-3): How NPCs' relationships with the player and each other have shifted. Track trust, respect, fear, loyalty changes.
+
+17. LORE CONSISTENCY RULES (0-2): Any new world rules or lore facts established by narration that should be enforced going forward.
+
 Respond ONLY with valid JSON:
 {
   "world_events": [
@@ -297,7 +307,51 @@ Respond ONLY with valid JSON:
     "description": "<what creatures are doing in the region>",
     "threat_level": <0-5>,
     "creature_types": ["<types>"]
-  }
+  },
+  "regional_grid": [
+    {
+      "region_id": "<region_name>",
+      "danger_level": <0-10>,
+      "weather": "<current weather>",
+      "faction_presence": [{"name": "<faction>", "control": <0-100>, "hostility": <0-10>}],
+      "active_event": "<brief description or null>",
+      "evolving_threat": "<description of threat that worsens if ignored, or null>",
+      "gravity_score": <1-10>
+    }
+  ],
+  "story_gravity_events": [
+    {
+      "event_description": "<what's pulling attention>",
+      "gravity_score": <1-10>,
+      "evolution_if_ignored": "<what happens if players don't engage>",
+      "location": "<where>"
+    }
+  ],
+  "psychology_events": [
+    {
+      "event_type": "<combat_damage|ally_support|betrayal|victory|defeat|death_witnessed|rescue|threat|kindness|loss>",
+      "severity": <1-10>,
+      "description": "<what happened psychologically>"
+    }
+  ],
+  "relationship_updates": [
+    {
+      "source": "<character/NPC name>",
+      "target": "<character/NPC name>",
+      "tone": "<fearful|hostile|respectful|friendly|suspicious|loyal|neutral>",
+      "trust_change": <-10 to 10>,
+      "respect_change": <-10 to 10>,
+      "fear_change": <-10 to 10>,
+      "reason": "<why>"
+    }
+  ],
+  "lore_rules": [
+    {
+      "category": "<technology_level|world_lore|faction_history|power_rules>",
+      "rule": "<rule text>",
+      "priority": <1-10>
+    }
+  ]
 }`;
 
     const aiResponse = await fetch('https://api.lovable.dev/v1/chat/completions', {
@@ -551,6 +605,78 @@ Respond ONLY with valid JSON:
         ...simulation.creature_activity,
         updated_day: dayCount,
       };
+    }
+
+    // Regional grid data
+    if (simulation.regional_grid?.length > 0) {
+      const grid = updatedWorldState.regional_grid || {};
+      for (const region of simulation.regional_grid.slice(0, 3)) {
+        grid[region.region_id] = {
+          danger_level: Math.min(10, Math.max(0, region.danger_level || 0)),
+          weather: region.weather || 'clear',
+          faction_presence: region.faction_presence || [],
+          active_event: region.active_event || null,
+          evolving_threat: region.evolving_threat || null,
+          gravity_score: Math.min(10, Math.max(1, region.gravity_score || 1)),
+          updated_day: dayCount,
+        };
+      }
+      updatedWorldState.regional_grid = grid;
+    }
+
+    // Story gravity events
+    if (simulation.story_gravity_events?.length > 0) {
+      const gravityEvents = updatedWorldState.story_gravity_events || [];
+      for (const ge of simulation.story_gravity_events.slice(0, 2)) {
+        gravityEvents.push({
+          description: ge.event_description,
+          gravity_score: ge.gravity_score,
+          evolution_if_ignored: ge.evolution_if_ignored,
+          location: ge.location,
+          day: dayCount,
+          resolved: false,
+        });
+      }
+      updatedWorldState.story_gravity_events = gravityEvents.slice(-15);
+    }
+
+    // Character psychology events
+    if (simulation.psychology_events?.length > 0) {
+      const psych = updatedWorldState.character_psychology || { events: [] };
+      for (const pe of simulation.psychology_events.slice(0, 2)) {
+        psych.events = [...(psych.events || []), { ...pe, day: dayCount }].slice(-20);
+      }
+      psych.dominant_emotion = simulation.psychology_events[0]?.event_type === 'combat_damage' ? 'fear' : 
+        simulation.psychology_events[0]?.event_type === 'victory' ? 'confidence' : psych.dominant_emotion;
+      updatedWorldState.character_psychology = psych;
+    }
+
+    // Relationship updates
+    if (simulation.relationship_updates?.length > 0) {
+      const rels = updatedWorldState.character_relationships || [];
+      for (const ru of simulation.relationship_updates.slice(0, 3)) {
+        const existing = rels.find((r: any) => r.source === ru.source && r.target === ru.target);
+        if (existing) {
+          existing.tone = ru.tone;
+          existing.trust = Math.min(100, Math.max(0, (existing.trust || 50) + (ru.trust_change || 0)));
+          existing.respect = Math.min(100, Math.max(0, (existing.respect || 50) + (ru.respect_change || 0)));
+          existing.fear = Math.min(100, Math.max(0, (existing.fear || 10) + (ru.fear_change || 0)));
+          existing.reason = ru.reason;
+        } else {
+          rels.push({ source: ru.source, target: ru.target, tone: ru.tone, trust: 50 + (ru.trust_change || 0), respect: 50 + (ru.respect_change || 0), fear: 10 + (ru.fear_change || 0), reason: ru.reason });
+        }
+      }
+      updatedWorldState.character_relationships = rels.slice(-30);
+    }
+
+    // Lore consistency rules
+    if (simulation.lore_rules?.length > 0) {
+      const lore = updatedWorldState.lore_rules || { world_rules: [] };
+      for (const lr of simulation.lore_rules.slice(0, 2)) {
+        if (lr.category === 'technology_level') lore.technology_level = lr.rule;
+        else lore.world_rules = [...(lore.world_rules || []), lr.rule].slice(-20);
+      }
+      updatedWorldState.lore_rules = lore;
     }
 
     // Persist updated world_state and story_context to campaign

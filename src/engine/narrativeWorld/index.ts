@@ -500,3 +500,97 @@ export type {
   NarrativeActionType,
   NarrativeActionClassification,
 } from './actionClassification';
+
+// ── System 28 — Narrative Priority Engine ──────────────────────
+export {
+  calculatePriorityStack,
+  buildPriorityNarratorContext,
+  isSystemActive,
+  getDominantMode,
+} from './narrativePriorityEngine';
+export type {
+  NarrativeFocus,
+  PriorityScore,
+  NarrativePriorityStack,
+  PriorityContext,
+} from './narrativePriorityEngine';
+
+// ── System 29 — Narrative Director AI ──────────────────────────
+export {
+  evaluateNarrativeMode,
+  buildDirectorNarratorContext,
+} from './narrativeDirectorAI';
+export type {
+  NarrativeMode,
+  NarrativeDirective,
+  DirectorContext,
+} from './narrativeDirectorAI';
+
+// ── System 30 — Regional Simulation Grid ───────────────────────
+export {
+  createRegionalGrid,
+  updateRegion,
+  movePlayerToRegion,
+  evolveRegionEvents,
+  getPlayerRegion,
+  getAdjacentRegionStates,
+  buildRegionalNarratorContext,
+} from './regionalSimulationGrid';
+export type {
+  RegionState,
+  RegionEnvironment,
+  FactionPresence,
+  NpcActivityEntry,
+  RegionEconomy,
+  RegionEvent,
+  RegionalGrid,
+} from './regionalSimulationGrid';
+
+// ── System 31 — Lore Consistency Engine ────────────────────────
+export {
+  createLoreDatabase,
+  addLoreFact,
+  addWorldRule,
+  validateNarration,
+  buildLoreConsistencyContext,
+} from './loreConsistencyEngine';
+export type {
+  LoreCategory,
+  LoreFact,
+  LoreViolation,
+  LoreValidationResult,
+  LoreDatabase,
+  TechnologyLevel,
+} from './loreConsistencyEngine';
+
+// ── System 32 — Character Psychology Engine ────────────────────
+export {
+  createPsychologicalProfile,
+  applyPsychologicalEvent,
+  decayEmotions,
+  getDominantEmotion,
+  buildPsychologyNarratorContext,
+  buildPsychologySummary,
+} from './characterPsychologyEngine';
+export type {
+  PsychologicalProfile,
+  TraumaEntry,
+  ValueChangeEntry,
+  PsychologicalEvent,
+} from './characterPsychologyEngine';
+
+// ── System 33 — Relationship Simulation ────────────────────────
+export {
+  createRelationshipNetwork,
+  getRelationshipSim,
+  recordRelationshipEvent,
+  getRelationshipTone,
+  buildRelationshipSimContext,
+  buildNetworkNarratorContext,
+} from './relationshipSimulation';
+export type {
+  RelationshipMetrics,
+  CharacterRelationship,
+  RelationshipEvent as RelSimEvent,
+  RelationshipNetwork,
+} from './relationshipSimulation';
