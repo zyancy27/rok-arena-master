@@ -1490,6 +1490,7 @@ export default function CampaignView() {
             .update({
               campaign_xp: currentXp,
               campaign_level: currentLevel,
+              xp_to_next_level: CAMPAIGN_STARTING_ABILITIES.xpForLevel(currentLevel + 1),
               available_stat_points: snapshotParticipant.available_stat_points + earnedStatPoints,
             })
             .eq('id', snapshotParticipant.id);
