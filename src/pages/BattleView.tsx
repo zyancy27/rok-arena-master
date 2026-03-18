@@ -104,10 +104,10 @@ import { useBattleSfx } from '@/hooks/use-battle-sfx';
 import { useAmbientSound } from '@/hooks/use-ambient-sound';
 import { getDominantPsychCue } from '@/lib/battle-psychology';
 import { interpretMove } from '@/lib/intent-interpreter';
-import { useNarratorVoice } from '@/hooks/use-narrator-voice';
+import { useNarrationController } from '@/hooks/use-narration-controller';
 import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
-import { useNarrationAmbient } from '@/hooks/use-narration-ambient';
+import NarratorMessageContent from '@/components/campaigns/NarratorMessageContent';
 import { applyHardClamp, generateClampContext, type CharacterProfile, type ClampResult } from '@/lib/hard-clamp';
 import { detectDirectInteraction } from '@/lib/battle-hit-detection';
 import {
