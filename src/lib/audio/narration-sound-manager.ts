@@ -104,6 +104,30 @@ class NarrationSoundManager {
     this.scheduleMomentSounds(momentEvents, rules);
   }
 
+  playCueFromNarration(cue: SoundCue, intensity: SceneIntensity) {
+    if (!this.enabled || this.intensityLevel === 'off') return;
+    if (this.reduceVocalSounds && cue.family === 'vocal') return;
+    if (this.isOnCooldown(cue.id)) return;
+
+    const rules = getMixingRules(intensity, this.intensityLevel);
+
+    if (cue.category === 'persistent') {
+      if (this.persistentLayers.some(layer => layer.cue.id === cue.id)) return;
+      if (this.persistentLayers.length >= rules.maxPersistentLayers) return;
+      this.triggerCue(cue, rules, true);
+      if (!this.sceneContext.includes(cue.id)) {
+        this.sceneContext.push(cue.id);
+        if (this.sceneContext.length > 6) this.sceneContext.shift();
+      }
+      this.setCooldown(cue.id, cue.cooldownMs);
+      return;
+    }
+
+    if (this.momentLayers.length >= rules.maxMomentSounds) return;
+    this.triggerCue(cue, rules, false);
+    this.setCooldown(cue.id, cue.cooldownMs);
+  }
+
   /**
    * Called when the scene changes significantly (new location, mode change).
    * Crossfades all persistent layers out.

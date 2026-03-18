@@ -42,6 +42,12 @@ export class NarrationOrchestrator {
   private highlightEnabled = true;
   private debugEnabled = false;
   private manuallyResetting = false;
+  private ambientConfig = {
+    enabled: true,
+    intensityLevel: 'standard' as AmbientIntensityLevel,
+    masterVolume: 0.5,
+    reduceVocalSounds: false,
+  };
   private snapshotCallbacks: NarrationSnapshotCallback[] = [];
   private stateCallbacks: NarrationStateCallback[] = [];
   private highlightCallbacks: HighlightChangeCallback[] = [];
@@ -114,12 +120,13 @@ export class NarrationOrchestrator {
     debugEnabled: boolean;
   }) {
     this.speech.setVolume(options.voiceVolume);
-    this.soundSync.configure({
+    this.ambientConfig = {
       enabled: options.ambientEnabled,
       intensityLevel: options.ambientIntensity,
       masterVolume: options.ambientVolume,
       reduceVocalSounds: options.reduceVocalSounds,
-    });
+    };
+    this.soundSync.configure(this.ambientConfig);
     this.tapController.setEnabled(options.tapToNarrateEnabled);
     this.tapController.setAskBeforeStart(options.askBeforeTapToNarrate);
     this.highlightEnabled = options.highlightEnabled;
@@ -129,6 +136,34 @@ export class NarrationOrchestrator {
       this.snapshot.highlightRange = null;
       this.emitSnapshot();
     }
+  }
+
+  setVoiceVolume(volume: number) {
+    this.speech.setVolume(volume);
+  }
+
+  setSoundVolume(volume: number) {
+    this.ambientConfig.masterVolume = volume;
+    this.soundSync.configure(this.ambientConfig);
+  }
+
+  setTapToNarrateEnabled(enabled: boolean) {
+    this.tapController.setEnabled(enabled);
+  }
+
+  configureAmbientSounds(options: {
+    enabled: boolean;
+    intensityLevel: AmbientIntensityLevel;
+    masterVolume: number;
+    reduceVocalSounds: boolean;
+  }) {
+    this.ambientConfig = {
+      enabled: options.enabled,
+      intensityLevel: options.intensityLevel,
+      masterVolume: options.masterVolume,
+      reduceVocalSounds: options.reduceVocalSounds,
+    };
+    this.soundSync.configure(this.ambientConfig);
   }
 
   onSnapshotChange(callback: NarrationSnapshotCallback) {
