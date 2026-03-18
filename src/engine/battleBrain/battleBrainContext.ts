@@ -157,9 +157,12 @@ export function buildUnifiedContext(
   input: BrainInput,
   subsystems: SubsystemStates,
 ): UnifiedContext {
-  const intent = interpretMove(input.rawText);
+  const intentResult = IntentEngine.resolve(input.rawText, {
+    mode: input.contextMode.includes('campaign') ? 'campaign' : input.contextMode === 'dialogue' ? 'dialogue' : 'battle',
+    actorName: input.characterId,
+  });
   const combatAction = classifyAction(input.rawText);
-  const classification = classifyActionType(input, intent);
+  const classification = classifyActionType(input, intentResult.legacyMoveIntent);
 
   // Build clamp result
   const battleState = subsystems.battleStateManager?.getState() ?? null;
@@ -173,14 +176,17 @@ export function buildUnifiedContext(
     abilities: actor?.abilities ?? null,
     consecutiveHighForceTurns: actor?.consecutiveHighForceTurns ?? 0,
   };
-  const clampResult: ClampResult = applyHardClamp(intent, characterProfile);
+  const clampResult: ClampResult = applyHardClamp(intentResult.legacyMoveIntent, characterProfile);
 
   const actionCtx: ActionContext = {
     input,
-    intent,
+    intent: intentResult.intent,
+    legacyMoveIntent: intentResult.legacyMoveIntent,
     combatAction,
     classification,
     clampResult,
+    intentConfidence: intentResult.confidence,
+    intentDebug: intentResult.debug,
   };
 
   // Narrative context

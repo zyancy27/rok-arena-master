@@ -176,10 +176,13 @@ export interface CharacterNarrativeProfile {
 
 export interface ActionContext {
   input: BrainInput;
-  intent: MoveIntent;
+  intent: Intent;
+  legacyMoveIntent: MoveIntent;
   combatAction: CombatAction;
   classification: ActionClassification;
   clampResult: ClampResult;
+  intentConfidence: number;
+  intentDebug?: IntentDebugPayload;
 }
 
 export interface NarrativeContext {

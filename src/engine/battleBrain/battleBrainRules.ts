@@ -57,7 +57,7 @@ const classificationGuardRule: BrainRule = {
     if (
       contextMode === 'campaign_exploration' &&
       classification === 'combat_move' &&
-      ctx.action.intent.confidence < 0.7
+      ctx.action.intentConfidence < 0.7
     ) {
       return {
         allowed: true,
