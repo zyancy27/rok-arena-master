@@ -1979,6 +1979,7 @@ export default function CampaignView() {
         metadata: {
           intentDebug: intentResult.debug,
           actionResult,
+          combatResult: combatResolution,
         } as any,
       } as any);
 
