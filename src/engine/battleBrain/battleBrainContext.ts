@@ -78,7 +78,7 @@ const SOCIAL_PATTERNS = [
 
 export function classifyActionType(
   input: BrainInput,
-  intent: ReturnType<typeof interpretMove>,
+  intent: import('@/lib/intent-interpreter').MoveIntent,
 ): ActionClassification {
   const text = input.rawText.toLowerCase().trim();
 
