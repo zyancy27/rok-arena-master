@@ -1186,46 +1186,22 @@ export default function BattleView() {
     // Play sent sound
     chatSoundsEngine.play('message_sent');
 
+    let localIntentDebug: IntentDebugPayload | null = null;
+    let localActionResult: ActionResult | null = null;
+
     // OPTIMISTIC: Add message to UI immediately
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const optimisticMessage: Message = {
-      id: tempId,
-      character_id: userCharacter.character_id,
-      content: content.trim(),
-      channel: activeChannel,
-      created_at: new Date().toISOString(),
-      character_name: userCharacter.character?.name || 'You',
-      statusEffectsSnapshot: Object.keys(snapshot).length > 0 ? snapshot : undefined,
-      themeSnapshot: themeSnap,
-      isPending: true,
-    };
-    
-    setMessages(prev => [...prev, optimisticMessage]);
-    setMessageInput('');
-    setPendingMove(null);
-    setMoveValidation(null);
 
-    // Send to server (include theme_snapshot)
-    const { error } = await supabase.from('battle_messages').insert({
-      battle_id: id,
-      character_id: userCharacter.character_id,
-      content: content.trim(),
-      channel: activeChannel,
-      ...(themeSnap ? { theme_snapshot: themeSnap } : {}),
-    } as any);
-
-    if (error) {
-      // Rollback optimistic message
-      setMessages(prev => prev.filter(m => m.id !== tempId));
-      setIsSending(false);
-      toast.error('Failed to send message');
-      return;
-    }
-
-    // ── Invisible fairness pipeline (Layer 1 + 2) ──────────────────────────
     if (activeChannel === 'in_universe' && userCharacter.character) {
       const char = userCharacter.character;
-      const intent = interpretMove(content);
+      const intentResult = IntentEngine.resolve(content, {
+        mode: 'battle',
+        actorName: char.name,
+        possibleTargets: participants
+          .filter(p => p.character_id !== userCharacter.character_id && p.character?.name)
+          .map(p => ({ id: p.character_id, name: p.character!.name, kind: 'enemy' as const })),
+      });
+
       const profile: CharacterProfile = {
         name: char.name,
         tier: char.level,
@@ -1244,16 +1220,47 @@ export default function BattleView() {
         abilities: char.abilities ?? null,
         consecutiveHighForceTurns,
       };
-      const clamp = applyHardClamp(intent, profile);
+      const clamp = applyHardClamp(intentResult.legacyMoveIntent, profile);
       lastClampResultRef.current = clamp;
 
-      // Track consecutive high-force turns for stamina escalation
-      if (intent.intentCategory === 'HIGH_FORCE' || intent.posture === 'RECKLESS') {
+      const characterContext = CharacterContextResolver.resolve({
+        characterId: userCharacter.character_id,
+        name: char.name,
+        tier: char.level,
+        stats: profile.stats as any,
+        abilities: char.abilities,
+        powers: char.powers,
+        statusEffects: characterStatusEffects.map(effect => ({ type: effect.type, intensity: effect.intensity })),
+        stamina: char.stat_stamina ?? 50,
+        energy: char.stat_power ?? 50,
+      });
+
+      localIntentDebug = intentResult.debug;
+      localActionResult = ActionResolver.resolve(intentResult.intent, characterContext, {
+        hasActiveThreat: participants.length > 1,
+        currentZone: battle?.chosen_location ?? null,
+      });
+
+      if (intentResult.legacyMoveIntent.intentCategory === 'HIGH_FORCE' || intentResult.legacyMoveIntent.posture === 'RECKLESS') {
         setConsecutiveHighForceTurns(prev => prev + 1);
       } else {
         setConsecutiveHighForceTurns(0);
       }
     }
+
+    const optimisticMessage: Message = {
+      id: tempId,
+      character_id: userCharacter.character_id,
+      content: content.trim(),
+      channel: activeChannel,
+      created_at: new Date().toISOString(),
+      character_name: userCharacter.character?.name || 'You',
+      statusEffectsSnapshot: Object.keys(snapshot).length > 0 ? snapshot : undefined,
+      themeSnapshot: themeSnap,
+      intentDebug: localIntentDebug,
+      actionResult: localActionResult,
+      isPending: true,
+    };
 
     // Generate dice roll for in-universe attack moves
     if (activeChannel === 'in_universe' && !skipDiceRoll) {
