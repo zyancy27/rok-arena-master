@@ -1,12 +1,14 @@
 import type { ActionResult } from '@/systems/resolution/ActionResolver';
+import type { StructuredCombatResult } from '@/systems/combat/CombatResolver';
 import type { IntentDebugPayload } from '@/systems/intent/IntentEngine';
 
 interface IntentDebugCardProps {
   payload: IntentDebugPayload;
   actionResult?: ActionResult | null;
+  combatResult?: StructuredCombatResult | null;
 }
 
-export function IntentDebugCard({ payload, actionResult }: IntentDebugCardProps) {
+export function IntentDebugCard({ payload, actionResult, combatResult }: IntentDebugCardProps) {
   return (
     <details className="rounded-lg border border-border bg-muted/40 text-xs">
       <summary className="cursor-pointer list-none px-3 py-2 text-muted-foreground">
@@ -53,6 +55,17 @@ export function IntentDebugCard({ payload, actionResult }: IntentDebugCardProps)
             {actionResult.consequences.length > 0 && (
               <p>consequences: {actionResult.consequences.join(' | ')}</p>
             )}
+          </div>
+        )}
+
+        {combatResult && (
+          <div className="rounded-md bg-background px-2 py-2 text-muted-foreground">
+            <p className="mb-1 font-medium text-foreground">Combat result</p>
+            <p>outcome: {combatResult.outcome}</p>
+            <p>range: {combatResult.positioning.currentRange} → {combatResult.positioning.resolvedRange}</p>
+            <p>initiative: {combatResult.timing.initiative}</p>
+            <p>engaged: {combatResult.engagement.engaged ? 'true' : 'false'}</p>
+            {combatResult.damage && <p>damage: {combatResult.damage.amount} ({combatResult.damage.severity})</p>}
           </div>
         )}
 
