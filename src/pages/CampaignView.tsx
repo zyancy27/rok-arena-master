@@ -1854,6 +1854,10 @@ export default function CampaignView() {
         content: messageText,
         channel: 'in_universe',
         dice_result: diceResult as any,
+        metadata: {
+          intentDebug: intentResult.debug,
+          actionResult,
+        } as any,
       } as any);
 
       if (insertError) {
