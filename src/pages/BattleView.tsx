@@ -110,6 +110,10 @@ import { useUserSettings } from '@/hooks/use-user-settings';
 import NarratorMessageContent from '@/components/campaigns/NarratorMessageContent';
 import { applyHardClamp, generateClampContext, type CharacterProfile, type ClampResult } from '@/lib/hard-clamp';
 import { detectDirectInteraction } from '@/lib/battle-hit-detection';
+import { IntentEngine, type IntentDebugPayload } from '@/systems/intent/IntentEngine';
+import { CharacterContextResolver } from '@/systems/character/CharacterContextResolver';
+import { ActionResolver, formatActionForNarrator, type ActionResult } from '@/systems/resolution/ActionResolver';
+import { IntentDebugCard } from '@/components/intent/IntentDebugCard';
 import {
   ArrowLeft,
   Send,
