@@ -1873,11 +1873,68 @@ export default function CampaignView() {
         equippedItems: equippedCampaignItems.map(item => item.item_name),
         stamina: Math.round((participant.campaign_hp / Math.max(1, participant.campaign_hp_max)) * 100),
       });
-      const actionResult = ActionResolver.resolve(intentResult.intent, characterContext, {
-        activeHazards: battlefieldEffects.map((effect: any) => effect.type),
-        hasActiveThreat: activeEnemiesList.length > 0,
-        currentZone: campaignSnap.current_zone,
-      });
+      const combatResolution = intentResult.intent.isCombatAction && activeEnemiesList.length > 0
+        ? CombatResolver.resolve(
+            intentResult.intent,
+            characterContext,
+            createCombatState({
+              participants: [
+                {
+                  id: participant.character_id,
+                  name: participant.character?.name || 'Character',
+                  stats: {
+                    hp: participant.campaign_hp,
+                    stamina: characterContext.stamina,
+                    speed: characterContext.stats.stat_speed,
+                    strength: characterContext.stats.stat_strength,
+                  },
+                },
+                {
+                  id: activeEnemiesList[0].id,
+                  name: activeEnemiesList[0].name,
+                  stats: {
+                    hp: activeEnemiesList[0].hp,
+                    stamina: 100,
+                    speed: 50,
+                    strength: 50,
+                  },
+                },
+              ],
+              rangeZone: 'mid',
+              zone: campaignSnap.current_zone,
+              terrainTags: battlefieldEffects.map((effect: any) => effect.type),
+            }),
+            {
+              actorId: participant.character_id,
+              targetId: activeEnemiesList[0].id,
+              targetContext: CharacterContextResolver.resolve({
+                characterId: activeEnemiesList[0].id,
+                name: activeEnemiesList[0].name,
+                tier: activeEnemiesList[0].tier,
+                stats: {
+                  stat_strength: 50,
+                  stat_speed: 50,
+                  stat_durability: 50,
+                  stat_stamina: 50,
+                  stat_skill: 50,
+                  stat_battle_iq: 50,
+                  stat_power: 50,
+                  stat_intelligence: 50,
+                  stat_luck: 50,
+                },
+                stamina: 100,
+                energy: 50,
+              }),
+            },
+          )
+        : null;
+      const actionResult = combatResolution
+        ? toActionResult(combatResolution)
+        : ActionResolver.resolve(intentResult.intent, characterContext, {
+            activeHazards: battlefieldEffects.map((effect: any) => effect.type),
+            hasActiveThreat: activeEnemiesList.length > 0,
+            currentZone: campaignSnap.current_zone,
+          });
 
       // Build dice metadata for the message
       const diceResult = combatResult.diceMetadata
