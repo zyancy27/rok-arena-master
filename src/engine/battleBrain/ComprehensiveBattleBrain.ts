@@ -256,6 +256,7 @@ export class ComprehensiveBattleBrain {
         input: { rawText: '', characterId: '', userId: '', contextMode: this.config.contextMode, sessionId: '' },
         classification: 'basic_action',
         intent: {} as any,
+        legacyMoveIntent: {} as any,
         combatAction: {} as any,
         clampResult: {} as any,
         combatResult: null,
