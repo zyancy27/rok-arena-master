@@ -148,6 +148,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
     askBeforeTapToNarrate: true,
     narrationHighlightEnabled: true,
     narrationDebug: false,
+    intentDebug: false,
   },
   visual: {
     vfxIntensity: 'medium',
