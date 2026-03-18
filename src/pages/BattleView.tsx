@@ -452,6 +452,11 @@ export default function BattleView() {
   }, [messages, battle?.status]);
 
   useEffect(() => {
+    if (battle?.status !== 'active') return;
+    narratorVoice.onSceneChange();
+  }, [activeSceneLocation, battle?.chosen_location, battle?.status]);
+
+  useEffect(() => {
     const generateEntrances = async () => {
       if (
         battle?.status === 'active' && 
