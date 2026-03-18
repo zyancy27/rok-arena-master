@@ -1786,7 +1786,8 @@ export default function BattleView() {
             level: userCharacter.character.level,
             speed: userCharacter.character.stat_speed,
           },
-          userAction: opponentAction,
+          userAction: formatActionForNarrator(intentResult.intent, actionResult, opponentAction),
+          rawActionText: opponentAction,
           opponentResponse: '', // User hasn't responded yet
           battleLocation: battle.chosen_location,
           turnNumber,
@@ -1796,6 +1797,8 @@ export default function BattleView() {
             zone: battleDistance.currentZone,
             meters: battleDistance.estimatedMeters,
           },
+          structuredIntent: intentResult.intent,
+          actionResult,
           // Dice result so narrator can describe actual outcome
           diceResult: diceResult ?? undefined,
           // Invisible fairness context from hard clamp (internal only)
