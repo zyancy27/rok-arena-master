@@ -137,6 +137,7 @@ import {
   Volume2,
   VolumeX,
   Mic,
+  Play,
 } from 'lucide-react';
 
 interface Battle {
