@@ -35,6 +35,7 @@ export interface AudioSettings {
   askBeforeTapToNarrate: boolean;
   narrationHighlightEnabled: boolean;
   narrationDebug: boolean;
+  intentDebug: boolean;
 }
 
 export interface VisualSettings {
