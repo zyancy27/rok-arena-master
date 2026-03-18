@@ -1991,7 +1991,7 @@ export default function CampaignView() {
       }
 
       // Trigger dice mechanic discovery on first combat action
-      if (combatResult.hitDetection.shouldTriggerHitCheck || combatResult.hitDetection.shouldTriggerDefenseCheck) {
+      if (combatResolution || combatResult.outcome === 'hit' || combatResult.outcome === 'partial_hit' || combatResult.outcome === 'block' || combatResult.outcome === 'dodge') {
         triggerDiscovery('dice_roll' as MechanicKey);
       }
 
