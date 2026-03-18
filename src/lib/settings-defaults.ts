@@ -144,6 +144,9 @@ export const DEFAULT_SETTINGS: UserSettings = {
     narrationEventCueVolume: 0.5,
     narrationReduceVocalSounds: false,
     tapToNarrate: true,
+    askBeforeTapToNarrate: true,
+    narrationHighlightEnabled: true,
+    narrationDebug: false,
   },
   visual: {
     vfxIntensity: 'medium',

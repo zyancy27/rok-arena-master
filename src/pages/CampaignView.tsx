@@ -2219,8 +2219,9 @@ export default function CampaignView() {
                         const sceneLocation = activeSceneLocation || campaign.current_zone;
 
                         // Voice controls (shown once for the whole message)
+                        const isActiveNarration = narratorVoice.activeMessageId === msg.id;
                         const voiceControls = userSettings.audio.narratorVoiceEnabled && (
-                          narratorVoice.isPlaying && narratorVoice.activeMessageId === msg.id ? (
+                          narratorVoice.isPlaying && isActiveNarration ? (
                             <button
                               onClick={() => narratorVoice.togglePause()}
                               className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
@@ -2261,11 +2262,16 @@ export default function CampaignView() {
                                   </div>
                                   <NarratorMessageContent
                                     content={msg.content}
-                                    activeSentenceIndex={narratorVoice.activeMessageId === msg.id ? narratorVoice.activeSentenceIndex : -1}
+                                    activeSentenceIndex={isActiveNarration ? narratorVoice.activeSentenceIndex : -1}
+                                    activeRange={isActiveNarration ? narratorVoice.activeRange : null}
                                     voiceEnabled={userSettings.audio.narratorVoiceEnabled && userSettings.audio.tapToNarrate}
+                                    requireTapConfirmation={userSettings.audio.askBeforeTapToNarrate}
+                                    hasPendingTapConfirmation={narratorVoice.pendingTapRequest?.messageId === msg.id}
                                     onSentenceClick={(sentenceIdx) => {
                                       narratorVoice.narrateFromSentence(msg.content, msg.id, sentenceIdx);
                                     }}
+                                    onConfirmSentenceClick={narratorVoice.confirmTapNarration}
+                                    onCancelSentenceClick={narratorVoice.cancelTapNarration}
                                   />
                                 </div>
                               </div>
