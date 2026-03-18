@@ -1169,8 +1169,33 @@ export default function CampaignView() {
 
       // Build narrative systems context (identity, gravity, echo, reflection, etc.)
       const activeEnemiesList = campaignEnemies.filter(e => e.status === 'active' || e.status === 'hiding');
+      const intentResult = IntentEngine.resolve(messageText, {
+        mode: 'campaign',
+        actorName: snapshotParticipant.character?.name,
+        possibleTargets: [
+          ...activeEnemiesList.map(enemy => ({ id: enemy.id, name: enemy.name, kind: 'enemy' as const })),
+          ...knownNpcs.map(npc => ({ name: npc.name, kind: 'npc' as const })),
+        ],
+        defaultTool: equippedCampaignItems[0]?.item_name ?? null,
+      });
+      const characterContext = CharacterContextResolver.resolve({
+        characterId: snapshotParticipant.character_id,
+        name: snapshotParticipant.character?.name || 'Character',
+        tier: snapshotParticipant.character?.level || snapshotParticipant.campaign_level,
+        stats: { stat_strength: snapshotParticipant.character?.stat_strength ?? 50 },
+        abilities: snapshotParticipant.character?.abilities,
+        powers: snapshotParticipant.character?.powers,
+        equippedItems: equippedCampaignItems.map(item => item.item_name),
+        stamina: Math.round((snapshotParticipant.campaign_hp / Math.max(1, snapshotParticipant.campaign_hp_max)) * 100),
+      });
+      const actionResult = ActionResolver.resolve(intentResult.intent, characterContext, {
+        activeHazards: battlefieldEffects.map((effect: any) => effect.type),
+        hasActiveThreat: activeEnemiesList.length > 0,
+        currentZone: snapshotCampaign.current_zone,
+      });
+      const structuredAction = formatActionForNarrator(intentResult.intent, actionResult, messageText);
       const narrativeSystemsContext = campaignNarrative.buildNarrativeBlock(
-        messageText,
+        structuredAction,
         activeEnemiesList.length > 0,
         snapshotCampaign.current_zone,
       );
