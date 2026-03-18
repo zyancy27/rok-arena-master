@@ -153,8 +153,10 @@ export default function CampaignView() {
     voiceVolume: userSettings.audio.narratorVoiceVolume * userSettings.audio.masterVolume,
     soundVolume: userSettings.audio.narrationAmbientVolume * userSettings.audio.masterVolume,
     tapToNarrate: userSettings.audio.tapToNarrate,
+    askBeforeTapToNarrate: userSettings.audio.askBeforeTapToNarrate,
+    narrationHighlightEnabled: userSettings.audio.narrationHighlightEnabled,
+    narrationDebug: userSettings.audio.narrationDebug,
     hasAIAccess,
-    // Narration-triggered ambient sound settings (synced through controller)
     ambientEnabled: userSettings.audio.narrationAmbientEnabled,
     ambientIntensity: userSettings.audio.narrationAmbientIntensity,
     ambientVolume: userSettings.audio.narrationAmbientVolume,
