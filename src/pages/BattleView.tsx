@@ -1744,6 +1744,35 @@ export default function BattleView() {
     setIsNarratorLoading(true);
     
     try {
+      const opponentParticipant = participants.find(p => p.character?.name === opponentName);
+      const intentResult = IntentEngine.resolve(opponentAction, {
+        mode: 'battle',
+        actorName: opponentName,
+        possibleTargets: [{ name: userCharacter.character.name, kind: 'enemy' }],
+      });
+      const characterContext = CharacterContextResolver.resolve({
+        characterId: opponentParticipant?.character_id,
+        name: opponentName,
+        tier: opponentParticipant?.character?.level ?? 1,
+        stats: opponentParticipant?.character ? {
+          stat_intelligence: opponentParticipant.character.stat_intelligence ?? 50,
+          stat_battle_iq: opponentParticipant.character.stat_battle_iq ?? 50,
+          stat_strength: opponentParticipant.character.stat_strength ?? 50,
+          stat_power: opponentParticipant.character.stat_power ?? 50,
+          stat_speed: opponentParticipant.character.stat_speed ?? 50,
+          stat_durability: opponentParticipant.character.stat_durability ?? 50,
+          stat_stamina: opponentParticipant.character.stat_stamina ?? 50,
+          stat_skill: opponentParticipant.character.stat_skill ?? 50,
+          stat_luck: opponentParticipant.character.stat_luck ?? 50,
+        } : undefined,
+        abilities: opponentParticipant?.character?.abilities,
+        powers: opponentParticipant?.character?.powers,
+      });
+      const actionResult = ActionResolver.resolve(intentResult.intent, characterContext, {
+        hasActiveThreat: true,
+        currentZone: battle.chosen_location,
+      });
+
       const response = await supabase.functions.invoke('battle-narrator', {
         body: {
           type: 'narration',
