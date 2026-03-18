@@ -271,6 +271,11 @@ export default function CampaignView() {
     if (shift) setActiveSceneLocation(shift.newLocation);
   }, [messages]);
 
+  useEffect(() => {
+    if (!campaign || campaign.status !== 'active') return;
+    narratorVoice.onSceneChange();
+  }, [activeSceneLocation, campaign?.current_zone, campaign?.status]);
+
   const campaignTrades = useCampaignTrades(campaignId, myParticipant?.id);
 
   // Ambient environment sounds for campaign — uses scene location when available, falls back to zone
