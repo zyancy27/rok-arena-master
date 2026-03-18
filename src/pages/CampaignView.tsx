@@ -1791,6 +1791,30 @@ export default function CampaignView() {
   ) => {
     setSending(true);
     try {
+      const equippedCampaignItems = inventory.filter(i => i.is_equipped);
+      const activeEnemiesList = campaignEnemies.filter(e => e.status === 'active' || e.status === 'hiding');
+      const intentResult = IntentEngine.resolve(messageText, {
+        mode: 'campaign',
+        actorName: participant.character?.name,
+        possibleTargets: activeEnemiesList.map(enemy => ({ id: enemy.id, name: enemy.name, kind: 'enemy' as const })),
+        defaultTool: equippedCampaignItems[0]?.item_name ?? null,
+      });
+      const characterContext = CharacterContextResolver.resolve({
+        characterId: participant.character_id,
+        name: participant.character?.name || 'Character',
+        tier: participant.character?.level || participant.campaign_level,
+        stats: { stat_strength: participant.character?.stat_strength ?? 50 },
+        abilities: participant.character?.abilities,
+        powers: participant.character?.powers,
+        equippedItems: equippedCampaignItems.map(item => item.item_name),
+        stamina: Math.round((participant.campaign_hp / Math.max(1, participant.campaign_hp_max)) * 100),
+      });
+      const actionResult = ActionResolver.resolve(intentResult.intent, characterContext, {
+        activeHazards: battlefieldEffects.map((effect: any) => effect.type),
+        hasActiveThreat: activeEnemiesList.length > 0,
+        currentZone: campaignSnap.current_zone,
+      });
+
       // Build dice metadata for the message
       const diceResult = combatResult.diceMetadata
         ? combatResult.diceMetadata as Record<string, unknown>
@@ -1810,7 +1834,10 @@ export default function CampaignView() {
         content: messageText,
         dice_result: diceResult,
         theme_snapshot: null,
-        metadata: {},
+        metadata: {
+          intentDebug: intentResult.debug,
+          actionResult,
+        },
         created_at: new Date().toISOString(),
         isPending: true,
         character: participant.character
