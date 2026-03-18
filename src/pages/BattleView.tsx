@@ -257,24 +257,26 @@ export default function BattleView() {
   // ── Narrator Voice & Chat Sounds ──
   const { settings: userSettings } = useUserSettings();
   const { hasAIAccess } = useSubscription();
-  const narratorVoice = useNarratorVoice({
+  const narratorVoice = useNarrationController({
     enabled: userSettings.audio.narratorVoiceEnabled,
-    autoRead: userSettings.audio.narratorAutoRead,
-    volume: userSettings.audio.narratorVoiceVolume * userSettings.audio.masterVolume,
+    voiceVolume: userSettings.audio.narratorVoiceVolume * userSettings.audio.masterVolume,
+    soundVolume: userSettings.audio.narrationAmbientVolume * userSettings.audio.masterVolume,
+    tapToNarrate: userSettings.audio.tapToNarrate,
+    askBeforeTapToNarrate: userSettings.audio.askBeforeTapToNarrate,
+    narrationHighlightEnabled: userSettings.audio.narrationHighlightEnabled,
+    narrationDebug: userSettings.audio.narrationDebug,
     hasAIAccess,
+    ambientEnabled: battle?.status === 'active' && userSettings.audio.narrationAmbientEnabled,
+    ambientIntensity: userSettings.audio.narrationAmbientIntensity,
+    ambientVolume: userSettings.audio.narrationAmbientVolume,
+    masterVolume: userSettings.audio.masterVolume,
+    reduceVocalSounds: userSettings.audio.narrationReduceVocalSounds,
   });
   const chatSoundsEngine = getChatSoundsEngine();
   useEffect(() => {
     chatSoundsEngine.setEnabled(userSettings.audio.chatSoundsEnabled);
     chatSoundsEngine.setVolume(userSettings.audio.chatSoundsVolume * userSettings.audio.masterVolume);
   }, [userSettings.audio.chatSoundsEnabled, userSettings.audio.chatSoundsVolume, userSettings.audio.masterVolume]);
-
-  // Narration-aware ambient sounds
-  const narrationAmbient = useNarrationAmbient({
-    enabled: battle?.status === 'active',
-    audioSettings: userSettings.audio,
-    hasAIAccess,
-  });
 
   const [showRules, setShowRules] = useState(false);
   const [locationInput, setLocationInput] = useState('');
