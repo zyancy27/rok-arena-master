@@ -64,6 +64,8 @@ import { invokeOrchestrator } from '@/lib/story-orchestrator';
 import { IntentEngine } from '@/systems/intent/IntentEngine';
 import { CharacterContextResolver } from '@/systems/character/CharacterContextResolver';
 import { ActionResolver, formatActionForNarrator } from '@/systems/resolution/ActionResolver';
+import { CombatResolver, formatCombatResolutionForNarrator, toActionResult } from '@/systems/combat/CombatResolver';
+import { createCombatState } from '@/systems/combat/CombatState';
 import { IntentDebugCard } from '@/components/intent/IntentDebugCard';
 // Helper: build bag content for the inline backpack bubble
 function buildBagContent(campaignItems: InventoryItem[], characterWeapons: string | null) {
