@@ -2431,6 +2431,11 @@ export default function CampaignView() {
                               )}
                             </div>
                             <p className="text-sm whitespace-pre-wrap break-words pl-8">{msg.content}</p>
+                            {isMe && userSettings.audio.intentDebug && (msg.metadata as any)?.intentDebug && (
+                              <div className="mt-2 pl-8">
+                                <IntentDebugCard payload={(msg.metadata as any).intentDebug} actionResult={(msg.metadata as any).actionResult ?? null} />
+                              </div>
+                            )}
                           </div>
 
                           {/* Inline dice roll display */}

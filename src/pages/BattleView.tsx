@@ -2984,6 +2984,11 @@ export default function BattleView() {
                                   )}
                                 </div>
                                 <p className="whitespace-pre-wrap break-words relative z-10">{msg.content}</p>
+                                {isFromUser && userSettings.audio.intentDebug && msg.intentDebug && (
+                                  <div className="relative z-10 mt-2">
+                                    <IntentDebugCard payload={msg.intentDebug} actionResult={msg.actionResult} />
+                                  </div>
+                                )}
                               </div>
                             </div>
                           );
