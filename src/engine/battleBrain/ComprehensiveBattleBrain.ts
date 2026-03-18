@@ -130,6 +130,7 @@ export class ComprehensiveBattleBrain {
         input,
         classification: ctx.action.classification,
         intent: ctx.action.intent,
+        legacyMoveIntent: ctx.action.legacyMoveIntent,
         combatAction: ctx.action.combatAction,
         clampResult: ctx.action.clampResult,
         combatResult: null,
