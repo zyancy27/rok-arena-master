@@ -100,7 +100,7 @@ export class ComprehensiveBattleBrain {
       trace.push({
         system: 'context',
         action: 'build',
-        detail: `Classification: ${ctx.action.classification}, Intent: ${ctx.action.intent.actionType}`,
+        detail: `Classification: ${ctx.action.classification}, Intent: ${ctx.action.intent.type}`,
         timestamp: Date.now(),
         duration: performance.now() - traceCtxStart,
       });

@@ -8,6 +8,7 @@
 import type { CentralBattleState, BattlePlayer } from '../state/BattleState';
 import type { CombatAction } from '../intent/classifyAction';
 import type { MoveIntent } from '@/lib/intent-interpreter';
+import type { Intent, IntentDebugPayload } from '@/systems/intent/IntentEngine';
 import type { ClampResult } from '@/lib/hard-clamp';
 import type { CombatResolutionResult } from '../combat/combatTypes';
 import type { ComposedScenario } from '../scenarioBrain';
