@@ -153,8 +153,10 @@ export default function CampaignView() {
     voiceVolume: userSettings.audio.narratorVoiceVolume * userSettings.audio.masterVolume,
     soundVolume: userSettings.audio.narrationAmbientVolume * userSettings.audio.masterVolume,
     tapToNarrate: userSettings.audio.tapToNarrate,
+    askBeforeTapToNarrate: userSettings.audio.askBeforeTapToNarrate,
+    narrationHighlightEnabled: userSettings.audio.narrationHighlightEnabled,
+    narrationDebug: userSettings.audio.narrationDebug,
     hasAIAccess,
-    // Narration-triggered ambient sound settings (synced through controller)
     ambientEnabled: userSettings.audio.narrationAmbientEnabled,
     ambientIntensity: userSettings.audio.narrationAmbientIntensity,
     ambientVolume: userSettings.audio.narrationAmbientVolume,
@@ -268,6 +270,11 @@ export default function CampaignView() {
     const shift = findLatestSceneShift(adventureMessages.slice(-6));
     if (shift) setActiveSceneLocation(shift.newLocation);
   }, [messages]);
+
+  useEffect(() => {
+    if (!campaign || campaign.status !== 'active') return;
+    narratorVoice.onSceneChange();
+  }, [activeSceneLocation, campaign?.current_zone, campaign?.status]);
 
   const campaignTrades = useCampaignTrades(campaignId, myParticipant?.id);
 
@@ -2212,8 +2219,9 @@ export default function CampaignView() {
                         const sceneLocation = activeSceneLocation || campaign.current_zone;
 
                         // Voice controls (shown once for the whole message)
+                        const isActiveNarration = narratorVoice.activeMessageId === msg.id;
                         const voiceControls = userSettings.audio.narratorVoiceEnabled && (
-                          narratorVoice.isPlaying && narratorVoice.activeMessageId === msg.id ? (
+                          narratorVoice.isPlaying && isActiveNarration ? (
                             <button
                               onClick={() => narratorVoice.togglePause()}
                               className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
@@ -2254,11 +2262,16 @@ export default function CampaignView() {
                                   </div>
                                   <NarratorMessageContent
                                     content={msg.content}
-                                    activeSentenceIndex={narratorVoice.activeMessageId === msg.id ? narratorVoice.activeSentenceIndex : -1}
+                                    activeSentenceIndex={isActiveNarration ? narratorVoice.activeSentenceIndex : -1}
+                                    activeRange={isActiveNarration ? narratorVoice.activeRange : null}
                                     voiceEnabled={userSettings.audio.narratorVoiceEnabled && userSettings.audio.tapToNarrate}
+                                    requireTapConfirmation={userSettings.audio.askBeforeTapToNarrate}
+                                    hasPendingTapConfirmation={narratorVoice.pendingTapRequest?.messageId === msg.id}
                                     onSentenceClick={(sentenceIdx) => {
                                       narratorVoice.narrateFromSentence(msg.content, msg.id, sentenceIdx);
                                     }}
+                                    onConfirmSentenceClick={narratorVoice.confirmTapNarration}
+                                    onCancelSentenceClick={narratorVoice.cancelTapNarration}
                                   />
                                 </div>
                               </div>

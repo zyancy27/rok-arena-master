@@ -104,10 +104,10 @@ import { useBattleSfx } from '@/hooks/use-battle-sfx';
 import { useAmbientSound } from '@/hooks/use-ambient-sound';
 import { getDominantPsychCue } from '@/lib/battle-psychology';
 import { interpretMove } from '@/lib/intent-interpreter';
-import { useNarratorVoice } from '@/hooks/use-narrator-voice';
+import { useNarrationController } from '@/hooks/use-narration-controller';
 import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
-import { useNarrationAmbient } from '@/hooks/use-narration-ambient';
+import NarratorMessageContent from '@/components/campaigns/NarratorMessageContent';
 import { applyHardClamp, generateClampContext, type CharacterProfile, type ClampResult } from '@/lib/hard-clamp';
 import { detectDirectInteraction } from '@/lib/battle-hit-detection';
 import {
@@ -137,6 +137,7 @@ import {
   Volume2,
   VolumeX,
   Mic,
+  Play,
 } from 'lucide-react';
 
 interface Battle {
@@ -256,24 +257,26 @@ export default function BattleView() {
   // ── Narrator Voice & Chat Sounds ──
   const { settings: userSettings } = useUserSettings();
   const { hasAIAccess } = useSubscription();
-  const narratorVoice = useNarratorVoice({
+  const narratorVoice = useNarrationController({
     enabled: userSettings.audio.narratorVoiceEnabled,
-    autoRead: userSettings.audio.narratorAutoRead,
-    volume: userSettings.audio.narratorVoiceVolume * userSettings.audio.masterVolume,
+    voiceVolume: userSettings.audio.narratorVoiceVolume * userSettings.audio.masterVolume,
+    soundVolume: userSettings.audio.narrationAmbientVolume * userSettings.audio.masterVolume,
+    tapToNarrate: userSettings.audio.tapToNarrate,
+    askBeforeTapToNarrate: userSettings.audio.askBeforeTapToNarrate,
+    narrationHighlightEnabled: userSettings.audio.narrationHighlightEnabled,
+    narrationDebug: userSettings.audio.narrationDebug,
     hasAIAccess,
+    ambientEnabled: battle?.status === 'active' && userSettings.audio.narrationAmbientEnabled,
+    ambientIntensity: userSettings.audio.narrationAmbientIntensity,
+    ambientVolume: userSettings.audio.narrationAmbientVolume,
+    masterVolume: userSettings.audio.masterVolume,
+    reduceVocalSounds: userSettings.audio.narrationReduceVocalSounds,
   });
   const chatSoundsEngine = getChatSoundsEngine();
   useEffect(() => {
     chatSoundsEngine.setEnabled(userSettings.audio.chatSoundsEnabled);
     chatSoundsEngine.setVolume(userSettings.audio.chatSoundsVolume * userSettings.audio.masterVolume);
   }, [userSettings.audio.chatSoundsEnabled, userSettings.audio.chatSoundsVolume, userSettings.audio.masterVolume]);
-
-  // Narration-aware ambient sounds
-  const narrationAmbient = useNarrationAmbient({
-    enabled: battle?.status === 'active',
-    audioSettings: userSettings.audio,
-    hasAIAccess,
-  });
 
   const [showRules, setShowRules] = useState(false);
   const [locationInput, setLocationInput] = useState('');
@@ -447,6 +450,11 @@ export default function BattleView() {
       setActiveSceneLocation(shift.newLocation);
     }
   }, [messages, battle?.status]);
+
+  useEffect(() => {
+    if (battle?.status !== 'active') return;
+    narratorVoice.onSceneChange();
+  }, [activeSceneLocation, battle?.chosen_location, battle?.status]);
 
   useEffect(() => {
     const generateEntrances = async () => {
@@ -1758,14 +1766,8 @@ export default function BattleView() {
         setNarratorMessages(prev => [...prev, narratorMsg]);
         chatSoundsEngine.play('narrator_message');
         if (userSettings.audio.narratorAutoRead && userSettings.audio.narratorVoiceEnabled) {
-          // Duck ambient sounds while narrator TTS is active
-          narrationAmbient.setNarratorSpeaking(true);
-          narratorVoice.speak(response.data.narration);
-          const wordCount = response.data.narration.split(/\s+/).length;
-          setTimeout(() => narrationAmbient.setNarratorSpeaking(false), wordCount * 80 + 2000);
+          await narratorVoice.narrate(response.data.narration, narratorMsg.id, 'combat');
         }
-        // Trigger narration-aware ambient sounds
-        narrationAmbient.processNarration(response.data.narration);
         
         // Also post to OOC chat for persistence
         await supabase.from('battle_messages').insert({
@@ -2969,32 +2971,59 @@ export default function BattleView() {
                         )}
                         
                         {/* Inline Narrator Commentary - most recent */}
-                        {narratorMessages.length > 0 && !isNarratorLoading && (
-                          <div className="p-3 rounded-lg bg-gradient-to-r from-amber-500/10 via-background to-amber-500/10 border border-amber-500/30 mx-4 animate-fade-in">
-                            <div className="flex items-start gap-2">
-                              <BookOpen className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <p className="text-xs text-amber-400 font-medium uppercase tracking-wider">
-                                    Narrator
-                                  </p>
-                                  {userSettings.audio.narratorVoiceEnabled && (
-                                    <button
-                                      onClick={() => narratorVoice.speak(narratorMessages[narratorMessages.length - 1]?.content || '')}
-                                      className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
-                                      title="Listen to narrator"
-                                    >
-                                      <Volume2 className="w-3.5 h-3.5 text-amber-400" />
-                                    </button>
-                                  )}
+                        {narratorMessages.length > 0 && !isNarratorLoading && (() => {
+                          const latestNarration = narratorMessages[narratorMessages.length - 1];
+                          const isActiveNarration = narratorVoice.activeMessageId === latestNarration.id;
+
+                          return (
+                            <div className="p-3 rounded-lg bg-gradient-to-r from-amber-500/10 via-background to-amber-500/10 border border-amber-500/30 mx-4 animate-fade-in">
+                              <div className="flex items-start gap-2">
+                                <BookOpen className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <p className="text-xs text-amber-400 font-medium uppercase tracking-wider">
+                                      Narrator
+                                    </p>
+                                    {userSettings.audio.narratorVoiceEnabled && (
+                                      narratorVoice.isPlaying && isActiveNarration ? (
+                                        <button
+                                          onClick={() => narratorVoice.togglePause()}
+                                          className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
+                                          title={narratorVoice.isPaused ? 'Resume narrator' : 'Pause narrator'}
+                                        >
+                                          {narratorVoice.isPaused ? (
+                                            <Play className="w-3.5 h-3.5 text-amber-400" />
+                                          ) : (
+                                            <VolumeX className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                                          )}
+                                        </button>
+                                      ) : (
+                                        <button
+                                          onClick={() => narratorVoice.narrate(latestNarration.content, latestNarration.id, 'combat')}
+                                          className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
+                                          title="Listen to narrator"
+                                        >
+                                          <Volume2 className="w-3.5 h-3.5 text-amber-400" />
+                                        </button>
+                                      )
+                                    )}
+                                  </div>
+                                  <NarratorMessageContent
+                                    content={latestNarration.content}
+                                    activeSentenceIndex={isActiveNarration ? narratorVoice.activeSentenceIndex : -1}
+                                    activeRange={isActiveNarration ? narratorVoice.activeRange : null}
+                                    voiceEnabled={userSettings.audio.narratorVoiceEnabled && userSettings.audio.tapToNarrate}
+                                    requireTapConfirmation={userSettings.audio.askBeforeTapToNarrate}
+                                    hasPendingTapConfirmation={narratorVoice.pendingTapRequest?.messageId === latestNarration.id}
+                                    onSentenceClick={(sentenceIdx) => narratorVoice.narrateFromSentence(latestNarration.content, latestNarration.id, sentenceIdx, 'combat')}
+                                    onConfirmSentenceClick={narratorVoice.confirmTapNarration}
+                                    onCancelSentenceClick={narratorVoice.cancelTapNarration}
+                                  />
                                 </div>
-                                <p className="text-sm text-foreground/90 italic">
-                                  {narratorMessages[narratorMessages.length - 1]?.content}
-                                </p>
                               </div>
                             </div>
-                          </div>
-                        )}
+                          );
+                        })()}
                         
                         <div ref={messagesEndRef} />
                       </div>

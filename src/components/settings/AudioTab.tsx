@@ -64,8 +64,12 @@ export function AudioTab({ settings, onChange, onReset }: Props) {
           <Separator className="my-4" />
           <h3 className="text-sm font-semibold text-foreground mb-3">👆 Tap to Narrate</h3>
           <SettingsToggle label="Tap to Narrate" description="Tap any narrator paragraph to start reading from that point" checked={settings.tapToNarrate} onCheckedChange={v => onChange({ tapToNarrate: v })} />
+          {settings.tapToNarrate && (
+            <SettingsToggle label="Ask Before Starting" description="Always confirm before narration restarts from a tapped position" checked={settings.askBeforeTapToNarrate} onCheckedChange={v => onChange({ askBeforeTapToNarrate: v })} />
+          )}
+          <SettingsToggle label="Narration Highlighting" description="Highlight the text currently being spoken by the narrator" checked={settings.narrationHighlightEnabled} onCheckedChange={v => onChange({ narrationHighlightEnabled: v })} />
+          <SettingsToggle label="Narration Debug Mode" description="Log narrator playback progress, checkpoints, and tap restarts for debugging" checked={settings.narrationDebug} onCheckedChange={v => onChange({ narrationDebug: v })} />
         </>
-      
       )}
 
       <Separator className="my-4" />
