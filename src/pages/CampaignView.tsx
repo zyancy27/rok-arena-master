@@ -64,6 +64,8 @@ import { invokeOrchestrator } from '@/lib/story-orchestrator';
 import { IntentEngine } from '@/systems/intent/IntentEngine';
 import { CharacterContextResolver } from '@/systems/character/CharacterContextResolver';
 import { ActionResolver, formatActionForNarrator } from '@/systems/resolution/ActionResolver';
+import { CombatResolver, formatCombatResolutionForNarrator, toActionResult } from '@/systems/combat/CombatResolver';
+import { createCombatState } from '@/systems/combat/CombatState';
 import { IntentDebugCard } from '@/components/intent/IntentDebugCard';
 // Helper: build bag content for the inline backpack bubble
 function buildBagContent(campaignItems: InventoryItem[], characterWeapons: string | null) {
@@ -1188,12 +1190,74 @@ export default function CampaignView() {
         equippedItems: equippedCampaignItems.map(item => item.item_name),
         stamina: Math.round((snapshotParticipant.campaign_hp / Math.max(1, snapshotParticipant.campaign_hp_max)) * 100),
       });
-      const actionResult = ActionResolver.resolve(intentResult.intent, characterContext, {
-        activeHazards: battlefieldEffects.map((effect: any) => effect.type),
-        hasActiveThreat: activeEnemiesList.length > 0,
-        currentZone: snapshotCampaign.current_zone,
-      });
-      const structuredAction = formatActionForNarrator(intentResult.intent, actionResult, messageText);
+      const hasThreat = activeEnemiesList.length > 0;
+      const combatResolution = intentResult.intent.isCombatAction && hasThreat
+        ? CombatResolver.resolve(
+            intentResult.intent,
+            characterContext,
+            createCombatState({
+              participants: [
+                {
+                  id: snapshotParticipant.character_id,
+                  name: snapshotParticipant.character?.name || 'Character',
+                  stats: {
+                    hp: snapshotParticipant.campaign_hp,
+                    stamina: characterContext.stamina,
+                    speed: characterContext.stats.stat_speed,
+                    strength: characterContext.stats.stat_strength,
+                  },
+                },
+                {
+                  id: activeEnemiesList[0]?.id || 'enemy',
+                  name: activeEnemiesList[0]?.name || 'Enemy',
+                  stats: {
+                    hp: activeEnemiesList[0]?.hp ?? 100,
+                    stamina: 100,
+                    speed: 50,
+                    strength: 50,
+                  },
+                },
+              ],
+              rangeZone: 'mid',
+              zone: snapshotCampaign.current_zone,
+              terrainTags: battlefieldEffects.map((effect: any) => effect.type),
+            }),
+            {
+              actorId: snapshotParticipant.character_id,
+              targetId: activeEnemiesList[0]?.id || 'enemy',
+              targetContext: activeEnemiesList[0]
+                ? CharacterContextResolver.resolve({
+                    characterId: activeEnemiesList[0].id,
+                    name: activeEnemiesList[0].name,
+                    tier: activeEnemiesList[0].tier,
+                    stats: {
+                      stat_strength: 50,
+                      stat_speed: 50,
+                      stat_durability: 50,
+                      stat_stamina: 50,
+                      stat_skill: 50,
+                      stat_battle_iq: 50,
+                      stat_power: 50,
+                      stat_intelligence: 50,
+                      stat_luck: 50,
+                    },
+                    stamina: 100,
+                    energy: 50,
+                  })
+                : null,
+            },
+          )
+        : null;
+      const actionResult = combatResolution
+        ? toActionResult(combatResolution)
+        : ActionResolver.resolve(intentResult.intent, characterContext, {
+            activeHazards: battlefieldEffects.map((effect: any) => effect.type),
+            hasActiveThreat: hasThreat,
+            currentZone: snapshotCampaign.current_zone,
+          });
+      const structuredAction = combatResolution
+        ? formatCombatResolutionForNarrator(intentResult.intent, combatResolution, messageText)
+        : formatActionForNarrator(intentResult.intent, actionResult, messageText);
       const narrativeSystemsContext = campaignNarrative.buildNarrativeBlock(
         structuredAction,
         activeEnemiesList.length > 0,
@@ -1809,11 +1873,68 @@ export default function CampaignView() {
         equippedItems: equippedCampaignItems.map(item => item.item_name),
         stamina: Math.round((participant.campaign_hp / Math.max(1, participant.campaign_hp_max)) * 100),
       });
-      const actionResult = ActionResolver.resolve(intentResult.intent, characterContext, {
-        activeHazards: battlefieldEffects.map((effect: any) => effect.type),
-        hasActiveThreat: activeEnemiesList.length > 0,
-        currentZone: campaignSnap.current_zone,
-      });
+      const combatResolution = intentResult.intent.isCombatAction && activeEnemiesList.length > 0
+        ? CombatResolver.resolve(
+            intentResult.intent,
+            characterContext,
+            createCombatState({
+              participants: [
+                {
+                  id: participant.character_id,
+                  name: participant.character?.name || 'Character',
+                  stats: {
+                    hp: participant.campaign_hp,
+                    stamina: characterContext.stamina,
+                    speed: characterContext.stats.stat_speed,
+                    strength: characterContext.stats.stat_strength,
+                  },
+                },
+                {
+                  id: activeEnemiesList[0].id,
+                  name: activeEnemiesList[0].name,
+                  stats: {
+                    hp: activeEnemiesList[0].hp,
+                    stamina: 100,
+                    speed: 50,
+                    strength: 50,
+                  },
+                },
+              ],
+              rangeZone: 'mid',
+              zone: campaignSnap.current_zone,
+              terrainTags: battlefieldEffects.map((effect: any) => effect.type),
+            }),
+            {
+              actorId: participant.character_id,
+              targetId: activeEnemiesList[0].id,
+              targetContext: CharacterContextResolver.resolve({
+                characterId: activeEnemiesList[0].id,
+                name: activeEnemiesList[0].name,
+                tier: activeEnemiesList[0].tier,
+                stats: {
+                  stat_strength: 50,
+                  stat_speed: 50,
+                  stat_durability: 50,
+                  stat_stamina: 50,
+                  stat_skill: 50,
+                  stat_battle_iq: 50,
+                  stat_power: 50,
+                  stat_intelligence: 50,
+                  stat_luck: 50,
+                },
+                stamina: 100,
+                energy: 50,
+              }),
+            },
+          )
+        : null;
+      const actionResult = combatResolution
+        ? toActionResult(combatResolution)
+        : ActionResolver.resolve(intentResult.intent, characterContext, {
+            activeHazards: battlefieldEffects.map((effect: any) => effect.type),
+            hasActiveThreat: activeEnemiesList.length > 0,
+            currentZone: campaignSnap.current_zone,
+          });
 
       // Build dice metadata for the message
       const diceResult = combatResult.diceMetadata
@@ -1837,6 +1958,7 @@ export default function CampaignView() {
         metadata: {
           intentDebug: intentResult.debug,
           actionResult,
+          combatResult: combatResolution,
         },
         created_at: new Date().toISOString(),
         isPending: true,
@@ -1857,6 +1979,7 @@ export default function CampaignView() {
         metadata: {
           intentDebug: intentResult.debug,
           actionResult,
+          combatResult: combatResolution,
         } as any,
       } as any);
 
@@ -1868,7 +1991,7 @@ export default function CampaignView() {
       }
 
       // Trigger dice mechanic discovery on first combat action
-      if (combatResult.hitDetection.shouldTriggerHitCheck || combatResult.hitDetection.shouldTriggerDefenseCheck) {
+      if (combatResolution || combatResult.outcome === 'hit' || combatResult.outcome === 'partial_hit' || combatResult.outcome === 'block' || combatResult.outcome === 'dodge') {
         triggerDiscovery('dice_roll' as MechanicKey);
       }
 
