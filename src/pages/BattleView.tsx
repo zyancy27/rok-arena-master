@@ -820,7 +820,13 @@ export default function BattleView() {
                   );
                   if (optimisticIndex !== -1) {
                     const optimistic = current[optimisticIndex];
-                    const reconciled = { ...messageWithName, statusEffectsSnapshot: optimistic.statusEffectsSnapshot, themeSnapshot: optimistic.themeSnapshot };
+                    const reconciled = {
+                      ...messageWithName,
+                      statusEffectsSnapshot: optimistic.statusEffectsSnapshot,
+                      themeSnapshot: optimistic.themeSnapshot,
+                      intentDebug: optimistic.intentDebug,
+                      actionResult: optimistic.actionResult,
+                    };
                     return current.map((m, i) => i === optimisticIndex ? reconciled : m);
                   }
                   // Otherwise just update the placeholder
