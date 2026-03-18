@@ -1958,6 +1958,7 @@ export default function CampaignView() {
         metadata: {
           intentDebug: intentResult.debug,
           actionResult,
+          combatResult: combatResolution,
         },
         created_at: new Date().toISOString(),
         isPending: true,
