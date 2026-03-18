@@ -88,8 +88,10 @@ export interface BrainOutput {
   input: BrainInput;
   /** How the action was classified */
   classification: ActionClassification;
-  /** Intent interpretation result */
-  intent: MoveIntent;
+  /** Canonical structured intent */
+  intent: Intent;
+  /** Legacy intent interpretation retained for compatibility */
+  legacyMoveIntent: MoveIntent;
   /** Combat action structure */
   combatAction: CombatAction;
   /** Clamp result */
