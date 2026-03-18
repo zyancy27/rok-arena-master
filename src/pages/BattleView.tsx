@@ -238,6 +238,8 @@ interface Message {
   isPending?: boolean;
   /** Theme snapshot at send-time for historical rendering */
   themeSnapshot?: ThemeSnapshot | null;
+  intentDebug?: IntentDebugPayload | null;
+  actionResult?: ActionResult | null;
 }
 
 type NarratorFrequency = 'always' | 'key_moments' | 'off';
