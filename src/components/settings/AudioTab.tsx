@@ -69,6 +69,7 @@ export function AudioTab({ settings, onChange, onReset }: Props) {
           )}
           <SettingsToggle label="Narration Highlighting" description="Highlight the text currently being spoken by the narrator" checked={settings.narrationHighlightEnabled} onCheckedChange={v => onChange({ narrationHighlightEnabled: v })} />
           <SettingsToggle label="Narration Debug Mode" description="Log narrator playback progress, checkpoints, and tap restarts for debugging" checked={settings.narrationDebug} onCheckedChange={v => onChange({ narrationDebug: v })} />
+          <SettingsToggle label="Intent Debug UI" description="Show per-message intent parsing and action resolution details for your actions" checked={settings.intentDebug} onCheckedChange={v => onChange({ intentDebug: v })} />
         </>
       )}
 

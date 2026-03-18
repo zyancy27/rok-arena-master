@@ -110,6 +110,10 @@ import { useUserSettings } from '@/hooks/use-user-settings';
 import NarratorMessageContent from '@/components/campaigns/NarratorMessageContent';
 import { applyHardClamp, generateClampContext, type CharacterProfile, type ClampResult } from '@/lib/hard-clamp';
 import { detectDirectInteraction } from '@/lib/battle-hit-detection';
+import { IntentEngine, type IntentDebugPayload } from '@/systems/intent/IntentEngine';
+import { CharacterContextResolver } from '@/systems/character/CharacterContextResolver';
+import { ActionResolver, formatActionForNarrator, type ActionResult } from '@/systems/resolution/ActionResolver';
+import { IntentDebugCard } from '@/components/intent/IntentDebugCard';
 import {
   ArrowLeft,
   Send,
@@ -234,6 +238,8 @@ interface Message {
   isPending?: boolean;
   /** Theme snapshot at send-time for historical rendering */
   themeSnapshot?: ThemeSnapshot | null;
+  intentDebug?: IntentDebugPayload | null;
+  actionResult?: ActionResult | null;
 }
 
 type NarratorFrequency = 'always' | 'key_moments' | 'off';
@@ -814,7 +820,13 @@ export default function BattleView() {
                   );
                   if (optimisticIndex !== -1) {
                     const optimistic = current[optimisticIndex];
-                    const reconciled = { ...messageWithName, statusEffectsSnapshot: optimistic.statusEffectsSnapshot, themeSnapshot: optimistic.themeSnapshot };
+                    const reconciled = {
+                      ...messageWithName,
+                      statusEffectsSnapshot: optimistic.statusEffectsSnapshot,
+                      themeSnapshot: optimistic.themeSnapshot,
+                      intentDebug: optimistic.intentDebug,
+                      actionResult: optimistic.actionResult,
+                    };
                     return current.map((m, i) => i === optimisticIndex ? reconciled : m);
                   }
                   // Otherwise just update the placeholder
@@ -1180,46 +1192,22 @@ export default function BattleView() {
     // Play sent sound
     chatSoundsEngine.play('message_sent');
 
+    let localIntentDebug: IntentDebugPayload | null = null;
+    let localActionResult: ActionResult | null = null;
+
     // OPTIMISTIC: Add message to UI immediately
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const optimisticMessage: Message = {
-      id: tempId,
-      character_id: userCharacter.character_id,
-      content: content.trim(),
-      channel: activeChannel,
-      created_at: new Date().toISOString(),
-      character_name: userCharacter.character?.name || 'You',
-      statusEffectsSnapshot: Object.keys(snapshot).length > 0 ? snapshot : undefined,
-      themeSnapshot: themeSnap,
-      isPending: true,
-    };
-    
-    setMessages(prev => [...prev, optimisticMessage]);
-    setMessageInput('');
-    setPendingMove(null);
-    setMoveValidation(null);
 
-    // Send to server (include theme_snapshot)
-    const { error } = await supabase.from('battle_messages').insert({
-      battle_id: id,
-      character_id: userCharacter.character_id,
-      content: content.trim(),
-      channel: activeChannel,
-      ...(themeSnap ? { theme_snapshot: themeSnap } : {}),
-    } as any);
-
-    if (error) {
-      // Rollback optimistic message
-      setMessages(prev => prev.filter(m => m.id !== tempId));
-      setIsSending(false);
-      toast.error('Failed to send message');
-      return;
-    }
-
-    // ── Invisible fairness pipeline (Layer 1 + 2) ──────────────────────────
     if (activeChannel === 'in_universe' && userCharacter.character) {
       const char = userCharacter.character;
-      const intent = interpretMove(content);
+      const intentResult = IntentEngine.resolve(content, {
+        mode: 'battle',
+        actorName: char.name,
+        possibleTargets: participants
+          .filter(p => p.character_id !== userCharacter.character_id && p.character?.name)
+          .map(p => ({ id: p.character_id, name: p.character!.name, kind: 'enemy' as const })),
+      });
+
       const profile: CharacterProfile = {
         name: char.name,
         tier: char.level,
@@ -1238,16 +1226,47 @@ export default function BattleView() {
         abilities: char.abilities ?? null,
         consecutiveHighForceTurns,
       };
-      const clamp = applyHardClamp(intent, profile);
+      const clamp = applyHardClamp(intentResult.legacyMoveIntent, profile);
       lastClampResultRef.current = clamp;
 
-      // Track consecutive high-force turns for stamina escalation
-      if (intent.intentCategory === 'HIGH_FORCE' || intent.posture === 'RECKLESS') {
+      const characterContext = CharacterContextResolver.resolve({
+        characterId: userCharacter.character_id,
+        name: char.name,
+        tier: char.level,
+        stats: profile.stats as any,
+        abilities: char.abilities,
+        powers: char.powers,
+        statusEffects: characterStatusEffects.map(effect => ({ type: effect.type, intensity: effect.intensity })),
+        stamina: char.stat_stamina ?? 50,
+        energy: char.stat_power ?? 50,
+      });
+
+      localIntentDebug = intentResult.debug;
+      localActionResult = ActionResolver.resolve(intentResult.intent, characterContext, {
+        hasActiveThreat: participants.length > 1,
+        currentZone: battle?.chosen_location ?? null,
+      });
+
+      if (intentResult.legacyMoveIntent.intentCategory === 'HIGH_FORCE' || intentResult.legacyMoveIntent.posture === 'RECKLESS') {
         setConsecutiveHighForceTurns(prev => prev + 1);
       } else {
         setConsecutiveHighForceTurns(0);
       }
     }
+
+    const optimisticMessage: Message = {
+      id: tempId,
+      character_id: userCharacter.character_id,
+      content: content.trim(),
+      channel: activeChannel,
+      created_at: new Date().toISOString(),
+      character_name: userCharacter.character?.name || 'You',
+      statusEffectsSnapshot: Object.keys(snapshot).length > 0 ? snapshot : undefined,
+      themeSnapshot: themeSnap,
+      intentDebug: localIntentDebug,
+      actionResult: localActionResult,
+      isPending: true,
+    };
 
     // Generate dice roll for in-universe attack moves
     if (activeChannel === 'in_universe' && !skipDiceRoll) {
@@ -1725,6 +1744,35 @@ export default function BattleView() {
     setIsNarratorLoading(true);
     
     try {
+      const opponentParticipant = participants.find(p => p.character?.name === opponentName);
+      const intentResult = IntentEngine.resolve(opponentAction, {
+        mode: 'battle',
+        actorName: opponentName,
+        possibleTargets: [{ name: userCharacter.character.name, kind: 'enemy' }],
+      });
+      const characterContext = CharacterContextResolver.resolve({
+        characterId: opponentParticipant?.character_id,
+        name: opponentName,
+        tier: opponentParticipant?.character?.level ?? 1,
+        stats: opponentParticipant?.character ? {
+          stat_intelligence: opponentParticipant.character.stat_intelligence ?? 50,
+          stat_battle_iq: opponentParticipant.character.stat_battle_iq ?? 50,
+          stat_strength: opponentParticipant.character.stat_strength ?? 50,
+          stat_power: opponentParticipant.character.stat_power ?? 50,
+          stat_speed: opponentParticipant.character.stat_speed ?? 50,
+          stat_durability: opponentParticipant.character.stat_durability ?? 50,
+          stat_stamina: opponentParticipant.character.stat_stamina ?? 50,
+          stat_skill: opponentParticipant.character.stat_skill ?? 50,
+          stat_luck: opponentParticipant.character.stat_luck ?? 50,
+        } : undefined,
+        abilities: opponentParticipant?.character?.abilities,
+        powers: opponentParticipant?.character?.powers,
+      });
+      const actionResult = ActionResolver.resolve(intentResult.intent, characterContext, {
+        hasActiveThreat: true,
+        currentZone: battle.chosen_location,
+      });
+
       const response = await supabase.functions.invoke('battle-narrator', {
         body: {
           type: 'narration',
@@ -1738,7 +1786,8 @@ export default function BattleView() {
             level: userCharacter.character.level,
             speed: userCharacter.character.stat_speed,
           },
-          userAction: opponentAction,
+          userAction: formatActionForNarrator(intentResult.intent, actionResult, opponentAction),
+          rawActionText: opponentAction,
           opponentResponse: '', // User hasn't responded yet
           battleLocation: battle.chosen_location,
           turnNumber,
@@ -1748,6 +1797,8 @@ export default function BattleView() {
             zone: battleDistance.currentZone,
             meters: battleDistance.estimatedMeters,
           },
+          structuredIntent: intentResult.intent,
+          actionResult,
           // Dice result so narrator can describe actual outcome
           diceResult: diceResult ?? undefined,
           // Invisible fairness context from hard clamp (internal only)
@@ -2933,6 +2984,11 @@ export default function BattleView() {
                                   )}
                                 </div>
                                 <p className="whitespace-pre-wrap break-words relative z-10">{msg.content}</p>
+                                {isFromUser && userSettings.audio.intentDebug && msg.intentDebug && (
+                                  <div className="relative z-10 mt-2">
+                                    <IntentDebugCard payload={msg.intentDebug} actionResult={msg.actionResult} />
+                                  </div>
+                                )}
                               </div>
                             </div>
                           );

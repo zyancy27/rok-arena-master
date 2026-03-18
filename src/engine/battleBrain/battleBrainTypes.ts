@@ -8,6 +8,7 @@
 import type { CentralBattleState, BattlePlayer } from '../state/BattleState';
 import type { CombatAction } from '../intent/classifyAction';
 import type { MoveIntent } from '@/lib/intent-interpreter';
+import type { Intent, IntentDebugPayload } from '@/systems/intent/IntentEngine';
 import type { ClampResult } from '@/lib/hard-clamp';
 import type { CombatResolutionResult } from '../combat/combatTypes';
 import type { ComposedScenario } from '../scenarioBrain';
@@ -87,8 +88,10 @@ export interface BrainOutput {
   input: BrainInput;
   /** How the action was classified */
   classification: ActionClassification;
-  /** Intent interpretation result */
-  intent: MoveIntent;
+  /** Canonical structured intent */
+  intent: Intent;
+  /** Legacy intent interpretation retained for compatibility */
+  legacyMoveIntent: MoveIntent;
   /** Combat action structure */
   combatAction: CombatAction;
   /** Clamp result */
@@ -173,10 +176,13 @@ export interface CharacterNarrativeProfile {
 
 export interface ActionContext {
   input: BrainInput;
-  intent: MoveIntent;
+  intent: Intent;
+  legacyMoveIntent: MoveIntent;
   combatAction: CombatAction;
   classification: ActionClassification;
   clampResult: ClampResult;
+  intentConfidence: number;
+  intentDebug?: IntentDebugPayload;
 }
 
 export interface NarrativeContext {

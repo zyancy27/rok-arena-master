@@ -100,7 +100,7 @@ export class ComprehensiveBattleBrain {
       trace.push({
         system: 'context',
         action: 'build',
-        detail: `Classification: ${ctx.action.classification}, Intent: ${ctx.action.intent.actionType}`,
+        detail: `Classification: ${ctx.action.classification}, Intent: ${ctx.action.intent.type}`,
         timestamp: Date.now(),
         duration: performance.now() - traceCtxStart,
       });
@@ -130,6 +130,7 @@ export class ComprehensiveBattleBrain {
         input,
         classification: ctx.action.classification,
         intent: ctx.action.intent,
+        legacyMoveIntent: ctx.action.legacyMoveIntent,
         combatAction: ctx.action.combatAction,
         clampResult: ctx.action.clampResult,
         combatResult: null,
@@ -202,6 +203,7 @@ export class ComprehensiveBattleBrain {
       input,
       classification: ctx.action.classification,
       intent: ctx.action.intent,
+      legacyMoveIntent: ctx.action.legacyMoveIntent,
       combatAction: ctx.action.combatAction,
       clampResult: ctx.action.clampResult,
       combatResult: resolverResult.combatResult,
@@ -254,6 +256,7 @@ export class ComprehensiveBattleBrain {
         input: { rawText: '', characterId: '', userId: '', contextMode: this.config.contextMode, sessionId: '' },
         classification: 'basic_action',
         intent: {} as any,
+        legacyMoveIntent: {} as any,
         combatAction: {} as any,
         clampResult: {} as any,
         combatResult: null,

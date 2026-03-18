@@ -35,6 +35,7 @@ export interface AudioSettings {
   askBeforeTapToNarrate: boolean;
   narrationHighlightEnabled: boolean;
   narrationDebug: boolean;
+  intentDebug: boolean;
 }
 
 export interface VisualSettings {
@@ -147,6 +148,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
     askBeforeTapToNarrate: true,
     narrationHighlightEnabled: true,
     narrationDebug: false,
+    intentDebug: false,
   },
   visual: {
     vfxIntensity: 'medium',

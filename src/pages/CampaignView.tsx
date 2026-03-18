@@ -61,6 +61,10 @@ import { useNarrationController } from '@/hooks/use-narration-controller';
 import OverchargeToggle from '@/components/battles/OverchargeToggle';
 import { resolveOvercharge, getOverchargeContext } from '@/lib/battle-overcharge';
 import { invokeOrchestrator } from '@/lib/story-orchestrator';
+import { IntentEngine } from '@/systems/intent/IntentEngine';
+import { CharacterContextResolver } from '@/systems/character/CharacterContextResolver';
+import { ActionResolver, formatActionForNarrator } from '@/systems/resolution/ActionResolver';
+import { IntentDebugCard } from '@/components/intent/IntentDebugCard';
 // Helper: build bag content for the inline backpack bubble
 function buildBagContent(campaignItems: InventoryItem[], characterWeapons: string | null) {
   const items: { name: string; type: string; rarity: string; equipped: boolean }[] = [];
@@ -1165,8 +1169,33 @@ export default function CampaignView() {
 
       // Build narrative systems context (identity, gravity, echo, reflection, etc.)
       const activeEnemiesList = campaignEnemies.filter(e => e.status === 'active' || e.status === 'hiding');
+      const intentResult = IntentEngine.resolve(messageText, {
+        mode: 'campaign',
+        actorName: snapshotParticipant.character?.name,
+        possibleTargets: [
+          ...activeEnemiesList.map(enemy => ({ id: enemy.id, name: enemy.name, kind: 'enemy' as const })),
+          ...knownNpcs.map(npc => ({ name: npc.name, kind: 'npc' as const })),
+        ],
+        defaultTool: equippedCampaignItems[0]?.item_name ?? null,
+      });
+      const characterContext = CharacterContextResolver.resolve({
+        characterId: snapshotParticipant.character_id,
+        name: snapshotParticipant.character?.name || 'Character',
+        tier: snapshotParticipant.character?.level || snapshotParticipant.campaign_level,
+        stats: { stat_strength: snapshotParticipant.character?.stat_strength ?? 50 },
+        abilities: snapshotParticipant.character?.abilities,
+        powers: snapshotParticipant.character?.powers,
+        equippedItems: equippedCampaignItems.map(item => item.item_name),
+        stamina: Math.round((snapshotParticipant.campaign_hp / Math.max(1, snapshotParticipant.campaign_hp_max)) * 100),
+      });
+      const actionResult = ActionResolver.resolve(intentResult.intent, characterContext, {
+        activeHazards: battlefieldEffects.map((effect: any) => effect.type),
+        hasActiveThreat: activeEnemiesList.length > 0,
+        currentZone: snapshotCampaign.current_zone,
+      });
+      const structuredAction = formatActionForNarrator(intentResult.intent, actionResult, messageText);
       const narrativeSystemsContext = campaignNarrative.buildNarrativeBlock(
-        messageText,
+        structuredAction,
         activeEnemiesList.length > 0,
         snapshotCampaign.current_zone,
       );
@@ -1204,7 +1233,10 @@ export default function CampaignView() {
           })),
           loreContext,
         },
-        playerAction: messageText,
+        playerAction: structuredAction,
+        playerActionRawText: messageText,
+        structuredIntent: intentResult.intent,
+        actionResult,
         currentZone: snapshotCampaign.current_zone,
         timeOfDay: snapshotCampaign.time_of_day,
         dayCount: snapshotCampaign.day_count,
@@ -1759,6 +1791,30 @@ export default function CampaignView() {
   ) => {
     setSending(true);
     try {
+      const equippedCampaignItems = inventory.filter(i => i.is_equipped);
+      const activeEnemiesList = campaignEnemies.filter(e => e.status === 'active' || e.status === 'hiding');
+      const intentResult = IntentEngine.resolve(messageText, {
+        mode: 'campaign',
+        actorName: participant.character?.name,
+        possibleTargets: activeEnemiesList.map(enemy => ({ id: enemy.id, name: enemy.name, kind: 'enemy' as const })),
+        defaultTool: equippedCampaignItems[0]?.item_name ?? null,
+      });
+      const characterContext = CharacterContextResolver.resolve({
+        characterId: participant.character_id,
+        name: participant.character?.name || 'Character',
+        tier: participant.character?.level || participant.campaign_level,
+        stats: { stat_strength: participant.character?.stat_strength ?? 50 },
+        abilities: participant.character?.abilities,
+        powers: participant.character?.powers,
+        equippedItems: equippedCampaignItems.map(item => item.item_name),
+        stamina: Math.round((participant.campaign_hp / Math.max(1, participant.campaign_hp_max)) * 100),
+      });
+      const actionResult = ActionResolver.resolve(intentResult.intent, characterContext, {
+        activeHazards: battlefieldEffects.map((effect: any) => effect.type),
+        hasActiveThreat: activeEnemiesList.length > 0,
+        currentZone: campaignSnap.current_zone,
+      });
+
       // Build dice metadata for the message
       const diceResult = combatResult.diceMetadata
         ? combatResult.diceMetadata as Record<string, unknown>
@@ -1778,7 +1834,10 @@ export default function CampaignView() {
         content: messageText,
         dice_result: diceResult,
         theme_snapshot: null,
-        metadata: {},
+        metadata: {
+          intentDebug: intentResult.debug,
+          actionResult,
+        },
         created_at: new Date().toISOString(),
         isPending: true,
         character: participant.character
@@ -1795,6 +1854,10 @@ export default function CampaignView() {
         content: messageText,
         channel: 'in_universe',
         dice_result: diceResult as any,
+        metadata: {
+          intentDebug: intentResult.debug,
+          actionResult,
+        } as any,
       } as any);
 
       if (insertError) {
@@ -2368,6 +2431,11 @@ export default function CampaignView() {
                               )}
                             </div>
                             <p className="text-sm whitespace-pre-wrap break-words pl-8">{msg.content}</p>
+                            {isMe && userSettings.audio.intentDebug && (msg.metadata as any)?.intentDebug && (
+                              <div className="mt-2 pl-8">
+                                <IntentDebugCard payload={(msg.metadata as any).intentDebug} actionResult={(msg.metadata as any).actionResult ?? null} />
+                              </div>
+                            )}
                           </div>
 
                           {/* Inline dice roll display */}
