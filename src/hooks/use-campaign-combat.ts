@@ -74,6 +74,20 @@ function mapOutcomeToMode(outcome: CombatOutcome): 'offense' | 'defense' {
   return outcome === 'block' || outcome === 'dodge' ? 'defense' : 'offense';
 }
 
+function createFallbackRoll(rollType: 'attack' | 'defense') {
+  return {
+    baseRoll: 0,
+    modifiers: {
+      tierBonus: 0,
+      statBonus: 0,
+      skillBonus: 0,
+      battleIqBonus: 0,
+    },
+    total: 0,
+    rollType,
+  };
+}
+
 export function useCampaignCombat(character: CampaignCharacterContext | null, partyNames?: string[]) {
   const [combatState, setCombatState] = useState<CampaignCombatState>({
     lastHitResult: null,
@@ -152,6 +166,7 @@ export function useCampaignCombat(character: CampaignCharacterContext | null, pa
       };
     }
 
+    const scaledStats = buildCampaignStats(character);
     const intentResult = IntentEngine.resolve(messageText, {
       mode: 'campaign',
       actorName: character.name,
@@ -161,11 +176,11 @@ export function useCampaignCombat(character: CampaignCharacterContext | null, pa
       characterId: character.characterId,
       name: character.name,
       tier: character.level,
-      stats: buildCampaignStats(character),
+      stats: scaledStats,
       abilities: character.abilities,
       powers: character.powers,
-      stamina: buildCampaignStats(character).stat_stamina,
-      energy: buildCampaignStats(character).stat_power,
+      stamina: scaledStats.stat_stamina,
+      energy: scaledStats.stat_power,
     });
 
     const enemyTier = Math.max(1, Math.min(7, character.campaignLevel));
@@ -193,7 +208,7 @@ export function useCampaignCombat(character: CampaignCharacterContext | null, pa
               speed: characterContext.stats.stat_speed,
               strength: characterContext.stats.stat_strength,
             },
-            statusEffects: statusEffects.effects.map(effect => ({ type: effect.type, intensity: effect.intensity })),
+            statusEffects: statusEffects.activeEffects.map(effect => ({ type: effect.type, intensity: effect.intensity })),
           },
           {
             id: 'enemy',
@@ -230,8 +245,8 @@ export function useCampaignCombat(character: CampaignCharacterContext | null, pa
 
     if (concentrationAvailable) {
       const fallbackHit: HitDetermination = structured.hitDetermination ?? {
-        attackRoll: structured.defenseDetermination?.incomingAttackPotency ?? { baseRoll: 0, modifiers: {}, total: 0, rollType: 'attack' },
-        defenseRoll: structured.defenseDetermination?.defenseRoll ?? { baseRoll: 0, modifiers: {}, total: 0, rollType: 'defense' },
+        attackRoll: structured.defenseDetermination?.incomingAttackPotency ?? createFallbackRoll('attack'),
+        defenseRoll: structured.defenseDetermination?.defenseRoll ?? createFallbackRoll('defense'),
         wouldHit: structured.outcome === 'hit' || structured.outcome === 'partial_hit',
         gap: structured.gap,
         isMentalAttack: false,
@@ -248,7 +263,7 @@ export function useCampaignCombat(character: CampaignCharacterContext | null, pa
     }
 
     return structured;
-  }, [character, combatState.concentrationUsesLeft, statusEffects.effects]);
+  }, [character, combatState.concentrationUsesLeft, statusEffects.activeEffects]);
 
   const applyOffensiveConcentration = useCallback((result: OffensiveConcentrationResult) => {
     if (!combatState.concentrationPrompt) return null;
