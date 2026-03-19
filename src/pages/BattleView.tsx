@@ -113,6 +113,7 @@ import { applyHardClamp, generateClampContext, type CharacterProfile, type Clamp
 import { detectDirectInteraction } from '@/lib/battle-hit-detection';
 import { IntentEngine, type IntentDebugPayload } from '@/systems/intent/IntentEngine';
 import { BattleActionPipeline } from '@/systems/pipeline/BattleActionPipeline';
+import { NarrationPacketBuilder } from '@/systems/narration/NarrationPacketBuilder';
 import { type ActionResult } from '@/systems/resolution/ActionResolver';
 import { IntentDebugCard } from '@/components/intent/IntentDebugCard';
 import {

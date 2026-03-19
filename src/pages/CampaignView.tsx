@@ -94,25 +94,8 @@ function buildBagContent(campaignItems: InventoryItem[], characterWeapons: strin
   return items;
 }
 
-function resolveCampaignEnemyContext(enemy: CampaignEnemy) {
-  return CharacterContextResolver.resolve({
-    characterId: enemy.id,
-    name: enemy.name,
-    tier: enemy.tier,
-    stats: {
-      stat_strength: 50,
-      stat_speed: 50,
-      stat_durability: 50,
-      stat_stamina: 50,
-      stat_skill: 50,
-      stat_battle_iq: 50,
-      stat_power: 50,
-      stat_intelligence: 50,
-      stat_luck: 50,
-    },
-    stamina: 100,
-    energy: 50,
-  });
+function resolveCampaignEnemyContext(_enemy: CampaignEnemy) {
+  return null;
 }
 
 export default function CampaignView() {
