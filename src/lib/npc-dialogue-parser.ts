@@ -37,6 +37,17 @@ const PATTERN_BEFORE = new RegExp(
   'g',
 );
 
+/**
+ * Pattern: Name [speech_verb], [descriptive clause ≤200 chars], "dialogue"
+ * Handles AI patterns where a speech verb is followed by a long descriptive
+ * clause before the quoted text, e.g.:
+ *   Elara whispers, her voice a dry rustle like parchment, "is the hunger."
+ */
+const PATTERN_BEFORE_EXTENDED = new RegExp(
+  String.raw`${NAME_CAPTURE}\s+(?:finally\s+)?(?:${SPEECH_VERBS})[,]?\s+[^"""\u201C\u201D]{1,200}?[,]\s*${DIALOGUE_CAPTURE}`,
+  'g',
+);
+
 const PATTERN_AFTER = new RegExp(
   String.raw`${DIALOGUE_CAPTURE}[,.]?\s*(?:${SPEECH_VERBS})\s+${NAME_CAPTURE}`,
   'g',
