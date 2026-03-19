@@ -74,7 +74,7 @@ export interface CampaignMessage {
   id: string;
   campaign_id: string;
   character_id: string | null;
-  sender_type: 'player' | 'narrator' | 'system';
+  sender_type: 'player' | 'narrator' | 'system' | 'npc' | 'party_ally' | 'enemy_combatant';
   channel: 'in_universe' | 'out_of_universe';
   content: string;
   dice_result: Record<string, unknown> | null;

@@ -1,4 +1,6 @@
+import { ChatPresentationProfileBuilder } from '@/systems/effects/ChatPresentationProfileBuilder';
 import { buildGeneratedRuntimeMetadata } from '@/systems/pipeline/GeneratedRuntimeBridge';
+import { ScenePresentationProfileBuilder } from '@/systems/scene/ScenePresentationProfileBuilder';
 import type { ContextPacket, NpcReactionPacket, ResolvedActionPacket, SceneEffectPacket } from '@/systems/types/PipelineTypes';
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -33,7 +35,7 @@ export const SceneEffectBridge = {
       typeof generatedSceneState.visualIntensity === 'string' ? `visual:${generatedSceneState.visualIntensity}` : null,
       ...toStringArray(generatedActorIdentity.movementIdentity).slice(0, 2).map((entry) => `actor-motion:${entry}`),
       ...toStringArray(generatedEffectState.motionTexture).slice(0, 2).map((entry) => `motion:${entry}`),
-      ...toStringArray(generatedEffectState.backgroundBehavior).slice(0, 1).map((entry) => `background:${entry}`),
+      ...toStringArray(generatedEffectState.backgroundBehavior).slice(0, 2).map((entry) => `background:${entry}`),
     ].filter((tag): tag is string => Boolean(tag));
 
     const hazardPulseTags = [
@@ -48,9 +50,7 @@ export const SceneEffectBridge = {
     ];
 
     const enemyPresenceTags = [
-      ...context.targets
-        .filter((target) => target.kind === 'enemy')
-        .map((target) => `enemy:${target.name}`),
+      ...context.targets.filter((target) => target.kind === 'enemy').map((target) => `enemy:${target.name}`),
       ...toStringArray(generatedEncounter.threatComposition).map((threat) => `threat:${threat}`),
       ...toStringArray(generatedEncounter.tacticalPressure).slice(0, 2).map((pressure) => `tactical:${pressure}`),
       ...toStringArray(generatedNpcIdentity.threatPosture).slice(0, 2).map((entry) => `npc-threat:${entry}`),
@@ -72,15 +72,46 @@ export const SceneEffectBridge = {
       ...toStringArray(generatedEffectState.textEmphasisStyle).slice(0, 2).map((entry) => `chat:${entry}`),
     ].filter((tag): tag is string => Boolean(tag));
 
+    const scenePresentationProfile = ScenePresentationProfileBuilder.build(generatedPackets, {
+      zoneShiftTags,
+      hazardPulseTags,
+      enemyPresenceTags,
+      environmentalPressureTags,
+      generated: generatedPackets,
+    });
+    const narratorChatProfile = ChatPresentationProfileBuilder.build(generatedPackets, {
+      speakerRole: 'narrator',
+      sceneEffectPacket: {
+        zoneShiftTags,
+        hazardPulseTags,
+        enemyPresenceTags,
+        environmentalPressureTags,
+        generated: generatedPackets,
+      },
+    });
+    const chatPresentationTags = [...new Set([
+      ...toStringArray(generatedSceneState.chatPresentationTags),
+      ...scenePresentationProfile.chatPresentationFlavor,
+      ...narratorChatProfile.boxTreatment,
+    ])];
+    const ambientCueFamilies = [...new Set([
+      ...scenePresentationProfile.soundCueFamilies,
+      ...narratorChatProfile.cueFamilyBias,
+    ])];
+
     return {
       zoneShiftTags: [...new Set(zoneShiftTags)],
       hazardPulseTags: [...new Set(hazardPulseTags)],
       enemyPresenceTags: [...new Set(enemyPresenceTags)],
       environmentalPressureTags: [...new Set(environmentalPressureTags)],
+      chatPresentationTags,
+      ambientCueFamilies,
+      scenePresentationProfile: scenePresentationProfile as unknown as Record<string, unknown>,
       generated: generatedPackets,
       metadata: {
         zone: context.zone,
         narratorSceneContext: context.narratorSceneContext,
+        narratorChatProfile,
         ...buildGeneratedRuntimeMetadata(generatedPackets),
       },
     };
