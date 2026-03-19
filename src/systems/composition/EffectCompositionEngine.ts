@@ -14,25 +14,27 @@ export const EffectCompositionEngine = {
     const blueprint = EffectBlueprintAdapter.fromContext(input);
     BlueprintRegistry.register(blueprint);
     const composition = CompositionEngine.compose({ kind: 'effect', blueprintIds: [blueprint.id] });
-    const grammar = EffectGrammar.compose(composition.taxonomy.tags);
-    const visual = VisualEffectFramework.build(composition.taxonomy.tags);
-    const audio = AudioEffectFramework.build(composition.taxonomy.tags);
-    const chat = ChatEffectFramework.build(composition.taxonomy.tags);
-    const status = StatusEffectFramework.build(composition.taxonomy.tags);
-    const environment = EnvironmentEffectFramework.build(composition.taxonomy.tags);
+    const grammar = EffectGrammar.compose(composition.runtime.tags);
+    const visual = VisualEffectFramework.build(composition.runtime.tags);
+    const audio = AudioEffectFramework.build(composition.runtime.tags);
+    const chat = ChatEffectFramework.build(composition.runtime.tags);
+    const status = StatusEffectFramework.build(composition.runtime.tags);
+    const environment = EnvironmentEffectFramework.build(composition.runtime.tags);
 
     return {
       blueprintId: blueprint.id,
-      visualLayers: [...visual.visualLayers, `visual-intensity:${grammar.intensity}`],
-      audioLayers: [...audio.audioLayers, `audio-cadence:${grammar.cadence}`],
-      chatBehaviors: [...chat.chatBehaviors, `effect-persistence:${grammar.persistence}`],
-      statusOverlays: status.statusOverlays,
-      environmentPersistence: environment.environmentPersistence,
-      burstImpacts: environment.burstImpacts,
-      tags: composition.taxonomy.tags,
+      visualLayers: [...new Set([...visual.visualLayers, `visual-intensity:${composition.runtime.sceneOutputs.visualIntensity}`, `visual-heat:${grammar.intensity}`])],
+      audioLayers: [...new Set([...audio.audioLayers, `audio-cadence:${grammar.cadence}`, `audio-pressure:${composition.runtime.sceneOutputs.scenePressure}`])],
+      chatBehaviors: [...new Set([...chat.chatBehaviors, `effect-persistence:${grammar.persistence}`, ...composition.runtime.chatPresentationTags])],
+      statusOverlays: [...new Set([...status.statusOverlays, ...composition.runtime.sceneOutputs.narrationToneFlags])],
+      environmentPersistence: [...new Set([...environment.environmentPersistence, ...composition.runtime.sceneOutputs.environmentalPressure])],
+      burstImpacts: [...new Set([...environment.burstImpacts, ...composition.runtime.effectTags])],
+      tags: composition.runtime.tags,
       metadata: {
         narratorText: input.narratorText,
+        runtime: composition.runtime,
       },
     };
   },
 };
+
