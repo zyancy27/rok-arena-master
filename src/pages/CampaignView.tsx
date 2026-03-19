@@ -1392,7 +1392,7 @@ export default function CampaignView() {
             voicePitch: npcBrainTurn.narration.voicePitch,
             soundCue: npcBrainTurn.narration.soundCue,
             animationTag: npcBrainTurn.narration.animationTag,
-          } : null),
+          } : null) as any,
         }]);
 
         // Accumulate all XP from this turn and apply level-ups immediately
