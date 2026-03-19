@@ -7,6 +7,7 @@ import {
   runNpcBrainTurn,
   summarizePerceptionTarget,
 } from './NpcBrain';
+import { generateNarration, type NarratorOutput } from './NarratorEngine';
 import type {
   EmotionType,
   NpcBrainState,
@@ -42,6 +43,7 @@ export interface CampaignEnemyBrainInput {
 export interface CampaignNpcBrainTurn extends NpcBrainTurnResult {
   summary: string;
   focusTargetId?: string;
+  narration: NarratorOutput;
 }
 
 const clamp = (value: number, min = 0, max = 100) => Math.max(min, Math.min(max, value));
@@ -98,7 +100,9 @@ function inferRole(profile?: string | null, description?: string | null, tier = 
 }
 
 function deriveEmotionType(input: CampaignEnemyBrainInput): EmotionType {
-  if ((input.combatResult?.damage?.amount ?? 0) > 0) return input.enemy.hp / Math.max(1, input.enemy.hpMax) < 0.3 ? 'fear' : 'anger';
+  if ((input.combatResult?.damage?.amount ?? 0) > 0) {
+    return input.enemy.hp / Math.max(1, input.enemy.hpMax) < 0.3 ? 'fear' : 'anger';
+  }
   if (input.player.healthPct < 35) return 'confidence';
   return 'neutral';
 }
@@ -180,10 +184,18 @@ export function buildCampaignNpcTurn(input: CampaignEnemyBrainInput): CampaignNp
   const brain = buildBrainState(input);
   const turn = runNpcBrainTurn(brain, perception, world);
   const focusTarget = perception.visibleEntities[0];
+  const narration = generateNarration({
+    actorName: input.enemy.name,
+    targetName: input.player.name,
+    intent: turn.intent,
+    action: turn.action.action,
+    emotion: turn.updatedBrain.emotion,
+  });
 
   return {
     ...turn,
     focusTargetId: focusTarget?.entityId,
+    narration,
     summary: [
       `npc=${input.enemy.name}`,
       `emotion=${turn.updatedBrain.emotion.type}:${turn.updatedBrain.emotion.intensity}`,
@@ -191,11 +203,24 @@ export function buildCampaignNpcTurn(input: CampaignEnemyBrainInput): CampaignNp
       `action=${turn.action.action}`,
       turn.action.targetId ? `target=${turn.action.targetId}` : null,
       `focus=${summarizePerceptionTarget(focusTarget)}`,
+      `line=${narration.text}`,
+      `voiceRate=${narration.voiceRate}`,
+      `voicePitch=${narration.voicePitch}`,
+      narration.soundCue ? `soundCue=${narration.soundCue}` : null,
+      narration.animationTag ? `animationTag=${narration.animationTag}` : null,
       `chaos=${world.chaosLevel}`,
     ].filter(Boolean).join(' | '),
   };
 }
 
 export function formatNpcBrainForNarrator(turn: CampaignNpcBrainTurn) {
-  return turn.summary;
+  return [
+    `line=${turn.narration.text}`,
+    `intent=${turn.intent}`,
+    `emotion=${turn.updatedBrain.emotion.type}:${turn.updatedBrain.emotion.intensity}`,
+    `voiceRate=${turn.narration.voiceRate}`,
+    `voicePitch=${turn.narration.voicePitch}`,
+    turn.narration.soundCue ? `soundCue=${turn.narration.soundCue}` : null,
+    turn.narration.animationTag ? `animationTag=${turn.narration.animationTag}` : null,
+  ].filter(Boolean).join(' | ');
 }
