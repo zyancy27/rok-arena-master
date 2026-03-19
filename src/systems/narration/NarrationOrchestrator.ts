@@ -206,7 +206,14 @@ export class NarrationOrchestrator {
     return this.snapshot.messageId;
   }
 
-  async narrate(text: string, messageId: string, context?: NarratorSceneContext, startCharIndex = 0, restartOrigin: RestartOrigin = 'initial') {
+  async narrate(
+    text: string,
+    messageId: string,
+    context?: NarratorSceneContext,
+    startCharIndex = 0,
+    restartOrigin: RestartOrigin = 'initial',
+    voiceSettings?: NarrationVoiceSettings,
+  ) {
     if (!text.trim()) return;
 
     this.hardReset(false);
@@ -226,17 +233,23 @@ export class NarrationOrchestrator {
     this.emitSnapshot();
     this.emitState();
 
-    const success = await this.speech.speak(text, startCharIndex, context);
+    const success = await this.speech.speak(text, startCharIndex, context, voiceSettings);
 
     if (!success && this.snapshot.state === 'starting') {
       this.hardReset();
     }
   }
 
-  async narrateFromSentence(text: string, messageId: string, sentenceIndex: number, context?: NarratorSceneContext) {
+  async narrateFromSentence(
+    text: string,
+    messageId: string,
+    sentenceIndex: number,
+    context?: NarratorSceneContext,
+    voiceSettings?: NarrationVoiceSettings,
+  ) {
     if (!this.tapController.isEnabled()) return;
     const target = this.tapController.resolveSentenceTarget(text, sentenceIndex);
-    await this.narrate(text, messageId, context, target.charIndex, 'tap');
+    await this.narrate(text, messageId, context, target.charIndex, 'tap', voiceSettings);
   }
 
   pause() {
