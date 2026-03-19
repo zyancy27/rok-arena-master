@@ -108,12 +108,13 @@ import { useNarrationController } from '@/hooks/use-narration-controller';
 import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import NarratorMessageContent from '@/components/campaigns/NarratorMessageContent';
-import { buildNarrationPlaybackOptions, buildNarratorMessageMetadata, getNarratorAnimationClass } from '@/lib/narration-playback';
+import { buildNarrationPlaybackOptions, getNarratorAnimationClass } from '@/lib/narration-playback';
+import { invokeOrchestrator } from '@/lib/story-orchestrator';
 import { applyHardClamp, generateClampContext, type CharacterProfile, type ClampResult } from '@/lib/hard-clamp';
 import { detectDirectInteraction } from '@/lib/battle-hit-detection';
 import { IntentEngine, type IntentDebugPayload } from '@/systems/intent/IntentEngine';
 import { BattleActionPipeline } from '@/systems/pipeline/BattleActionPipeline';
-import { NarrationPacketBuilder } from '@/systems/narration/NarrationPacketBuilder';
+import { buildNarratorMessagePacket } from '@/systems/pipeline/PipelineMessageBridge';
 import { type ActionResult } from '@/systems/resolution/ActionResolver';
 import { IntentDebugCard } from '@/components/intent/IntentDebugCard';
 import {
@@ -1795,65 +1796,61 @@ export default function BattleView() {
       });
       const actionResult = pipelineResult.resolvedAction.actionResult;
 
-      const response = await supabase.functions.invoke('battle-narrator', {
-        body: {
-          type: 'narration',
-          userCharacter: {
-            name: opponentName, // From narrator's perspective, opponent made the move
-            level: participants.find(p => p.character?.name === opponentName)?.character?.level || 1,
-            speed: participants.find(p => p.character?.name === opponentName)?.character?.stat_speed,
-          },
-          opponent: {
-            name: userCharacter.character.name,
-            level: userCharacter.character.level,
-            speed: userCharacter.character.stat_speed,
-          },
-          userAction: pipelineResult.resolvedAction.structuredAction,
-          rawActionText: opponentAction,
-          opponentResponse: '', // User hasn't responded yet
-          battleLocation: battle.chosen_location,
-          turnNumber,
-          frequency: narratorFrequency,
-          detectEnvironmentalEffects: true,
-          currentDistance: {
-            zone: battleDistance.currentZone,
-            meters: battleDistance.estimatedMeters,
-          },
-          structuredIntent: pipelineResult.resolvedAction.intent,
-          actionResult,
-          // Dice result so narrator can describe actual outcome
-          diceResult: diceResult ?? undefined,
-          // Invisible fairness context from hard clamp (internal only)
-          fairnessContext: lastClampResultRef.current
-            ? generateClampContext(lastClampResultRef.current)
-            : undefined,
+      const { data: response, error } = await invokeOrchestrator({
+        pipelineType: 'battle_narration',
+        characterId: opponentParticipant?.character_id || opponentName,
+        type: 'narration',
+        userCharacter: {
+          name: opponentName,
+          level: participants.find(p => p.character?.name === opponentName)?.character?.level || 1,
+          speed: participants.find(p => p.character?.name === opponentName)?.character?.stat_speed,
         },
+        opponent: {
+          name: userCharacter.character.name,
+          level: userCharacter.character.level,
+          speed: userCharacter.character.stat_speed,
+        },
+        userAction: pipelineResult.resolvedAction.structuredAction,
+        rawActionText: opponentAction,
+        opponentResponse: '',
+        battleLocation: battle.chosen_location,
+        turnNumber,
+        frequency: narratorFrequency,
+        detectEnvironmentalEffects: true,
+        currentDistance: {
+          zone: battleDistance.currentZone,
+          meters: battleDistance.estimatedMeters,
+        },
+        structuredIntent: pipelineResult.resolvedAction.intent,
+        actionResult,
+        diceResult: diceResult ?? undefined,
+        fairnessContext: lastClampResultRef.current
+          ? generateClampContext(lastClampResultRef.current)
+          : undefined,
       });
       
-      if (response.data?.narration) {
-        const narrationPacket = NarrationPacketBuilder.build({
-          resolvedAction: pipelineResult.resolvedAction,
-          sceneEffects: pipelineResult.sceneEffects,
-          narratorText: response.data.narration,
-          narratorSource: response.data,
-        });
+      if (!error && response?.narration) {
+        const narrationPacket = buildNarratorMessagePacket(
+          pipelineResult,
+          response.narration,
+          response,
+        );
         const narratorMsg = {
           id: `narrator-${Date.now()}`,
-          content: response.data.narration,
+          content: response.narration,
           timestamp: new Date(),
           metadata: narrationPacket.metadata,
         };
         setNarratorMessages(prev => [...prev, narratorMsg]);
         chatSoundsEngine.play('narrator_message');
         if (userSettings.audio.narratorAutoRead && userSettings.audio.narratorVoiceEnabled) {
-          await narratorVoice.narrate(response.data.narration, narratorMsg.id, buildNarrationPlaybackOptions(narratorMsg.metadata));
+          await narratorVoice.narrate(response.narration, narratorMsg.id, buildNarrationPlaybackOptions(narratorMsg.metadata));
         }
 
-        // Also post to OOC chat for persistence
         await supabase.from('battle_messages').insert({
           battle_id: id,
           character_id: userCharacter.character_id,
-          content: `📖 *${response.data.narration}*`,
+          content: `📖 *${response.narration}*`,
           channel: 'out_of_universe',
         });
       }

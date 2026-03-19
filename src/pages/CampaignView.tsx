@@ -63,7 +63,7 @@ import { resolveOvercharge, getOverchargeContext } from '@/lib/battle-overcharge
 import { invokeOrchestrator } from '@/lib/story-orchestrator';
 import { buildNarrationPlaybackOptions, buildNarratorMessageMetadata, getNarratorAnimationClass } from '@/lib/narration-playback';
 import { CampaignActionPipeline } from '@/systems/pipeline/CampaignActionPipeline';
-import { NarrationPacketBuilder } from '@/systems/narration/NarrationPacketBuilder';
+import { buildNarratorMessagePacket, buildPlayerMessageMetadata } from '@/systems/pipeline/PipelineMessageBridge';
 import { IntentDebugCard } from '@/components/intent/IntentDebugCard';
 // Helper: build bag content for the inline backpack bubble
 function buildBagContent(campaignItems: InventoryItem[], characterWeapons: string | null) {
@@ -1260,13 +1260,11 @@ export default function CampaignView() {
           combatPulseTimerRef.current = setTimeout(() => setCombatPulse('none'), 8000);
         }
 
-        const narrationPacket = NarrationPacketBuilder.build({
-          resolvedAction: pipelineResult.resolvedAction,
-          npcReaction: pipelineResult.npcReaction,
-          sceneEffects: pipelineResult.sceneEffects,
-          narratorText: data.narration,
-          narratorSource: data,
-        });
+        const narrationPacket = buildNarratorMessagePacket(
+          pipelineResult,
+          data.narration,
+          data,
+        );
 
         await supabase.from('campaign_messages').insert([{
           campaign_id: snapshotCampaign.id,
@@ -1802,6 +1800,10 @@ export default function CampaignView() {
 
       // OPTIMISTIC: Add message to UI immediately before DB write
       const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const playerMessageMetadata = buildPlayerMessageMetadata(pipelineResult, {
+        npcBrainTurn: pipelineResult.npcReaction?.rawTurn ?? null,
+      });
+
       const optimisticMessage: CampaignMessage = {
         id: tempId,
         campaign_id: campaignSnap.id,
@@ -1811,12 +1813,7 @@ export default function CampaignView() {
         content: messageText,
         dice_result: diceResult,
         theme_snapshot: null,
-        metadata: {
-          intentDebug: pipelineResult.resolvedAction.intentDebug,
-          actionResult: pipelineResult.resolvedAction.actionResult,
-          combatResult: pipelineResult.resolvedAction.combatResult,
-          npcBrainTurn: pipelineResult.npcReaction?.rawTurn ?? null,
-        },
+        metadata: playerMessageMetadata,
         created_at: new Date().toISOString(),
         isPending: true,
         character: participant.character
@@ -1825,7 +1822,6 @@ export default function CampaignView() {
       };
       setMessages(prev => [...prev, optimisticMessage]);
 
-      // Insert player message
       const { error: insertError } = await supabase.from('campaign_messages').insert({
         campaign_id: campaignSnap.id,
         character_id: participant.character_id,
@@ -1833,12 +1829,7 @@ export default function CampaignView() {
         content: messageText,
         channel: 'in_universe',
         dice_result: diceResult as any,
-        metadata: {
-          intentDebug: pipelineResult.resolvedAction.intentDebug,
-          actionResult: pipelineResult.resolvedAction.actionResult,
-          combatResult: pipelineResult.resolvedAction.combatResult,
-          npcBrainTurn: pipelineResult.npcReaction?.rawTurn ?? null,
-        } as any,
+        metadata: playerMessageMetadata as any,
       } as any);
 
       if (insertError) {
