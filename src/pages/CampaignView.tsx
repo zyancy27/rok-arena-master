@@ -479,7 +479,7 @@ export default function CampaignView() {
             chatSoundsEngine.play('narrator_message');
             if (userSettingsRef.current.audio.narratorAutoRead && userSettingsRef.current.audio.narratorVoiceEnabled) {
               // NarrationController handles ducking, highlighting, and sound triggers
-              narratorVoiceRef.current.narrate(msg.content, msg.id);
+              narratorVoiceRef.current.narrate(msg.content, msg.id, buildNarrationPlaybackOptions(msg.metadata));
             }
           } else if (msg.sender_type === 'player') {
             // Play received sound if it's from another player
