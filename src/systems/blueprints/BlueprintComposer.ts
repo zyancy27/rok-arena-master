@@ -229,7 +229,7 @@ export const BlueprintComposer = {
         ...(blueprint.defaults?.traits || []),
         ...(blueprint.weightedTraits || []),
       ]),
-      modules.map((module) => module.traits || []),
+      ...modules.map((module) => module.traits || []),
     ], input.weights);
 
     let payload = composePayload(selected, modules, input.overrides);
