@@ -963,17 +963,17 @@ async function handleCampaignResponseSuggestions(
   const systemPrompt = `You generate OPTIONAL player response suggestions for a roleplay campaign chat.
 ${SIMPLE_LANGUAGE_RULE}
 
-These suggestions are PRIVATE THOUGHTS for ${playerCharacter.name}. They are not spoken yet, not canon yet, and never auto-send.
+These suggestions are PRIVATE THOUGHTS for ${characterName}. They are not spoken yet, not canon yet, and never auto-send.
 
 CRITICAL RULES:
 - Return 0 to 4 suggestions only. Fewer is better than noisy or generic.
-- Every suggestion must fit ${playerCharacter.name}'s established voice, personality, mentality, motives, likely decision style, and current condition.
+- Every suggestion must fit ${characterName}'s established voice, personality, mentality, motives, likely decision style, and current condition.
 - Ground suggestions in the exact current scene, recent conversation, known NPCs, enemies, and campaign state.
 - Suggestions may be dialogue, questions, reactions, or action intents.
 - Keep them practical and immediately usable as a single player message.
 - If context is thin or uncertain, return fewer and broader suggestions.
 - Do NOT generate out-of-character quips, meta commentary, or omniscient knowledge.
-- Do NOT control other player characters. In multiplayer, only generate thoughts for ${playerCharacter.name}.
+- Do NOT control other player characters. In multiplayer, only generate thoughts for ${characterName}.
 - Do NOT force combat. If the scene is unclear, prefer observation, questions, or restrained actions.
 - Respect the current tone. If the character is cautious, noble, reckless, curious, stoic, suspicious, etc., the suggestions should feel that way.
 
@@ -988,7 +988,7 @@ FIELD RULES:
 - confidence: how well the suggestion fits the scene and character.
 
 CHARACTER:
-Name: ${playerCharacter.name}
+Name: ${characterName}
 Campaign level: ${playerCharacter.campaignLevel ?? 'unknown'}
 Original level: ${playerCharacter.originalLevel ?? 'unknown'}
 HP: ${playerCharacter.hp ?? 'unknown'}/${playerCharacter.hpMax ?? 'unknown'}
@@ -1019,7 +1019,7 @@ Story context: ${storyContext ? JSON.stringify(storyContext) : '{}'}`;
 ${historyMessages.length > 0 ? historyMessages.slice(-8).map((message) => `${message.role}: ${message.content}`).join('
 ') : 'No recent history.'}
 
-Generate the best private response suggestions for ${playerCharacter.name} right now.`;
+Generate the best private response suggestions for ${characterName} right now.`;
 
   try {
     const models = ["google/gemini-2.5-flash-lite", "google/gemini-2.5-flash"];
