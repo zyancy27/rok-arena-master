@@ -2525,7 +2525,7 @@ export default function CampaignView() {
                             }
 
                             return (
-                              <div key={envelope.id} className={surfaceClassName}>
+                              <ExpressionChatBox key={envelope.id} expression={envelope.expressionPacket} className={surfaceClassName}>
                                 <div className="flex items-start gap-2 relative z-10">
                                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${envelope.presentationProfile.iconContainerClassName}`}>
                                     <Icon className="w-4 h-4" />
