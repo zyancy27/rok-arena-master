@@ -11,6 +11,14 @@ export interface GeneratedWorldState {
   pointsOfInterest: string[];
   factionPresence: string[];
   culturalFlavor: string[];
+  environmentalIdentity: string[];
+  socialToneIdentity: string[];
+  travelPressureIdentity: string[];
+  hazardPosture: string[];
+  visualEffectProfile: string[];
+  audioPressureProfile: string[];
+  volatilityProfile: string[];
+  factionDensityProfile: string[];
   tags: string[];
   metadata?: Record<string, unknown>;
 }
