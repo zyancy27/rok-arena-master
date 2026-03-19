@@ -1725,7 +1725,6 @@ export default function CampaignView() {
             metadata: { owner_user_id: user!.id },
           } as any);
         }
-      }
 
       // Apply solo status change if intent was detected
       if (soloIntent) {
