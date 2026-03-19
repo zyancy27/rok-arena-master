@@ -315,37 +315,32 @@ export default function PrivateNarratorChat({
           </div>
         ) : (
           <div className="space-y-3">
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`p-2.5 rounded-lg text-sm ${
-                  msg.role === 'user'
-                    ? 'bg-primary/10 border-l-2 border-primary ml-6'
-                    : msg.isValidation
-                      ? 'bg-amber-500/10 border-l-2 border-amber-500 mr-4'
-                      : 'bg-muted/30 border-l-2 border-amber-500/50 mr-4'
-                }`}
-              >
-                <div className="flex items-center gap-1.5 mb-1">
-                  {msg.role === 'narrator' ? (
-                    <>
-                      {msg.isValidation ? (
-                        <ShieldAlert className="w-3 h-3 text-amber-400" />
-                      ) : (
-                        <BookOpen className="w-3 h-3 text-amber-400" />
-                      )}
-                      <span className="text-[10px] font-medium text-amber-400">Narrator</span>
-                    </>
-                  ) : (
-                    <span className="text-[10px] font-medium text-muted-foreground">You</span>
-                  )}
-                  <span className="text-[10px] text-muted-foreground/50 ml-auto">
-                    {msg.timestamp.toLocaleTimeString()}
-                  </span>
+            {messages.map((msg) => {
+              const presentationProfile = resolvePrivateNarratorPresentation(msg);
+              const Icon = msg.isValidation ? ShieldAlert : resolvePrivateNarratorIcon(presentationProfile.iconTone);
+              const align = msg.role === 'user' ? 'right' : 'left';
+
+              return (
+                <div key={msg.id} className={getChatBoxWrapperClasses(presentationProfile, { includeEntranceAnimation: false })}>
+                  <div className={getChatBoxSurfaceClasses(presentationProfile, { align, includeEntranceAnimation: false })}>
+                    <div className="flex items-start gap-2 relative z-10">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${presentationProfile.iconContainerClassName}`}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className={getChatBoxLabelClasses(presentationProfile)}>{msg.role === 'user' ? 'You' : 'Narrator'}</span>
+                          <span className="text-[10px] text-muted-foreground/50 ml-auto">
+                            {msg.timestamp.toLocaleTimeString()}
+                          </span>
+                        </div>
+                        <p className={getChatBoxContentClasses(presentationProfile)}>{msg.content}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <p className="whitespace-pre-wrap break-words text-foreground/90">{msg.content}</p>
-              </div>
-            ))}
+              );
+            })}
             <div ref={scrollRef} />
           </div>
         )}

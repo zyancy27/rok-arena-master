@@ -4108,52 +4108,57 @@ function MessageArea({
                 }
               }
               
-              return (
-                <div key={message.id}>
-                  <ChatBubbleImmersion
-                    messageText={message.content}
-                    messageRole={message.role}
-                    characterTraits={message.role === 'user' ? userCharacterTraits : opponentTraits}
-                    isInUniverse={isInUniverse}
-                  >
-                    <div
-                      className={`relative p-3 rounded-lg overflow-hidden ${
-                        message.role === 'user'
-                          ? 'bg-primary/20 border-l-4 border-primary ml-8'
-                          : message.role === 'narrator'
-                          ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-l-4 border-purple-500 mx-4 italic'
-                          : message.role === 'system'
-                          ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border-l-4 border-cyan-500 mx-4 text-center'
-                          : 'bg-muted/50 border-l-4 border-accent mr-8'
-                      }`}
-                    >
-                      {/* Snapshot-based Status Effect Overlay — permanent per message */}
-                      {snapshotEffects.length > 0 && (
-                        <CharacterStatusOverlay 
-                          effects={snapshotEffects} 
-                          className="rounded-lg"
-                        />
-                      )}
-                      
-                      <p className={`text-xs mb-1 relative z-10 ${
-                        message.role === 'narrator' 
-                          ? 'text-purple-400 font-semibold' 
-                          : message.role === 'system'
-                          ? 'text-cyan-400 font-semibold'
-                          : 'text-muted-foreground'
-                      }`}>
-                        {message.characterName}
-                        {/* Perception + Hit Detection indicators */}
+              const envelope = resolveMockBattleEnvelope(message);
+              const Icon = resolveMockBattlePresentationIcon(envelope.presentationProfile.iconTone);
+              const align = envelope.speakerRole === 'player'
+                ? 'right'
+                : envelope.speakerRole === 'system'
+                  ? 'center'
+                  : 'left';
+              const bubble = (
+                <div className={getChatBoxSurfaceClasses(envelope.presentationProfile, { align, includeEntranceAnimation: false })}>
+                  {/* Snapshot-based Status Effect Overlay — permanent per message */}
+                  {snapshotEffects.length > 0 && (
+                    <CharacterStatusOverlay 
+                      effects={snapshotEffects} 
+                      className="rounded-lg"
+                    />
+                  )}
+                  
+                  <div className="flex items-start gap-2 relative z-10">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${envelope.presentationProfile.iconContainerClassName}`}>
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 relative z-10">
+                        <span className={getChatBoxLabelClasses(envelope.presentationProfile)}>
+                          {envelope.speakerName}
+                        </span>
                         {message.perceptionResult && (
                           <PerceptionIndicator result={message.perceptionResult} />
                         )}
                         {message.hitDetectionResult?.shouldTriggerHitCheck && (
                           <HitDetectionBadge result={message.hitDetectionResult} />
                         )}
-                      </p>
-                      <p className="whitespace-pre-wrap relative z-10">{message.content}</p>
+                      </div>
+                      <p className={`relative z-10 ${getChatBoxContentClasses(envelope.presentationProfile)}`}>{message.content}</p>
                     </div>
-                  </ChatBubbleImmersion>
+                  </div>
+                </div>
+              );
+
+              return (
+                <div key={message.id}>
+                  {isInUniverse && (message.role === 'user' || message.role === 'ai') ? (
+                    <ChatBubbleImmersion
+                      messageText={message.content}
+                      messageRole={message.role}
+                      characterTraits={message.role === 'user' ? userCharacterTraits : opponentTraits}
+                      isInUniverse={isInUniverse}
+                    >
+                      {bubble}
+                    </ChatBubbleImmersion>
+                  ) : bubble}
                   {/* Show construct events after user messages */}
                   {message.role === 'user' && isInUniverse && relevantConstructEvents.length > 0 && (
                     <div className="mt-2 space-y-2">
