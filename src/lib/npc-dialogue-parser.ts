@@ -37,6 +37,17 @@ const PATTERN_BEFORE = new RegExp(
   'g',
 );
 
+/**
+ * Pattern: Name [speech_verb], [descriptive clause ≤200 chars], "dialogue"
+ * Handles AI patterns where a speech verb is followed by a long descriptive
+ * clause before the quoted text, e.g.:
+ *   Elara whispers, her voice a dry rustle like parchment, "is the hunger."
+ */
+const PATTERN_BEFORE_EXTENDED = new RegExp(
+  String.raw`${NAME_CAPTURE}\s+(?:finally\s+)?(?:${SPEECH_VERBS})[,]?\s+[^"""\u201C\u201D]{1,200}?[,]\s*${DIALOGUE_CAPTURE}`,
+  'g',
+);
+
 const PATTERN_AFTER = new RegExp(
   String.raw`${DIALOGUE_CAPTURE}[,.]?\s*(?:${SPEECH_VERBS})\s+${NAME_CAPTURE}`,
   'g',
@@ -92,12 +103,12 @@ export function parseNarratorMessage(text: string): MessageSegment[] {
 
   const matches: RawMatch[] = [];
 
-  for (const pattern of [PATTERN_BEFORE, PATTERN_AFTER, PATTERN_AFTER_PRONOUN, PATTERN_ACTION_THEN_SPEECH]) {
+  for (const pattern of [PATTERN_BEFORE, PATTERN_BEFORE_EXTENDED, PATTERN_AFTER, PATTERN_AFTER_PRONOUN, PATTERN_ACTION_THEN_SPEECH]) {
     pattern.lastIndex = 0;
     let match: RegExpExecArray | null;
 
     while ((match = pattern.exec(text)) !== null) {
-      const isBeforePattern = pattern === PATTERN_BEFORE;
+      const isBeforePattern = pattern === PATTERN_BEFORE || pattern === PATTERN_BEFORE_EXTENDED;
       const isAfterPattern = pattern === PATTERN_AFTER;
       const isActionThenSpeech = pattern === PATTERN_ACTION_THEN_SPEECH;
       const speakerName = (isBeforePattern || isActionThenSpeech)

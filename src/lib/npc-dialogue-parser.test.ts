@@ -77,4 +77,14 @@ describe('npc-dialogue-parser', () => {
     expect(result[0]).toEqual({ type: 'npc_dialogue', speakerName: 'Master Eldrin', dialogue: 'Stay alert.' });
     expect(result.some(s => s.type === 'narration')).toBe(true);
   });
+
+  it('handles speech verb with long descriptive clause before dialogue', () => {
+    const result = parseNarratorMessage(
+      'Elara finally whispers, her voice a dry rustle like ancient parchment, "is the hunger."'
+    );
+    const npcSegment = result.find(s => s.type === 'npc_dialogue');
+    expect(npcSegment).toBeDefined();
+    expect(npcSegment!.type === 'npc_dialogue' && npcSegment!.speakerName).toBe('Elara');
+    expect(npcSegment!.type === 'npc_dialogue' && npcSegment!.dialogue).toBe('is the hunger.');
+  });
 });

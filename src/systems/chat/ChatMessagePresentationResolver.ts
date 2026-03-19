@@ -187,15 +187,20 @@ export const ChatMessagePresentationResolver = {
     }
 
     const storedSpeakerName = typeof metadata.speakerName === 'string' ? metadata.speakerName : null;
-    const storedDisplayName = typeof metadata.displaySpeakerName === 'string' ? metadata.displaySpeakerName : null;
+    // Re-resolve NPC display name against current knownNpcNames so that
+    // once a name is discovered it updates across all past messages.
+    const isNpcLike = message.sender_type === 'npc' || message.sender_type === 'enemy_combatant';
+    const resolvedDisplayName = (isNpcLike && storedSpeakerName)
+      ? resolveNpcDisplayName(storedSpeakerName, options.knownNpcNames || new Set())
+      : (typeof metadata.displaySpeakerName === 'string' ? metadata.displaySpeakerName : null);
     const role = ChatSpeakerResolver.resolve({
       message,
       speakerName: storedSpeakerName || message.character?.name || null,
-      displayName: storedDisplayName || storedSpeakerName || message.character?.name || null,
+      displayName: resolvedDisplayName || storedSpeakerName || message.character?.name || null,
     });
     const speakerName = role === 'system'
       ? 'System'
-      : storedDisplayName
+      : resolvedDisplayName
         || storedSpeakerName
         || message.character?.name
         || (role === 'player' ? 'Player' : 'Unknown');
