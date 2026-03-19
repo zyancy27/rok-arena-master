@@ -71,6 +71,43 @@ interface PrivateNarratorChatProps {
   constructs?: Array<{ id: string; name: string; creatorId: string }>;
 }
 
+function resolvePrivateNarratorIcon(iconTone: SpeakerPresentationProfile['iconTone']) {
+  switch (iconTone) {
+    case 'player':
+      return User;
+    case 'ally':
+      return UserCheck;
+    case 'enemy':
+      return Swords;
+    case 'system':
+      return Sparkles;
+    case 'npc':
+      return MapPin;
+    case 'narrator':
+    default:
+      return BookOpen;
+  }
+}
+
+function resolvePrivateNarratorPresentation(message: NarratorMessage) {
+  const speakerRole = message.role === 'user' ? 'player' : 'narrator';
+  const speakerName = message.role === 'user' ? 'You' : 'Narrator';
+
+  return ChatMessagePresentationResolver.resolveStandaloneProfile({
+    speakerRole,
+    speakerName,
+    metadata: message.role === 'narrator'
+      ? {
+          generatedSceneState: {
+            scenePressure: message.isValidation ? 'high' : 'low',
+            narrationToneFlags: message.isValidation ? ['guarded', 'charged'] : ['composed', 'guarded'],
+            chatPresentationTags: message.isValidation ? ['warning', 'validation'] : ['private', 'guidance'],
+          },
+        }
+      : null,
+  });
+}
+
 export default function PrivateNarratorChat({
   battleId,
   characterName,
