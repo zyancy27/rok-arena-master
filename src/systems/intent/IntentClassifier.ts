@@ -52,23 +52,23 @@ export function classifyIntent(
       sourceHints.push('safe non-combat fallback');
     }
   } else if (
-    combatContext.explicitAttack
-    || hitDetection.shouldTriggerHitCheck
-    || (ATTACK_PATTERNS.test(text) && combatContext.hasActionDeclaration && combatContext.hasDirectedTarget)
-    || ((legacyMoveIntent.actionType === 'ATTACK' || legacyMoveIntent.actionType === 'COUNTER') && combatContext.hasActionDeclaration)
-  ) {
-    type = 'attack';
-    confidence = hitDetection.shouldTriggerHitCheck ? 0.95 : 0.92;
-    sourceHints.push('explicit hostile action context');
-  } else if (
     combatContext.explicitAbility
     || (ABILITY_PATTERNS.test(text) && combatContext.hasActionDeclaration)
     || (legacyMoveIntent.detectedElements.length > 0 && combatContext.hasActionDeclaration && combatContext.hasAbilityVerb)
-    || (legacyMoveIntent.intentCategory === 'HIGH_FORCE' && combatContext.hasActionDeclaration && (combatContext.hasAttackVerb || combatContext.hasAbilityVerb))
+    || (legacyMoveIntent.intentCategory === 'HIGH_FORCE' && combatContext.hasActionDeclaration && combatContext.hasAbilityVerb)
   ) {
     type = 'ability';
     confidence = 0.86;
     sourceHints.push('explicit ability usage context');
+  } else if (
+    combatContext.explicitAttack
+    || hitDetection.shouldTriggerHitCheck
+    || (ATTACK_PATTERNS.test(text) && combatContext.hasActionDeclaration && combatContext.hasDirectedTarget)
+    || ((legacyMoveIntent.actionType === 'ATTACK' || legacyMoveIntent.actionType === 'COUNTER') && combatContext.explicitAttack)
+  ) {
+    type = 'attack';
+    confidence = hitDetection.shouldTriggerHitCheck ? 0.95 : 0.92;
+    sourceHints.push('explicit hostile action context');
   } else if (MOVE_PATTERNS.test(text) || legacyMoveIntent.actionType === 'MOVEMENT') {
     type = 'move';
     confidence = 0.82;

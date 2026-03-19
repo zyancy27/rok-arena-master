@@ -23,7 +23,7 @@ describe('battle-hit-detection combat gating', () => {
   });
 
   it('triggers hit checks for thrown weapons aimed at named targets', () => {
-    const result = detectDirectInteraction('I throw the knife at the cultist.');
+    const result = detectDirectInteraction('I throw the knife at the cultist.', { possibleTargets: ['cultist'] });
     expect(result.shouldTriggerHitCheck).toBe(true);
     expect(result.intent).toBe('attack');
     expect(result.hasTarget).toBe(true);
