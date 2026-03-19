@@ -110,7 +110,7 @@ import { useUserSettings } from '@/hooks/use-user-settings';
 import NarratorMessageContent from '@/components/campaigns/NarratorMessageContent';
 import { buildNarrationPlaybackOptions, getNarratorAnimationClass } from '@/lib/narration-playback';
 import { ChatMessagePresentationResolver } from '@/systems/chat/ChatMessagePresentationResolver';
-import { applyHardClamp, generateClampContext, type CharacterProfile, type ClampResult } from '@/lib/hard-clamp';
+import { invokeOrchestrator } from '@/lib/story-orchestrator';
 import { detectDirectInteraction } from '@/lib/battle-hit-detection';
 import { IntentEngine, type IntentDebugPayload } from '@/systems/intent/IntentEngine';
 import { BattleActionPipeline } from '@/systems/pipeline/BattleActionPipeline';
