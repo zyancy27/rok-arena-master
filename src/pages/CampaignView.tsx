@@ -54,7 +54,6 @@ import type { CharacterStats } from '@/lib/character-stats';
 import CampaignTacticalMap, { type NarratorSceneMap } from '@/components/campaigns/CampaignTacticalMap';
 import NarratorMessageContent from '@/components/campaigns/NarratorMessageContent';
 import NpcDialogueBubble from '@/components/campaigns/NpcDialogueBubble';
-import { parseNarratorMessage, resolveNpcDisplayName } from '@/lib/npc-dialogue-parser';
 import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import { useNarrationController } from '@/hooks/use-narration-controller';
@@ -62,6 +61,8 @@ import OverchargeToggle from '@/components/battles/OverchargeToggle';
 import { resolveOvercharge, getOverchargeContext } from '@/lib/battle-overcharge';
 import { invokeOrchestrator } from '@/lib/story-orchestrator';
 import { buildNarrationPlaybackOptions, buildNarratorMessageMetadata, getNarratorAnimationClass } from '@/lib/narration-playback';
+import { ChatMessagePresentationResolver } from '@/systems/chat/ChatMessagePresentationResolver';
+import type { SpeakerPresentationProfile } from '@/systems/chat/presentation/SpeakerPresentationProfile';
 import { CampaignActionPipeline } from '@/systems/pipeline/CampaignActionPipeline';
 import { buildNarratorMessagePacket, buildPlayerMessageMetadata } from '@/systems/pipeline/PipelineMessageBridge';
 import { IntentDebugCard } from '@/components/intent/IntentDebugCard';
@@ -96,6 +97,67 @@ function buildBagContent(campaignItems: InventoryItem[], characterWeapons: strin
 
 function resolveCampaignEnemyContext(_enemy: CampaignEnemy) {
   return null;
+}
+
+function resolvePresentationIcon(iconTone: SpeakerPresentationProfile['iconTone']) {
+  switch (iconTone) {
+    case 'enemy':
+      return Swords;
+    case 'ally':
+      return UserCheck;
+    case 'system':
+      return Sparkles;
+    case 'player':
+      return Users;
+    case 'npc':
+      return Compass;
+    case 'narrator':
+    default:
+      return BookOpen;
+  }
+}
+
+function getMessageSurfaceClasses(
+  profile: SpeakerPresentationProfile | null | undefined,
+  options: { align?: 'left' | 'right' | 'center'; pending?: boolean } = {},
+) {
+  const align = options.align ?? 'left';
+  const alignClassName = align === 'right' ? 'ml-8' : align === 'center' ? 'mx-2' : 'mr-8';
+  const pressureClassName = profile?.visualPressure === 'critical'
+    ? 'shadow-lg ring-1 ring-border/60'
+    : profile?.visualPressure === 'high'
+      ? 'shadow-md'
+      : 'shadow-sm';
+  const pulseClassName = profile?.pulseBehavior === 'surge' || profile?.pulseBehavior === 'flicker'
+    ? 'animate-pulse'
+    : '';
+  const pendingClassName = options.pending ? 'opacity-70' : '';
+
+  return [
+    'env-scope p-3 rounded-lg border backdrop-blur-sm',
+    alignClassName,
+    profile?.surfaceClassName ?? 'bg-card/75 border-border/70 text-foreground',
+    pressureClassName,
+    pulseClassName,
+    pendingClassName,
+  ].filter(Boolean).join(' ');
+}
+
+function getMessageLabelClasses(profile: SpeakerPresentationProfile | null | undefined) {
+  return [
+    'text-xs font-semibold uppercase',
+    profile?.textEmphasis === 'sharp' ? 'tracking-[0.16em]' : 'tracking-wider',
+    profile?.textEmphasis === 'frayed' ? 'italic' : '',
+    profile?.labelClassName ?? 'text-foreground',
+  ].filter(Boolean).join(' ');
+}
+
+function getMessageContentClasses(profile: SpeakerPresentationProfile | null | undefined) {
+  return [
+    'text-sm whitespace-pre-wrap break-words',
+    profile?.textEmphasis === 'composed' ? 'tracking-[0.01em]' : '',
+    profile?.contentClassName ?? 'text-foreground/90',
+  ].filter(Boolean).join(' ');
 }
 
 export default function CampaignView() {
@@ -2219,13 +2281,9 @@ export default function CampaignView() {
                 >
                   <div className="space-y-4">
                     {messages.map(msg => {
-                      const isPlayer = msg.sender_type === 'player';
-                      const isNarrator = msg.sender_type === 'narrator';
                       const isSystem = msg.sender_type === 'system';
-                      const isMe = isPlayer && msg.character_id === myParticipant?.character_id;
 
                       if (isSystem) {
-                        // Bag bubble for inventory checks — only visible to the owning player
                         if (msg.content.startsWith('__BAG__')) {
                           const bagOwnerId = (msg.metadata as any)?.owner_user_id;
                           if (bagOwnerId && bagOwnerId !== user?.id) return null;
@@ -2235,185 +2293,140 @@ export default function CampaignView() {
 
                           const myIndex = messages.indexOf(msg);
                           const hasLaterMessage = messages.slice(myIndex + 1).some(m => !m.content.startsWith('__BAG__'));
-                          
+
                           return (
                             <BagBubble key={msg.id} bagItems={bagItems} isClosed={hasLaterMessage} />
                           );
                         }
-                        
-                        return (
-                          <div key={msg.id} className="flex justify-center py-1 animate-fade-in">
-                            <span className="text-xs text-muted-foreground italic bg-background/60 backdrop-blur-sm px-3 py-1 rounded-full">
-                              {msg.content}
-                            </span>
-                          </div>
-                        );
                       }
 
-                      if (isNarrator) {
-                        const segments = parseNarratorMessage(msg.content);
-                        const sceneLocation = activeSceneLocation || campaign.current_zone;
-
-                        // Voice controls (shown once for the whole message)
-                        const isActiveNarration = narratorVoice.activeMessageId === msg.id;
-                        const voiceControls = userSettings.audio.narratorVoiceEnabled && (
-                          narratorVoice.isPlaying && isActiveNarration ? (
-                            <button
-                              onClick={() => narratorVoice.togglePause()}
-                              className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
-                              title={narratorVoice.isPaused ? 'Resume narrator' : 'Pause narrator'}
-                            >
-                              {narratorVoice.isPaused ? (
-                                <Play className="w-3.5 h-3.5 text-amber-400" />
-                              ) : (
-                                <VolumeX className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                              )}
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => narratorVoice.narrate(msg.content, msg.id, buildNarrationPlaybackOptions(msg.metadata))}
-                              className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
-                              title="Listen to narrator"
-                            >
-                              <Volume2 className="w-3.5 h-3.5 text-amber-400" />
-                            </button>
-                          )
-                        );
-
-                        // If no NPC dialogue segments, render classic narrator bubble
-                        const hasNpcSegments = segments.some(s => s.type === 'npc_dialogue');
-                        const narratorAnimationClass = getNarratorAnimationClass(msg.metadata);
-
-                        if (!hasNpcSegments) {
-                          return (
-                            <div key={msg.id} className="p-3 rounded-lg bg-gradient-to-r from-amber-500/10 via-background/80 to-amber-500/10 border border-amber-500/30 mx-2 animate-fade-in backdrop-blur-sm">
-                              <div className="flex items-start gap-2">
-                                <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
-                                  <BookOpen className="w-4 h-4 text-amber-400" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-xs text-amber-400 font-semibold uppercase tracking-wider">Narrator</span>
-                                    <span className="text-[10px] text-muted-foreground">{new Date(msg.created_at).toLocaleTimeString()}</span>
-                                    {voiceControls}
-                                  </div>
-                                  <NarratorMessageContent
-                                    content={msg.content}
-                                    activeSentenceIndex={isActiveNarration ? narratorVoice.activeSentenceIndex : -1}
-                                    activeRange={isActiveNarration ? narratorVoice.activeRange : null}
-                                    animationClassName={narratorAnimationClass}
-                                    voiceEnabled={userSettings.audio.narratorVoiceEnabled && userSettings.audio.tapToNarrate}
-                                    requireTapConfirmation={userSettings.audio.askBeforeTapToNarrate}
-                                    hasPendingTapConfirmation={narratorVoice.pendingTapRequest?.messageId === msg.id}
-                                    onSentenceClick={(sentenceIdx) => {
-                                      narratorVoice.narrateFromSentence(msg.content, msg.id, sentenceIdx, buildNarrationPlaybackOptions(msg.metadata));
-                                    }}
-                                    onConfirmSentenceClick={narratorVoice.confirmTapNarration}
-                                    onCancelSentenceClick={narratorVoice.cancelTapNarration}
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        }
-
-                        // Split rendering: narrator segments + NPC dialogue bubbles
-                        return (
-                          <div key={msg.id} className="space-y-2 animate-fade-in">
-                            {segments.map((segment, segIdx) => {
-                              if (segment.type === 'narration') {
-                                return (
-                                  <div key={`${msg.id}-n-${segIdx}`} className="p-3 rounded-lg bg-gradient-to-r from-amber-500/10 via-background/80 to-amber-500/10 border border-amber-500/30 mx-2 backdrop-blur-sm">
-                                    <div className="flex items-start gap-2">
-                                      <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
-                                        <BookOpen className="w-4 h-4 text-amber-400" />
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        {segIdx === 0 && (
-                                          <div className="flex items-center gap-2 mb-1">
-                                            <span className="text-xs text-amber-400 font-semibold uppercase tracking-wider">Narrator</span>
-                                            <span className="text-[10px] text-muted-foreground">{new Date(msg.created_at).toLocaleTimeString()}</span>
-                                            {voiceControls}
-                                          </div>
-                                        )}
-                                        <NarratorMessageContent
-                                          content={segment.text}
-                                          activeSentenceIndex={-1}
-                                          voiceEnabled={false}
-                                        />
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
-                              }
-
-                              // NPC dialogue segment
-                              const displayName = resolveNpcDisplayName(segment.speakerName, knownNpcNames);
-                              return (
-                                <NpcDialogueBubble
-                                  key={`${msg.id}-npc-${segIdx}`}
-                                  speakerName={displayName}
-                                  dialogue={segment.dialogue}
-                                  location={sceneLocation}
-                                />
-                              );
-                            })}
-                          </div>
-                        );
-                      }
-
-                      // Player message — styled like battle chat with combat mechanics
+                      const envelopes = ChatMessagePresentationResolver.resolveCampaignMessage(msg, {
+                        knownNpcNames,
+                      });
                       const msgDice = msg.dice_result as Record<string, unknown> | null;
                       const hasDiceRoll = msgDice && (msgDice.type === 'attack' || msgDice.type === 'defense');
+                      const isMe = msg.sender_type === 'player' && msg.character_id === myParticipant?.character_id;
+                      const showReadReceipt = isMe && !(msg as any).isPending;
 
                       return (
-                        <div key={msg.id} className="space-y-1 animate-fade-in">
-                          <div
-                            className={`env-scope p-3 rounded-lg ${
-                              isMe
-                                ? `bg-primary/20 border-l-4 border-primary ml-8${(msg as any).isPending ? ' opacity-70' : ''}`
-                                : 'bg-muted/50 border-l-4 border-accent mr-8'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2 mb-1">
-                              <Avatar className="w-6 h-6">
-                                <AvatarImage src={msg.character?.image_url || undefined} />
-                                <AvatarFallback className="text-[10px] bg-primary/20">{msg.character?.name?.[0] || '?'}</AvatarFallback>
-                              </Avatar>
-                              <span className="font-semibold text-sm">{msg.character?.name || 'Unknown'}</span>
-                              <span className="text-[10px] text-muted-foreground">{new Date(msg.created_at).toLocaleTimeString()}</span>
-                              {(msg as any).isPending && (
-                                <span className="text-xs text-muted-foreground italic ml-auto">Sending...</span>
-                              )}
-                              {/* Sent / Read indicator for own messages */}
-                              {isMe && !(msg as any).isPending && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <span className="ml-auto">
-                                        {otherParticipantsReadThis(msg.id) ? (
-                                          <CheckCheck className="w-3 h-3 text-primary" />
-                                        ) : (
-                                          <Check className="w-3 h-3 text-muted-foreground" />
-                                        )}
-                                      </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      {otherParticipantsReadThis(msg.id) ? 'Read' : 'Sent'}
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                            </div>
-                            <p className="text-sm whitespace-pre-wrap break-words pl-8">{msg.content}</p>
-                            {isMe && userSettings.audio.intentDebug && (msg.metadata as any)?.intentDebug && (
-                              <div className="mt-2 pl-8">
-                                <IntentDebugCard payload={(msg.metadata as any).intentDebug} actionResult={(msg.metadata as any).actionResult ?? null} />
-                              </div>
-                            )}
-                          </div>
+                        <div key={msg.id} className="space-y-2 animate-fade-in">
+                          {envelopes.map((envelope, envelopeIndex) => {
+                            const Icon = resolvePresentationIcon(envelope.presentationProfile.iconTone);
+                            const isNarratorEnvelope = envelope.speakerRole === 'narrator';
+                            const isNpcEnvelope = envelope.speakerRole === 'npc' || envelope.speakerRole === 'party_ally' || envelope.speakerRole === 'enemy_combatant';
+                            const align = envelope.speakerRole === 'player'
+                              ? 'right'
+                              : envelope.speakerRole === 'system'
+                                ? 'center'
+                                : 'left';
+                            const surfaceClassName = getMessageSurfaceClasses(envelope.presentationProfile, {
+                              align,
+                              pending: Boolean((msg as any).isPending) && envelope.speakerRole === 'player',
+                            });
+                            const labelClassName = getMessageLabelClasses(envelope.presentationProfile);
+                            const contentClassName = getMessageContentClasses(envelope.presentationProfile);
+                            const isActiveNarration = narratorVoice.activeMessageId === msg.id && envelopeIndex === 0;
+                            const narratorAnimationClass = getNarratorAnimationClass(msg.metadata);
 
-                          {/* Inline dice roll display */}
+                            if (isNpcEnvelope) {
+                              return (
+                                <NpcDialogueBubble
+                                  key={envelope.id}
+                                  speakerName={envelope.speakerName}
+                                  dialogue={envelope.content}
+                                  location={activeSceneLocation || campaign.current_zone}
+                                  presentationProfile={envelope.presentationProfile}
+                                />
+                              );
+                            }
+
+                            return (
+                              <div key={envelope.id} className={surfaceClassName}>
+                                <div className="flex items-start gap-2 relative z-10">
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${envelope.presentationProfile.iconContainerClassName}`}>
+                                    <Icon className="w-4 h-4" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className={labelClassName}>{envelope.speakerName}</span>
+                                      <span className="text-[10px] text-muted-foreground">{new Date(msg.created_at).toLocaleTimeString()}</span>
+                                      {isNarratorEnvelope && userSettings.audio.narratorVoiceEnabled && envelopeIndex === 0 && (
+                                        narratorVoice.isPlaying && narratorVoice.activeMessageId === msg.id ? (
+                                          <button
+                                            onClick={() => narratorVoice.togglePause()}
+                                            className="ml-auto p-1 rounded-full hover:bg-accent/30 transition-colors"
+                                            title={narratorVoice.isPaused ? 'Resume narrator' : 'Pause narrator'}
+                                          >
+                                            {narratorVoice.isPaused ? (
+                                              <Play className="w-3.5 h-3.5 text-primary" />
+                                            ) : (
+                                              <VolumeX className="w-3.5 h-3.5 text-primary animate-pulse" />
+                                            )}
+                                          </button>
+                                        ) : (
+                                          <button
+                                            onClick={() => narratorVoice.narrate(msg.content, msg.id, buildNarrationPlaybackOptions(msg.metadata))}
+                                            className="ml-auto p-1 rounded-full hover:bg-accent/30 transition-colors"
+                                            title="Listen to narrator"
+                                          >
+                                            <Volume2 className="w-3.5 h-3.5 text-primary" />
+                                          </button>
+                                        )
+                                      )}
+                                      {showReadReceipt && envelope.speakerRole === 'player' && envelopeIndex === 0 && (
+                                        <TooltipProvider>
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <span className="ml-auto">
+                                                {otherParticipantsReadThis(msg.id) ? (
+                                                  <CheckCheck className="w-3 h-3 text-primary" />
+                                                ) : (
+                                                  <Check className="w-3 h-3 text-muted-foreground" />
+                                                )}
+                                              </span>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                              {otherParticipantsReadThis(msg.id) ? 'Read' : 'Sent'}
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        </TooltipProvider>
+                                      )}
+                                      {(msg as any).isPending && envelope.speakerRole === 'player' && envelopeIndex === 0 && (
+                                        <span className="text-xs text-muted-foreground italic ml-auto">Sending...</span>
+                                      )}
+                                    </div>
+
+                                    {isNarratorEnvelope ? (
+                                      <NarratorMessageContent
+                                        content={envelope.content}
+                                        activeSentenceIndex={isActiveNarration ? narratorVoice.activeSentenceIndex : -1}
+                                        activeRange={isActiveNarration ? narratorVoice.activeRange : null}
+                                        animationClassName={narratorAnimationClass}
+                                        voiceEnabled={userSettings.audio.narratorVoiceEnabled && userSettings.audio.tapToNarrate}
+                                        requireTapConfirmation={userSettings.audio.askBeforeTapToNarrate}
+                                        hasPendingTapConfirmation={narratorVoice.pendingTapRequest?.messageId === msg.id}
+                                        onSentenceClick={(sentenceIdx) => {
+                                          narratorVoice.narrateFromSentence(envelope.content, msg.id, sentenceIdx, buildNarrationPlaybackOptions(msg.metadata));
+                                        }}
+                                        onConfirmSentenceClick={narratorVoice.confirmTapNarration}
+                                        onCancelSentenceClick={narratorVoice.cancelTapNarration}
+                                      />
+                                    ) : (
+                                      <>
+                                        <p className={contentClassName}>{envelope.content}</p>
+                                        {isMe && userSettings.audio.intentDebug && (msg.metadata as any)?.intentDebug && envelopeIndex === 0 && (
+                                          <div className="mt-2">
+                                            <IntentDebugCard payload={(msg.metadata as any).intentDebug} actionResult={(msg.metadata as any).actionResult ?? null} />
+                                          </div>
+                                        )}
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+
                           {hasDiceRoll && msgDice.type === 'attack' && (
                             <div className={isMe ? 'ml-8' : 'mr-8'}>
                               <DiceRollChatMessage
@@ -2434,14 +2447,14 @@ export default function CampaignView() {
                             <div className={isMe ? 'ml-8' : 'mr-8'}>
                               <div className="border rounded-lg overflow-hidden bg-background/80 border-border/60 px-3 py-2">
                                 <div className="flex items-center gap-2">
-                                  <Shield className="w-4 h-4 text-blue-400" />
+                                  <Shield className="w-4 h-4 text-primary" />
                                   <span className="text-sm font-medium">
                                     🛡️ {(msgDice.defenseType as string) === 'dodge' ? 'Dodge' : 'Block'} Roll
                                   </span>
                                   {(msgDice.success as boolean) ? (
-                                    <Badge className="bg-green-500/20 text-green-400 text-xs">Defended!</Badge>
+                                    <Badge className="bg-primary/20 text-primary text-xs">Defended!</Badge>
                                   ) : (
-                                    <Badge className="bg-red-500/20 text-red-400 text-xs">Failed!</Badge>
+                                    <Badge className="bg-destructive/20 text-destructive text-xs">Failed!</Badge>
                                   )}
                                   <span className="text-xs text-muted-foreground ml-auto">
                                     Defense {(msgDice.defenseRoll as any)?.total} vs Incoming {(msgDice.incomingRoll as any)?.total}
