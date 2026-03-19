@@ -145,7 +145,7 @@ export default function CampaignView() {
       campaignId: input.campaignId,
       rawNarration: input.rawNarration,
       baseMetadata: input.baseMetadata,
-      knownNpcNames: input.knownNpcNames ?? knownNpcNames,
+      knownNpcNames: input.knownNpcNames,
       activeEnemyNames: input.activeEnemyNames,
       focalCharacterName: input.focalCharacterName,
       isSolo: input.isSolo,
@@ -153,7 +153,8 @@ export default function CampaignView() {
 
     if (normalizedMessages.length === 0) return;
     await supabase.from('campaign_messages').insert(normalizedMessages as any);
-  }, [knownNpcNames]);
+  }, []);
+
 
   const normalizeAndSortMessages = useCallback((items: any[]) => {
     return sortCampaignMessagesForDisplay(items.map(normalizeCampaignMessageRecord));
