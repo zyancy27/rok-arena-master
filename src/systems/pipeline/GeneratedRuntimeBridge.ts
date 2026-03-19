@@ -13,18 +13,28 @@ function toStringArray(value: unknown): string[] {
     : [];
 }
 
+function pickGeneratedPacket<T>(...candidates: unknown[]): T | undefined {
+  for (const candidate of candidates) {
+    if (candidate !== undefined && candidate !== null) {
+      return candidate as T;
+    }
+  }
+
+  return undefined;
+}
+
 export function getGeneratedRuntimePackets(source: unknown): GeneratedRuntimePackets {
   const record = asRecord(source);
   const nested = asRecord(record.generated ?? record.generatedPackets);
 
   return {
-    actorIdentity: nested.actorIdentity ?? record.generatedActorIdentity,
-    worldState: nested.worldState ?? record.generatedWorldState,
-    campaignSeed: nested.campaignSeed ?? record.generatedCampaignSeed,
-    npcIdentity: nested.npcIdentity ?? record.generatedNpcIdentity,
-    encounter: nested.encounter ?? record.generatedEncounter,
-    sceneState: nested.sceneState ?? record.generatedSceneState,
-    effectState: nested.effectState ?? record.generatedEffectState,
+    actorIdentity: pickGeneratedPacket<GeneratedRuntimePackets['actorIdentity']>(nested.actorIdentity, record.generatedActorIdentity),
+    worldState: pickGeneratedPacket<GeneratedRuntimePackets['worldState']>(nested.worldState, record.generatedWorldState),
+    campaignSeed: pickGeneratedPacket<GeneratedRuntimePackets['campaignSeed']>(nested.campaignSeed, record.generatedCampaignSeed),
+    npcIdentity: pickGeneratedPacket<GeneratedRuntimePackets['npcIdentity']>(nested.npcIdentity, record.generatedNpcIdentity),
+    encounter: pickGeneratedPacket<GeneratedRuntimePackets['encounter']>(nested.encounter, record.generatedEncounter),
+    sceneState: pickGeneratedPacket<GeneratedRuntimePackets['sceneState']>(nested.sceneState, record.generatedSceneState),
+    effectState: pickGeneratedPacket<GeneratedRuntimePackets['effectState']>(nested.effectState, record.generatedEffectState),
   };
 }
 
