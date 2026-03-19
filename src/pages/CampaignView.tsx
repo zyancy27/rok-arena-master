@@ -1889,6 +1889,7 @@ export default function CampaignView() {
     try {
       const equippedCampaignItems = inventory.filter(i => i.is_equipped);
       const activeEnemiesList = campaignEnemies.filter(e => e.status === 'active' || e.status === 'hiding');
+      const primaryEnemy = activeEnemiesList[0] ?? null;
       const intentResult = IntentEngine.resolve(messageText, {
         mode: 'campaign',
         actorName: participant.character?.name,
@@ -1905,7 +1906,8 @@ export default function CampaignView() {
         equippedItems: equippedCampaignItems.map(item => item.item_name),
         stamina: Math.round((participant.campaign_hp / Math.max(1, participant.campaign_hp_max)) * 100),
       });
-      const combatResolution = intentResult.intent.isCombatAction && activeEnemiesList.length > 0
+      const enemyContext = primaryEnemy ? resolveCampaignEnemyContext(primaryEnemy) : null;
+      const combatResolution = intentResult.intent.isCombatAction && primaryEnemy && enemyContext
         ? CombatResolver.resolve(
             intentResult.intent,
             characterContext,
@@ -1922,13 +1924,13 @@ export default function CampaignView() {
                   },
                 },
                 {
-                  id: activeEnemiesList[0].id,
-                  name: activeEnemiesList[0].name,
+                  id: primaryEnemy.id,
+                  name: primaryEnemy.name,
                   stats: {
-                    hp: activeEnemiesList[0].hp,
+                    hp: primaryEnemy.hp,
                     stamina: 100,
-                    speed: 50,
-                    strength: 50,
+                    speed: enemyContext.stats.stat_speed,
+                    strength: enemyContext.stats.stat_strength,
                   },
                 },
               ],
@@ -1938,27 +1940,35 @@ export default function CampaignView() {
             }),
             {
               actorId: participant.character_id,
-              targetId: activeEnemiesList[0].id,
-              targetContext: CharacterContextResolver.resolve({
-                characterId: activeEnemiesList[0].id,
-                name: activeEnemiesList[0].name,
-                tier: activeEnemiesList[0].tier,
-                stats: {
-                  stat_strength: 50,
-                  stat_speed: 50,
-                  stat_durability: 50,
-                  stat_stamina: 50,
-                  stat_skill: 50,
-                  stat_battle_iq: 50,
-                  stat_power: 50,
-                  stat_intelligence: 50,
-                  stat_luck: 50,
-                },
-                stamina: 100,
-                energy: 50,
-              }),
+              targetId: primaryEnemy.id,
+              targetContext: enemyContext,
             },
           )
+        : null;
+      const npcBrainTurn = primaryEnemy
+        ? buildCampaignNpcTurn({
+            enemy: {
+              id: primaryEnemy.id,
+              name: primaryEnemy.name,
+              tier: primaryEnemy.tier,
+              hp: primaryEnemy.hp,
+              hpMax: primaryEnemy.hp_max,
+              description: primaryEnemy.description,
+              behaviorProfile: primaryEnemy.behavior_profile,
+              lastAction: primaryEnemy.last_action,
+              metadata: primaryEnemy.metadata,
+            },
+            player: {
+              id: participant.character_id,
+              name: participant.character?.name || 'Character',
+              healthPct: Math.round((participant.campaign_hp / Math.max(1, participant.campaign_hp_max)) * 100),
+              context: characterContext,
+            },
+            combatResult: combatResolution,
+            timeOfDay: campaignSnap.time_of_day,
+            chaosLevel: Number((campaignSnap.world_state as Record<string, unknown> | null)?.chaosLevel ?? 40),
+            escapeRoutes: Number((campaignSnap.world_state as Record<string, unknown> | null)?.escapeRoutes ?? 2),
+          })
         : null;
       const actionResult = combatResolution
         ? toActionResult(combatResolution)
@@ -1991,6 +2001,7 @@ export default function CampaignView() {
           intentDebug: intentResult.debug,
           actionResult,
           combatResult: combatResolution,
+          npcBrainTurn,
         },
         created_at: new Date().toISOString(),
         isPending: true,
@@ -2012,6 +2023,7 @@ export default function CampaignView() {
           intentDebug: intentResult.debug,
           actionResult,
           combatResult: combatResolution,
+          npcBrainTurn,
         } as any,
       } as any);
 
