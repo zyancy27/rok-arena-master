@@ -168,6 +168,7 @@ export default function CampaignView() {
     nickname_history?: string[];
   } | null>(null);
   const [showTacticalMap, setShowTacticalMap] = useState(false);
+  const [activeTab, setActiveTab] = useState<'adventure' | 'narrator'>('adventure');
   const userIsNearBottomRef = useRef(true);
   const introAttemptedRef = useRef(false);
   const consecutiveAdvancesRef = useRef(0);
@@ -307,9 +308,9 @@ export default function CampaignView() {
 
   const campaignTrades = useCampaignTrades(campaignId, myParticipant?.id);
 
-  // Ambient environment sounds for campaign — uses scene location when available, falls back to zone
+  // Ambient environment sounds for campaign chat only — uses scene location when available, falls back to zone
   const { muted: ambientMuted, toggleMute: toggleAmbientMute } = useAmbientSound({
-    enabled: campaign?.status === 'active',
+    enabled: campaign?.status === 'active' && activeTab === 'adventure',
     location: activeSceneLocation || campaign?.current_zone,
   });
 
@@ -2357,7 +2358,7 @@ export default function CampaignView() {
         <EnvironmentChatBackground location={activeSceneLocation || campaign.current_zone} />
         <BattlefieldEffectsOverlay effects={battlefieldEffects} className="z-[1]" />
 
-        <Tabs defaultValue="adventure" className="flex flex-col flex-1 min-h-0 relative z-[2]">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'adventure' | 'narrator')} className="flex flex-col flex-1 min-h-0 relative z-[2]">
           <div className="bg-background/60 backdrop-blur-sm border-b border-border/30 px-3 z-10 relative shrink-0">
               <TabsList className="bg-transparent h-auto p-0 gap-4">
                 <TabsTrigger value="adventure" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-1 pb-2 pt-3 text-sm gap-1.5">
