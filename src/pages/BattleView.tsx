@@ -1748,33 +1748,51 @@ export default function BattleView() {
     
     try {
       const opponentParticipant = participants.find(p => p.character?.name === opponentName);
-      const intentResult = IntentEngine.resolve(opponentAction, {
-        mode: 'battle',
-        actorName: opponentName,
-        possibleTargets: [{ name: userCharacter.character.name, kind: 'enemy' }],
+      const pipelineResult = BattleActionPipeline.execute({
+        rawText: opponentAction,
+        actor: {
+          characterId: opponentParticipant?.character_id || opponentName,
+          name: opponentName,
+          tier: opponentParticipant?.character?.level ?? 1,
+          stats: {
+            stat_intelligence: opponentParticipant?.character?.stat_intelligence ?? 50,
+            stat_battle_iq: opponentParticipant?.character?.stat_battle_iq ?? 50,
+            stat_strength: opponentParticipant?.character?.stat_strength ?? 50,
+            stat_power: opponentParticipant?.character?.stat_power ?? 50,
+            stat_speed: opponentParticipant?.character?.stat_speed ?? 50,
+            stat_durability: opponentParticipant?.character?.stat_durability ?? 50,
+            stat_stamina: opponentParticipant?.character?.stat_stamina ?? 50,
+            stat_skill: opponentParticipant?.character?.stat_skill ?? 50,
+            stat_luck: opponentParticipant?.character?.stat_luck ?? 50,
+          },
+          abilities: opponentParticipant?.character?.abilities,
+          powers: opponentParticipant?.character?.powers,
+          stamina: opponentParticipant?.character?.stat_stamina ?? 50,
+          energy: opponentParticipant?.character?.stat_power ?? 50,
+        },
+        opponents: [{
+          id: userCharacter.character_id,
+          name: userCharacter.character.name,
+          tier: userCharacter.character.level,
+          stats: {
+            stat_intelligence: userCharacter.character.stat_intelligence ?? 50,
+            stat_battle_iq: userCharacter.character.stat_battle_iq ?? 50,
+            stat_strength: userCharacter.character.stat_strength ?? 50,
+            stat_power: userCharacter.character.stat_power ?? 50,
+            stat_speed: userCharacter.character.stat_speed ?? 50,
+            stat_durability: userCharacter.character.stat_durability ?? 50,
+            stat_stamina: userCharacter.character.stat_stamina ?? 50,
+            stat_skill: userCharacter.character.stat_skill ?? 50,
+            stat_luck: userCharacter.character.stat_luck ?? 50,
+          },
+          abilities: userCharacter.character.abilities,
+          powers: userCharacter.character.powers,
+        }],
+        battleZone: battle.chosen_location,
+        activeHazards: battlefieldEffects.map(effect => effect.type),
+        rangeState: { zone: battleDistance.currentZone, meters: battleDistance.estimatedMeters },
       });
-      const characterContext = CharacterContextResolver.resolve({
-        characterId: opponentParticipant?.character_id,
-        name: opponentName,
-        tier: opponentParticipant?.character?.level ?? 1,
-        stats: opponentParticipant?.character ? {
-          stat_intelligence: opponentParticipant.character.stat_intelligence ?? 50,
-          stat_battle_iq: opponentParticipant.character.stat_battle_iq ?? 50,
-          stat_strength: opponentParticipant.character.stat_strength ?? 50,
-          stat_power: opponentParticipant.character.stat_power ?? 50,
-          stat_speed: opponentParticipant.character.stat_speed ?? 50,
-          stat_durability: opponentParticipant.character.stat_durability ?? 50,
-          stat_stamina: opponentParticipant.character.stat_stamina ?? 50,
-          stat_skill: opponentParticipant.character.stat_skill ?? 50,
-          stat_luck: opponentParticipant.character.stat_luck ?? 50,
-        } : undefined,
-        abilities: opponentParticipant?.character?.abilities,
-        powers: opponentParticipant?.character?.powers,
-      });
-      const actionResult = ActionResolver.resolve(intentResult.intent, characterContext, {
-        hasActiveThreat: true,
-        currentZone: battle.chosen_location,
-      });
+      const actionResult = pipelineResult.resolvedAction.actionResult;
 
       const response = await supabase.functions.invoke('battle-narrator', {
         body: {
