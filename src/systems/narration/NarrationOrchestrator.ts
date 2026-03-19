@@ -2,7 +2,7 @@ import { NarrationHighlightManager, type NarrationHighlightRange } from './Narra
 import { NarrationSoundSync, type NarrationSoundCheckpoint } from './NarrationSoundSync';
 import { SpeechPlaybackManager } from './SpeechPlaybackManager';
 import { TapToNarrateController } from './TapToNarrateController';
-import type { NarratorSceneContext } from './SpeechManager';
+import type { NarrationVoiceSettings, NarratorSceneContext } from './SpeechManager';
 import type { AmbientIntensityLevel } from '@/lib/audio/narration-sound-rules';
 
 export type NarrationPlaybackState = 'idle' | 'starting' | 'playing' | 'paused' | 'stopping' | 'finished';
