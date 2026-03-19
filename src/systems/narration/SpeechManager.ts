@@ -10,6 +10,11 @@ export type NarratorSceneContext =
   | 'exploration' | 'peaceful' | 'danger' | 'combat'
   | 'tragic' | 'victory' | 'npc' | 'whisper' | 'default';
 
+export interface NarrationVoiceSettings {
+  speed?: number;
+  pitch?: number;
+}
+
 export interface SpeechBoundaryEvent {
   /** Character index in the full text that the narrator has reached */
   charIndex: number;
@@ -22,7 +27,6 @@ export type StateCallback = (state: 'playing' | 'paused' | 'stopped') => void;
 
 function detectSceneContext(text: string): NarratorSceneContext {
   const t = text.toLowerCase();
-  // Whisper detection — stealth/caution takes priority when no active combat
   const isStealth = /\b(sneak|creep|tiptoe|crouch|stealth|silently|quietly|cautious|carefully|slip past|stay hidden|keep low|move slow|edge closer|peer around|lurk|skulk|inch forward)\b/.test(t);
   const isCombat = /\b(attack|strikes?|slash|punch|dodge|block|parry|combat|fight|clash|lunge|charge|arrow|spell hits)\b/.test(t);
   if (isStealth && !isCombat) return 'whisper';
@@ -64,7 +68,6 @@ export class SpeechManager {
     return () => { this.stateCallbacks = this.stateCallbacks.filter(c => c !== cb); };
   }
 
-  /** Stop any currently playing speech immediately */
   cancelAll() {
     if (this.pollTimer != null) {
       clearInterval(this.pollTimer);
@@ -105,14 +108,11 @@ export class SpeechManager {
     }
   }
 
-  /**
-   * Speak text from a given character offset.
-   * Cancels any existing speech first.
-   */
   async speak(
     fullText: string,
     startCharIndex = 0,
     context?: NarratorSceneContext,
+    voiceSettings?: NarrationVoiceSettings,
   ): Promise<boolean> {
     this.cancelAll();
 
@@ -123,13 +123,13 @@ export class SpeechManager {
     this.estimatedDuration = (effectiveText.length / SpeechManager.CHARS_PER_SECOND) * 1000;
 
     const ctx = context || detectSceneContext(effectiveText);
-    const cacheKey = `${ctx}:${effectiveText.substring(0, 200)}`;
+    const cacheKey = `${ctx}:${voiceSettings?.speed ?? 'auto'}:${voiceSettings?.pitch ?? 'auto'}:${effectiveText.substring(0, 200)}`;
     let audioUrl = this.cache.get(cacheKey);
 
     if (!audioUrl) {
       try {
-        const segments = this.buildTtsSegments(effectiveText, ctx);
-        const body = segments ? { segments } : { text: effectiveText, context: ctx };
+        const segments = this.buildTtsSegments(effectiveText, ctx, voiceSettings);
+        const body = segments ? { segments } : { text: effectiveText, context: ctx, voiceSettings };
 
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/narrator-tts`,
@@ -162,7 +162,6 @@ export class SpeechManager {
 
     return new Promise<boolean>((resolve) => {
       audio.onloadedmetadata = () => {
-        // Use actual duration if available
         if (audio.duration && isFinite(audio.duration)) {
           this.estimatedDuration = audio.duration * 1000;
         }
