@@ -707,7 +707,6 @@ export default function CampaignView() {
   };
 
   const fetchMessages = async () => {
-    // Fetch the LATEST 200 messages (descending) then reverse to chronological order
     const { data } = await supabase
       .from('campaign_messages')
       .select('*, character:characters(name, image_url)')
@@ -715,15 +714,7 @@ export default function CampaignView() {
       .order('created_at', { ascending: false })
       .limit(200);
     if (data) {
-      const chronological = data.reverse();
-      setMessages(chronological.map(m => ({
-        ...m,
-        metadata: (m.metadata || {}) as Record<string, unknown>,
-        dice_result: m.dice_result as Record<string, unknown> | null,
-        theme_snapshot: m.theme_snapshot as Record<string, unknown> | null,
-        character: Array.isArray(m.character) ? m.character[0] : m.character,
-      })) as CampaignMessage[]);
-      // Scroll to bottom after loading messages (e.g. on page refresh)
+      setMessages(normalizeAndSortMessages(data));
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
       }, 150);
