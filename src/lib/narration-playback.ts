@@ -40,13 +40,66 @@ function sanitizePlaybackMetadata(value: unknown): NarratorPlaybackMetadata | nu
   return Object.keys(playback).length > 0 ? playback : null;
 }
 
+function deriveGeneratedPlayback(source: Record<string, unknown>): NarratorPlaybackMetadata | null {
+  const generatedSceneState = isRecord(source.generatedSceneState) ? source.generatedSceneState : null;
+  const generatedEffectState = isRecord(source.generatedEffectState) ? source.generatedEffectState : null;
+  const generatedEncounter = isRecord(source.generatedEncounter) ? source.generatedEncounter : null;
+  const generatedNpcIdentity = isRecord(source.generatedNpcIdentity) ? source.generatedNpcIdentity : null;
+
+  if (!generatedSceneState && !generatedEffectState && !generatedEncounter && !generatedNpcIdentity) {
+    return null;
+  }
+
+  const scenePressure = typeof generatedSceneState?.scenePressure === 'string' ? generatedSceneState.scenePressure : 'medium';
+  const npcReadiness = typeof generatedSceneState?.npcSocialReadiness === 'string' ? generatedSceneState.npcSocialReadiness : 'guarded';
+  const visualIntensity = typeof generatedSceneState?.visualIntensity === 'string' ? generatedSceneState.visualIntensity : 'grounded';
+  const combatVolatility = typeof generatedSceneState?.combatVolatility === 'string' ? generatedSceneState.combatVolatility : 'stable';
+  const narrationFlags = Array.isArray(generatedSceneState?.narrationToneFlags) ? generatedSceneState.narrationToneFlags as string[] : [];
+  const chatBehaviors = Array.isArray(generatedEffectState?.chatBehaviors) ? generatedEffectState.chatBehaviors as string[] : [];
+  const powerStyle = Array.isArray(generatedNpcIdentity?.powerStyle) ? generatedNpcIdentity.powerStyle as string[] : [];
+  const tacticalPressure = Array.isArray(generatedEncounter?.tacticalPressure) ? generatedEncounter.tacticalPressure as string[] : [];
+
+  const stealthAware = [npcReadiness, ...narrationFlags, ...chatBehaviors, ...powerStyle, ...tacticalPressure]
+    .some((entry) => /stealth|guarded|quiet|cautious|subtle/.test(entry));
+  const explosive = [scenePressure, visualIntensity, combatVolatility, ...narrationFlags, ...chatBehaviors]
+    .some((entry) => /critical|volatile|explosive|impact|hostile/.test(entry));
+
+  const voiceRate = stealthAware ? 0.84 : explosive ? 1.12 : scenePressure === 'low' ? 0.95 : scenePressure === 'critical' ? 1.16 : 1.02;
+  const voicePitch = stealthAware ? 0.9 : explosive ? 1.08 : npcReadiness === 'hostile' ? 1.04 : 0.98;
+  const soundCue = stealthAware
+    ? 'whisper_tension'
+    : explosive
+      ? 'combat_surge'
+      : /tone:charged/.test(narrationFlags.join(' '))
+        ? 'mystic_hum'
+        : 'ambient_pulse';
+  const animationTag = stealthAware
+    ? 'fade_out'
+    : explosive
+      ? 'attack_anim'
+      : combatVolatility === 'shifting'
+        ? 'step_back'
+        : 'run';
+
+  return {
+    context: stealthAware ? 'stealth' : explosive ? 'combat' : 'default',
+    voiceRate,
+    voicePitch,
+    soundCue,
+    animationTag,
+  };
+}
+
 export function getNarratorPlaybackMetadata(source: unknown): NarratorPlaybackMetadata | null {
   if (!isRecord(source)) return null;
 
   const nested = sanitizePlaybackMetadata(source.narratorPlayback);
   if (nested) return nested;
 
-  return sanitizePlaybackMetadata(source);
+  const direct = sanitizePlaybackMetadata(source);
+  if (direct) return direct;
+
+  return deriveGeneratedPlayback(source);
 }
 
 export function buildNarratorMessageMetadata(
