@@ -2518,6 +2518,7 @@ export default function CampaignView() {
                                   dialogue={envelope.content}
                                   location={activeSceneLocation || campaign.current_zone}
                                   presentationProfile={envelope.presentationProfile}
+                                  expressionPacket={envelope.expressionPacket}
                                 />
                               );
                             }
