@@ -931,18 +931,20 @@ export default function CampaignView() {
             partyContext: participants.filter(p => p.is_active && p.id !== myParticipant.id).map(p => `${p.character?.name}`).join(', '),
           },
         });
-        await supabase.from('campaign_messages').insert({
-          campaign_id: campaign.id,
-          sender_type: 'narrator',
-          content: data?.narration || `**${charName}** turns and walks away from the group.`,
-          channel: 'in_universe',
+        await insertStructuredNarrationMessages({
+          campaignId: campaign.id,
+          rawNarration: data?.narration || `**${charName}** turns and walks away from the group.`,
+          focalCharacterName: charName,
+          isSolo: campaign.max_players === 1,
+          knownNpcNames,
         });
       } catch {
-        await supabase.from('campaign_messages').insert({
-          campaign_id: campaign.id,
-          sender_type: 'narrator',
-          content: `**${charName}** quietly slips away from the party, disappearing into the ${campaign.current_zone}.`,
-          channel: 'in_universe',
+        await insertStructuredNarrationMessages({
+          campaignId: campaign.id,
+          rawNarration: `**${charName}** quietly slips away from the party, disappearing into the ${campaign.current_zone}.`,
+          focalCharacterName: charName,
+          isSolo: campaign.max_players === 1,
+          knownNpcNames,
         });
       }
     } else {
