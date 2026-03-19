@@ -1386,6 +1386,13 @@ export default function CampaignView() {
           sender_type: 'narrator',
           content: data.narration,
           channel: 'in_universe',
+          metadata: buildNarratorMessageMetadata(data, npcBrainTurn?.narration ? {
+            context: activeEnemiesList.length > 0 ? 'combat' : 'danger',
+            voiceRate: npcBrainTurn.narration.voiceRate,
+            voicePitch: npcBrainTurn.narration.voicePitch,
+            soundCue: npcBrainTurn.narration.soundCue,
+            animationTag: npcBrainTurn.narration.animationTag,
+          } : null),
         });
 
         // Accumulate all XP from this turn and apply level-ups immediately
