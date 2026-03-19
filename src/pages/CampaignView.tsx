@@ -767,7 +767,7 @@ export default function CampaignView() {
   };
 
   const fetchResponseSuggestions = useCallback(async (force = false) => {
-    if (!campaign || !myParticipant?.is_active || !myParticipant.character_id || !myParticipant.character?.name || !isCampaignActive) {
+    if (!campaign || !myParticipant?.is_active || !myParticipant.character_id || !isCampaignActive) {
       suggestionContextKeyRef.current = '';
       setSuggestionsLoading(false);
       setSelectedResponseSuggestion(null);
@@ -822,7 +822,7 @@ export default function CampaignView() {
           narratorSentiment: narratorSentiment || undefined,
           playerCharacter: {
             characterId: myParticipant.character_id,
-            name: myParticipant.character.name,
+            name: myParticipant.character?.name || null,
             campaignLevel: myParticipant.campaign_level,
             originalLevel: myParticipant.character.level,
             hp: myParticipant.campaign_hp,
