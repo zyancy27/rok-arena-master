@@ -1,6 +1,6 @@
 import { NarrationPacketBuilder } from '@/systems/narration/NarrationPacketBuilder';
 import type { ActionPipelineResult, NarrationPacket } from '@/systems/types/PipelineTypes';
-import { buildGeneratedRuntimeMetadata, getGeneratedRuntimePackets } from './GeneratedRuntimeBridge';
+import { buildGeneratedRuntimeMetadata } from './GeneratedRuntimeBridge';
 
 function asRecord(value: unknown): Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)

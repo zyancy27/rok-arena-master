@@ -1,4 +1,4 @@
-import { buildGeneratedRuntimeMetadata, getGeneratedRuntimePackets } from '@/systems/pipeline/GeneratedRuntimeBridge';
+import { buildGeneratedRuntimeMetadata } from '@/systems/pipeline/GeneratedRuntimeBridge';
 import type { ContextPacket, NpcReactionPacket, ResolvedActionPacket, SceneEffectPacket } from '@/systems/types/PipelineTypes';
 
 function asRecord(value: unknown): Record<string, unknown> {

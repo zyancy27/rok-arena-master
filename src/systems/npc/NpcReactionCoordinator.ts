@@ -1,5 +1,5 @@
 import type { CampaignTime } from '@/lib/campaign-types';
-import { buildGeneratedRuntimeMetadata, getGeneratedRuntimePackets } from '@/systems/pipeline/GeneratedRuntimeBridge';
+import { buildGeneratedRuntimeMetadata } from '@/systems/pipeline/GeneratedRuntimeBridge';
 import type { NpcReactionPacket } from '@/systems/types/PipelineTypes';
 import type { StructuredCombatResult } from '@/systems/combat/CombatResolver';
 import type { ResolvedCharacterContext } from '@/systems/character/CharacterContextResolver';
