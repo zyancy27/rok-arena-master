@@ -193,14 +193,17 @@ export function parseNarratorMessage(text: string): MessageSegment[] {
 
 /**
  * Resolve NPC display name.
- * If the NPC's name appears in knownNpcNames, show it; otherwise show "Name Unknown".
+ * If the NPC's name appears in knownNpcNames, show the canonical form.
+ * Otherwise show the parser-extracted name directly (it was parsed from the narrator text).
+ * Only fall back to "Name Unknown" if speakerName is empty/missing.
  */
 export function resolveNpcDisplayName(
   speakerName: string,
   knownNpcNames: Set<string>,
 ): string {
+  if (!speakerName || !speakerName.trim()) return '*Name Unknown*';
   for (const known of knownNpcNames) {
     if (known.toLowerCase() === speakerName.toLowerCase()) return known;
   }
-  return '*Name Unknown*';
+  return speakerName;
 }
