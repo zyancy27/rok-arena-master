@@ -1814,11 +1814,12 @@ export default function BattleView() {
           id: `narrator-${Date.now()}`,
           content: response.data.narration,
           timestamp: new Date(),
+          metadata: buildNarratorMessageMetadata(response.data, { context: 'combat' }),
         };
         setNarratorMessages(prev => [...prev, narratorMsg]);
         chatSoundsEngine.play('narrator_message');
         if (userSettings.audio.narratorAutoRead && userSettings.audio.narratorVoiceEnabled) {
-          await narratorVoice.narrate(response.data.narration, narratorMsg.id, 'combat');
+          await narratorVoice.narrate(response.data.narration, narratorMsg.id, buildNarrationPlaybackOptions(narratorMsg.metadata));
         }
         
         // Also post to OOC chat for persistence
