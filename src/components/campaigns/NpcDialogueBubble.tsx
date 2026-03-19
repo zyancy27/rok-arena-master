@@ -2,13 +2,16 @@
  * NpcDialogueBubble
  *
  * Renders a single NPC speech bubble, visually distinct from the narrator,
- * themed by the environment via ChatBoxTheme.
+ * themed by the environment via ChatBoxTheme and expression-driven via
+ * ExpressionChatBox.
  */
 
 import { Sparkles, Swords, User, UserCheck } from 'lucide-react';
 import ChatBoxTheme from '@/components/battles/ChatBoxTheme';
+import ExpressionChatBox from '@/components/chat/ExpressionChatBox';
 import type { EnvironmentTag } from '@/lib/theme-engine';
 import type { SpeakerPresentationProfile } from '@/systems/chat/presentation/SpeakerPresentationProfile';
+import type { ExpressionPacket } from '@/systems/expression/ExpressionPacket';
 import {
   getChatBoxContentClasses,
   getChatBoxLabelClasses,
@@ -24,6 +27,8 @@ interface NpcDialogueBubbleProps {
   /** Location string fallback */
   location?: string | null;
   presentationProfile?: SpeakerPresentationProfile | null;
+  /** Expression packet for advanced rendering */
+  expressionPacket?: ExpressionPacket | null;
 }
 
 export default function NpcDialogueBubble({
@@ -32,6 +37,7 @@ export default function NpcDialogueBubble({
   tags,
   location,
   presentationProfile,
+  expressionPacket,
 }: NpcDialogueBubbleProps) {
   const isUnknown = speakerName === '*Name Unknown*';
   const surfaceClassName = getChatBoxSurfaceClasses(presentationProfile);
@@ -49,23 +55,23 @@ export default function NpcDialogueBubble({
 
   return (
     <ChatBoxTheme location={location} tags={tags} className={`mx-2 rounded-lg ${wrapperClassName}`}>
-      <div className={surfaceClassName}>
+      <ExpressionChatBox expression={expressionPacket} className={surfaceClassName}>
         <div className="flex items-start gap-2 relative z-10">
           <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${iconContainerClassName}`}>
             <Icon className="w-3.5 h-3.5" />
           </div>
           <div className="flex-1 min-w-0">
             <span
-              className={isUnknown ? 'text-xs font-semibold uppercase text-muted-foreground italic tracking-wider' : labelClassName}
+              className={`expr-speaker-name ${isUnknown ? 'text-xs font-semibold uppercase text-muted-foreground italic tracking-wider' : labelClassName}`}
             >
               {speakerName}
             </span>
-            <p className={`mt-1 ${contentClassName}`}>
+            <p className={`expr-content mt-1 ${contentClassName}`}>
               &ldquo;{dialogue}&rdquo;
             </p>
           </div>
         </div>
-      </div>
+      </ExpressionChatBox>
     </ChatBoxTheme>
   );
 }
