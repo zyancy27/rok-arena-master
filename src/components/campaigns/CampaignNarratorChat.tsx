@@ -109,6 +109,43 @@ const QUICK_ASKS = [
   { label: 'Threats', icon: Swords, prompt: 'What potential threats or dangers should I be aware of in the current area? Any hostile creatures, environmental hazards, or suspicious activity?' },
 ];
 
+function resolveNarratorChatIcon(iconTone: SpeakerPresentationProfile['iconTone']) {
+  switch (iconTone) {
+    case 'player':
+      return User;
+    case 'ally':
+      return UserCheck;
+    case 'enemy':
+      return Swords;
+    case 'system':
+      return Sparkles;
+    case 'npc':
+      return MapPin;
+    case 'narrator':
+    default:
+      return BookOpen;
+  }
+}
+
+function resolveNarratorChatPresentation(message: NarratorMessage) {
+  const speakerRole = message.role === 'user' ? 'player' : 'narrator';
+  const speakerName = message.role === 'user' ? 'You' : 'Narrator';
+
+  return ChatMessagePresentationResolver.resolveStandaloneProfile({
+    speakerRole,
+    speakerName,
+    metadata: message.role === 'narrator'
+      ? {
+          generatedSceneState: {
+            scenePressure: 'low',
+            narrationToneFlags: ['composed', 'guarded'],
+            chatPresentationTags: ['private', 'guidance'],
+          },
+        }
+      : null,
+  });
+}
+
 export default function CampaignNarratorChat({
   campaignId, campaignName, campaignStatus,
   characterName, characterPowers, characterAbilities, characterWeapons,
