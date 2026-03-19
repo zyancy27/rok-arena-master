@@ -5,7 +5,7 @@
 
 import { parseNarrationForSounds, classifySceneIntensity, type ParsedSoundEvent, type SceneIntensity } from './narration-sound-parser';
 import { getMixingRules, type AmbientIntensityLevel, type MixingRules } from './narration-sound-rules';
-import type { SoundCue } from './narration-sound-cues';
+import { ALL_SOUND_CUES, type SoundCue } from './narration-sound-cues';
 
 interface ActiveLayer {
   cue: SoundCue;
@@ -75,22 +75,16 @@ class NarrationSoundManager {
     const intensity = classifySceneIntensity(text);
     const rules = getMixingRules(intensity, this.intensityLevel);
 
-    // Filter out vocal sounds if user has reduce vocal setting on
     if (this.reduceVocalSounds) {
       events = events.filter(e => e.cue.family !== 'vocal');
     }
 
-    // Clean expired cooldowns
     const now = Date.now();
     this.cooldowns = this.cooldowns.filter(c => c.expiresAt > now);
 
-    // Separate persistent vs moment
     const persistentEvents = events.filter(e => e.cue.category === 'persistent');
     const momentEvents = events.filter(e => e.cue.category === 'moment');
 
-    // Calculate delay for each event based on its character offset in the text.
-    // This ensures sounds only trigger AFTER the narrator has spoken/rendered
-    // the relevant portion of the text.
     for (const event of persistentEvents) {
       const delayMs = event.textOffset * NarrationSoundManager.MS_PER_CHAR;
       setTimeout(() => {
@@ -100,7 +94,6 @@ class NarrationSoundManager {
       }, delayMs);
     }
 
-    // Handle moment sounds — delay based on text position + stagger
     this.scheduleMomentSounds(momentEvents, rules);
   }
 
@@ -126,6 +119,12 @@ class NarrationSoundManager {
     if (this.momentLayers.length >= rules.maxMomentSounds) return;
     this.triggerCue(cue, rules, false);
     this.setCooldown(cue.id, cue.cooldownMs);
+  }
+
+  playCueById(cueId: string, intensity: SceneIntensity = 'tense') {
+    const cue = ALL_SOUND_CUES.find(entry => entry.id === cueId);
+    if (!cue) return;
+    this.playCueFromNarration(cue, intensity);
   }
 
   /**
