@@ -834,18 +834,20 @@ export default function CampaignView() {
             partyContext: activeParty,
           },
         });
-        await supabase.from('campaign_messages').insert({
-          campaign_id: campaignId!,
-          sender_type: 'narrator',
-          content: data?.narration || `A new figure appears — **${char?.name}** has arrived at ${campaign.current_zone}.`,
-          channel: 'in_universe',
+        await insertStructuredNarrationMessages({
+          campaignId: campaignId!,
+          rawNarration: data?.narration || `A new figure appears — **${char?.name}** has arrived at ${campaign.current_zone}.`,
+          focalCharacterName: char?.name ?? null,
+          isSolo: campaign.max_players === 1,
+          knownNpcNames,
         });
       } catch {
-        await supabase.from('campaign_messages').insert({
-          campaign_id: campaignId!,
-          sender_type: 'narrator',
-          content: `A new figure emerges from the path — **${char?.name || 'a new adventurer'}** has arrived at ${campaign.current_zone}.`,
-          channel: 'in_universe',
+        await insertStructuredNarrationMessages({
+          campaignId: campaignId!,
+          rawNarration: `A new figure emerges from the path — **${char?.name || 'a new adventurer'}** has arrived at ${campaign.current_zone}.`,
+          focalCharacterName: char?.name ?? null,
+          isSolo: campaign.max_players === 1,
+          knownNpcNames,
         });
       }
     } else {
