@@ -3,15 +3,17 @@ import { IntentEngine } from '@/systems/intent/IntentEngine';
 import { CombatResolver } from '@/systems/combat/CombatResolver';
 import { createCombatState } from '@/systems/combat/CombatState';
 import { BattleContextAssembler } from '@/systems/context/BattleContextAssembler';
-import { CharacterCompositionEngine } from '@/systems/composition/CharacterCompositionEngine';
 import { EffectCompositionEngine } from '@/systems/composition/EffectCompositionEngine';
 import { EncounterCompositionEngine } from '@/systems/composition/EncounterCompositionEngine';
 import { SceneCompositionEngine } from '@/systems/composition/SceneCompositionEngine';
-import { WorldCompositionEngine } from '@/systems/composition/WorldCompositionEngine';
 import { buildResolvedActionPacket } from './ActionPipeline';
 import { attachGeneratedToContext } from './GeneratedRuntimeBridge';
 import { NarrationPacketBuilder } from '@/systems/narration/NarrationPacketBuilder';
 import { SceneEffectBridge } from '@/systems/map/SceneEffectBridge';
+import { CharacterIdentityGenerator } from '@/systems/identity/CharacterIdentityGenerator';
+import { WorldIdentityGenerator } from '@/systems/identity/WorldIdentityGenerator';
+import { SceneDerivationEngine } from '@/systems/scene/SceneDerivationEngine';
+import { EffectDerivationEngine } from '@/systems/effects/EffectDerivationEngine';
 import type { ActionPipelineResult, GeneratedRuntimePackets } from '@/systems/types/PipelineTypes';
 
 export interface BattleActionPipelineInput {
@@ -91,7 +93,7 @@ export const BattleActionPipeline = {
       narratorSceneState: input.sceneState,
     });
 
-    const generatedActorIdentity = CharacterCompositionEngine.compose({
+    const generatedActorIdentity = CharacterIdentityGenerator.generate({
       id: input.actor.characterId,
       name: input.actor.name,
       level: input.actor.tier,
@@ -113,7 +115,7 @@ export const BattleActionPipeline = {
       stat_battle_iq: input.actor.stats?.stat_battle_iq,
     });
 
-    const generatedWorldState = WorldCompositionEngine.compose({
+    const generatedWorldState = WorldIdentityGenerator.generate({
       id: `battle-world:${input.battleZone ?? 'unknown'}`,
       name: input.battleZone ?? 'Battle Zone',
       regionType: input.battleZone,
@@ -127,20 +129,36 @@ export const BattleActionPipeline = {
       situationType: intentResult.intent.isCombatAction ? 'combat exchange' : 'tense positioning',
       environmentTags: context.environmentTags,
       activeHazards: context.activeHazards,
-      actorTags: generatedActorIdentity.tags,
+      actorTags: [...generatedActorIdentity.tags, ...generatedActorIdentity.effectBias, ...generatedActorIdentity.rolePosture],
       npcTags: (input.opponents || []).flatMap((opponent) => [opponent.name.toLowerCase().replace(/\s+/g, '_')]),
-      pressureSeed: [intentResult.legacyMoveIntent.intentCategory, intentResult.legacyMoveIntent.posture].filter(Boolean),
+      pressureSeed: [...generatedActorIdentity.pressureIdentity, intentResult.legacyMoveIntent.intentCategory, intentResult.legacyMoveIntent.posture].filter(Boolean),
     });
 
-    const generatedSceneState = SceneCompositionEngine.compose({
-      blueprintIds: [generatedActorIdentity.blueprintId, generatedWorldState.blueprintId, generatedEncounter.blueprintId].filter(Boolean) as string[],
-      tags: [
-        ...generatedActorIdentity.tags,
-        ...generatedWorldState.tags,
-        ...generatedEncounter.tags,
-        ...context.environmentTags,
-        ...context.activeHazards,
-      ],
+    const generatedSceneState = SceneDerivationEngine.derive({
+      actorIdentity: generatedActorIdentity,
+      worldState: generatedWorldState,
+      encounter: generatedEncounter,
+      sceneState: SceneCompositionEngine.compose({
+        blueprintIds: [generatedActorIdentity.blueprintId, generatedWorldState.blueprintId, generatedEncounter.blueprintId].filter(Boolean) as string[],
+        tags: [
+          ...generatedActorIdentity.tags,
+          ...generatedActorIdentity.pressureIdentity,
+          ...generatedActorIdentity.effectBias,
+          ...generatedWorldState.tags,
+          ...generatedWorldState.environmentalIdentity,
+          ...generatedWorldState.visualEffectProfile,
+          ...generatedEncounter.tags,
+          ...context.environmentTags,
+          ...context.activeHazards,
+        ],
+      }),
+    }, {
+      activeHazards: context.activeHazards,
+      environmentTags: context.environmentTags,
+      narratorMetadata: {
+        actorNarrationBias: generatedActorIdentity.narrationBias,
+        worldVolatility: generatedWorldState.volatilityProfile,
+      },
     });
 
     const generatedPackets: GeneratedRuntimePackets = {
@@ -151,6 +169,11 @@ export const BattleActionPipeline = {
     };
 
     attachGeneratedToContext(context, generatedPackets);
+    context.metadata = {
+      ...(context.metadata || {}),
+      activeCharacterIdentity: generatedActorIdentity,
+      activeWorldIdentity: generatedWorldState,
+    };
 
     const primaryTarget = context.primaryTarget?.context ?? null;
     const combatResult = intentResult.intent.isCombatAction && context.primaryTarget?.id && primaryTarget
@@ -182,7 +205,7 @@ export const BattleActionPipeline = {
             ],
             rangeZone: (input.rangeState?.zone as 'close' | 'mid' | 'far' | undefined) ?? 'mid',
             zone: input.battleZone ?? null,
-            terrainTags: input.activeHazards ?? [],
+            terrainTags: [...(input.activeHazards ?? []), ...generatedActorIdentity.movementIdentity, ...generatedWorldState.hazardPosture],
           }),
           {
             actorId: context.actor.characterId || input.actor.characterId,
@@ -202,22 +225,30 @@ export const BattleActionPipeline = {
     });
 
     const seededSceneEffects = SceneEffectBridge.build(context, resolvedAction, null);
-    const generatedEffectState = EffectCompositionEngine.compose({
-      name: 'battle-turn',
-      tags: [
-        ...context.environmentTags,
-        ...generatedSceneState.effectTags,
-        ...generatedSceneState.chatPresentationTags,
-        ...seededSceneEffects.zoneShiftTags,
-        ...seededSceneEffects.hazardPulseTags,
-        ...seededSceneEffects.enemyPresenceTags,
-        ...seededSceneEffects.environmentalPressureTags,
-      ],
-      environmentState: {
-        zone: context.zone,
-        sceneState: context.sceneState,
-        scenePressure: generatedSceneState.scenePressure,
-      },
+    const generatedEffectState = EffectDerivationEngine.derive({
+      ...generatedPackets,
+      effectState: EffectCompositionEngine.compose({
+        name: 'battle-turn',
+        tags: [
+          ...context.environmentTags,
+          ...generatedSceneState.effectTags,
+          ...generatedSceneState.chatPresentationTags,
+          ...generatedActorIdentity.effectBias,
+          ...generatedWorldState.visualEffectProfile,
+          ...seededSceneEffects.zoneShiftTags,
+          ...seededSceneEffects.hazardPulseTags,
+          ...seededSceneEffects.enemyPresenceTags,
+          ...seededSceneEffects.environmentalPressureTags,
+        ],
+        environmentState: {
+          zone: context.zone,
+          sceneState: context.sceneState,
+          scenePressure: generatedSceneState.scenePressure,
+        },
+      }),
+    }, {
+      sceneEffectPacket: seededSceneEffects,
+      narratorSceneContext: context.narratorSceneContext,
     });
 
     generatedPackets.effectState = generatedEffectState;

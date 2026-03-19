@@ -1,11 +1,11 @@
-import { CompositionEngine } from './CompositionEngine';
 import { BlueprintRegistry } from '@/systems/blueprints/BlueprintRegistry';
-import type { WorldBlueprint } from '@/systems/foundations/world/WorldBlueprint';
 import { EnvironmentalPressureFramework } from '@/systems/foundations/world/EnvironmentalPressureFramework';
 import { FactionTerritoryFramework } from '@/systems/foundations/world/FactionTerritoryFramework';
 import { HazardFramework } from '@/systems/foundations/world/HazardFramework';
+import type { WorldBlueprint } from '@/systems/foundations/world/WorldBlueprint';
 import { WorldRegionFramework } from '@/systems/foundations/world/WorldRegionFramework';
 import type { GeneratedWorldState } from '@/systems/generated/GeneratedWorldState';
+import { CompositionEngine } from './CompositionEngine';
 
 export interface WorldCompositionInput {
   id?: string;
@@ -14,6 +14,10 @@ export interface WorldCompositionInput {
   environmentTags?: string[];
   activeHazards?: string[];
   factionPresence?: string[];
+}
+
+function uniq(values: Array<string | null | undefined>) {
+  return [...new Set(values.filter((value): value is string => typeof value === 'string' && value.trim().length > 0))];
 }
 
 export const WorldCompositionEngine = {
@@ -52,20 +56,45 @@ export const WorldCompositionEngine = {
     const hazards = HazardFramework.build(composition.runtime.tags, input.activeHazards || []);
     const pressure = EnvironmentalPressureFramework.build(composition.runtime.tags, input.activeHazards || []);
     const territory = FactionTerritoryFramework.build(input.factionPresence || [], composition.runtime.tags);
+    const joined = composition.runtime.tags.join(' ');
+    const travelPressure = uniq([...pressure.travelPressure, composition.runtime.sceneOutputs.movementFriction]);
+    const hazardFamilies = uniq([...hazards.hazardFamilies, composition.runtime.sceneOutputs.hazardDensity]);
+    const culturalFlavor = uniq([...region.culturalFlavor, ...composition.runtime.narrativeImplications]);
+    const factionPresence = territory.factionPresence;
 
     return {
       blueprintId: blueprint.id,
       regionType: region.regionType,
-      terrainLogic: [...new Set([...region.terrainLogic, composition.runtime.sceneOutputs.movementFriction])],
-      dangerLogic: [...new Set([...hazards.dangerLogic, ...composition.runtime.sceneOutputs.environmentalPressure])],
+      terrainLogic: uniq([...region.terrainLogic, composition.runtime.sceneOutputs.movementFriction]),
+      dangerLogic: uniq([...hazards.dangerLogic, ...composition.runtime.sceneOutputs.environmentalPressure]),
       socialDensity: pressure.socialDensity,
       economicTone: pressure.economicTone,
-      weatherPressure: [...new Set([...pressure.weatherPressure, composition.runtime.sceneOutputs.scenePressure])],
-      travelPressure: [...new Set([...pressure.travelPressure, composition.runtime.sceneOutputs.movementFriction])],
-      hazardFamilies: [...new Set([...hazards.hazardFamilies, composition.runtime.sceneOutputs.hazardDensity])],
+      weatherPressure: uniq([...pressure.weatherPressure, composition.runtime.sceneOutputs.scenePressure]),
+      travelPressure,
+      hazardFamilies,
       pointsOfInterest: territory.pointsOfInterest,
-      factionPresence: territory.factionPresence,
-      culturalFlavor: [...new Set([...region.culturalFlavor, ...composition.runtime.narrativeImplications])],
+      factionPresence,
+      culturalFlavor,
+      environmentalIdentity: uniq([region.regionType, ...region.terrainLogic, ...hazards.dangerLogic]),
+      socialToneIdentity: uniq([pressure.socialDensity, pressure.economicTone, ...factionPresence]),
+      travelPressureIdentity: uniq(travelPressure),
+      hazardPosture: uniq([...hazardFamilies, ...hazards.dangerLogic]),
+      visualEffectProfile: uniq([
+        ...hazardFamilies.map((entry) => `visual:${entry}`),
+        ...culturalFlavor.map((entry) => `visual-flavor:${entry}`),
+        /mystic|ritual|charged/.test(joined) ? 'visual:charged_glow' : null,
+      ]),
+      audioPressureProfile: uniq([
+        ...pressure.weatherPressure.map((entry) => `audio:${entry}`),
+        ...travelPressure.map((entry) => `cadence:${entry}`),
+        /fire|storm|collapse/.test(joined) ? 'audio:hazard_surge' : null,
+      ]),
+      volatilityProfile: uniq([
+        ...pressure.weatherPressure,
+        ...hazardFamilies,
+        composition.runtime.sceneOutputs.scenePressure,
+      ]),
+      factionDensityProfile: uniq([...factionPresence, factionPresence.length > 2 ? 'crowded faction field' : 'localized faction field']),
       tags: composition.runtime.tags,
       metadata: {
         sourceTags: input.environmentTags,
@@ -74,4 +103,3 @@ export const WorldCompositionEngine = {
     };
   },
 };
-

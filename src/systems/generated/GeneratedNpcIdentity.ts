@@ -11,6 +11,16 @@ export interface GeneratedNpcIdentity {
   socialPosture: string[];
   combatPressureStyle: string[];
   relationshipPosture: string[];
+  rolePosture: string[];
+  threatPosture: string[];
+  emotionalDefault: string[];
+  factionPosture: string[];
+  interactionStyle: string[];
+  pressureStyle: string[];
+  dangerStyle: string[];
+  memoryPosture: string[];
+  narrationBias: string[];
+  effectBias: string[];
   tags: string[];
   metadata?: Record<string, unknown>;
 }

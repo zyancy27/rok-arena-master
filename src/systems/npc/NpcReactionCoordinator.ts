@@ -1,6 +1,6 @@
 import type { CampaignTime } from '@/lib/campaign-types';
-import type { StructuredCombatResult } from '@/systems/combat/CombatResolver';
 import type { ResolvedCharacterContext } from '@/systems/character/CharacterContextResolver';
+import type { StructuredCombatResult } from '@/systems/combat/CombatResolver';
 import { buildGeneratedRuntimeMetadata } from '@/systems/pipeline/GeneratedRuntimeBridge';
 import type { GeneratedRuntimePackets, NpcReactionPacket } from '@/systems/types/PipelineTypes';
 import { buildCampaignNpcTurn } from './NpcBrainAdapters';
@@ -79,11 +79,16 @@ export const NpcReactionCoordinator = {
     const npcSocialReadiness = typeof generatedSceneState.npcSocialReadiness === 'string' ? generatedSceneState.npcSocialReadiness : null;
     const movementFriction = typeof generatedSceneState.movementFriction === 'string' ? generatedSceneState.movementFriction : null;
     const socialPosture = toStringArray(generatedNpcIdentity.socialPosture);
+    const threatPosture = toStringArray(generatedNpcIdentity.threatPosture);
+    const interactionStyle = toStringArray(generatedNpcIdentity.interactionStyle);
+    const dangerStyle = toStringArray(generatedNpcIdentity.dangerStyle);
+    const memoryPosture = toStringArray(generatedNpcIdentity.memoryPosture);
     const tacticalPressure = toStringArray(generatedEncounter.tacticalPressure);
-    const actorPressure = toStringArray(generatedActorIdentity.pressureStyle);
-    const actorSocialIdentity = toStringArray(generatedActorIdentity.socialIdentity);
-    const worldTravelPressure = toStringArray(generatedWorldState.travelPressure);
-    const worldHazards = toStringArray(generatedWorldState.hazardFamilies);
+    const actorPressure = toStringArray(generatedActorIdentity.pressureIdentity ?? generatedActorIdentity.pressureStyle);
+    const actorRolePosture = toStringArray(generatedActorIdentity.rolePosture);
+    const worldTravelPressure = toStringArray(generatedWorldState.travelPressureIdentity ?? generatedWorldState.travelPressure);
+    const worldHazards = toStringArray(generatedWorldState.hazardPosture ?? generatedWorldState.hazardFamilies);
+    const worldFactionDensity = toStringArray(generatedWorldState.factionDensityProfile);
     const campaignPressure = toStringArray(generatedCampaignSeed.pressureSources);
     const tickFactionEvents = Array.isArray(worldTick.factions)
       ? (worldTick.factions as Record<string, unknown>[]).map((entry) => String(entry.event || ''))
@@ -98,20 +103,24 @@ export const NpcReactionCoordinator = {
       ? relationshipPersistence.reduce((sum, entry) => sum + Number(entry.trust || 0), 0) / relationshipPersistence.length
       : 50;
     const relationshipDisposition = relationshipPersistence.map((entry) => String(entry.disposition || '')).join(' ');
-    const rumorHeat = toStringArray(worldMemory.rumorSeeds).join(' ');
+    const rumorHeat = toStringArray(worldMemory.rumorPressure ?? worldMemory.rumorSeeds).join(' ');
 
     const effectiveChaosLevel = clamp(
       input.chaosLevel
         + (scenePressure === 'critical' ? 15 : scenePressure === 'high' ? 8 : scenePressure === 'low' ? -4 : 0)
         + (npcSocialReadiness === 'hostile' ? 12 : npcSocialReadiness === 'tense' ? 5 : 0)
         + (socialPosture.some((entry) => /cautious|guarded|measured/.test(entry)) ? -3 : 0)
+        + (threatPosture.some((entry) => /dominant|predatory|overwhelm/.test(entry)) ? 8 : 0)
+        + (dangerStyle.some((entry) => /volatile|fear|explosive/.test(entry)) ? 5 : 0)
         + (tacticalPressure.some((entry) => /ambush|overwhelming|explosive|killbox/.test(entry)) ? 8 : 0)
         + (actorPressure.some((entry) => /relentless|aggressive|force/.test(entry)) ? 4 : 0)
-        + (worldHazards.some((entry) => /fire|storm|toxic|collapse/.test(entry)) ? 4 : 0)
+        + (worldHazards.some((entry) => /fire|storm|toxic|collapse|volatile/.test(entry)) ? 4 : 0)
+        + (worldFactionDensity.some((entry) => /crowded|localized/.test(entry)) ? 2 : 0)
         + (campaignPressure.some((entry) => /war|siege|hostile|crack/.test(entry)) ? 4 : 0)
         + (tickFactionEvents.some((entry) => /escalation|maneuver/.test(entry)) ? 6 : 0)
         + (tickLocationEvents.some((entry) => /destabilizes|shifts/.test(entry)) ? 5 : 0)
         + (/fraying|hostile|betray/.test(relationshipDisposition) ? 5 : 0)
+        + (memoryPosture.some((entry) => /grudge|predatory/.test(entry)) ? 4 : 0)
         + (averageTrust > 65 ? -4 : averageTrust < 35 ? 5 : 0)
         + (/rumor|pressure|danger|unstable/.test(rumorHeat) ? 3 : 0),
       0,
@@ -123,7 +132,7 @@ export const NpcReactionCoordinator = {
       (input.escapeRoutes ?? 2)
         + (movementFriction === 'locked' ? -2 : movementFriction === 'restricted' ? -1 : movementFriction === 'open' ? 1 : 0)
         + (worldTravelPressure.some((entry) => /restricted|sealed|blocked/.test(entry)) ? -1 : 0)
-        + (actorSocialIdentity.some((entry) => /clever|calm|guarded/.test(entry)) ? 1 : 0),
+        + (actorRolePosture.some((entry) => /protective|guarded|command/.test(entry)) ? 1 : 0),
     );
 
     const turn = buildCampaignNpcTurn({
@@ -142,6 +151,12 @@ export const NpcReactionCoordinator = {
           worldMemory,
           worldTick,
           tickNpcGoals,
+          npcIdentityModifiers: {
+            rolePosture: toStringArray(generatedNpcIdentity.rolePosture),
+            threatPosture,
+            interactionStyle,
+            narrationBias: toStringArray(generatedNpcIdentity.narrationBias),
+          },
           ...buildGeneratedRuntimeMetadata(generatedPackets),
         },
       },
@@ -173,6 +188,12 @@ export const NpcReactionCoordinator = {
         relationshipDisposition,
         averageTrust,
         tickNpcGoals,
+        identityInfluence: {
+          rolePosture: toStringArray(generatedNpcIdentity.rolePosture),
+          threatPosture,
+          interactionStyle,
+          memoryPosture,
+        },
         ...buildGeneratedRuntimeMetadata(generatedPackets),
       },
     };

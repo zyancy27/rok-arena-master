@@ -7,6 +7,10 @@ import { NarrativeImplicationPass } from '@/systems/composition/passes/Narrative
 import { NormalizationPass } from '@/systems/composition/passes/NormalizationPass';
 import { PressurePass } from '@/systems/composition/passes/PressurePass';
 
+function uniq(values: Array<string | null | undefined>) {
+  return [...new Set(values.filter((value): value is string => typeof value === 'string' && value.trim().length > 0))];
+}
+
 export const WorldIdentityGenerator = {
   generate(input: WorldCompositionInput) {
     const base = WorldCompositionEngine.compose(input);
@@ -25,8 +29,66 @@ export const WorldIdentityGenerator = {
     const effected = EffectDerivationPass.run({ ...passInput, tags: narrative.tags, anchors: narrative.anchors, traits: narrative.traits });
     const normalized = NormalizationPass.run({ ...passInput, tags: effected.tags, anchors: effected.anchors, traits: effected.traits });
 
+    const joined = normalized.tags.join(' ');
+    const environmentalIdentity = uniq([
+      base.regionType,
+      ...base.terrainLogic,
+      ...base.dangerLogic,
+      ...normalized.tags.filter((tag) => /(ruins|storm|fire|toxic|shadow|mystic|occupation|urban|wild)/.test(tag)),
+    ]);
+    const socialToneIdentity = uniq([
+      base.socialDensity,
+      base.economicTone,
+      ...base.factionPresence,
+      joined.match(/authority|occupation|checkpoint/) ? 'controlled social tone' : null,
+      joined.match(/merchant|trade/) ? 'transactional social tone' : null,
+    ]);
+    const travelPressureIdentity = uniq([
+      ...base.travelPressure,
+      ...normalized.tags.filter((tag) => /(restricted|locked|open|rerouting|tempo|scarcity)/.test(tag)),
+    ]);
+    const hazardPosture = uniq([
+      ...base.hazardFamilies,
+      ...base.dangerLogic,
+      joined.match(/catastrophic|overwhelming|volatile/) ? 'volatile hazard posture' : null,
+      joined.match(/watchful|guarded/) ? 'contained hazard posture' : null,
+    ]);
+    const visualEffectProfile = uniq([
+      ...base.hazardFamilies.map((entry) => `visual:${entry}`),
+      ...base.culturalFlavor.map((entry) => `visual-flavor:${entry}`),
+      joined.match(/mystic|ritual|charged/) ? 'visual:charged_glow' : null,
+      joined.match(/ruins|shadow/) ? 'visual:shadow_veil' : null,
+      joined.match(/fire|storm/) ? 'visual:surge_overlay' : null,
+    ]);
+    const audioPressureProfile = uniq([
+      ...base.weatherPressure.map((entry) => `audio:${entry}`),
+      ...base.travelPressure.map((entry) => `cadence:${entry}`),
+      joined.match(/authority|occupation/) ? 'audio:martial_drone' : null,
+      joined.match(/mystic|ritual/) ? 'audio:mystic_hum' : null,
+      joined.match(/fire|storm|collapse/) ? 'audio:hazard_surge' : null,
+    ]);
+    const volatilityProfile = uniq([
+      ...base.weatherPressure,
+      ...base.hazardFamilies,
+      joined.match(/catastrophic|overwhelming|collapse|volatile/) ? 'critical volatility' : null,
+      joined.match(/guarded|controlled/) ? 'contained volatility' : null,
+    ]);
+    const factionDensityProfile = uniq([
+      ...base.factionPresence,
+      base.socialDensity,
+      base.factionPresence.length > 2 ? 'crowded faction field' : 'localized faction field',
+    ]);
+
     return {
       ...base,
+      environmentalIdentity,
+      socialToneIdentity,
+      travelPressureIdentity,
+      hazardPosture,
+      visualEffectProfile,
+      audioPressureProfile,
+      volatilityProfile,
+      factionDensityProfile,
       tags: normalized.tags,
       metadata: {
         ...(base.metadata || {}),
