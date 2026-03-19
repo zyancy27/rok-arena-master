@@ -1851,10 +1851,10 @@ export default function CampaignView() {
         channel: 'in_universe',
         dice_result: diceResult as any,
         metadata: {
-          intentDebug: intentResult.debug,
-          actionResult,
-          combatResult: combatResolution,
-          npcBrainTurn,
+          intentDebug: pipelineResult.resolvedAction.intentDebug,
+          actionResult: pipelineResult.resolvedAction.actionResult,
+          combatResult: pipelineResult.resolvedAction.combatResult,
+          npcBrainTurn: pipelineResult.npcReaction?.rawTurn ?? null,
         } as any,
       } as any);
 

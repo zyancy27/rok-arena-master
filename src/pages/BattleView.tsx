@@ -1830,18 +1830,24 @@ export default function BattleView() {
       });
       
       if (response.data?.narration) {
+        const narrationPacket = NarrationPacketBuilder.build({
+          resolvedAction: pipelineResult.resolvedAction,
+          sceneEffects: pipelineResult.sceneEffects,
+          narratorText: response.data.narration,
+          narratorSource: response.data,
+        });
         const narratorMsg = {
           id: `narrator-${Date.now()}`,
           content: response.data.narration,
           timestamp: new Date(),
-          metadata: buildNarratorMessageMetadata(response.data, { context: 'combat' }),
+          metadata: narrationPacket.metadata,
         };
         setNarratorMessages(prev => [...prev, narratorMsg]);
         chatSoundsEngine.play('narrator_message');
         if (userSettings.audio.narratorAutoRead && userSettings.audio.narratorVoiceEnabled) {
           await narratorVoice.narrate(response.data.narration, narratorMsg.id, buildNarrationPlaybackOptions(narratorMsg.metadata));
         }
-        
+
         // Also post to OOC chat for persistence
         await supabase.from('battle_messages').insert({
           battle_id: id,
