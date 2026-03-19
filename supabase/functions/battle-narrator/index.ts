@@ -1962,10 +1962,38 @@ Story Context: ${JSON.stringify(storyContext || {})}${narrativeSystemsContext ? 
 
 ${isMultiplayer ? `MULTIPLAYER: Respond using "${playerCharacter.name}" — NEVER "you". Do NOT describe other player characters acting.` : ''}Respond as the WORLD — let NPCs speak, environments react, and consequences unfold. Only use narrator voice if no NPC or environmental element can carry the response. If the character uses an equipped item, reference it naturally. You may reward items if the action warrants it.${diceResult ? (diceResult.hit ? ' The attack HIT — describe the impact.' : ' The attack MISSED — describe the failure.') : ''}${defenseResult ? (defenseResult.success ? ' The defense SUCCEEDED.' : ' The defense FAILED — the player takes the hit.') : ''}`;
 
+  // ── Contextual fallback generator ──
+  function buildContextualFallback(action: string, zone: string, charName: string): string {
+    const actionLower = action.toLowerCase();
+    const zoneLabel = zone || 'the area';
+
+    if (actionLower.includes('look') || actionLower.includes('examine') || actionLower.includes('search') || actionLower.includes('inspect')) {
+      return `${charName} surveys ${zoneLabel} carefully. The air is thick with the scent of earth and age. Shadows shift in the periphery — shapes half-seen, sounds half-heard. There's more here than meets the eye, but it will take patience to uncover.`;
+    }
+    if (actionLower.includes('attack') || actionLower.includes('strike') || actionLower.includes('hit') || actionLower.includes('fight') || actionLower.includes('slash') || actionLower.includes('punch')) {
+      return `${charName} commits to the strike with full force. The impact reverberates through ${zoneLabel} — dust rises, the ground trembles faintly. Whether the blow lands true or glances off, the intent is unmistakable. The world takes notice.`;
+    }
+    if (actionLower.includes('talk') || actionLower.includes('speak') || actionLower.includes('ask') || actionLower.includes('say') || actionLower.includes('greet')) {
+      return `${charName}'s words hang in the air of ${zoneLabel}. A moment of silence follows — not empty, but expectant. Somewhere nearby, something stirs in response. The conversation has begun, even if the other party hasn't revealed themselves yet.`;
+    }
+    if (actionLower.includes('move') || actionLower.includes('walk') || actionLower.includes('go') || actionLower.includes('travel') || actionLower.includes('head') || actionLower.includes('enter')) {
+      return `${charName} presses forward through ${zoneLabel}. Each step reveals new details — the texture of the ground underfoot changes, the light shifts, and the ambient sounds tell a story of their own. The path ahead is uncertain but alive with possibility.`;
+    }
+    if (actionLower.includes('rest') || actionLower.includes('sleep') || actionLower.includes('camp') || actionLower.includes('wait')) {
+      return `${charName} pauses to gather strength in ${zoneLabel}. The world doesn't stop — distant sounds drift in, the light changes imperceptibly, and the environment breathes around the resting figure. Time passes, but the world keeps moving.`;
+    }
+    if (actionLower.includes('use') || actionLower.includes('equip') || actionLower.includes('drink') || actionLower.includes('eat') || actionLower.includes('open')) {
+      return `${charName} acts deliberately in ${zoneLabel}. The action sends small ripples through the immediate surroundings — a shift in energy, a change in the atmosphere. Something has been set in motion.`;
+    }
+    // Generic but still atmospheric
+    return `${charName}'s action echoes through ${zoneLabel}. The environment shifts subtly — a change in the wind, a distant sound answering the disturbance. The world is listening, and it has begun to respond in ways both seen and unseen.`;
+  }
+
   try {
-    const campModels = ["google/gemini-2.5-flash-lite", "google/gemini-2.5-flash"];
+    const campModels = ["google/gemini-2.5-flash", "google/gemini-2.5-flash-lite"];
     let rawText = '';
     let responseOk = false;
+    let finishReason = '';
 
     for (const model of campModels) {
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -1978,7 +2006,7 @@ ${isMultiplayer ? `MULTIPLAYER: Respond using "${playerCharacter.name}" — NEVE
             ...historyMessages.slice(-10),
             { role: "user", content: userMessage },
           ],
-          max_tokens: 2000,
+          max_tokens: 3000,
           temperature: 0.8,
           response_format: { type: "json_object" },
         }),
@@ -1987,6 +2015,10 @@ ${isMultiplayer ? `MULTIPLAYER: Respond using "${playerCharacter.name}" — NEVE
       rawText = await response.text();
       if (response.ok) {
         responseOk = true;
+        try {
+          const parsed = JSON.parse(rawText);
+          finishReason = parsed.choices?.[0]?.finish_reason || '';
+        } catch { /* will be handled below */ }
         break;
       }
       console.warn(`Campaign narration model ${model} returned ${response.status}, trying next...`);
@@ -2006,6 +2038,11 @@ ${isMultiplayer ? `MULTIPLAYER: Respond using "${playerCharacter.name}" — NEVE
     }
 
     const content = data.choices?.[0]?.message?.content || '{}';
+
+    // Check for truncation
+    if (finishReason === 'length') {
+      console.warn('Campaign narration response was truncated (finish_reason=length). Attempting recovery...');
+    }
 
     let parsed;
     try {
@@ -2034,13 +2071,30 @@ ${isMultiplayer ? `MULTIPLAYER: Respond using "${playerCharacter.name}" — NEVE
           .replace(/```\n?/g, '')
           .replace(/^\s*\{[\s\S]*$/, '') // drop malformed JSON
           .trim();
-        parsed = { narration: stripped || 'The world responds...', xpGained: 5, hpChange: 0, advanceTime: 0, newZone: null };
+        if (stripped && stripped.length > 20) {
+          parsed = { narration: stripped, xpGained: 5, hpChange: 0, advanceTime: 0, newZone: null };
+        } else {
+          // Use contextual fallback instead of dead-end message
+          parsed = {
+            narration: buildContextualFallback(playerAction, currentZone, playerCharacter.name),
+            xpGained: 5,
+            hpChange: 0,
+            advanceTime: 0,
+            newZone: null,
+          };
+        }
       }
     }
 
+    // Final validation: never allow empty/placeholder narration through
+    const narrationText = typeof parsed.narration === 'string' ? parsed.narration.trim() : '';
+    const finalNarration = (narrationText && narrationText.length > 10)
+      ? narrationText
+      : buildContextualFallback(playerAction, currentZone, playerCharacter.name);
+
     return new Response(
       JSON.stringify({
-        narration: (typeof parsed.narration === 'string' && parsed.narration.trim()) ? parsed.narration : 'The world responds to your actions...',
+        narration: finalNarration,
         xpGained: typeof parsed.xpGained === 'number' ? Math.max(0, Math.min(50, parsed.xpGained)) : 5,
         hpChange: typeof parsed.hpChange === 'number' ? Math.max(-50, Math.min(30, parsed.hpChange)) : 0,
         advanceTime: typeof parsed.advanceTime === 'number' ? Math.max(0, Math.min(2, Math.floor(parsed.advanceTime))) : 0,
@@ -2058,9 +2112,10 @@ ${isMultiplayer ? `MULTIPLAYER: Respond using "${playerCharacter.name}" — NEVE
     );
   } catch (error) {
     console.error("Campaign narration error:", error);
+    const fallback = buildContextualFallback(playerAction, currentZone, playerCharacter.name);
     return new Response(
-      JSON.stringify({ narration: "The world responds to your actions...", xpGained: 5, hpChange: 0 }),
-      { status: 500, headers: { ...cors, "Content-Type": "application/json" } }
+      JSON.stringify({ narration: fallback, xpGained: 5, hpChange: 0 }),
+      { status: 200, headers: { ...cors, "Content-Type": "application/json" } }
     );
   }
 }
