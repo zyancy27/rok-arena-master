@@ -112,8 +112,8 @@ import { buildNarrationPlaybackOptions, buildNarratorMessageMetadata, getNarrato
 import { applyHardClamp, generateClampContext, type CharacterProfile, type ClampResult } from '@/lib/hard-clamp';
 import { detectDirectInteraction } from '@/lib/battle-hit-detection';
 import { IntentEngine, type IntentDebugPayload } from '@/systems/intent/IntentEngine';
-import { CharacterContextResolver } from '@/systems/character/CharacterContextResolver';
-import { ActionResolver, formatActionForNarrator, type ActionResult } from '@/systems/resolution/ActionResolver';
+import { BattleActionPipeline } from '@/systems/pipeline/BattleActionPipeline';
+import { type ActionResult } from '@/systems/resolution/ActionResolver';
 import { IntentDebugCard } from '@/components/intent/IntentDebugCard';
 import {
   ArrowLeft,
