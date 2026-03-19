@@ -60,7 +60,7 @@ const PATTERN_AFTER_PRONOUN = new RegExp(
  *   and the dialogue (handled in dedup / override logic)
  */
 const PATTERN_ACTION_THEN_SPEECH = new RegExp(
-  String.raw`${NAME_CAPTURE}[^""]{1,200}?[.!?]\s*${DIALOGUE_CAPTURE}`,
+  String.raw`${NAME_CAPTURE}[^""\u201C\u201D]{1,200}?[.!?]\s*${DIALOGUE_CAPTURE}`,
   'g',
 );
 
