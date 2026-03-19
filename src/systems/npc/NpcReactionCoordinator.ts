@@ -1,5 +1,5 @@
 import type { CampaignTime } from '@/lib/campaign-types';
-import { buildGeneratedRuntimeMetadata, getGeneratedRuntimePackets } from '@/systems/pipeline/GeneratedRuntimeBridge';
+import { buildGeneratedRuntimeMetadata } from '@/systems/pipeline/GeneratedRuntimeBridge';
 import type { NpcReactionPacket } from '@/systems/types/PipelineTypes';
 import type { StructuredCombatResult } from '@/systems/combat/CombatResolver';
 import type { ResolvedCharacterContext } from '@/systems/character/CharacterContextResolver';
@@ -60,7 +60,7 @@ export const NpcReactionCoordinator = {
     const primaryEnemy = input.activeEnemies?.[0];
     if (!primaryEnemy) return null;
 
-    const generatedPackets = input.worldContext?.generatedPackets ?? getGeneratedRuntimePackets(input.worldContext);
+    const generatedPackets = input.worldContext?.generatedPackets ?? {};
     const generatedSceneState = asRecord(generatedPackets.sceneState);
     const generatedNpcIdentity = asRecord(generatedPackets.npcIdentity);
     const generatedEncounter = asRecord(generatedPackets.encounter);
