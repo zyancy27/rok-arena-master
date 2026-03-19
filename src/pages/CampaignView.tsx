@@ -2358,7 +2358,7 @@ export default function CampaignView() {
         <EnvironmentChatBackground location={activeSceneLocation || campaign.current_zone} />
         <BattlefieldEffectsOverlay effects={battlefieldEffects} className="z-[1]" />
 
-        <Tabs defaultValue="adventure" className="flex flex-col flex-1 min-h-0 relative z-[2]">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'adventure' | 'narrator')} className="flex flex-col flex-1 min-h-0 relative z-[2]">
           <div className="bg-background/60 backdrop-blur-sm border-b border-border/30 px-3 z-10 relative shrink-0">
               <TabsList className="bg-transparent h-auto p-0 gap-4">
                 <TabsTrigger value="adventure" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-1 pb-2 pt-3 text-sm gap-1.5">
