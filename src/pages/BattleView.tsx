@@ -1808,7 +1808,7 @@ export default function BattleView() {
             level: userCharacter.character.level,
             speed: userCharacter.character.stat_speed,
           },
-          userAction: formatActionForNarrator(intentResult.intent, actionResult, opponentAction),
+          userAction: pipelineResult.resolvedAction.structuredAction,
           rawActionText: opponentAction,
           opponentResponse: '', // User hasn't responded yet
           battleLocation: battle.chosen_location,
@@ -1819,7 +1819,7 @@ export default function BattleView() {
             zone: battleDistance.currentZone,
             meters: battleDistance.estimatedMeters,
           },
-          structuredIntent: intentResult.intent,
+          structuredIntent: pipelineResult.resolvedAction.intent,
           actionResult,
           // Dice result so narrator can describe actual outcome
           diceResult: diceResult ?? undefined,
