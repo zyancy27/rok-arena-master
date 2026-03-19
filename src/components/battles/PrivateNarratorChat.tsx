@@ -11,11 +11,19 @@ import { VoiceTextarea } from '@/components/ui/voice-textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { BookOpen, Send, Sparkles, ShieldAlert, Lock, Map } from 'lucide-react';
+import { BookOpen, Send, Sparkles, ShieldAlert, Lock, Map, User, UserCheck, Swords, MapPin } from 'lucide-react';
 import TacticalBattleMap from './TacticalBattleMap';
 import { generateTacticalMap } from '@/lib/tactical-map-generator';
 import type { ArenaState } from '@/lib/living-arena';
 import type { DistanceZone } from '@/lib/battle-dice';
+import { ChatMessagePresentationResolver } from '@/systems/chat/ChatMessagePresentationResolver';
+import type { SpeakerPresentationProfile } from '@/systems/chat/presentation/SpeakerPresentationProfile';
+import {
+  getChatBoxContentClasses,
+  getChatBoxLabelClasses,
+  getChatBoxSurfaceClasses,
+  getChatBoxWrapperClasses,
+} from '@/systems/chat/presentation/chatBoxRenderEffects';
 
 interface NarratorMessage {
   id: string;

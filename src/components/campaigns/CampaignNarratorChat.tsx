@@ -15,7 +15,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { supabase } from '@/integrations/supabase/client';
 import {
   BookOpen, Send, Sparkles, Lock, Globe, User, Map, Swords,
-  Heart, Zap, Users, ChevronDown, MapPin, RefreshCw, LogOut, Play, Backpack, Crosshair,
+  Heart, Zap, Users, ChevronDown, MapPin, RefreshCw, LogOut, Play, Backpack, Crosshair, UserCheck,
 } from 'lucide-react';
 import CampaignInventoryPanel, { type InventoryItem } from './CampaignInventoryPanel';
 import CampaignTradePanel from './CampaignTradePanel';
@@ -24,6 +24,14 @@ import { getTimeEmoji } from '@/lib/campaign-types';
 import type { CampaignParticipant } from '@/lib/campaign-types';
 import TacticalBattleMap from '@/components/battles/TacticalBattleMap';
 import { generateTacticalMap } from '@/lib/tactical-map-generator';
+import { ChatMessagePresentationResolver } from '@/systems/chat/ChatMessagePresentationResolver';
+import type { SpeakerPresentationProfile } from '@/systems/chat/presentation/SpeakerPresentationProfile';
+import {
+  getChatBoxContentClasses,
+  getChatBoxLabelClasses,
+  getChatBoxSurfaceClasses,
+  getChatBoxWrapperClasses,
+} from '@/systems/chat/presentation/chatBoxRenderEffects';
 
 interface NarratorMessage {
   id: string;
