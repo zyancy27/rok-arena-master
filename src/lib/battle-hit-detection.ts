@@ -8,6 +8,8 @@
  * in config objects that can be extended without rewriting logic.
  */
 
+import { analyzeCombatIntentContext } from './combat-intent-context';
+
 // ─── Verb Config ─────────────────────────────────────────────────
 
 export interface VerbEntry {
