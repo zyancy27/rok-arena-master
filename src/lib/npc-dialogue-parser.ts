@@ -28,7 +28,7 @@ export type MessageSegment = NarrationSegment | NpcDialogueSegment;
 const SPEECH_VERBS =
   'says?|whispers?|shouts?|mutters?|growls?|replies?|responds?|asks?|calls?|hisses?|murmurs?|barks?|snaps?|laughs?|chuckles?|sighs?|announces?|exclaims?|declares?|pleads?|demands?|commands?|speaks?|adds?|continues?|interrupts?|stammers?|cries?';
 
-const NAME_CAPTURE = '(?:\\*\\*([^*]+)\\*\\*|([A-Z][A-Za-z\\'’.-]*(?:\\s+[A-Z][A-Za-z\\'’.-]*){0,3}))';
+const NAME_CAPTURE = `(?:\\*\\*([^*]+)\\*\\*|([A-Z][A-Za-z\\'’.-]*(?:\\s+[A-Z][A-Za-z\\'’.-]*){0,3}))`;
 
 // 1. **Name** says, "dialogue" / Name says, "dialogue" / Name: "dialogue"
 const PATTERN_BEFORE = new RegExp(
