@@ -110,6 +110,7 @@ import { useUserSettings } from '@/hooks/use-user-settings';
 import NarratorMessageContent from '@/components/campaigns/NarratorMessageContent';
 import { buildNarrationPlaybackOptions, getNarratorAnimationClass } from '@/lib/narration-playback';
 import { ChatMessagePresentationResolver } from '@/systems/chat/ChatMessagePresentationResolver';
+import type { ChatSpeakerRole, SpeakerPresentationProfile } from '@/systems/chat/presentation/SpeakerPresentationProfile';
 import { invokeOrchestrator } from '@/lib/story-orchestrator';
 import { applyHardClamp, generateClampContext, type CharacterProfile, type ClampResult } from '@/lib/hard-clamp';
 import { detectDirectInteraction } from '@/lib/battle-hit-detection';
@@ -244,6 +245,199 @@ interface Message {
   themeSnapshot?: ThemeSnapshot | null;
   intentDebug?: IntentDebugPayload | null;
   actionResult?: ActionResult | null;
+}
+
+interface BattleRenderEnvelope {
+  id: string;
+  speakerRole: ChatSpeakerRole;
+  speakerName: string;
+  content: string;
+  createdAt: string;
+  presentationProfile: SpeakerPresentationProfile | null | undefined;
+  themeSnapshot?: ThemeSnapshot | null;
+  statusEffectsSnapshot?: StatusEffectsSnapshot;
+  isPending?: boolean;
+}
+
+const BATTLE_SYSTEM_MESSAGE_PATTERN = /^(⚠️|🛡️|🎲|📍|📜|🆕|✅|❌|💥|📦|🧪|🧠|🔔)/;
+
+function isBattleSystemMessage(message: Message) {
+  return message.channel === 'out_of_universe' && BATTLE_SYSTEM_MESSAGE_PATTERN.test(message.content.trim());
+}
+
+function buildBattlePresentationMetadata(
+  message: Message,
+  role: ChatSpeakerRole,
+): Record<string, unknown> | null {
+  const themeSnapshot = message.themeSnapshot;
+  const statusTags = Object.keys(message.statusEffectsSnapshot || {});
+
+  if (!themeSnapshot && statusTags.length === 0) return null;
+
+  const pressure = themeSnapshot?.animationIntensity === 'high'
+    ? 'high'
+    : themeSnapshot?.animationIntensity === 'medium'
+      ? 'medium'
+      : role === 'enemy_combatant'
+        ? 'medium'
+        : 'low';
+
+  const emphasisCue = themeSnapshot?.chatBox.fontHint === 'italic'
+    ? 'frayed'
+    : themeSnapshot?.chatBox.fontHint === 'bold'
+      ? role === 'enemy_combatant'
+        ? 'sharp'
+        : 'composed'
+      : null;
+
+  const urgencyCue = themeSnapshot?.chatBox.urgencyAnimation?.includes('flicker')
+    ? 'flicker'
+    : themeSnapshot?.chatBox.urgencyAnimation?.includes('pulse')
+      ? 'surge'
+      : null;
+
+  const sceneTags = [
+    ...(themeSnapshot?.tags ?? []),
+    ...(themeSnapshot?.statusTags ?? []),
+    ...statusTags,
+  ];
+
+  const tonalFlags = [
+    emphasisCue,
+    urgencyCue,
+    themeSnapshot?.animationIntensity === 'high'
+      ? role === 'enemy_combatant'
+        ? 'hostile'
+        : 'charged'
+      : themeSnapshot?.animationIntensity === 'medium'
+        ? 'guarded'
+        : 'calm',
+  ].filter((value): value is string => Boolean(value));
+
+  return {
+    generatedSceneState: {
+      scenePressure: pressure,
+      chatPresentationTags: sceneTags,
+      narrationToneFlags: tonalFlags,
+    },
+    sceneEffectPacket: {
+      environmentalPressureTags: themeSnapshot?.tags ?? [],
+      hazardPulseTags: [...(themeSnapshot?.statusTags ?? []), ...statusTags],
+      chatPresentationTags: sceneTags,
+      ambientCueFamilies: tonalFlags,
+    },
+    scenePresentationProfile: {
+      chatPresentationFlavor: tonalFlags,
+      visualTone: themeSnapshot?.tags ?? [],
+      audioTone: [...(themeSnapshot?.statusTags ?? []), ...statusTags],
+    },
+  };
+}
+
+function resolveBattleSpeakerRole(message: Message, isFromUser: boolean): ChatSpeakerRole {
+  if (isBattleSystemMessage(message)) return 'system';
+  if (message.channel === 'out_of_universe') return isFromUser ? 'player' : 'enemy_combatant';
+  return isFromUser ? 'player' : 'enemy_combatant';
+}
+
+function resolveBattleMessageEnvelope(message: Message, options: { isFromUser: boolean }): BattleRenderEnvelope {
+  const speakerRole = resolveBattleSpeakerRole(message, options.isFromUser);
+  const speakerName = speakerRole === 'system'
+    ? 'System'
+    : message.character_name || (options.isFromUser ? 'You' : 'Opponent');
+  const metadata = buildBattlePresentationMetadata(message, speakerRole);
+  const presentationProfile = ChatMessagePresentationResolver.resolveStandaloneProfile({
+    speakerRole,
+    speakerName,
+    metadata,
+  });
+
+  return {
+    id: message.id,
+    speakerRole,
+    speakerName,
+    content: message.content,
+    createdAt: message.created_at,
+    presentationProfile,
+    themeSnapshot: message.themeSnapshot,
+    statusEffectsSnapshot: message.statusEffectsSnapshot,
+    isPending: message.isPending,
+  };
+}
+
+function resolveBattlePresentationIcon(iconTone: SpeakerPresentationProfile['iconTone'] | undefined) {
+  switch (iconTone) {
+    case 'narrator':
+      return BookOpen;
+    case 'enemy':
+      return Swords;
+    case 'system':
+      return MessageCircle;
+    case 'ally':
+      return Users;
+    case 'player':
+      return Flag;
+    case 'npc':
+    default:
+      return Sparkles;
+  }
+}
+
+function getBattleMessageSurfaceClasses(
+  profile: SpeakerPresentationProfile | null | undefined,
+  options: { align?: 'left' | 'right' | 'center'; pending?: boolean } = {},
+) {
+  const align = options.align ?? 'left';
+  const alignClassName = align === 'right' ? 'ml-8' : align === 'center' ? 'mx-4' : 'mr-8';
+  const pressureClassName = profile?.visualPressure === 'critical'
+    ? 'shadow-lg ring-2 ring-border/70'
+    : profile?.visualPressure === 'high'
+      ? 'shadow-md ring-1 ring-border/50'
+      : 'shadow-sm';
+  const overlayClassName = profile?.overlayBehavior === 'volatile'
+    ? 'bg-gradient-to-br from-background/20 via-background/10 to-primary/10'
+    : profile?.overlayBehavior === 'layered'
+      ? 'bg-gradient-to-br from-background/10 via-background/5 to-secondary/10'
+      : profile?.overlayBehavior === 'hard'
+        ? 'border-2'
+        : '';
+  const motionClassName = profile?.animationTone === 'kinetic'
+    ? 'transition-transform duration-150 hover:-translate-y-0.5'
+    : profile?.animationTone === 'unstable'
+      ? 'transition-transform duration-200 hover:translate-x-px'
+      : 'transition-all duration-300';
+  const pulseClassName = profile?.pulseBehavior === 'surge' || profile?.pulseBehavior === 'flicker'
+    ? 'animate-pulse'
+    : '';
+  const pendingClassName = options.pending ? 'opacity-70' : '';
+
+  return [
+    'env-scope relative overflow-hidden p-3 rounded-lg border backdrop-blur-sm',
+    alignClassName,
+    profile?.surfaceClassName ?? 'bg-card/75 border-border/70 text-foreground',
+    pressureClassName,
+    overlayClassName,
+    motionClassName,
+    pulseClassName,
+    pendingClassName,
+  ].filter(Boolean).join(' ');
+}
+
+function getBattleMessageLabelClasses(profile: SpeakerPresentationProfile | null | undefined) {
+  return [
+    'text-xs font-semibold uppercase',
+    profile?.textEmphasis === 'sharp' ? 'tracking-[0.16em]' : 'tracking-wider',
+    profile?.textEmphasis === 'frayed' ? 'italic' : '',
+    profile?.labelClassName ?? 'text-foreground',
+  ].filter(Boolean).join(' ');
+}
+
+function getBattleMessageContentClasses(profile: SpeakerPresentationProfile | null | undefined) {
+  return [
+    'text-sm whitespace-pre-wrap break-words',
+    profile?.textEmphasis === 'composed' ? 'tracking-[0.01em]' : '',
+    profile?.contentClassName ?? 'text-foreground/90',
+  ].filter(Boolean).join(' ');
 }
 
 type NarratorFrequency = 'always' | 'key_moments' | 'off';
@@ -2956,67 +3150,80 @@ export default function BattleView() {
                                 />
                               )}
                               
-                              <div 
-                                className={`env-scope p-3 rounded-lg ${
-                                  isFromUser
-                                    ? `bg-primary/20 border-l-4 border-primary ml-8${msg.isPending ? ' opacity-70' : ''}`
-                                    : 'bg-muted/50 border-l-4 border-accent mr-8'
-                                }`}
-                              >
-                                {/* Per-message theme snapshot background */}
-                                {msg.themeSnapshot && (
-                                  <EnvironmentChatBackground
-                                    snapshot={msg.themeSnapshot}
-                                    scope="bubble"
-                                    className="rounded-lg"
-                                  />
-                                )}
-                                {/* Snapshot-based Status Effect Overlay — permanent per message */}
-                                {snapshotEffects.length > 0 && (
-                                  <CharacterStatusOverlay 
-                                    effects={snapshotEffects} 
-                                    className="rounded-lg"
-                                  />
-                                )}
-                                
-                                <div className="flex items-center gap-2 mb-1 relative z-10">
-                                  <span className="font-semibold text-sm text-muted-foreground">
-                                    {msg.character_name}
-                                  </span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {new Date(msg.created_at).toLocaleTimeString()}
-                                  </span>
-                                  {/* Pending indicator */}
-                                  {msg.isPending && (
-                                    <span className="text-xs text-muted-foreground italic ml-auto">Sending...</span>
-                                  )}
-                                  {/* Read receipt for user's messages */}
-                                  {isFromUser && !msg.isPending && (
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <span className="ml-auto">
-                                            {wasRead ? (
-                                              <CheckCheck className="w-3 h-3 text-primary" />
-                                            ) : (
-                                              <Check className="w-3 h-3 text-muted-foreground" />
-                                            )}
+                              {(() => {
+                                const envelope = resolveBattleMessageEnvelope(msg, { isFromUser });
+                                const Icon = resolveBattlePresentationIcon(envelope.presentationProfile?.iconTone);
+                                const align = envelope.speakerRole === 'player'
+                                  ? 'right'
+                                  : envelope.speakerRole === 'system'
+                                    ? 'center'
+                                    : 'left';
+                                const surfaceClassName = getBattleMessageSurfaceClasses(envelope.presentationProfile, {
+                                  align,
+                                  pending: Boolean(msg.isPending) && envelope.speakerRole === 'player',
+                                });
+                                const labelClassName = getBattleMessageLabelClasses(envelope.presentationProfile);
+                                const contentClassName = getBattleMessageContentClasses(envelope.presentationProfile);
+
+                                return (
+                                  <div className={surfaceClassName}>
+                                    {envelope.themeSnapshot && (
+                                      <EnvironmentChatBackground
+                                        snapshot={envelope.themeSnapshot}
+                                        scope="bubble"
+                                        className="rounded-lg"
+                                      />
+                                    )}
+                                    {snapshotEffects.length > 0 && (
+                                      <CharacterStatusOverlay
+                                        effects={snapshotEffects}
+                                        className="rounded-lg"
+                                      />
+                                    )}
+
+                                    <div className="flex items-start gap-2 relative z-10">
+                                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${envelope.presentationProfile?.iconContainerClassName ?? 'bg-muted/40 text-foreground'}`}>
+                                        <Icon className="w-4 h-4" />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1 relative z-10">
+                                          <span className={labelClassName}>{envelope.speakerName}</span>
+                                          <span className="text-xs text-muted-foreground">
+                                            {new Date(envelope.createdAt).toLocaleTimeString()}
                                           </span>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          {wasRead ? 'Read by opponent' : 'Sent'}
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  )}
-                                </div>
-                                <p className="whitespace-pre-wrap break-words relative z-10">{msg.content}</p>
-                                {isFromUser && userSettings.audio.intentDebug && msg.intentDebug && (
-                                  <div className="relative z-10 mt-2">
-                                    <IntentDebugCard payload={msg.intentDebug} actionResult={msg.actionResult} />
+                                          {msg.isPending && envelope.speakerRole === 'player' && (
+                                            <span className="text-xs text-muted-foreground italic ml-auto">Sending...</span>
+                                          )}
+                                          {isFromUser && envelope.speakerRole === 'player' && !msg.isPending && (
+                                            <TooltipProvider>
+                                              <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                  <span className="ml-auto">
+                                                    {wasRead ? (
+                                                      <CheckCheck className="w-3 h-3 text-primary" />
+                                                    ) : (
+                                                      <Check className="w-3 h-3 text-muted-foreground" />
+                                                    )}
+                                                  </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                  {wasRead ? 'Read by opponent' : 'Sent'}
+                                                </TooltipContent>
+                                              </Tooltip>
+                                            </TooltipProvider>
+                                          )}
+                                        </div>
+                                        <p className={`relative z-10 ${contentClassName}`}>{envelope.content}</p>
+                                        {isFromUser && envelope.speakerRole === 'player' && userSettings.audio.intentDebug && msg.intentDebug && (
+                                          <div className="relative z-10 mt-2">
+                                            <IntentDebugCard payload={msg.intentDebug} actionResult={msg.actionResult} />
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
                                   </div>
-                                )}
-                              </div>
+                                );
+                              })()}
                             </div>
                           );
                         })}
@@ -3064,18 +3271,19 @@ export default function BattleView() {
                             speakerName: 'Narrator',
                             metadata: latestNarration.metadata as Record<string, unknown> | null,
                           });
+                          const NarratorIcon = resolveBattlePresentationIcon(narratorPresentationProfile?.iconTone);
+                          const narratorSurfaceClassName = getBattleMessageSurfaceClasses(narratorPresentationProfile, { align: 'left' });
+                          const narratorLabelClassName = getBattleMessageLabelClasses(narratorPresentationProfile);
 
                           return (
-                            <div className={`p-3 rounded-lg border mx-4 animate-fade-in ${narratorPresentationProfile?.surfaceClassName ?? 'bg-card/75 border-border/70'}`}>
-                              <div className="flex items-start gap-2">
+                            <div className={`${narratorSurfaceClassName} animate-fade-in`}>
+                              <div className="flex items-start gap-2 relative z-10">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${narratorPresentationProfile?.iconContainerClassName ?? 'bg-primary/12 text-primary border border-primary/20'}`}>
-                                  <BookOpen className="w-4 h-4" />
+                                  <NarratorIcon className="w-4 h-4" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <p className={`text-xs font-medium uppercase tracking-wider ${narratorPresentationProfile?.labelClassName ?? 'text-primary'}`}>
-                                      Narrator
-                                    </p>
+                                    <p className={narratorLabelClassName}>Narrator</p>
                                     {userSettings.audio.narratorVoiceEnabled && (
                                       narratorVoice.isPlaying && isActiveNarration ? (
                                         <button
@@ -3204,24 +3412,39 @@ export default function BattleView() {
                   <div className="space-y-4">
                     {outOfUniverseMessages.map((msg) => {
                       const isFromUser = msg.character_id === userCharacter?.character_id;
+                      const envelope = resolveBattleMessageEnvelope(msg, { isFromUser });
+                      const Icon = resolveBattlePresentationIcon(envelope.presentationProfile?.iconTone);
+                      const align = envelope.speakerRole === 'player'
+                        ? 'right'
+                        : envelope.speakerRole === 'system'
+                          ? 'center'
+                          : 'left';
+                      const surfaceClassName = getBattleMessageSurfaceClasses(envelope.presentationProfile, {
+                        align,
+                        pending: Boolean(msg.isPending) && envelope.speakerRole === 'player',
+                      });
+                      const labelClassName = getBattleMessageLabelClasses(envelope.presentationProfile);
+                      const contentClassName = getBattleMessageContentClasses(envelope.presentationProfile);
+
                       return (
-                        <div 
-                          key={msg.id} 
-                          className={`p-3 rounded-lg ${
-                            isFromUser
-                              ? 'bg-muted/30 border-l-4 border-muted-foreground ml-8'
-                              : 'bg-muted/20 border-l-4 border-muted mr-8'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="font-semibold text-sm text-muted-foreground">
-                              {msg.character_name}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {new Date(msg.created_at).toLocaleTimeString()}
-                            </span>
+                        <div key={msg.id} className={surfaceClassName}>
+                          <div className="flex items-start gap-2 relative z-10">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${envelope.presentationProfile?.iconContainerClassName ?? 'bg-muted/40 text-foreground'}`}>
+                              <Icon className="w-4 h-4" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className={labelClassName}>{envelope.speakerName}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(envelope.createdAt).toLocaleTimeString()}
+                                </span>
+                                {msg.isPending && envelope.speakerRole === 'player' && (
+                                  <span className="text-xs text-muted-foreground italic ml-auto">Sending...</span>
+                                )}
+                              </div>
+                              <p className={contentClassName}>{envelope.content}</p>
+                            </div>
                           </div>
-                          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{msg.content}</p>
                         </div>
                       );
                     })}
