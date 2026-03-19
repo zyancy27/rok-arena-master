@@ -1051,12 +1051,13 @@ export default function CampaignView() {
       });
 
       if (!error && data?.narration) {
-        await supabase.from('campaign_messages').insert({
-          campaign_id: campaign.id,
-          sender_type: 'narrator',
-          content: data.narration,
-          channel: 'in_universe',
-        });
+          await supabase.from('campaign_messages').insert({
+            campaign_id: campaign.id,
+            sender_type: 'narrator',
+            content: data.narration,
+            channel: 'in_universe',
+            metadata: buildNarratorMessageMetadata(data),
+          });
       }
     } catch (err) {
       console.error('Failed to generate intro:', err);
