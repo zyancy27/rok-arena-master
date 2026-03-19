@@ -129,41 +129,43 @@ export function useCampaignCombat(character: CampaignCharacterContext | null, pa
   const processCombatAction = useCallback((messageText: string): StructuredCombatResult => {
     const hitDetection = detectDirectInteraction(messageText);
 
+    const createNonCombatResult = (impact: string): StructuredCombatResult => ({
+      outcome: 'miss',
+      success: false,
+      timing: { actorSpeed: 0, targetSpeed: 0, speedAdvantage: 0, initiative: 'even' },
+      positioning: {
+        currentRange: 'mid',
+        resolvedRange: 'mid',
+        currentZone: 'mid',
+        resolvedZone: 'mid',
+        meters: 8,
+        movementApplied: false,
+        movementRequired: false,
+        actionPossible: false,
+        distanceDelta: 0,
+      },
+      engagement: {
+        engaged: false,
+        restrictedMovement: false,
+        disengaging: false,
+        breakChance: 0,
+        interceptRisk: 0,
+        interceptionTriggered: false,
+      },
+      damage: null,
+      updatedState: createCombatState({ participants: [] }),
+      hitDetermination: null,
+      defenseDetermination: null,
+      diceMetadata: null,
+      narratorDiceContext: null,
+      impact,
+      consequences: [],
+      concentrationAvailable: false,
+      gap: 0,
+    });
+
     if (!character) {
-      return {
-        outcome: 'miss',
-        success: false,
-        timing: { actorSpeed: 0, targetSpeed: 0, speedAdvantage: 0, initiative: 'even' },
-        positioning: {
-          currentRange: 'mid',
-          resolvedRange: 'mid',
-          currentZone: 'mid',
-          resolvedZone: 'mid',
-          meters: 8,
-          movementApplied: false,
-          movementRequired: false,
-          actionPossible: false,
-          distanceDelta: 0,
-        },
-        engagement: {
-          engaged: false,
-          restrictedMovement: false,
-          disengaging: false,
-          breakChance: 0,
-          interceptRisk: 0,
-          interceptionTriggered: false,
-        },
-        damage: null,
-        updatedState: createCombatState({ participants: [] }),
-        hitDetermination: null,
-        defenseDetermination: null,
-        diceMetadata: null,
-        narratorDiceContext: null,
-        impact: 'No combat context available.',
-        consequences: [],
-        concentrationAvailable: false,
-        gap: 0,
-      };
+      return createNonCombatResult('No combat context available.');
     }
 
     const scaledStats = buildCampaignStats(character);
@@ -172,6 +174,18 @@ export function useCampaignCombat(character: CampaignCharacterContext | null, pa
       actorName: character.name,
       possibleTargets: [{ id: 'enemy', name: 'Enemy', kind: 'enemy' }],
     });
+
+    if (!intentResult.intent.isCombatAction && !hitDetection.shouldTriggerHitCheck && !hitDetection.shouldTriggerDefenseCheck) {
+      setCombatState(prev => ({
+        ...prev,
+        lastHitResult: null,
+        lastDefenseResult: null,
+        lastHitDetection: hitDetection,
+        concentrationPrompt: null,
+      }));
+      return createNonCombatResult('No combat roll required for this action.');
+    }
+
     const characterContext = CharacterContextResolver.resolve({
       characterId: character.characterId,
       name: character.name,

@@ -1256,6 +1256,8 @@ export default function CampaignView() {
         narratorSentiment: narratorSentiment || undefined,
       });
 
+      let totalXpGained = 0;
+
       if (!error && data?.narration) {
         // Process narrator response for status effects
         campaignCombat.processNarratorResponse(data.narration);
@@ -1279,7 +1281,6 @@ export default function CampaignView() {
           } else {
             setCombatPulse('red');
           }
-          // Clear pulse after 8 seconds
           if (combatPulseTimerRef.current) clearTimeout(combatPulseTimerRef.current);
           combatPulseTimerRef.current = setTimeout(() => setCombatPulse('none'), 8000);
         }
@@ -1298,14 +1299,20 @@ export default function CampaignView() {
           metadata: narrationPacket.metadata as any,
         }]);
 
-        // Accumulate all XP from this turn and apply level-ups immediately
-        let totalXpGained = 0;
         if (data.xpGained) {
           triggerDiscovery('campaign_xp');
           totalXpGained += data.xpGained;
         }
+      } else {
+        await supabase.from('campaign_messages').insert([{
+          campaign_id: snapshotCampaign.id,
+          sender_type: 'narrator',
+          content: 'The scene hangs in a brief, tense silence, as if the world is gathering its next words.',
+          channel: 'in_universe',
+        }]);
+      }
 
-        if (data.hpChange && data.hpChange !== 0) {
+      if (data) {
           const newHp = Math.max(0, Math.min(snapshotParticipant.campaign_hp_max, snapshotParticipant.campaign_hp + data.hpChange));
           await supabase.from('campaign_participants')
             .update({ campaign_hp: newHp })
@@ -1814,9 +1821,18 @@ export default function CampaignView() {
         partyContext: participants.filter(p => p.is_active).map(p => `${p.character?.name} (Campaign Lv.${p.campaign_level}, HP: ${p.campaign_hp}/${p.campaign_hp_max}${(p as any).is_solo ? ', SOLO — away from group' : ''})`),
       });
 
-      const diceResult = combatResult.diceMetadata
-        ? combatResult.diceMetadata as Record<string, unknown>
-        : pipelineResult.resolvedAction.combatResult?.diceMetadata as Record<string, unknown> | null ?? null;
+      const shouldAttachDice = Boolean(
+        pipelineResult.resolvedAction.intent.isCombatAction
+          || pipelineResult.resolvedAction.intent.requiresRoll
+          || combatResult.hitDetermination
+          || combatResult.defenseDetermination,
+      );
+
+      const diceResult = shouldAttachDice
+        ? (combatResult.diceMetadata
+          ? combatResult.diceMetadata as Record<string, unknown>
+          : pipelineResult.resolvedAction.combatResult?.diceMetadata as Record<string, unknown> | null ?? null)
+        : null;
 
 
       // Play sent sound
