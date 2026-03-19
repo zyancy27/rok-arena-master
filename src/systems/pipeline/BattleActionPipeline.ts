@@ -3,6 +3,9 @@ import { IntentEngine } from '@/systems/intent/IntentEngine';
 import { CombatResolver } from '@/systems/combat/CombatResolver';
 import { createCombatState } from '@/systems/combat/CombatState';
 import { BattleContextAssembler } from '@/systems/context/BattleContextAssembler';
+import { CharacterCompositionEngine } from '@/systems/composition/CharacterCompositionEngine';
+import { EffectCompositionEngine } from '@/systems/composition/EffectCompositionEngine';
+import { WorldCompositionEngine } from '@/systems/composition/WorldCompositionEngine';
 import { buildResolvedActionPacket } from './ActionPipeline';
 import { NarrationPacketBuilder } from '@/systems/narration/NarrationPacketBuilder';
 import { SceneEffectBridge } from '@/systems/map/SceneEffectBridge';
@@ -20,6 +23,15 @@ export interface BattleActionPipelineInput {
     statusEffects?: Array<{ type: string; intensity?: string }>;
     stamina?: number | null;
     energy?: number | null;
+    personality?: string | null;
+    mentality?: string | null;
+    race?: string | null;
+    sub_race?: string | null;
+    lore?: string | null;
+    weapons_items?: string | null;
+    appearance_aura?: string | null;
+    appearance_movement_style?: string | null;
+    appearance_voice?: string | null;
   };
   opponents?: Array<{
     id: string;
@@ -76,6 +88,42 @@ export const BattleActionPipeline = {
       narratorSceneState: input.sceneState,
     });
 
+    const generatedActorIdentity = CharacterCompositionEngine.compose({
+      id: input.actor.characterId,
+      name: input.actor.name,
+      level: input.actor.tier,
+      powers: input.actor.powers,
+      abilities: input.actor.abilities,
+      personality: input.actor.personality,
+      mentality: input.actor.mentality,
+      race: input.actor.race,
+      sub_race: input.actor.sub_race,
+      lore: input.actor.lore,
+      weapons_items: input.actor.weapons_items,
+      appearance_aura: input.actor.appearance_aura,
+      appearance_movement_style: input.actor.appearance_movement_style,
+      appearance_voice: input.actor.appearance_voice,
+      stat_strength: input.actor.stats?.stat_strength,
+      stat_speed: input.actor.stats?.stat_speed,
+      stat_power: input.actor.stats?.stat_power,
+      stat_skill: input.actor.stats?.stat_skill,
+      stat_battle_iq: input.actor.stats?.stat_battle_iq,
+    });
+
+    const generatedWorldState = WorldCompositionEngine.compose({
+      id: `battle-world:${input.battleZone ?? 'unknown'}`,
+      name: input.battleZone ?? 'Battle Zone',
+      regionType: input.battleZone,
+      environmentTags: input.environmentTags ?? [],
+      activeHazards: input.activeHazards ?? [],
+    });
+
+    context.metadata = {
+      ...(context.metadata || {}),
+      generatedActorIdentity,
+      generatedWorldState,
+    };
+
     const primaryTarget = context.primaryTarget?.context ?? null;
     const combatResult = intentResult.intent.isCombatAction && context.primaryTarget?.id && primaryTarget
       ? CombatResolver.resolve(
@@ -126,10 +174,37 @@ export const BattleActionPipeline = {
     });
 
     const sceneEffects = SceneEffectBridge.build(context, resolvedAction, null);
+    const generatedEffectState = EffectCompositionEngine.compose({
+      name: 'battle-turn',
+      tags: [
+        ...context.environmentTags,
+        ...sceneEffects.zoneShiftTags,
+        ...sceneEffects.hazardPulseTags,
+        ...sceneEffects.enemyPresenceTags,
+        ...sceneEffects.environmentalPressureTags,
+      ],
+      environmentState: {
+        zone: context.zone,
+        sceneState: context.sceneState,
+      },
+    });
+
+    context.metadata = {
+      ...(context.metadata || {}),
+      generatedEffectState,
+    };
+
     const narrationPacket = NarrationPacketBuilder.build({
       resolvedAction,
       sceneEffects,
     });
+    narrationPacket.metadata = {
+      ...(narrationPacket.metadata || {}),
+      generatedActorIdentity,
+      generatedWorldState,
+      generatedEffectState,
+      sceneEffectPacket: sceneEffects,
+    };
 
     const isHighForce = intentResult.legacyMoveIntent.intentCategory === 'HIGH_FORCE' || intentResult.legacyMoveIntent.posture === 'RECKLESS';
 

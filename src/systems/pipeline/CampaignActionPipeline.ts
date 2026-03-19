@@ -2,6 +2,10 @@ import type { Campaign, CampaignParticipant, CampaignTime } from '@/lib/campaign
 import { IntentEngine } from '@/systems/intent/IntentEngine';
 import { CombatResolver } from '@/systems/combat/CombatResolver';
 import { createCombatState } from '@/systems/combat/CombatState';
+import { CharacterCompositionEngine } from '@/systems/composition/CharacterCompositionEngine';
+import { CampaignCompositionEngine } from '@/systems/composition/CampaignCompositionEngine';
+import { EffectCompositionEngine } from '@/systems/composition/EffectCompositionEngine';
+import { WorldCompositionEngine } from '@/systems/composition/WorldCompositionEngine';
 import { CampaignContextAssembler } from '@/systems/context/CampaignContextAssembler';
 import { buildResolvedActionPacket } from './ActionPipeline';
 import { NpcReactionCoordinator } from '@/systems/npc/NpcReactionCoordinator';
@@ -51,6 +55,7 @@ export const CampaignActionPipeline = {
     const activeEnemies = (input.activeEnemies || []).filter((enemy) => enemy.status === 'active' || enemy.status === 'hiding' || !enemy.status);
     const knownNpcs = input.knownNpcs || [];
     const defaultTool = input.equippedItems?.[0] ?? null;
+    const character = (input.participant.character || null) as any;
 
     const intentResult = IntentEngine.resolve(input.rawText, {
       mode: 'campaign',
@@ -69,6 +74,14 @@ export const CampaignActionPipeline = {
         tier: input.participant.character?.level || input.participant.campaign_level,
         stats: {
           stat_strength: input.participant.character?.stat_strength ?? 50,
+          stat_speed: input.participant.character?.stat_speed ?? 50,
+          stat_power: input.participant.character?.stat_power ?? 50,
+          stat_skill: input.participant.character?.stat_skill ?? 50,
+          stat_battle_iq: input.participant.character?.stat_battle_iq ?? 50,
+          stat_durability: input.participant.character?.stat_durability ?? 50,
+          stat_stamina: input.participant.character?.stat_stamina ?? 50,
+          stat_intelligence: input.participant.character?.stat_intelligence ?? 50,
+          stat_luck: input.participant.character?.stat_luck ?? 50,
         },
         abilities: input.participant.character?.abilities,
         powers: input.participant.character?.powers,
@@ -95,6 +108,57 @@ export const CampaignActionPipeline = {
       relationshipState: input.relationshipState,
       memoryState: input.memoryState,
     });
+
+    const generatedActorIdentity = CharacterCompositionEngine.compose({
+      id: input.participant.character_id,
+      name: input.participant.character?.name,
+      level: input.participant.character?.level || input.participant.campaign_level,
+      powers: input.participant.character?.powers,
+      abilities: input.participant.character?.abilities,
+      personality: character?.personality,
+      mentality: character?.mentality,
+      race: character?.race,
+      sub_race: character?.sub_race,
+      lore: character?.lore,
+      weapons_items: character?.weapons_items,
+      appearance_aura: character?.appearance_aura,
+      appearance_movement_style: character?.appearance_movement_style,
+      appearance_voice: character?.appearance_voice,
+      stat_strength: input.participant.character?.stat_strength,
+      stat_speed: input.participant.character?.stat_speed,
+      stat_power: input.participant.character?.stat_power,
+      stat_skill: input.participant.character?.stat_skill,
+      stat_battle_iq: input.participant.character?.stat_battle_iq,
+    });
+
+    const generatedCampaignSeed = CampaignCompositionEngine.compose({
+      id: input.campaign.id,
+      name: input.campaign.name,
+      description: input.campaign.description,
+      current_zone: input.campaign.current_zone,
+      chosen_location: input.campaign.chosen_location,
+      environment_tags: input.campaign.environment_tags,
+      world_state: input.campaign.world_state,
+      story_context: input.campaign.story_context,
+      theme: String((input.campaign.story_context as Record<string, unknown> | null)?.theme || input.campaign.description || ''),
+      goal: String((input.campaign.story_context as Record<string, unknown> | null)?.goal || ''),
+    });
+
+    const generatedWorldState = WorldCompositionEngine.compose({
+      id: `campaign-world:${input.campaign.id}`,
+      name: input.campaign.current_zone,
+      regionType: input.campaign.current_zone,
+      environmentTags: input.environmentTags ?? input.campaign.environment_tags,
+      activeHazards: input.activeHazards ?? [],
+      factionPresence: knownNpcs.map((npc) => String(npc.role || 'local actors')),
+    });
+
+    context.metadata = {
+      ...(context.metadata || {}),
+      generatedActorIdentity,
+      generatedCampaignSeed,
+      generatedWorldState,
+    };
 
     const primaryEnemy = activeEnemies[0] ?? null;
     const targetContext = context.primaryTarget?.kind === 'enemy' ? context.primaryTarget.context ?? null : null;
@@ -168,14 +232,51 @@ export const CampaignActionPipeline = {
       chaosLevel: extractChaosLevel(input.campaign.world_state),
       escapeRoutes: extractEscapeRoutes(input.campaign.world_state),
       combatResult,
+      worldContext: {
+        zone: context.zone,
+        environmentTags: context.environmentTags,
+        relationshipSummary: context.relationshipContext.summary,
+        memorySummary: context.memoryContext.summary,
+        generatedCampaignSeed,
+        generatedWorldState,
+      },
     });
 
     const sceneEffects = SceneEffectBridge.build(context, resolvedAction, npcReaction);
+    const generatedEffectState = EffectCompositionEngine.compose({
+      name: 'campaign-turn',
+      tags: [
+        ...context.environmentTags,
+        ...sceneEffects.zoneShiftTags,
+        ...sceneEffects.hazardPulseTags,
+        ...sceneEffects.enemyPresenceTags,
+        ...sceneEffects.environmentalPressureTags,
+      ],
+      environmentState: {
+        zone: context.zone,
+        worldState: input.campaign.world_state,
+        sceneState: context.sceneState,
+      },
+    });
+
+    context.metadata = {
+      ...(context.metadata || {}),
+      generatedEffectState,
+    };
+
     const narrationPacket = NarrationPacketBuilder.build({
       resolvedAction,
       npcReaction,
       sceneEffects,
     });
+    narrationPacket.metadata = {
+      ...(narrationPacket.metadata || {}),
+      generatedActorIdentity,
+      generatedCampaignSeed,
+      generatedWorldState,
+      generatedEffectState,
+      sceneEffectPacket: sceneEffects,
+    };
 
     return {
       context,
