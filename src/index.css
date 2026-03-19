@@ -3825,8 +3825,8 @@
   50%      { opacity: 0.85; }
   53%      { opacity: 0.95; }
 }
-[data-expr-emotion="fearful"][data-expr-intensity="high"],
-[data-expr-emotion="fearful"][data-expr-intensity="extreme"] {
+[data-expr-emotion="fearful"][data-expr-intensity="high"] .expr-icon,
+[data-expr-emotion="fearful"][data-expr-intensity="extreme"] .expr-icon {
   animation: expr-flicker 2s ease-in-out infinite;
 }
 
