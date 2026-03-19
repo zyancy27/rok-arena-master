@@ -19,6 +19,23 @@ export interface WeightedTrait {
   tags?: string[];
 }
 
+export interface BlueprintAnchor {
+  key: string;
+  required?: boolean;
+  fallback?: BlueprintValue;
+  description?: string;
+}
+
+export interface BlueprintModule {
+  id: string;
+  weight?: number;
+  requires?: string[];
+  excludes?: string[];
+  tags?: string[];
+  traits?: WeightedTrait[];
+  defaults?: Record<string, BlueprintValue>;
+}
+
 export interface BlueprintConstraint {
   id: string;
   type:
@@ -27,10 +44,17 @@ export interface BlueprintConstraint {
     | 'min_value'
     | 'max_value'
     | 'matches_field'
+    | 'required_field'
+    | 'requires_trait'
+    | 'excludes_trait'
+    | 'incompatible_with'
+    | 'fallback_tag'
     | 'custom';
   field?: string;
   value?: unknown;
   message?: string;
+  severity?: 'hard' | 'soft';
+  replacement?: string;
 }
 
 export interface BlueprintReference {
@@ -52,11 +76,16 @@ export interface BlueprintBase<TPayload extends Record<string, unknown> = Record
   version?: number;
   tags: string[];
   optionalFields?: string[];
+  requiredAnchors?: BlueprintAnchor[];
+  optionalModules?: BlueprintModule[];
   constraints?: BlueprintConstraint[];
   defaults?: BlueprintDefaults;
   extends?: string[];
   composes?: BlueprintReference[];
+  incompatibilities?: string[];
   weightedTraits?: WeightedTrait[];
+  derivationHooks?: string[];
+  outputNormalization?: string[];
   payload: TPayload;
   metadata?: Record<string, unknown>;
 }
@@ -79,6 +108,13 @@ export interface BlueprintCompositionResult<TPayload extends Record<string, unkn
     inheritedFrom: string[];
     composedFrom: string[];
     seed: string;
+    anchors: string[];
+    modules: string[];
+    passLog: string[];
+    conflicts: string[];
+    softSignals: string[];
+    derivedTags: string[];
+    normalizedOutputs: string[];
   };
 }
 
