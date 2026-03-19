@@ -1797,99 +1797,22 @@ export default function CampaignView() {
     try {
       const equippedCampaignItems = inventory.filter(i => i.is_equipped);
       const activeEnemiesList = campaignEnemies.filter(e => e.status === 'active' || e.status === 'hiding');
-      const primaryEnemy = activeEnemiesList[0] ?? null;
-      const intentResult = IntentEngine.resolve(messageText, {
-        mode: 'campaign',
-        actorName: participant.character?.name,
-        possibleTargets: activeEnemiesList.map(enemy => ({ id: enemy.id, name: enemy.name, kind: 'enemy' as const })),
-        defaultTool: equippedCampaignItems[0]?.item_name ?? null,
-      });
-      const characterContext = CharacterContextResolver.resolve({
-        characterId: participant.character_id,
-        name: participant.character?.name || 'Character',
-        tier: participant.character?.level || participant.campaign_level,
-        stats: { stat_strength: participant.character?.stat_strength ?? 50 },
-        abilities: participant.character?.abilities,
-        powers: participant.character?.powers,
+      const pipelineResult = CampaignActionPipeline.execute({
+        rawText: messageText,
+        participant,
+        campaign: campaignSnap,
         equippedItems: equippedCampaignItems.map(item => item.item_name),
-        stamina: Math.round((participant.campaign_hp / Math.max(1, participant.campaign_hp_max)) * 100),
+        activeHazards: battlefieldEffects.map((effect: any) => effect.type),
+        environmentTags: campaignSnap.environment_tags,
+        activeEnemies: activeEnemiesList,
+        knownNpcs: [...knownNpcNames].map(name => ({ name })),
+        partyContext: participants.filter(p => p.is_active).map(p => `${p.character?.name} (Campaign Lv.${p.campaign_level}, HP: ${p.campaign_hp}/${p.campaign_hp_max}${(p as any).is_solo ? ', SOLO — away from group' : ''})`),
       });
-      const enemyContext = primaryEnemy ? resolveCampaignEnemyContext(primaryEnemy) : null;
-      const combatResolution = intentResult.intent.isCombatAction && primaryEnemy && enemyContext
-        ? CombatResolver.resolve(
-            intentResult.intent,
-            characterContext,
-            createCombatState({
-              participants: [
-                {
-                  id: participant.character_id,
-                  name: participant.character?.name || 'Character',
-                  stats: {
-                    hp: participant.campaign_hp,
-                    stamina: characterContext.stamina,
-                    speed: characterContext.stats.stat_speed,
-                    strength: characterContext.stats.stat_strength,
-                  },
-                },
-                {
-                  id: primaryEnemy.id,
-                  name: primaryEnemy.name,
-                  stats: {
-                    hp: primaryEnemy.hp,
-                    stamina: 100,
-                    speed: enemyContext.stats.stat_speed,
-                    strength: enemyContext.stats.stat_strength,
-                  },
-                },
-              ],
-              rangeZone: 'mid',
-              zone: campaignSnap.current_zone,
-              terrainTags: battlefieldEffects.map((effect: any) => effect.type),
-            }),
-            {
-              actorId: participant.character_id,
-              targetId: primaryEnemy.id,
-              targetContext: enemyContext,
-            },
-          )
-        : null;
-      const npcBrainTurn = primaryEnemy
-        ? buildCampaignNpcTurn({
-            enemy: {
-              id: primaryEnemy.id,
-              name: primaryEnemy.name,
-              tier: primaryEnemy.tier,
-              hp: primaryEnemy.hp,
-              hpMax: primaryEnemy.hp_max,
-              description: primaryEnemy.description,
-              behaviorProfile: primaryEnemy.behavior_profile,
-              lastAction: primaryEnemy.last_action,
-              metadata: primaryEnemy.metadata,
-            },
-            player: {
-              id: participant.character_id,
-              name: participant.character?.name || 'Character',
-              healthPct: Math.round((participant.campaign_hp / Math.max(1, participant.campaign_hp_max)) * 100),
-              context: characterContext,
-            },
-            combatResult: combatResolution,
-            timeOfDay: campaignSnap.time_of_day,
-            chaosLevel: Number((campaignSnap.world_state as Record<string, unknown> | null)?.chaosLevel ?? 40),
-            escapeRoutes: Number((campaignSnap.world_state as Record<string, unknown> | null)?.escapeRoutes ?? 2),
-          })
-        : null;
-      const actionResult = combatResolution
-        ? toActionResult(combatResolution)
-        : ActionResolver.resolve(intentResult.intent, characterContext, {
-            activeHazards: battlefieldEffects.map((effect: any) => effect.type),
-            hasActiveThreat: activeEnemiesList.length > 0,
-            currentZone: campaignSnap.current_zone,
-          });
 
-      // Build dice metadata for the message
       const diceResult = combatResult.diceMetadata
         ? combatResult.diceMetadata as Record<string, unknown>
-        : null;
+        : pipelineResult.resolvedAction.combatResult?.diceMetadata as Record<string, unknown> | null ?? null;
+
 
       // Play sent sound
       chatSoundsEngine.play('message_sent');
