@@ -16,12 +16,17 @@ export interface NarratorOutput {
   animationTag?: string;
 }
 
-const STYLE = {
+const STYLE: {
+  MAX_WORDS: number;
+  DEFAULT_RATE: number;
+  FAST_RATE: number;
+  SLOW_RATE: number;
+} = {
   MAX_WORDS: 18,
   DEFAULT_RATE: 1.15,
   FAST_RATE: 1.25,
   SLOW_RATE: 0.95,
-} as const;
+};
 
 export function generateNarration(input: NarratorInput): NarratorOutput {
   const { actorName, targetName, intent, action, emotion } = input;
