@@ -149,6 +149,13 @@ export function useNarrationController(options: UseNarrationControllerOptions) {
         ? controller.current.highlight.getCharIndexForSentence(startFromSentence)
         : 0;
 
+      if (playback.soundCue) {
+        getNarrationSoundManager().playCueById(
+          playback.soundCue,
+          playback.context === 'combat' ? 'combat' : 'tense',
+        );
+      }
+
       await controller.current.narrate(
         text,
         messageId,
