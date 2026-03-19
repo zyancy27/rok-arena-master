@@ -1015,11 +1015,11 @@ Narrator opinion: ${narratorSentiment?.opinion_summary || 'None'}
 World state: ${worldState ? JSON.stringify(worldState) : '{}'}
 Story context: ${storyContext ? JSON.stringify(storyContext) : '{}'}`;
 
-  const userPrompt = `Recent scene history:
-${historyMessages.length > 0 ? historyMessages.slice(-8).map((message) => `${message.role}: ${message.content}`).join('
-') : 'No recent history.'}
+  const historyText = historyMessages.length > 0
+    ? historyMessages.slice(-8).map((message) => `${message.role}: ${message.content}`).join('\n')
+    : 'No recent history.';
 
-Generate the best private response suggestions for ${characterName} right now.`;
+  const userPrompt = `Recent scene history:\n${historyText}\n\nGenerate the best private response suggestions for ${characterName} right now.`;
 
   try {
     const models = ["google/gemini-2.5-flash-lite", "google/gemini-2.5-flash"];
