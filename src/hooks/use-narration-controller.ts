@@ -47,7 +47,93 @@ function normalizePlaybackOptions(input?: NarratorSceneContext | NarrationPlayba
 }
 
 export function useNarrationController(options: UseNarrationControllerOptions) {
-...
+  const controller = useRef(getNarrationController());
+  const [narrationState, setNarrationState] = useState<NarrationState>(controller.current.getState());
+  const [snapshot, setSnapshot] = useState<NarrationSnapshot>(controller.current.getSnapshot());
+  const [activeSentenceIndex, setActiveSentenceIndex] = useState(
+    controller.current.getSnapshot().highlightRange?.sentenceIndex ?? -1,
+  );
+  const [activeMessageId, setActiveMessageId] = useState<string | null>(controller.current.getActiveMessageId());
+  const [activeRange, setActiveRange] = useState<NarrationHighlightRange | null>(
+    controller.current.getSnapshot().highlightRange ?? null,
+  );
+  const [pendingTapRequest, setPendingTapRequest] = useState<PendingTapRequest | null>(null);
+
+  useEffect(() => {
+    controller.current.configure({
+      voiceVolume: options.voiceVolume,
+      ambientEnabled: options.ambientEnabled ?? true,
+      ambientIntensity: (options.ambientIntensity as AmbientIntensityLevel) ?? 'standard',
+      ambientVolume: options.soundVolume,
+      reduceVocalSounds: options.reduceVocalSounds ?? false,
+      tapToNarrateEnabled: options.tapToNarrate,
+      askBeforeTapToNarrate: options.askBeforeTapToNarrate ?? true,
+      highlightEnabled: options.narrationHighlightEnabled ?? true,
+      debugEnabled: options.narrationDebug ?? false,
+    });
+  }, [
+    options.voiceVolume,
+    options.soundVolume,
+    options.tapToNarrate,
+    options.askBeforeTapToNarrate,
+    options.narrationHighlightEnabled,
+    options.narrationDebug,
+    options.ambientEnabled,
+    options.ambientIntensity,
+    options.reduceVocalSounds,
+  ]);
+
+  useEffect(() => {
+    controller.current.setVoiceVolume(options.voiceVolume);
+  }, [options.voiceVolume]);
+
+  useEffect(() => {
+    controller.current.setSoundVolume(options.soundVolume);
+  }, [options.soundVolume]);
+
+  useEffect(() => {
+    controller.current.setTapToNarrateEnabled(options.tapToNarrate);
+    if (!options.tapToNarrate) {
+      setPendingTapRequest(null);
+    }
+  }, [options.tapToNarrate]);
+
+  useEffect(() => {
+    controller.current.configureAmbientSounds({
+      enabled: options.ambientEnabled ?? true,
+      intensityLevel: (options.ambientIntensity as AmbientIntensityLevel) ?? 'standard',
+      masterVolume: options.soundVolume,
+      reduceVocalSounds: options.reduceVocalSounds ?? false,
+    });
+  }, [options.ambientEnabled, options.ambientIntensity, options.soundVolume, options.reduceVocalSounds]);
+
+  useEffect(() => {
+    const unsubscribeSnapshot = controller.current.onSnapshotChange((nextSnapshot) => {
+      setSnapshot(nextSnapshot);
+      setActiveMessageId(nextSnapshot.messageId);
+      setActiveRange(nextSnapshot.highlightRange ?? null);
+    });
+
+    const unsubscribeState = controller.current.onStateChange((state) => {
+      setNarrationState(state);
+      if (state === 'idle' || state === 'finished') {
+        setPendingTapRequest(null);
+      }
+    });
+
+    const unsubscribeHighlight = controller.current.onHighlightChange((sentenceIndex, messageId, range) => {
+      setActiveSentenceIndex(sentenceIndex);
+      setActiveMessageId(messageId);
+      setActiveRange(range ?? null);
+    });
+
+    return () => {
+      unsubscribeSnapshot();
+      unsubscribeState();
+      unsubscribeHighlight();
+    };
+  }, []);
+
   const narrate = useCallback(async (
     text: string,
     messageId: string,
@@ -55,14 +141,13 @@ export function useNarrationController(options: UseNarrationControllerOptions) {
     startFromSentence = 0,
   ) => {
     if (!options.enabled || options.hasAIAccess === false) return;
+
     try {
       const playback = normalizePlaybackOptions(contextOrOptions);
-      if (playback.soundCue) {
-        controller.current.playCue(playback.soundCue, playback.context === 'combat' ? 'combat' : 'tense');
-      }
       const startCharIndex = startFromSentence > 0
         ? controller.current.highlight.getCharIndexForSentence(startFromSentence)
         : 0;
+
       await controller.current.narrate(
         text,
         messageId,
@@ -92,7 +177,13 @@ export function useNarrationController(options: UseNarrationControllerOptions) {
     }
 
     try {
-      await controller.current.narrateFromSentence(text, messageId, sentenceIndex, playback.context, playback.voiceSettings);
+      await controller.current.narrateFromSentence(
+        text,
+        messageId,
+        sentenceIndex,
+        playback.context,
+        playback.voiceSettings,
+      );
     } catch {
       toast.error('Narrator voice unavailable');
     }
