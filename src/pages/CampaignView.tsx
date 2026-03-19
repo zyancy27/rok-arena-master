@@ -1027,19 +1027,20 @@ export default function CampaignView() {
         });
 
         const narration = narratorData?.narration;
-        await supabase.from('campaign_messages').insert({
-          campaign_id: campaign.id,
-          sender_type: 'narrator',
-          content: narration || `${oldName} fades from view as ${newChar?.name} ${returning ? 'returns' : 'arrives'}.`,
-          channel: 'in_universe',
+        await insertStructuredNarrationMessages({
+          campaignId: campaign.id,
+          rawNarration: narration || `${oldName} fades from view as ${newChar?.name} ${returning ? 'returns' : 'arrives'}.`,
+          focalCharacterName: newChar?.name ?? oldName,
+          isSolo: campaign.max_players === 1,
+          knownNpcNames,
         });
       } catch {
-        // Fallback if narrator fails
-        await supabase.from('campaign_messages').insert({
-          campaign_id: campaign.id,
-          sender_type: 'narrator',
-          content: `${oldName} slips away as ${newChar?.name} ${returning ? 'rejoins the group' : 'steps into the scene for the first time'}.`,
-          channel: 'in_universe',
+        await insertStructuredNarrationMessages({
+          campaignId: campaign.id,
+          rawNarration: `${oldName} slips away as ${newChar?.name} ${returning ? 'rejoins the group' : 'steps into the scene for the first time'}.`,
+          focalCharacterName: newChar?.name ?? oldName,
+          isSolo: campaign.max_players === 1,
+          knownNpcNames,
         });
       }
 
