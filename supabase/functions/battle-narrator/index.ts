@@ -936,12 +936,18 @@ async function handleCampaignResponseSuggestions(
     narratorSentiment,
   } = body;
 
-  if (!playerCharacter?.name || typeof playerCharacter.name !== 'string') {
+  // Gracefully handle missing or incomplete playerCharacter
+  if (!playerCharacter || typeof playerCharacter !== 'object') {
     return new Response(
-      JSON.stringify({ error: 'playerCharacter.name is required', suggestions: [] }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ suggestions: [] }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
+
+  // Use a fallback name if missing — never hard-fail for suggestions
+  const characterName = (typeof playerCharacter.name === 'string' && playerCharacter.name.trim())
+    ? playerCharacter.name.trim()
+    : 'your character';
 
   const historyMessages: { role: string; content: string }[] = [];
   if (Array.isArray(conversationHistory)) {
