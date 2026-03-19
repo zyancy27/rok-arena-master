@@ -5,7 +5,7 @@
  * themed by the environment via ChatBoxTheme.
  */
 
-import { User } from 'lucide-react';
+import { Sparkles, Swords, User, UserCheck } from 'lucide-react';
 import ChatBoxTheme from '@/components/battles/ChatBoxTheme';
 import type { EnvironmentTag } from '@/lib/theme-engine';
 import type { SpeakerPresentationProfile } from '@/systems/chat/presentation/SpeakerPresentationProfile';
@@ -32,25 +32,40 @@ export default function NpcDialogueBubble({
   const iconContainerClassName = presentationProfile?.iconContainerClassName ?? 'bg-accent/25 text-accent-foreground';
   const labelClassName = presentationProfile?.labelClassName ?? 'text-accent-foreground';
   const contentClassName = presentationProfile?.contentClassName ?? 'text-foreground/90';
+  const pulseClassName = presentationProfile?.pulseBehavior === 'surge' || presentationProfile?.pulseBehavior === 'flicker'
+    ? 'animate-pulse'
+    : 'animate-fade-in';
+  const overlayClassName = presentationProfile?.overlayBehavior === 'volatile'
+    ? 'shadow-lg ring-1 ring-border/60'
+    : presentationProfile?.overlayBehavior === 'layered'
+      ? 'shadow-md'
+      : 'shadow-sm';
+  const Icon = presentationProfile?.iconTone === 'enemy'
+    ? Swords
+    : presentationProfile?.iconTone === 'ally'
+      ? UserCheck
+      : presentationProfile?.iconTone === 'system'
+        ? Sparkles
+        : User;
 
   return (
-    <ChatBoxTheme location={location} tags={tags} className="mx-2 rounded-lg animate-fade-in">
-      <div className={`p-3 rounded-lg border ${surfaceClassName}`}>
+    <ChatBoxTheme location={location} tags={tags} className={`mx-2 rounded-lg ${pulseClassName}`}>
+      <div className={`p-3 rounded-lg border ${surfaceClassName} ${overlayClassName}`}>
         <div className="flex items-start gap-2">
           <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${iconContainerClassName}`}>
-            <User className="w-3.5 h-3.5" />
+            <Icon className="w-3.5 h-3.5" />
           </div>
           <div className="flex-1 min-w-0">
             <span
-              className={`text-xs font-semibold uppercase tracking-wider ${
+              className={`text-xs font-semibold uppercase ${
                 isUnknown
-                  ? 'text-muted-foreground italic'
-                  : labelClassName
+                  ? 'text-muted-foreground italic tracking-wider'
+                  : `${labelClassName} ${presentationProfile?.textEmphasis === 'sharp' ? 'tracking-[0.16em]' : 'tracking-wider'}`
               }`}
             >
               {speakerName}
             </span>
-            <p className={`text-sm whitespace-pre-wrap break-words mt-1 ${contentClassName}`}>
+            <p className={`text-sm whitespace-pre-wrap break-words mt-1 ${contentClassName} ${presentationProfile?.textEmphasis === 'frayed' ? 'italic' : ''}`}>
               &ldquo;{dialogue}&rdquo;
             </p>
           </div>

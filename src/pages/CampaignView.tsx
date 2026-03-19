@@ -54,7 +54,6 @@ import type { CharacterStats } from '@/lib/character-stats';
 import CampaignTacticalMap, { type NarratorSceneMap } from '@/components/campaigns/CampaignTacticalMap';
 import NarratorMessageContent from '@/components/campaigns/NarratorMessageContent';
 import NpcDialogueBubble from '@/components/campaigns/NpcDialogueBubble';
-import { parseNarratorMessage, resolveNpcDisplayName } from '@/lib/npc-dialogue-parser';
 import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import { useNarrationController } from '@/hooks/use-narration-controller';
@@ -62,6 +61,8 @@ import OverchargeToggle from '@/components/battles/OverchargeToggle';
 import { resolveOvercharge, getOverchargeContext } from '@/lib/battle-overcharge';
 import { invokeOrchestrator } from '@/lib/story-orchestrator';
 import { buildNarrationPlaybackOptions, buildNarratorMessageMetadata, getNarratorAnimationClass } from '@/lib/narration-playback';
+import { ChatMessagePresentationResolver } from '@/systems/chat/ChatMessagePresentationResolver';
+import type { SpeakerPresentationProfile } from '@/systems/chat/presentation/SpeakerPresentationProfile';
 import { CampaignActionPipeline } from '@/systems/pipeline/CampaignActionPipeline';
 import { buildNarratorMessagePacket, buildPlayerMessageMetadata } from '@/systems/pipeline/PipelineMessageBridge';
 import { IntentDebugCard } from '@/components/intent/IntentDebugCard';
@@ -96,6 +97,49 @@ function buildBagContent(campaignItems: InventoryItem[], characterWeapons: strin
 
 function resolveCampaignEnemyContext(_enemy: CampaignEnemy) {
   return null;
+}
+
+function getMessageSurfaceClasses(
+  profile: SpeakerPresentationProfile | null | undefined,
+  options: { align?: 'left' | 'right' | 'center'; pending?: boolean } = {},
+) {
+  const align = options.align ?? 'left';
+  const alignClassName = align === 'right' ? 'ml-8' : align === 'center' ? 'mx-2' : 'mr-8';
+  const pressureClassName = profile?.visualPressure === 'critical'
+    ? 'shadow-lg ring-1 ring-border/60'
+    : profile?.visualPressure === 'high'
+      ? 'shadow-md'
+      : 'shadow-sm';
+  const pulseClassName = profile?.pulseBehavior === 'surge' || profile?.pulseBehavior === 'flicker'
+    ? 'animate-pulse'
+    : '';
+  const pendingClassName = options.pending ? 'opacity-70' : '';
+
+  return [
+    'env-scope p-3 rounded-lg border backdrop-blur-sm',
+    alignClassName,
+    profile?.surfaceClassName ?? 'bg-card/75 border-border/70 text-foreground',
+    pressureClassName,
+    pulseClassName,
+    pendingClassName,
+  ].filter(Boolean).join(' ');
+}
+
+function getMessageLabelClasses(profile: SpeakerPresentationProfile | null | undefined) {
+  return [
+    'text-xs font-semibold uppercase',
+    profile?.textEmphasis === 'sharp' ? 'tracking-[0.16em]' : 'tracking-wider',
+    profile?.textEmphasis === 'frayed' ? 'italic' : '',
+    profile?.labelClassName ?? 'text-foreground',
+  ].filter(Boolean).join(' ');
+}
+
+function getMessageContentClasses(profile: SpeakerPresentationProfile | null | undefined) {
+  return [
+    'text-sm whitespace-pre-wrap break-words',
+    profile?.textEmphasis === 'composed' ? 'tracking-[0.01em]' : '',
+    profile?.contentClassName ?? 'text-foreground/90',
+  ].filter(Boolean).join(' ');
 }
 
 export default function CampaignView() {
