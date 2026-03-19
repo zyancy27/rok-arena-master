@@ -66,6 +66,7 @@ import { CharacterContextResolver } from '@/systems/character/CharacterContextRe
 import { ActionResolver, formatActionForNarrator } from '@/systems/resolution/ActionResolver';
 import { CombatResolver, formatCombatResolutionForNarrator, toActionResult } from '@/systems/combat/CombatResolver';
 import { createCombatState } from '@/systems/combat/CombatState';
+import { buildCampaignNpcTurn, formatNpcBrainForNarrator } from '@/systems/npc/NpcBrainAdapters';
 import { IntentDebugCard } from '@/components/intent/IntentDebugCard';
 // Helper: build bag content for the inline backpack bubble
 function buildBagContent(campaignItems: InventoryItem[], characterWeapons: string | null) {
