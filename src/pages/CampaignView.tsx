@@ -124,6 +124,40 @@ function resolvePresentationIcon(iconTone: SpeakerPresentationProfile['iconTone'
 }
 
 export default function CampaignView() {
+  const normalizeCampaignMessageRecord = useCallback((message: any): CampaignMessage => ({
+    ...message,
+    metadata: (message.metadata || {}) as Record<string, unknown>,
+    dice_result: message.dice_result as Record<string, unknown> | null,
+    theme_snapshot: message.theme_snapshot as Record<string, unknown> | null,
+    character: Array.isArray(message.character) ? message.character[0] : message.character,
+  }), []);
+
+  const insertStructuredNarrationMessages = useCallback(async (input: {
+    campaignId: string;
+    rawNarration: string;
+    baseMetadata?: Record<string, unknown> | null;
+    focalCharacterName?: string | null;
+    isSolo?: boolean;
+    activeEnemyNames?: string[];
+  }) => {
+    const normalizedMessages = normalizeNarrationToCampaignMessages({
+      campaignId: input.campaignId,
+      rawNarration: input.rawNarration,
+      baseMetadata: input.baseMetadata,
+      knownNpcNames,
+      activeEnemyNames: input.activeEnemyNames,
+      focalCharacterName: input.focalCharacterName,
+      isSolo: input.isSolo,
+    });
+
+    if (normalizedMessages.length === 0) return;
+    await supabase.from('campaign_messages').insert(normalizedMessages as any);
+  }, [knownNpcNames]);
+
+  const normalizeAndSortMessages = useCallback((items: any[]) => {
+    return sortCampaignMessagesForDisplay(items.map(normalizeCampaignMessageRecord));
+  }, [normalizeCampaignMessageRecord]);
+
   const { id: campaignId } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
