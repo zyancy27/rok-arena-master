@@ -3032,6 +3032,7 @@ export default function BattleView() {
                         {narratorMessages.length > 0 && !isNarratorLoading && (() => {
                           const latestNarration = narratorMessages[narratorMessages.length - 1];
                           const isActiveNarration = narratorVoice.activeMessageId === latestNarration.id;
+                          const narratorAnimationClass = getNarratorAnimationClass(latestNarration.metadata);
 
                           return (
                             <div className="p-3 rounded-lg bg-gradient-to-r from-amber-500/10 via-background to-amber-500/10 border border-amber-500/30 mx-4 animate-fade-in">
@@ -3057,7 +3058,7 @@ export default function BattleView() {
                                         </button>
                                       ) : (
                                         <button
-                                          onClick={() => narratorVoice.narrate(latestNarration.content, latestNarration.id, 'combat')}
+                                          onClick={() => narratorVoice.narrate(latestNarration.content, latestNarration.id, buildNarrationPlaybackOptions(latestNarration.metadata) ?? 'combat')}
                                           className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
                                           title="Listen to narrator"
                                         >
@@ -3070,10 +3071,11 @@ export default function BattleView() {
                                     content={latestNarration.content}
                                     activeSentenceIndex={isActiveNarration ? narratorVoice.activeSentenceIndex : -1}
                                     activeRange={isActiveNarration ? narratorVoice.activeRange : null}
+                                    animationClassName={narratorAnimationClass}
                                     voiceEnabled={userSettings.audio.narratorVoiceEnabled && userSettings.audio.tapToNarrate}
                                     requireTapConfirmation={userSettings.audio.askBeforeTapToNarrate}
                                     hasPendingTapConfirmation={narratorVoice.pendingTapRequest?.messageId === latestNarration.id}
-                                    onSentenceClick={(sentenceIdx) => narratorVoice.narrateFromSentence(latestNarration.content, latestNarration.id, sentenceIdx, 'combat')}
+                                    onSentenceClick={(sentenceIdx) => narratorVoice.narrateFromSentence(latestNarration.content, latestNarration.id, sentenceIdx, buildNarrationPlaybackOptions(latestNarration.metadata) ?? 'combat')}
                                     onConfirmSentenceClick={narratorVoice.confirmTapNarration}
                                     onCancelSentenceClick={narratorVoice.cancelTapNarration}
                                   />
