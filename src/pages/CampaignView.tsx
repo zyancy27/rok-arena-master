@@ -822,7 +822,7 @@ export default function CampaignView() {
           narratorSentiment: narratorSentiment || undefined,
           playerCharacter: {
             characterId: myParticipant.character_id,
-            name: myParticipant.character.name,
+            name: myParticipant.character?.name || null,
             campaignLevel: myParticipant.campaign_level,
             originalLevel: myParticipant.character.level,
             hp: myParticipant.campaign_hp,
