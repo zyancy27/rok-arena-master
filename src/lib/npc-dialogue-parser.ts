@@ -28,20 +28,22 @@ export type MessageSegment = NarrationSegment | NpcDialogueSegment;
 const SPEECH_VERBS =
   'says?|whispers?|shouts?|mutters?|growls?|replies?|responds?|asks?|calls?|hisses?|murmurs?|barks?|snaps?|laughs?|chuckles?|sighs?|announces?|exclaims?|declares?|pleads?|demands?|commands?|speaks?|adds?|continues?|interrupts?|stammers?|cries?';
 
-const NAME_CAPTURE = `(?:\*\*([^*]+)\*\*|([A-Z][A-Za-z\'’.-]*(?:\s+[A-Z][A-Za-z\'’.-]*){0,3}))`;
+const NAME_CAPTURE = String.raw`(?:\*\*([^*]+)\*\*|([A-Z][A-Za-z'’.-]*(?:\s+[A-Z][A-Za-z'’.-]*){0,3}))`;
+const DIALOGUE_CAPTURE = String.raw`["“]([^"”]+)["”]`;
+const SPEECH_CONNECTOR = String.raw`\s*(?:(?:${SPEECH_VERBS})\s*[,:]?\s*|[:—–-]\s*)`;
 
 const PATTERN_BEFORE = new RegExp(
-  `${NAME_CAPTURE}\s*(?:(?:${SPEECH_VERBS})\s*[,:]?\s*|[:\—–-]\s*)["“]([^"”]+)["”]`,
+  String.raw`${NAME_CAPTURE}${SPEECH_CONNECTOR}${DIALOGUE_CAPTURE}`,
   'g',
 );
 
 const PATTERN_AFTER = new RegExp(
-  `["“]([^"”]+)["”][,.]?\s*(?:${SPEECH_VERBS})\s+${NAME_CAPTURE}`,
+  String.raw`${DIALOGUE_CAPTURE}[,.]?\s*(?:${SPEECH_VERBS})\s+${NAME_CAPTURE}`,
   'g',
 );
 
 const PATTERN_AFTER_PRONOUN = new RegExp(
-  `["“]([^"”]+)["”][,.]?\s*(?:he|she|they)\s+(?:${SPEECH_VERBS})`,
+  String.raw`${DIALOGUE_CAPTURE}[,.]?\s*(?:he|she|they)\s+(?:${SPEECH_VERBS})`,
   'g',
 );
 
@@ -117,7 +119,9 @@ export function parseNarratorMessage(text: string): MessageSegment[] {
   for (const match of deduped) {
     if (match.start > cursor) {
       const narration = text.slice(cursor, match.start).trim();
-      if (narration) segments.push({ type: 'narration', text: narration });
+      if (narration && /[\p{L}\p{N}]/u.test(narration)) {
+        segments.push({ type: 'narration', text: narration });
+      }
     }
 
     segments.push({
@@ -131,7 +135,9 @@ export function parseNarratorMessage(text: string): MessageSegment[] {
 
   if (cursor < text.length) {
     const narration = text.slice(cursor).trim();
-    if (narration) segments.push({ type: 'narration', text: narration });
+    if (narration && /[\p{L}\p{N}]/u.test(narration)) {
+      segments.push({ type: 'narration', text: narration });
+    }
   }
 
   return segments;
