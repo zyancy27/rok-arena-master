@@ -1,9 +1,8 @@
 import type { CampaignTime } from '@/lib/campaign-types';
-import { buildGeneratedRuntimeMetadata } from '@/systems/pipeline/GeneratedRuntimeBridge';
-import type { NpcReactionPacket } from '@/systems/types/PipelineTypes';
 import type { StructuredCombatResult } from '@/systems/combat/CombatResolver';
 import type { ResolvedCharacterContext } from '@/systems/character/CharacterContextResolver';
-import type { GeneratedRuntimePackets } from '@/systems/types/PipelineTypes';
+import { buildGeneratedRuntimeMetadata } from '@/systems/pipeline/GeneratedRuntimeBridge';
+import type { GeneratedRuntimePackets, NpcReactionPacket } from '@/systems/types/PipelineTypes';
 import { buildCampaignNpcTurn } from './NpcBrainAdapters';
 
 export interface NpcReactionCoordinatorInput {
@@ -36,6 +35,9 @@ export interface NpcReactionCoordinatorInput {
     generatedPackets?: GeneratedRuntimePackets;
     generatedCampaignSeed?: unknown;
     generatedWorldState?: unknown;
+    relationshipPersistence?: unknown;
+    worldMemory?: unknown;
+    worldTick?: unknown;
   };
 }
 
@@ -64,19 +66,54 @@ export const NpcReactionCoordinator = {
     const generatedSceneState = asRecord(generatedPackets.sceneState);
     const generatedNpcIdentity = asRecord(generatedPackets.npcIdentity);
     const generatedEncounter = asRecord(generatedPackets.encounter);
+    const generatedActorIdentity = asRecord(generatedPackets.actorIdentity);
+    const generatedWorldState = asRecord(generatedPackets.worldState);
+    const generatedCampaignSeed = asRecord(generatedPackets.campaignSeed ?? input.worldContext?.generatedCampaignSeed);
+    const relationshipPersistence = Array.isArray(input.worldContext?.relationshipPersistence)
+      ? input.worldContext?.relationshipPersistence as Record<string, unknown>[]
+      : [];
+    const worldMemory = asRecord(input.worldContext?.worldMemory);
+    const worldTick = asRecord(input.worldContext?.worldTick);
 
     const scenePressure = typeof generatedSceneState.scenePressure === 'string' ? generatedSceneState.scenePressure : null;
     const npcSocialReadiness = typeof generatedSceneState.npcSocialReadiness === 'string' ? generatedSceneState.npcSocialReadiness : null;
     const movementFriction = typeof generatedSceneState.movementFriction === 'string' ? generatedSceneState.movementFriction : null;
     const socialPosture = toStringArray(generatedNpcIdentity.socialPosture);
     const tacticalPressure = toStringArray(generatedEncounter.tacticalPressure);
+    const actorPressure = toStringArray(generatedActorIdentity.pressureStyle);
+    const actorSocialIdentity = toStringArray(generatedActorIdentity.socialIdentity);
+    const worldTravelPressure = toStringArray(generatedWorldState.travelPressure);
+    const worldHazards = toStringArray(generatedWorldState.hazardFamilies);
+    const campaignPressure = toStringArray(generatedCampaignSeed.pressureSources);
+    const tickFactionEvents = Array.isArray(worldTick.factions)
+      ? (worldTick.factions as Record<string, unknown>[]).map((entry) => String(entry.event || ''))
+      : [];
+    const tickLocationEvents = Array.isArray(worldTick.locations)
+      ? (worldTick.locations as Record<string, unknown>[]).map((entry) => String(entry.event || ''))
+      : [];
+    const tickNpcGoals = Array.isArray(worldTick.npcs)
+      ? (worldTick.npcs as Record<string, unknown>[]).flatMap((entry) => toStringArray(entry.nextGoals))
+      : [];
+    const averageTrust = relationshipPersistence.length
+      ? relationshipPersistence.reduce((sum, entry) => sum + Number(entry.trust || 0), 0) / relationshipPersistence.length
+      : 50;
+    const relationshipDisposition = relationshipPersistence.map((entry) => String(entry.disposition || '')).join(' ');
+    const rumorHeat = toStringArray(worldMemory.rumorSeeds).join(' ');
 
     const effectiveChaosLevel = clamp(
       input.chaosLevel
         + (scenePressure === 'critical' ? 15 : scenePressure === 'high' ? 8 : scenePressure === 'low' ? -4 : 0)
         + (npcSocialReadiness === 'hostile' ? 12 : npcSocialReadiness === 'tense' ? 5 : 0)
         + (socialPosture.some((entry) => /cautious|guarded|measured/.test(entry)) ? -3 : 0)
-        + (tacticalPressure.some((entry) => /ambush|overwhelming|explosive|killbox/.test(entry)) ? 8 : 0),
+        + (tacticalPressure.some((entry) => /ambush|overwhelming|explosive|killbox/.test(entry)) ? 8 : 0)
+        + (actorPressure.some((entry) => /relentless|aggressive|force/.test(entry)) ? 4 : 0)
+        + (worldHazards.some((entry) => /fire|storm|toxic|collapse/.test(entry)) ? 4 : 0)
+        + (campaignPressure.some((entry) => /war|siege|hostile|crack/.test(entry)) ? 4 : 0)
+        + (tickFactionEvents.some((entry) => /escalation|maneuver/.test(entry)) ? 6 : 0)
+        + (tickLocationEvents.some((entry) => /destabilizes|shifts/.test(entry)) ? 5 : 0)
+        + (/fraying|hostile|betray/.test(relationshipDisposition) ? 5 : 0)
+        + (averageTrust > 65 ? -4 : averageTrust < 35 ? 5 : 0)
+        + (/rumor|pressure|danger|unstable/.test(rumorHeat) ? 3 : 0),
       0,
       100,
     );
@@ -84,7 +121,9 @@ export const NpcReactionCoordinator = {
     const effectiveEscapeRoutes = Math.max(
       0,
       (input.escapeRoutes ?? 2)
-        + (movementFriction === 'locked' ? -2 : movementFriction === 'restricted' ? -1 : movementFriction === 'open' ? 1 : 0),
+        + (movementFriction === 'locked' ? -2 : movementFriction === 'restricted' ? -1 : movementFriction === 'open' ? 1 : 0)
+        + (worldTravelPressure.some((entry) => /restricted|sealed|blocked/.test(entry)) ? -1 : 0)
+        + (actorSocialIdentity.some((entry) => /clever|calm|guarded/.test(entry)) ? 1 : 0),
     );
 
     const turn = buildCampaignNpcTurn({
@@ -99,6 +138,10 @@ export const NpcReactionCoordinator = {
         lastAction: primaryEnemy.lastAction,
         metadata: {
           ...(primaryEnemy.metadata || {}),
+          relationshipPersistence,
+          worldMemory,
+          worldTick,
+          tickNpcGoals,
           ...buildGeneratedRuntimeMetadata(generatedPackets),
         },
       },
@@ -127,6 +170,9 @@ export const NpcReactionCoordinator = {
         worldContext: input.worldContext,
         effectiveChaosLevel,
         effectiveEscapeRoutes,
+        relationshipDisposition,
+        averageTrust,
+        tickNpcGoals,
         ...buildGeneratedRuntimeMetadata(generatedPackets),
       },
     };

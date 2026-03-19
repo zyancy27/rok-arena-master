@@ -29,6 +29,8 @@ export const SceneEffectBridge = {
       combatRangeTag ? `range:${combatRangeTag}` : null,
       typeof generatedSceneState.movementFriction === 'string' ? `friction:${generatedSceneState.movementFriction}` : null,
       typeof generatedSceneState.visualIntensity === 'string' ? `visual:${generatedSceneState.visualIntensity}` : null,
+      ...toStringArray(generatedEffectState.motionTexture).slice(0, 2).map((entry) => `motion:${entry}`),
+      ...toStringArray(generatedEffectState.backgroundBehavior).slice(0, 1).map((entry) => `background:${entry}`),
     ].filter((tag): tag is string => Boolean(tag));
 
     const hazardPulseTags = [
@@ -36,6 +38,7 @@ export const SceneEffectBridge = {
       ...toStringArray(generatedWorldState.hazardFamilies).map((hazard) => `world-hazard:${hazard}`),
       ...toStringArray(generatedSceneState.effectTags).slice(0, 2).map((tag) => `scene-effect:${tag}`),
       ...toStringArray(generatedEffectState.environmentPersistence).slice(0, 2).map((entry) => `persist:${entry}`),
+      ...toStringArray(generatedEffectState.pulsePatterns).slice(0, 2).map((entry) => `pulse:${entry}`),
     ];
 
     const enemyPresenceTags = [
@@ -44,6 +47,7 @@ export const SceneEffectBridge = {
         .map((target) => `enemy:${target.name}`),
       ...toStringArray(generatedEncounter.threatComposition).map((threat) => `threat:${threat}`),
       ...toStringArray(generatedEncounter.tacticalPressure).slice(0, 2).map((pressure) => `tactical:${pressure}`),
+      ...toStringArray(generatedEffectState.impactBursts).slice(0, 2).map((entry) => `impact:${entry}`),
     ];
 
     const environmentalPressureTags = [
@@ -53,6 +57,8 @@ export const SceneEffectBridge = {
       ...toStringArray(generatedSceneState.environmentalPressure).map((entry) => `pressure:${entry}`),
       ...toStringArray(generatedSceneState.narrationToneFlags).slice(0, 2).map((entry) => `tone:${entry}`),
       ...toStringArray(generatedEffectState.burstImpacts).slice(0, 2).map((entry) => `effect:${entry}`),
+      ...toStringArray(generatedEffectState.overlayPersistence).slice(0, 2).map((entry) => `overlay:${entry}`),
+      ...toStringArray(generatedEffectState.textEmphasisStyle).slice(0, 2).map((entry) => `chat:${entry}`),
     ].filter((tag): tag is string => Boolean(tag));
 
     return {

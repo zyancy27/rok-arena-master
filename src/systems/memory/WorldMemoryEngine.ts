@@ -33,4 +33,12 @@ export const WorldMemoryEngine = {
 
     return snapshot;
   },
+
+  summarize(snapshot: WorldMemorySnapshot) {
+    return {
+      factionSummaries: snapshot.factions.map((entry) => ({ factionId: entry.factionId, ...FactionMemoryEngine.summarize(entry) })),
+      locationSummaries: snapshot.locations.map((entry) => ({ locationId: entry.locationId, ...LocationMemoryEngine.summarize(entry) })),
+      rumorPressure: snapshot.rumorSeeds.slice(-5),
+    };
+  },
 };
