@@ -92,21 +92,44 @@ export function parseNarratorMessage(text: string): MessageSegment[] {
 
   const matches: RawMatch[] = [];
 
-  for (const pattern of [PATTERN_BEFORE, PATTERN_AFTER, PATTERN_AFTER_PRONOUN]) {
+  for (const pattern of [PATTERN_BEFORE, PATTERN_AFTER, PATTERN_AFTER_PRONOUN, PATTERN_ACTION_THEN_SPEECH]) {
     pattern.lastIndex = 0;
     let match: RegExpExecArray | null;
 
     while ((match = pattern.exec(text)) !== null) {
       const isBeforePattern = pattern === PATTERN_BEFORE;
       const isAfterPattern = pattern === PATTERN_AFTER;
-      const speakerName = isBeforePattern
+      const isActionThenSpeech = pattern === PATTERN_ACTION_THEN_SPEECH;
+      const speakerName = (isBeforePattern || isActionThenSpeech)
         ? resolveMatchedName(match[1], match[2])
         : isAfterPattern
           ? resolveMatchedName(match[2], match[3])
           : inferContextualSpeakerName(text.slice(Math.max(0, match.index - 160), match.index));
-      const dialogue = (isBeforePattern ? match[3] : match[1])?.trim() ?? '';
+      const dialogue = ((isBeforePattern || isActionThenSpeech) ? match[3] : match[1])?.trim() ?? '';
 
       if (!speakerName || !dialogue) continue;
+
+      // For the action-then-speech pattern, verify no other named character
+      // appears closer to the dialogue (to avoid mis-attribution).
+      if (isActionThenSpeech) {
+        const gapText = match[0].slice(speakerName.length);
+        const innerNamePattern = new RegExp(NAME_CAPTURE, 'g');
+        let innerMatch: RegExpExecArray | null;
+        let lastInnerName = '';
+        while ((innerMatch = innerNamePattern.exec(gapText)) !== null) {
+          const candidate = resolveMatchedName(innerMatch[1], innerMatch[2]);
+          if (candidate && candidate !== speakerName) lastInnerName = candidate;
+        }
+        // If a different named character is closer to the dialogue, attribute to them instead
+        const effectiveSpeaker = lastInnerName || speakerName;
+        matches.push({
+          start: match.index,
+          end: match.index + match[0].length,
+          speakerName: effectiveSpeaker,
+          dialogue,
+        });
+        continue;
+      }
 
       matches.push({
         start: match.index,
