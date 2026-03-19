@@ -1,6 +1,5 @@
 import { CharacterIdentityGenerator } from '@/systems/identity/CharacterIdentityGenerator';
-import type { CampaignCompositionInput } from '@/systems/composition/CampaignCompositionEngine';
-import { SparseCampaignSeedBuilder } from './SparseCampaignSeedBuilder';
+import { CampaignCompositionEngine, type CampaignCompositionInput } from '@/systems/composition/CampaignCompositionEngine';
 import { CampaignEncounterDensityGenerator } from './CampaignEncounterDensityGenerator';
 import { CampaignNpcDistributionGenerator } from './CampaignNpcDistributionGenerator';
 import { CampaignObjectiveGenerator } from './CampaignObjectiveGenerator';
@@ -32,7 +31,7 @@ export interface SparseCampaignSeedInput extends CampaignCompositionInput {
 
 export interface SparseCampaignRuntimeSeed {
   actorIdentity: ReturnType<typeof CharacterIdentityGenerator.generate> | null;
-  generatedCampaignSeed: ReturnType<typeof SparseCampaignSeedBuilder.build>;
+  generatedCampaignSeed: ReturnType<typeof CampaignCompositionEngine.compose>;
   coreTension: string;
   likelyObjectives: string[];
   npcDistribution: string[];
@@ -41,7 +40,7 @@ export interface SparseCampaignRuntimeSeed {
 }
 
 export const SparseCampaignSeedBuilder = {
-  build(input: SparseCampaignSeedInput) {
+  build(input: SparseCampaignSeedInput): SparseCampaignRuntimeSeed {
     const actorIdentity = input.character
       ? CharacterIdentityGenerator.generate({
           id: input.character.id,
@@ -94,7 +93,7 @@ export const SparseCampaignSeedBuilder = {
       .length;
     const isSparseDominant = sparseSignalCount <= 2 || !(input.theme && input.goal);
 
-    const composed = SparseCampaignSeedBuilderBase.build({
+    const composed = CampaignCompositionEngine.compose({
       ...input,
       goal: input.goal || likelyObjectives[0],
       theme: input.theme || coreTension,
@@ -141,8 +140,4 @@ export const SparseCampaignSeedBuilder = {
       isSparseDominant,
     };
   },
-};
-
-const SparseCampaignSeedBuilderBase = {
-  build: SparseCampaignSeedBuilder.build,
 };
