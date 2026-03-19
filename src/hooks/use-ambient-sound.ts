@@ -44,17 +44,22 @@ export function useAmbientSound(options: UseAmbientSoundOptions = {}) {
     };
   }, [enabled]);
 
-  // Sync mute
+  // Sync mute and fully stop active ambient layers when disabled/muted
   useEffect(() => {
-    engineRef.current.setMuted(muted || !enabled);
+    const shouldMute = muted || !enabled;
+    engineRef.current.setMuted(shouldMute);
     try { localStorage.setItem('ambient-sound-muted', String(muted)); } catch {}
+
+    if (shouldMute) {
+      void engineRef.current.stop();
+    }
   }, [muted, enabled]);
 
   // Update environment when location/tags change
   useEffect(() => {
     if (!enabled || muted) return;
     const envTags = tags?.length ? tags : analyzeLocation(location);
-    engineRef.current.setEnvironment(envTags);
+    void engineRef.current.setEnvironment(envTags);
   }, [location, tags, enabled, muted]);
 
   // Cleanup on unmount
