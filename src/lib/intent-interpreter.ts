@@ -154,14 +154,18 @@ const ELEMENT_KEYWORDS: Record<string, RegExp> = {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
+function buildKeywordRegex(keyword: string): RegExp {
+  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const normalized = escaped.replace(/\s+/g, '\\s+');
+  return new RegExp(`\\b${normalized}\\b`, 'i');
+}
+
 function countMatches(text: string, keywords: string[]): number {
-  const lower = text.toLowerCase();
-  return keywords.filter(kw => lower.includes(kw)).length;
+  return keywords.filter((kw) => buildKeywordRegex(kw).test(text)).length;
 }
 
 function hasMatch(text: string, keywords: string[]): boolean {
-  const lower = text.toLowerCase();
-  return keywords.some(kw => lower.includes(kw));
+  return keywords.some((kw) => buildKeywordRegex(kw).test(text));
 }
 
 // ─── Main interpreter ────────────────────────────────────────────────────────
