@@ -99,6 +99,24 @@ function resolveCampaignEnemyContext(_enemy: CampaignEnemy) {
   return null;
 }
 
+function resolvePresentationIcon(iconTone: SpeakerPresentationProfile['iconTone']) {
+  switch (iconTone) {
+    case 'enemy':
+      return Swords;
+    case 'ally':
+      return UserCheck;
+    case 'system':
+      return Sparkles;
+    case 'player':
+      return Users;
+    case 'npc':
+      return Compass;
+    case 'narrator':
+    default:
+      return BookOpen;
+  }
+}
+
 function getMessageSurfaceClasses(
   profile: SpeakerPresentationProfile | null | undefined,
   options: { align?: 'left' | 'right' | 'center'; pending?: boolean } = {},
