@@ -372,7 +372,19 @@ async function callBattleNarrator(
       error: e instanceof Error ? e.message : 'Unknown error',
       recoverable: true,
     });
-    ctx.narration_result = { narration: 'The world responds to your actions...' };
+    const action = ctx.body?.playerAction || ctx.body?.message || '';
+    const zone = ctx.body?.currentZone || 'the area';
+    const charName = ctx.body?.playerCharacter?.name || 'The adventurer';
+    const actionLower = action.toLowerCase();
+    let fallback: string;
+    if (actionLower.includes('look') || actionLower.includes('search') || actionLower.includes('examine')) {
+      fallback = `${charName} scans ${zone} with careful eyes. The world holds its secrets close, but patience reveals subtle details — a shifting shadow, a distant echo, the faintest trace of something waiting to be discovered.`;
+    } else if (actionLower.includes('attack') || actionLower.includes('fight') || actionLower.includes('strike')) {
+      fallback = `${charName} lashes out with purpose. The force of the action disturbs the stillness of ${zone} — dust rises, echoes rebound, and for a heartbeat the world holds its breath before settling into a new equilibrium.`;
+    } else {
+      fallback = `${charName} acts with resolve in ${zone}. The surroundings shift subtly in response — the air changes, the light adjusts, and the world acknowledges the disturbance with quiet, living attention.`;
+    }
+    ctx.narration_result = { narration: fallback };
   }
 }
 
