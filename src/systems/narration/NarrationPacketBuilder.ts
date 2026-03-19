@@ -1,5 +1,6 @@
 import { buildNarrationPlaybackOptions, buildNarratorMessageMetadata, getNarratorPlaybackMetadata } from '@/lib/narration-playback';
 import { buildGeneratedRuntimeMetadata, getGeneratedRuntimePackets } from '@/systems/pipeline/GeneratedRuntimeBridge';
+import { ScenePresentationProfileBuilder } from '@/systems/scene/ScenePresentationProfileBuilder';
 import type { GeneratedRuntimePackets, NarrationPacket, NpcReactionPacket, ResolvedActionPacket, SceneEffectPacket } from '@/systems/types/PipelineTypes';
 
 export interface NarrationPacketBuilderInput {
@@ -49,6 +50,7 @@ export const NarrationPacketBuilder = {
     const worldIdentity = generatedPackets?.worldState;
     const sceneState = generatedPackets?.sceneState;
     const effectState = generatedPackets?.effectState;
+    const scenePresentationProfile = input.sceneEffects?.scenePresentationProfile ?? ScenePresentationProfileBuilder.build(generatedPackets || {}, input.sceneEffects);
     const identityCueMetadata = {
       characterIdentityCues: {
         combatIdentity: toStringArray(actorIdentity?.combatIdentity),
@@ -108,6 +110,10 @@ export const NarrationPacketBuilder = {
         ...toStringArray((worldIdentity as any)?.hazardPosture).map((entry) => `world:${entry}`),
         ...toStringArray((npcIdentity as any)?.threatPosture).map((entry) => `npc:${entry}`),
       ],
+      scenePresentationProfile,
+      sceneEffectPacket: input.sceneEffects,
+      ambientCueFamilies: input.sceneEffects?.ambientCueFamilies ?? scenePresentationProfile.soundCueFamilies,
+      chatPresentationTags: input.sceneEffects?.chatPresentationTags ?? scenePresentationProfile.chatPresentationFlavor,
       ...(playbackMetadata || {}),
     };
     const playback = buildNarrationPlaybackOptions(metadata);
@@ -129,6 +135,7 @@ export const NarrationPacketBuilder = {
             ...input.sceneEffects.hazardPulseTags,
             ...input.sceneEffects.enemyPresenceTags,
             ...input.sceneEffects.environmentalPressureTags,
+            ...toStringArray(input.sceneEffects.chatPresentationTags),
           ]
         : [],
     };

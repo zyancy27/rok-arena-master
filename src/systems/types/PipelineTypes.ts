@@ -109,6 +109,9 @@ export interface SceneEffectPacket {
   hazardPulseTags: string[];
   enemyPresenceTags: string[];
   environmentalPressureTags: string[];
+  chatPresentationTags?: string[];
+  ambientCueFamilies?: string[];
+  scenePresentationProfile?: Record<string, unknown> | null;
   generated?: GeneratedRuntimePackets;
   metadata?: Record<string, unknown>;
 }

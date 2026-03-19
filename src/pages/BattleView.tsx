@@ -3058,35 +3058,43 @@ export default function BattleView() {
                           const isActiveNarration = narratorVoice.activeMessageId === latestNarration.id;
                           const narratorAnimationClass = getNarratorAnimationClass(latestNarration.metadata);
 
+                          const narratorPresentationProfile = ChatMessagePresentationResolver.resolveStandaloneProfile({
+                            speakerRole: 'narrator',
+                            speakerName: 'Narrator',
+                            metadata: latestNarration.metadata as Record<string, unknown> | null,
+                          });
+
                           return (
-                            <div className="p-3 rounded-lg bg-gradient-to-r from-amber-500/10 via-background to-amber-500/10 border border-amber-500/30 mx-4 animate-fade-in">
+                            <div className={`p-3 rounded-lg border mx-4 animate-fade-in ${narratorPresentationProfile?.surfaceClassName ?? 'bg-card/75 border-border/70'}`}>
                               <div className="flex items-start gap-2">
-                                <BookOpen className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${narratorPresentationProfile?.iconContainerClassName ?? 'bg-primary/12 text-primary border border-primary/20'}`}>
+                                  <BookOpen className="w-4 h-4" />
+                                </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <p className="text-xs text-amber-400 font-medium uppercase tracking-wider">
+                                    <p className={`text-xs font-medium uppercase tracking-wider ${narratorPresentationProfile?.labelClassName ?? 'text-primary'}`}>
                                       Narrator
                                     </p>
                                     {userSettings.audio.narratorVoiceEnabled && (
                                       narratorVoice.isPlaying && isActiveNarration ? (
                                         <button
                                           onClick={() => narratorVoice.togglePause()}
-                                          className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
+                                          className="ml-auto p-1 rounded-full hover:bg-muted transition-colors"
                                           title={narratorVoice.isPaused ? 'Resume narrator' : 'Pause narrator'}
                                         >
                                           {narratorVoice.isPaused ? (
-                                            <Play className="w-3.5 h-3.5 text-amber-400" />
+                                            <Play className="w-3.5 h-3.5" />
                                           ) : (
-                                            <VolumeX className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                                            <VolumeX className="w-3.5 h-3.5 animate-pulse" />
                                           )}
                                         </button>
                                       ) : (
                                         <button
                                           onClick={() => narratorVoice.narrate(latestNarration.content, latestNarration.id, buildNarrationPlaybackOptions(latestNarration.metadata) ?? 'combat')}
-                                          className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
+                                          className="ml-auto p-1 rounded-full hover:bg-muted transition-colors"
                                           title="Listen to narrator"
                                         >
-                                          <Volume2 className="w-3.5 h-3.5 text-amber-400" />
+                                          <Volume2 className="w-3.5 h-3.5" />
                                         </button>
                                       )
                                     )}
