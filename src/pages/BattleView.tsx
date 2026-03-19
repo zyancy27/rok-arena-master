@@ -109,7 +109,7 @@ import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import NarratorMessageContent from '@/components/campaigns/NarratorMessageContent';
 import { buildNarrationPlaybackOptions, getNarratorAnimationClass } from '@/lib/narration-playback';
-import { invokeOrchestrator } from '@/lib/story-orchestrator';
+import { ChatMessagePresentationResolver } from '@/systems/chat/ChatMessagePresentationResolver';
 import { applyHardClamp, generateClampContext, type CharacterProfile, type ClampResult } from '@/lib/hard-clamp';
 import { detectDirectInteraction } from '@/lib/battle-hit-detection';
 import { IntentEngine, type IntentDebugPayload } from '@/systems/intent/IntentEngine';
