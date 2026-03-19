@@ -1815,9 +1815,18 @@ export default function CampaignView() {
         partyContext: participants.filter(p => p.is_active).map(p => `${p.character?.name} (Campaign Lv.${p.campaign_level}, HP: ${p.campaign_hp}/${p.campaign_hp_max}${(p as any).is_solo ? ', SOLO — away from group' : ''})`),
       });
 
-      const diceResult = combatResult.diceMetadata
-        ? combatResult.diceMetadata as Record<string, unknown>
-        : pipelineResult.resolvedAction.combatResult?.diceMetadata as Record<string, unknown> | null ?? null;
+      const shouldAttachDice = Boolean(
+        pipelineResult.resolvedAction.intent.isCombatAction
+          || pipelineResult.resolvedAction.intent.requiresRoll
+          || combatResult.hitDetermination
+          || combatResult.defenseDetermination,
+      );
+
+      const diceResult = shouldAttachDice
+        ? (combatResult.diceMetadata
+          ? combatResult.diceMetadata as Record<string, unknown>
+          : pipelineResult.resolvedAction.combatResult?.diceMetadata as Record<string, unknown> | null ?? null)
+        : null;
 
 
       // Play sent sound
