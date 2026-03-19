@@ -82,7 +82,7 @@ function deriveGeneratedPlayback(source: Record<string, unknown>): NarratorPlayb
         : 'run';
 
   return {
-    context: stealthAware ? 'stealth' : explosive ? 'combat' : 'default',
+    context: stealthAware ? 'tension' : explosive ? 'combat' : 'default',
     voiceRate,
     voicePitch,
     soundCue,
