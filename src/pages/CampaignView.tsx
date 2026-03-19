@@ -464,13 +464,13 @@ export default function CampaignView() {
             });
 
             if (!error && data?.narration) {
-              await supabase.from('campaign_messages').insert([{
-                campaign_id: campaign.id,
-                sender_type: 'narrator',
-                content: data.narration,
-                channel: 'in_universe',
-                metadata: buildNarratorMessageMetadata(data) as any,
-              }]);
+              await insertStructuredNarrationMessages({
+                campaignId: campaign.id,
+                rawNarration: data.narration,
+                baseMetadata: buildNarratorMessageMetadata(data) ?? null,
+                focalCharacterName: myParticipant?.character?.name ?? null,
+                isSolo: campaign.max_players === 1,
+              });
               await fetchMessages();
             }
           } catch (err) {
