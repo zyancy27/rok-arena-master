@@ -37,6 +37,7 @@ import { shouldSuppressStatus } from '@/lib/battlefield-effects';
 import MoveValidationWarning from '@/components/battles/MoveValidationWarning';
 import type { Campaign, CampaignParticipant, CampaignMessage } from '@/lib/campaign-types';
 import { getTimeEmoji, CAMPAIGN_STARTING_ABILITIES, XP_REWARDS, advanceTime } from '@/lib/campaign-types';
+import { normalizeNarrationToCampaignMessages, sortCampaignMessagesForDisplay } from '@/lib/campaign-message-normalizer';
 import CampaignInventoryPanel, { type InventoryItem } from '@/components/campaigns/CampaignInventoryPanel';
 import CampaignEndDialog from '@/components/campaigns/CampaignEndDialog';
 import CampaignNarratorChat from '@/components/campaigns/CampaignNarratorChat';
