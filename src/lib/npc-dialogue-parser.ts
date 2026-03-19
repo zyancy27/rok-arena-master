@@ -9,7 +9,7 @@
  *   - Name: "dialogue"
  *   - "dialogue," Name says.
  *   - "dialogue" — **Name**
- *   - Name acts. "dialogue," he says.
+ *   - Name acts. "dialogue"
  */
 
 export interface NarrationSegment {
@@ -28,50 +28,41 @@ export type MessageSegment = NarrationSegment | NpcDialogueSegment;
 const SPEECH_VERBS =
   'says?|whispers?|shouts?|mutters?|growls?|replies?|responds?|asks?|calls?|hisses?|murmurs?|barks?|snaps?|laughs?|chuckles?|sighs?|announces?|exclaims?|declares?|pleads?|demands?|commands?|speaks?|adds?|continues?|interrupts?|stammers?|cries?';
 
-const NAME_CAPTURE = String.raw`(?:\*\*([^*]+)\*\*|([A-Z][A-Za-z'’.-]*(?:\s+[A-Z][A-Za-z'’.-]*){0,3}))`;
-const DIALOGUE_CAPTURE = String.raw`["“]([^"”]+)["”]`;
-const SPEECH_CONNECTOR = String.raw`\s*(?:(?:${SPEECH_VERBS})\s*[,:]?\s*|[:—–-]\s*)`;
+// Name: at least 2 alpha chars. Allows hyphenated names (e.g. Ka-Rin).
+// Bold markdown names (**Name**) or plain capitalized names.
+const NAME_CAPTURE = String.raw`(?:\*\*([^*]{2,})\*\*|([A-Z][A-Za-z]{1,}(?:[-'][A-Za-z]+)?(?:\s+[A-Z][A-Za-z]+(?:[-'][A-Za-z]+)?){0,3}))`;
+
+// Match both straight and curly quotes for dialogue
+const Q_OPEN = '["\\u201C]';
+const Q_CLOSE = '["\\u201D]';
+const DIALOGUE_CAPTURE = `${Q_OPEN}([^"\\u201D]+)${Q_CLOSE}`;
+
+const SPEECH_CONNECTOR = String.raw`\s*(?:(?:${SPEECH_VERBS})\s*[,:]?\s*|[:;\u2014\u2013-]\s*)`;
+
+// --- Patterns ---
 
 const PATTERN_BEFORE = new RegExp(
-  String.raw`${NAME_CAPTURE}${SPEECH_CONNECTOR}${DIALOGUE_CAPTURE}`,
+  `${NAME_CAPTURE}${SPEECH_CONNECTOR}${DIALOGUE_CAPTURE}`,
   'g',
 );
 
-/**
- * Pattern: Name [speech_verb], [descriptive clause ≤200 chars], "dialogue"
- * Handles AI patterns where a speech verb is followed by a long descriptive
- * clause before the quoted text, e.g.:
- *   Elara whispers, her voice a dry rustle like parchment, "is the hunger."
- */
 const PATTERN_BEFORE_EXTENDED = new RegExp(
-  String.raw`${NAME_CAPTURE}\s+(?:finally\s+)?(?:${SPEECH_VERBS})[,]?\s+[^"""\u201C\u201D]{1,200}?[,]\s*${DIALOGUE_CAPTURE}`,
+  `${NAME_CAPTURE}\\s+(?:finally\\s+)?(?:${SPEECH_VERBS})[,]?\\s+[^"\\u201C\\u201D]{1,200}?[,]\\s*${DIALOGUE_CAPTURE}`,
   'g',
 );
 
 const PATTERN_AFTER = new RegExp(
-  String.raw`${DIALOGUE_CAPTURE}[,.]?\s*(?:${SPEECH_VERBS})\s+${NAME_CAPTURE}`,
+  `${DIALOGUE_CAPTURE}[,.]?\\s*(?:${SPEECH_VERBS})\\s+${NAME_CAPTURE}`,
   'g',
 );
 
 const PATTERN_AFTER_PRONOUN = new RegExp(
-  String.raw`${DIALOGUE_CAPTURE}[,.]?\s*(?:he|she|they)\s+(?:${SPEECH_VERBS})`,
+  `${DIALOGUE_CAPTURE}[,.]?\\s*(?:he|she|they)\\s+(?:${SPEECH_VERBS})`,
   'g',
 );
 
-/**
- * Pattern: Name [action, 1-200 chars]. "dialogue"
- * Handles the very common AI pattern where a character performs an action
- * then speaks, without using an explicit speech verb before the dialogue.
- * e.g. Master Eldrin shivers, pulling his shoulders up. "I... it isn't art."
- *
- * To avoid false positives we require:
- * - The name is at (or near) the start of a sentence
- * - The gap between the name and the dialogue is ≤ 200 characters
- * - No other capitalized two-word name appears between the matched name
- *   and the dialogue (handled in dedup / override logic)
- */
 const PATTERN_ACTION_THEN_SPEECH = new RegExp(
-  String.raw`${NAME_CAPTURE}[^""\u201C\u201D]{1,200}?[.!?]\s*${DIALOGUE_CAPTURE}`,
+  `${NAME_CAPTURE}[^"\\u201C\\u201D]{1,200}?[.!?]\\s*${DIALOGUE_CAPTURE}`,
   'g',
 );
 
@@ -82,23 +73,29 @@ interface RawMatch {
   dialogue: string;
 }
 
-/**
- * Clean a matched name: strip trailing possessive markers ('s, 's),
- * trim whitespace, and reject names that are too short or common words.
- */
+// --- Name cleaning ---
+
+const COMMON_WORDS = new Set([
+  'The', 'This', 'That', 'They', 'Then', 'There', 'Here', 'With', 'From',
+  'Into', 'Upon', 'What', 'When', 'Where', 'Which', 'While', 'After',
+  'Before', 'Under', 'Above', 'Below', 'Each', 'Every', 'Some', 'Your',
+  'Their', 'Its', 'She', 'Her', 'His', 'But', 'And', 'For', 'Not', 'You',
+  'Are', 'Was', 'Were', 'Has', 'Had', 'Have', 'Can', 'May', 'Will',
+  'Just', 'Now', 'Still', 'Yet', 'Too', 'Very', 'Only',
+]);
+
 function cleanSpeakerName(raw: string | undefined): string {
   if (!raw || !raw.trim()) return '';
   let name = raw.trim();
-  // Strip trailing possessive 's / 's
+  // Strip trailing possessive 's / \u2019s
   name = name.replace(/['\u2019]s$/i, '');
   name = name.trim();
   if (name.length < 2) return '';
-  const REJECT = new Set(['The', 'This', 'That', 'They', 'Then', 'There', 'Here', 'With', 'From', 'Into', 'Upon', 'What', 'When', 'Where', 'Which', 'While', 'After', 'Before', 'Under', 'Above', 'Below', 'Each', 'Every', 'Some', 'Your', 'Their', 'Its']);
-  if (REJECT.has(name)) return '';
+  if (COMMON_WORDS.has(name)) return '';
   return name;
 }
 
-function resolveMatchedName(...candidates: Array<string | undefined>) {
+function resolveMatchedName(...candidates: Array<string | undefined>): string {
   for (const c of candidates) {
     const cleaned = cleanSpeakerName(c);
     if (cleaned) return cleaned;
@@ -106,17 +103,18 @@ function resolveMatchedName(...candidates: Array<string | undefined>) {
   return '';
 }
 
-function inferContextualSpeakerName(context: string) {
+function inferContextualSpeakerName(context: string): string {
   const namePattern = new RegExp(NAME_CAPTURE, 'g');
   let lastName = '';
   let match: RegExpExecArray | null;
-
   while ((match = namePattern.exec(context)) !== null) {
-    lastName = resolveMatchedName(match[1], match[2]);
+    const candidate = resolveMatchedName(match[1], match[2]);
+    if (candidate) lastName = candidate;
   }
-
   return lastName;
 }
+
+// --- Main parser ---
 
 export function parseNarratorMessage(text: string): MessageSegment[] {
   if (!text) return [{ type: 'narration', text }];
@@ -131,43 +129,39 @@ export function parseNarratorMessage(text: string): MessageSegment[] {
       const isBeforePattern = pattern === PATTERN_BEFORE || pattern === PATTERN_BEFORE_EXTENDED;
       const isAfterPattern = pattern === PATTERN_AFTER;
       const isActionThenSpeech = pattern === PATTERN_ACTION_THEN_SPEECH;
-      const speakerName = (isBeforePattern || isActionThenSpeech)
-        ? resolveMatchedName(match[1], match[2])
-        : isAfterPattern
-          ? resolveMatchedName(match[2], match[3])
-          : inferContextualSpeakerName(text.slice(Math.max(0, match.index - 160), match.index));
-      const dialogue = ((isBeforePattern || isActionThenSpeech) ? match[3] : match[1])?.trim() ?? '';
 
+      let speakerName: string;
+      if (isBeforePattern || isActionThenSpeech) {
+        speakerName = resolveMatchedName(match[1], match[2]);
+      } else if (isAfterPattern) {
+        speakerName = resolveMatchedName(match[2], match[3]);
+      } else {
+        // Pronoun pattern – look backwards for the last named character
+        speakerName = inferContextualSpeakerName(
+          text.slice(Math.max(0, match.index - 160), match.index),
+        );
+      }
+
+      const dialogue = ((isBeforePattern || isActionThenSpeech) ? match[3] : match[1])?.trim() ?? '';
       if (!speakerName || !dialogue) continue;
 
-      // For the action-then-speech pattern, verify no other named character
-      // appears closer to the dialogue (to avoid mis-attribution).
+      // For action-then-speech, check if a different NPC name is closer to the quote
       if (isActionThenSpeech) {
         const fullMatch = match[0];
-        // Only scan the action gap (before the opening quote) for inner names
-        const quoteIndex = fullMatch.slice(speakerName.length).search(/["""\u201C]/);
-        const actionGap = quoteIndex >= 0
-          ? fullMatch.slice(speakerName.length, speakerName.length + quoteIndex)
+        const quoteIdx = fullMatch.slice(speakerName.length).search(/["\\u201C]/);
+        const actionGap = quoteIdx >= 0
+          ? fullMatch.slice(speakerName.length, speakerName.length + quoteIdx)
           : fullMatch.slice(speakerName.length);
         const innerNamePattern = new RegExp(NAME_CAPTURE, 'g');
         let innerMatch: RegExpExecArray | null;
         let lastInnerName = '';
         while ((innerMatch = innerNamePattern.exec(actionGap)) !== null) {
           const candidate = resolveMatchedName(innerMatch[1], innerMatch[2]);
-          // Only consider multi-word names (NPC names) to avoid false positives like "I", "The"
           if (candidate && candidate !== speakerName && candidate.includes(' ')) {
             lastInnerName = candidate;
           }
         }
-        // If a different named character is closer to the dialogue, attribute to them instead
-        const effectiveSpeaker = lastInnerName || speakerName;
-        matches.push({
-          start: match.index,
-          end: match.index + match[0].length,
-          speakerName: effectiveSpeaker,
-          dialogue,
-        });
-        continue;
+        speakerName = lastInnerName || speakerName;
       }
 
       matches.push({
@@ -183,33 +177,33 @@ export function parseNarratorMessage(text: string): MessageSegment[] {
     return [{ type: 'narration', text }];
   }
 
+  // Sort by position and deduplicate overlapping matches
   matches.sort((a, b) => a.start - b.start);
   const deduped: RawMatch[] = [];
-  for (const match of matches) {
+  for (const m of matches) {
     const last = deduped[deduped.length - 1];
-    if (!last || match.start >= last.end) {
-      deduped.push(match);
+    if (!last || m.start >= last.end) {
+      deduped.push(m);
     }
   }
 
+  // Build segments
   const segments: MessageSegment[] = [];
   let cursor = 0;
 
-  for (const match of deduped) {
-    if (match.start > cursor) {
-      const narration = text.slice(cursor, match.start).trim();
+  for (const m of deduped) {
+    if (m.start > cursor) {
+      const narration = text.slice(cursor, m.start).trim();
       if (narration && /[\p{L}\p{N}]/u.test(narration)) {
         segments.push({ type: 'narration', text: narration });
       }
     }
-
     segments.push({
       type: 'npc_dialogue',
-      speakerName: match.speakerName,
-      dialogue: match.dialogue,
+      speakerName: m.speakerName,
+      dialogue: m.dialogue,
     });
-
-    cursor = match.end;
+    cursor = m.end;
   }
 
   if (cursor < text.length) {
@@ -225,7 +219,7 @@ export function parseNarratorMessage(text: string): MessageSegment[] {
 /**
  * Resolve NPC display name.
  * If the NPC's name appears in knownNpcNames, show the canonical form.
- * Otherwise show the parser-extracted name directly (it was parsed from the narrator text).
+ * Otherwise show the parser-extracted name directly.
  * Only fall back to "Name Unknown" if speakerName is empty/missing.
  */
 export function resolveNpcDisplayName(
@@ -233,8 +227,16 @@ export function resolveNpcDisplayName(
   knownNpcNames: Set<string>,
 ): string {
   if (!speakerName || !speakerName.trim()) return '*Name Unknown*';
+  // Check for exact or case-insensitive match
   for (const known of knownNpcNames) {
     if (known.toLowerCase() === speakerName.toLowerCase()) return known;
+  }
+  // Also check if the known name contains this name or vice versa (partial match)
+  for (const known of knownNpcNames) {
+    if (known.toLowerCase().includes(speakerName.toLowerCase()) ||
+        speakerName.toLowerCase().includes(known.toLowerCase())) {
+      return known;
+    }
   }
   return speakerName;
 }
