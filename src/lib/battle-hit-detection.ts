@@ -191,6 +191,10 @@ const NARRATIVE_PAST_MARKERS = [
 
 export type InteractionIntent = 'attack' | 'grapple' | 'block' | 'dodge' | 'movement' | 'none';
 
+export interface HitDetectionOptions {
+  possibleTargets?: string[];
+}
+
 export interface HitDetectionResult {
   /** Was direct interaction detected? */
   detected: boolean;
@@ -244,7 +248,7 @@ function isNarrativePast(text: string): boolean {
  *
  * Returns whether a hit check should be triggered.
  */
-export function detectDirectInteraction(actionText: string): HitDetectionResult {
+export function detectDirectInteraction(actionText: string, options: HitDetectionOptions = {}): HitDetectionResult {
   const text = actionText.toLowerCase();
   const matchedVerbs: string[] = [];
   const suppressionReasons: string[] = [];
@@ -253,10 +257,17 @@ export function detectDirectInteraction(actionText: string): HitDetectionResult 
   let totalWeight = 0;
   let verbCount = 0;
 
+  const combatContext = analyzeCombatIntentContext(actionText, {
+    possibleTargets: options.possibleTargets,
+  });
+
   // Narrative-past check (global suppression)
   const isPast = isNarrativePast(text);
   if (isPast) {
     suppressionReasons.push('narrative past tense / memory');
+  }
+  if (combatContext.suppressCombat) {
+    suppressionReasons.push(...combatContext.reasons.map((reason) => `context: ${reason}`));
   }
 
   // Check each registered verb
@@ -287,11 +298,12 @@ export function detectDirectInteraction(actionText: string): HitDetectionResult 
     }
   }
 
-  // Check for target pronoun
-  const hasTarget = TARGET_PRONOUNS.some(pronoun => {
+  // Check for target pronoun or explicit target context
+  const hasTargetPronoun = TARGET_PRONOUNS.some(pronoun => {
     const regex = new RegExp(`\\b${escapeRegex(pronoun)}\\b`, 'i');
     return regex.test(text);
   });
+  const hasTarget = combatContext.hasDirectedTarget || hasTargetPronoun;
 
   // ─── Confidence scoring (weighted) ─────────────────────────────
   let confidence = 0;
@@ -301,6 +313,7 @@ export function detectDirectInteraction(actionText: string): HitDetectionResult 
 
   const isOffensiveIntent = primaryIntent === 'attack' || primaryIntent === 'grapple';
   if (isOffensiveIntent) confidence += 0.2;
+  if (combatContext.explicitAttack) confidence += 0.15;
   confidence = Math.min(1, confidence);
 
   // ─── Trigger decision ──────────────────────────────────────────
@@ -309,21 +322,21 @@ export function detectDirectInteraction(actionText: string): HitDetectionResult 
 
   const isDefensiveIntent = primaryIntent === 'block' || primaryIntent === 'dodge';
 
-  if (isPast) {
-    // Never trigger for memories / flashbacks
+  if (isPast || combatContext.suppressCombat) {
+    // Never trigger for memories, inquiries, speculation, or noun-only references
     shouldTriggerHitCheck = false;
     shouldTriggerDefenseCheck = false;
-  } else if (isOffensiveIntent && hasTarget && confidence >= 0.5) {
+  } else if (isOffensiveIntent && combatContext.explicitAttack && hasTarget && confidence >= 0.5) {
     shouldTriggerHitCheck = true;
-  } else if (isOffensiveIntent && verbCount >= 2 && confidence >= 0.6) {
+  } else if (isOffensiveIntent && combatContext.explicitAttack && verbCount >= 2 && confidence >= 0.6) {
     shouldTriggerHitCheck = true;
-  } else if (isDefensiveIntent && confidence >= 0.4) {
+  } else if (isDefensiveIntent && !combatContext.isQuestion && confidence >= 0.4) {
     // Defensive actions need lower threshold — player is responding to an incoming attack
     shouldTriggerDefenseCheck = true;
   }
 
   // If all matched verbs were suppressed, don't trigger
-  if (matchedVerbs.length === 0 && suppressionReasons.length > 0) {
+  if ((matchedVerbs.length === 0 || combatContext.suppressCombat) && suppressionReasons.length > 0) {
     shouldTriggerHitCheck = false;
     shouldTriggerDefenseCheck = false;
   }
