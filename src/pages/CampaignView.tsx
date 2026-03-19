@@ -307,9 +307,9 @@ export default function CampaignView() {
 
   const campaignTrades = useCampaignTrades(campaignId, myParticipant?.id);
 
-  // Ambient environment sounds for campaign — uses scene location when available, falls back to zone
+  // Ambient environment sounds for campaign chat only — uses scene location when available, falls back to zone
   const { muted: ambientMuted, toggleMute: toggleAmbientMute } = useAmbientSound({
-    enabled: campaign?.status === 'active',
+    enabled: campaign?.status === 'active' && activeTab === 'adventure',
     location: activeSceneLocation || campaign?.current_zone,
   });
 
