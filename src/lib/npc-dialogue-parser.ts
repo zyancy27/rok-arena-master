@@ -82,8 +82,28 @@ interface RawMatch {
   dialogue: string;
 }
 
+/**
+ * Clean a matched name: strip trailing possessive markers ('s, 's),
+ * trim whitespace, and reject names that are too short or common words.
+ */
+function cleanSpeakerName(raw: string | undefined): string {
+  if (!raw || !raw.trim()) return '';
+  let name = raw.trim();
+  // Strip trailing possessive 's / 's
+  name = name.replace(/['\u2019]s$/i, '');
+  name = name.trim();
+  if (name.length < 2) return '';
+  const REJECT = new Set(['The', 'This', 'That', 'They', 'Then', 'There', 'Here', 'With', 'From', 'Into', 'Upon', 'What', 'When', 'Where', 'Which', 'While', 'After', 'Before', 'Under', 'Above', 'Below', 'Each', 'Every', 'Some', 'Your', 'Their', 'Its']);
+  if (REJECT.has(name)) return '';
+  return name;
+}
+
 function resolveMatchedName(...candidates: Array<string | undefined>) {
-  return candidates.find((value) => typeof value === 'string' && value.trim().length > 0)?.trim() ?? '';
+  for (const c of candidates) {
+    const cleaned = cleanSpeakerName(c);
+    if (cleaned) return cleaned;
+  }
+  return '';
 }
 
 function inferContextualSpeakerName(context: string) {
