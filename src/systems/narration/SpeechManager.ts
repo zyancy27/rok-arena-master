@@ -73,15 +73,31 @@ export class SpeechManager {
       clearInterval(this.pollTimer);
       this.pollTimer = null;
     }
-    if (this.audio) {
-      this.audio.pause();
-      this.audio.onended = null;
-      this.audio.onerror = null;
-      this.audio = null;
-    }
+    this.releaseAudio();
     this.currentText = '';
     this.estimatedDuration = 0;
     this.emitState('stopped');
+  }
+
+  private releaseAudio() {
+    if (!this.audio) return;
+
+    const audio = this.audio;
+    audio.pause();
+    audio.onended = null;
+    audio.onerror = null;
+    audio.onloadedmetadata = null;
+
+    try {
+      audio.currentTime = 0;
+    } catch {}
+
+    try {
+      audio.removeAttribute('src');
+      audio.load();
+    } catch {}
+
+    this.audio = null;
   }
 
   get isPlaying(): boolean {
