@@ -322,7 +322,6 @@ export default function CampaignView() {
 
   // Mechanic discoveries
   const [pendingDiscoveries, setPendingDiscoveries] = useState<CampaignMechanicDiscovery[]>([]);
-  const [activeTab, setActiveTab] = useState<'adventure' | 'narrator'>('adventure');
   const [narratorTabGlowing, setNarratorTabGlowing] = useState(false);
 
   // Combat pulse state: 'none' | 'red' | 'green'
