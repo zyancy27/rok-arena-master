@@ -1321,25 +1321,28 @@ export default function CampaignView() {
           data,
         );
 
-        await supabase.from('campaign_messages').insert([{
-          campaign_id: snapshotCampaign.id,
-          sender_type: 'narrator',
-          content: data.narration,
-          channel: 'in_universe',
-          metadata: narrationPacket.metadata as any,
-        }]);
+        await insertStructuredNarrationMessages({
+          campaignId: snapshotCampaign.id,
+          rawNarration: data.narration,
+          baseMetadata: narrationPacket.metadata as Record<string, unknown>,
+          focalCharacterName: snapshotParticipant.character?.name ?? null,
+          isSolo: snapshotParticipant.is_solo ?? snapshotCampaign.max_players === 1,
+          activeEnemyNames: activeEnemiesList.map((enemy) => enemy.name),
+          knownNpcNames: new Set(knownNpcs.map((npc) => npc.name)),
+        });
 
         if (data.xpGained) {
           triggerDiscovery('campaign_xp');
           totalXpGained += data.xpGained;
         }
       } else {
-        await supabase.from('campaign_messages').insert([{
-          campaign_id: snapshotCampaign.id,
-          sender_type: 'narrator',
-          content: 'The scene hangs in a brief, tense silence, as if the world is gathering its next words.',
-          channel: 'in_universe',
-        }]);
+        await insertStructuredNarrationMessages({
+          campaignId: snapshotCampaign.id,
+          rawNarration: 'The scene hangs in a brief, tense silence, as if the world is gathering its next words.',
+          focalCharacterName: snapshotParticipant.character?.name ?? null,
+          isSolo: snapshotParticipant.is_solo ?? snapshotCampaign.max_players === 1,
+          knownNpcNames: new Set(knownNpcs.map((npc) => npc.name)),
+        });
       }
 
       if (data) {
