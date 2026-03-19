@@ -109,6 +109,13 @@ export function useNarrationController(options: UseNarrationControllerOptions) {
   }, [options.ambientEnabled, options.ambientIntensity, options.soundVolume, options.reduceVocalSounds]);
 
   useEffect(() => {
+    if (!options.enabled) {
+      controller.current.stop();
+      setPendingTapRequest(null);
+    }
+  }, [options.enabled]);
+
+  useEffect(() => {
     const unsubscribeSnapshot = controller.current.onSnapshotChange((nextSnapshot) => {
       setSnapshot(nextSnapshot);
       setActiveMessageId(nextSnapshot.messageId);
@@ -129,6 +136,8 @@ export function useNarrationController(options: UseNarrationControllerOptions) {
     });
 
     return () => {
+      controller.current.stop();
+      setPendingTapRequest(null);
       unsubscribeSnapshot();
       unsubscribeState();
       unsubscribeHighlight();
