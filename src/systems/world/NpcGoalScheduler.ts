@@ -15,6 +15,7 @@ export const NpcGoalScheduler = {
     return {
       npcId: input.npcId,
       nextGoals: [...new Set([pressureGoal, ...input.motivations.slice(0, 2)])],
+      postureBias: input.pressureLevel === 'critical' ? 'aggressive' : input.pressureLevel === 'high' ? 'tense' : 'measured',
     };
   },
 };

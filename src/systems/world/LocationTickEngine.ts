@@ -12,6 +12,8 @@ export const LocationTickEngine = {
     return {
       hazardLevel: nextHazardLevel,
       event,
+      hazardDensity: nextHazardLevel > 75 ? 'overwhelming' : nextHazardLevel > 55 ? 'dense' : nextHazardLevel > 30 ? 'present' : 'minimal',
+      pressureTags: [event, `hazard:${nextHazardLevel > 75 ? 'overwhelming' : nextHazardLevel > 55 ? 'dense' : nextHazardLevel > 30 ? 'present' : 'minimal'}`],
     };
   },
 };

@@ -22,4 +22,12 @@ export const RelationshipPersistenceEngine = {
       definingMoments: [...new Set([...snapshot.definingMoments, signal])].slice(-10),
     };
   },
+
+  summarize(snapshot: RelationshipPersistenceSnapshot) {
+    return {
+      trustBand: snapshot.trust >= 70 ? 'trusted' : snapshot.trust <= 30 ? 'damaged' : 'uncertain',
+      disposition: snapshot.disposition,
+      definingMoment: snapshot.definingMoments[snapshot.definingMoments.length - 1] || null,
+    };
+  },
 };

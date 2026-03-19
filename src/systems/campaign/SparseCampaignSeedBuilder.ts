@@ -1,5 +1,6 @@
-import { CampaignCompositionEngine, type CampaignCompositionInput } from '@/systems/composition/CampaignCompositionEngine';
 import { CharacterIdentityGenerator } from '@/systems/identity/CharacterIdentityGenerator';
+import type { CampaignCompositionInput } from '@/systems/composition/CampaignCompositionEngine';
+import { SparseCampaignSeedBuilder } from './SparseCampaignSeedBuilder';
 import { CampaignEncounterDensityGenerator } from './CampaignEncounterDensityGenerator';
 import { CampaignNpcDistributionGenerator } from './CampaignNpcDistributionGenerator';
 import { CampaignObjectiveGenerator } from './CampaignObjectiveGenerator';
@@ -27,6 +28,16 @@ export interface SparseCampaignSeedInput extends CampaignCompositionInput {
     stat_skill?: number | null;
     stat_battle_iq?: number | null;
   } | null;
+}
+
+export interface SparseCampaignRuntimeSeed {
+  actorIdentity: ReturnType<typeof CharacterIdentityGenerator.generate> | null;
+  generatedCampaignSeed: ReturnType<typeof SparseCampaignSeedBuilder.build>;
+  coreTension: string;
+  likelyObjectives: string[];
+  npcDistribution: string[];
+  encounterDensity: 'low' | 'medium' | 'high';
+  isSparseDominant: boolean;
 }
 
 export const SparseCampaignSeedBuilder = {
@@ -78,8 +89,12 @@ export const SparseCampaignSeedBuilder = {
       pressureSources,
       environmentTags: input.environment_tags,
     });
+    const sparseSignalCount = [input.theme, input.goal, input.description, input.current_zone, input.chosen_location]
+      .filter((value) => typeof value === 'string' && value.trim().length > 0)
+      .length;
+    const isSparseDominant = sparseSignalCount <= 2 || !(input.theme && input.goal);
 
-    const composed = CampaignCompositionEngine.compose({
+    const composed = SparseCampaignSeedBuilderBase.build({
       ...input,
       goal: input.goal || likelyObjectives[0],
       theme: input.theme || coreTension,
@@ -91,29 +106,43 @@ export const SparseCampaignSeedBuilder = {
           likelyObjectives,
           npcDistribution,
           encounterDensity,
+          isSparseDominant,
         },
       },
     });
 
     return {
-      ...composed,
-      centralTension: coreTension || composed.centralTension,
-      pressureSources: [...new Set([...composed.pressureSources, ...pressureSources])],
-      likelyObjectives: [...new Set([...likelyObjectives, ...composed.likelyObjectives])],
-      npcPresence: [...new Set([...npcDistribution, ...composed.npcPresence])],
-      encounterOpportunities: [...new Set([
-        ...composed.encounterOpportunities,
-        `${encounterDensity}-density complications`,
-      ])],
-      metadata: {
-        ...(composed.metadata || {}),
-        sparseInput: {
-          actorIdentity,
-          coreTension,
-          npcDistribution,
-          encounterDensity,
+      actorIdentity,
+      generatedCampaignSeed: {
+        ...composed,
+        centralTension: isSparseDominant ? coreTension || composed.centralTension : composed.centralTension,
+        pressureSources: [...new Set([...composed.pressureSources, ...pressureSources])],
+        likelyObjectives: [...new Set([...likelyObjectives, ...composed.likelyObjectives])],
+        npcPresence: [...new Set([...npcDistribution, ...composed.npcPresence])],
+        encounterOpportunities: [...new Set([
+          ...composed.encounterOpportunities,
+          `${encounterDensity}-density complications`,
+        ])],
+        metadata: {
+          ...(composed.metadata || {}),
+          sparseInput: {
+            actorIdentity,
+            coreTension,
+            npcDistribution,
+            encounterDensity,
+            isSparseDominant,
+          },
         },
       },
+      coreTension,
+      likelyObjectives,
+      npcDistribution,
+      encounterDensity,
+      isSparseDominant,
     };
   },
+};
+
+const SparseCampaignSeedBuilderBase = {
+  build: SparseCampaignSeedBuilder.build,
 };

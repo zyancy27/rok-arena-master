@@ -12,6 +12,8 @@ export const FactionTickEngine = {
     return {
       pressure,
       event,
+      pressureLevel: pressure > 75 ? 'critical' : pressure > 55 ? 'high' : pressure > 30 ? 'medium' : 'low',
+      pressureTags: [event, `pressure:${pressure > 75 ? 'critical' : pressure > 55 ? 'high' : pressure > 30 ? 'medium' : 'low'}`],
     };
   },
 };
