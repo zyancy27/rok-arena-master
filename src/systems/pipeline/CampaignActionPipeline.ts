@@ -55,7 +55,7 @@ export const CampaignActionPipeline = {
     const activeEnemies = (input.activeEnemies || []).filter((enemy) => enemy.status === 'active' || enemy.status === 'hiding' || !enemy.status);
     const knownNpcs = input.knownNpcs || [];
     const defaultTool = input.equippedItems?.[0] ?? null;
-    const character = (input.participant.character || null) as any;
+    const character = (input.participant.character || null) as Record<string, unknown> | null;
 
     const intentResult = IntentEngine.resolve(input.rawText, {
       mode: 'campaign',
@@ -74,14 +74,14 @@ export const CampaignActionPipeline = {
         tier: input.participant.character?.level || input.participant.campaign_level,
         stats: {
           stat_strength: input.participant.character?.stat_strength ?? 50,
-          stat_speed: input.participant.character?.stat_speed ?? 50,
-          stat_power: input.participant.character?.stat_power ?? 50,
-          stat_skill: input.participant.character?.stat_skill ?? 50,
-          stat_battle_iq: input.participant.character?.stat_battle_iq ?? 50,
-          stat_durability: input.participant.character?.stat_durability ?? 50,
-          stat_stamina: input.participant.character?.stat_stamina ?? 50,
-          stat_intelligence: input.participant.character?.stat_intelligence ?? 50,
-          stat_luck: input.participant.character?.stat_luck ?? 50,
+          stat_speed: Number(character?.stat_speed ?? 50),
+          stat_power: Number(character?.stat_power ?? 50),
+          stat_skill: Number(character?.stat_skill ?? 50),
+          stat_battle_iq: Number(character?.stat_battle_iq ?? 50),
+          stat_durability: Number(character?.stat_durability ?? 50),
+          stat_stamina: Number(character?.stat_stamina ?? 50),
+          stat_intelligence: Number(character?.stat_intelligence ?? 50),
+          stat_luck: Number(character?.stat_luck ?? 50),
         },
         abilities: input.participant.character?.abilities,
         powers: input.participant.character?.powers,
@@ -115,20 +115,20 @@ export const CampaignActionPipeline = {
       level: input.participant.character?.level || input.participant.campaign_level,
       powers: input.participant.character?.powers,
       abilities: input.participant.character?.abilities,
-      personality: character?.personality,
-      mentality: character?.mentality,
-      race: character?.race,
-      sub_race: character?.sub_race,
-      lore: character?.lore,
-      weapons_items: character?.weapons_items,
-      appearance_aura: character?.appearance_aura,
-      appearance_movement_style: character?.appearance_movement_style,
-      appearance_voice: character?.appearance_voice,
+      personality: typeof character?.personality === 'string' ? character.personality : null,
+      mentality: typeof character?.mentality === 'string' ? character.mentality : null,
+      race: typeof character?.race === 'string' ? character.race : null,
+      sub_race: typeof character?.sub_race === 'string' ? character.sub_race : null,
+      lore: typeof character?.lore === 'string' ? character.lore : null,
+      weapons_items: typeof character?.weapons_items === 'string' ? character.weapons_items : null,
+      appearance_aura: typeof character?.appearance_aura === 'string' ? character.appearance_aura : null,
+      appearance_movement_style: typeof character?.appearance_movement_style === 'string' ? character.appearance_movement_style : null,
+      appearance_voice: typeof character?.appearance_voice === 'string' ? character.appearance_voice : null,
       stat_strength: input.participant.character?.stat_strength,
-      stat_speed: input.participant.character?.stat_speed,
-      stat_power: input.participant.character?.stat_power,
-      stat_skill: input.participant.character?.stat_skill,
-      stat_battle_iq: input.participant.character?.stat_battle_iq,
+      stat_speed: Number(character?.stat_speed ?? 50),
+      stat_power: Number(character?.stat_power ?? 50),
+      stat_skill: Number(character?.stat_skill ?? 50),
+      stat_battle_iq: Number(character?.stat_battle_iq ?? 50),
     });
 
     const generatedCampaignSeed = CampaignCompositionEngine.compose({
