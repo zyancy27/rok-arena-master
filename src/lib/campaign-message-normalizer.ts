@@ -1,5 +1,5 @@
 import type { CampaignMessage } from '@/lib/campaign-types';
-import { parseNarratorMessage, resolveNpcDisplayName } from '@/lib/npc-dialogue-parser';
+import { parseNarratorMessage, resolveNpcDisplayName, type MessageSegment } from '@/lib/npc-dialogue-parser';
 
 interface NarrationNormalizationOptions {
   campaignId: string;
@@ -56,6 +56,34 @@ function resolveStructuredSpeakerType(speakerName: string, activeEnemyNames: str
   return 'npc';
 }
 
+function mergeAdjacentDialogueSegments(segments: MessageSegment[]) {
+  const merged: MessageSegment[] = [];
+
+  for (const segment of segments) {
+    const last = merged[merged.length - 1];
+
+    if (
+      segment.type === 'npc_dialogue'
+      && last?.type === 'npc_dialogue'
+      && last.speakerName.trim().toLowerCase() === segment.speakerName.trim().toLowerCase()
+    ) {
+      last.dialogue = cleanText(`${last.dialogue}\n${segment.dialogue}`);
+      continue;
+    }
+
+    if (segment.type === 'narration') {
+      const text = cleanText(segment.text);
+      if (text) merged.push({ ...segment, text });
+      continue;
+    }
+
+    const dialogue = cleanText(segment.dialogue);
+    if (dialogue) merged.push({ ...segment, dialogue });
+  }
+
+  return merged;
+}
+
 export function normalizeNarrationToCampaignMessages(
   options: NarrationNormalizationOptions,
 ): NormalizedCampaignMessageInsert[] {
@@ -67,20 +95,21 @@ export function normalizeNarrationToCampaignMessages(
   const channel = options.channel ?? 'in_universe';
   const knownNpcNames = options.knownNpcNames ?? new Set<string>();
   const activeEnemyNames = options.activeEnemyNames ?? [];
-  const segments = parseNarratorMessage(rawNarration);
+  const segments = mergeAdjacentDialogueSegments(parseNarratorMessage(rawNarration));
+  const messages: NormalizedCampaignMessageInsert[] = [];
 
-  return segments.flatMap((segment, index) => {
+  segments.forEach((segment, index) => {
     if (segment.type === 'narration') {
       const content = sanitizeNarratorPov(segment.text, {
         isSolo: options.isSolo,
         focalCharacterName: options.focalCharacterName,
       });
-      if (!content) return [];
+      if (!content) return;
 
-      return [{
+      messages.push({
         campaign_id: options.campaignId,
         character_id: null,
-        sender_type: 'narrator' as const,
+        sender_type: 'narrator',
         channel,
         content,
         metadata: {
@@ -90,20 +119,18 @@ export function normalizeNarrationToCampaignMessages(
           structuredMessageKind: 'narration',
           structuredOriginalNarration: rawNarration,
         },
-      } satisfies NormalizedCampaignMessageInsert];
+      });
+      return;
     }
-
-    const content = cleanText(segment.dialogue);
-    if (!content) return [];
 
     const displaySpeakerName = resolveNpcDisplayName(segment.speakerName, knownNpcNames);
 
-    return [{
+    messages.push({
       campaign_id: options.campaignId,
       character_id: null,
       sender_type: resolveStructuredSpeakerType(segment.speakerName, activeEnemyNames),
       channel,
-      content,
+      content: segment.dialogue,
       metadata: {
         ...baseMetadata,
         structuredTurnGroupId: turnGroupId,
@@ -113,8 +140,10 @@ export function normalizeNarrationToCampaignMessages(
         speakerName: toSentenceCaseName(segment.speakerName),
         displaySpeakerName,
       },
-    } satisfies NormalizedCampaignMessageInsert];
+    });
   });
+
+  return messages;
 }
 
 export function sortCampaignMessagesForDisplay(messages: CampaignMessage[]) {
