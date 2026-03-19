@@ -26,6 +26,14 @@ export interface NpcReactionCoordinatorInput {
   chaosLevel: number;
   escapeRoutes?: number;
   combatResult?: StructuredCombatResult | null;
+  worldContext?: {
+    zone?: string | null;
+    environmentTags?: string[];
+    relationshipSummary?: string[];
+    memorySummary?: string[];
+    generatedCampaignSeed?: unknown;
+    generatedWorldState?: unknown;
+  };
 }
 
 export const NpcReactionCoordinator = {
@@ -66,6 +74,7 @@ export const NpcReactionCoordinator = {
       metadata: {
         intent: turn.intent,
         action: turn.action,
+        worldContext: input.worldContext,
       },
     };
   },
