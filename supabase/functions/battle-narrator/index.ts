@@ -1862,6 +1862,8 @@ ITEM PICKUP RULES (CRITICAL):
   • CRITICAL: Items too big for the inventory bag that the player is actively carrying/transporting are TEMPORARY. If the player does something else (enters combat, travels to a new zone, rests, or stops paying attention to the item), the oversized item is DROPPED automatically. Include it in itemsUsed with reason "dropped" and narrate it being left behind.
   • Mark oversized items in their description: e.g., "Heavy steel beam — carrying by hand, will drop if you stop holding it"
 - After combat victories, always mention lootable items on defeated enemies — the player can choose to grab them.
+- CRITICAL ENFORCEMENT: If your narration describes the character picking up, grabbing, taking, catching, pulling out, or receiving ANY object — you MUST include it in itemsFound. If you narrate "Dakota grabs the glowing stone" but itemsFound is [], that is a BUG. The narration and itemsFound MUST be consistent. Double-check before responding.
+- When the player reaches for or attempts to grab something and you narrate success, the item MUST appear in itemsFound immediately. Do NOT spread a pickup across multiple turns — if they grab it, it's found NOW.
 
 ACTIVE ENEMIES IN THIS COMBAT:
 ${Array.isArray(activeEnemies) && activeEnemies.length > 0
