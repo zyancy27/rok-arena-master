@@ -1297,13 +1297,14 @@ export default function CampaignView() {
           channel: 'in_universe',
           metadata: narrationPacket.metadata as any,
         }]);
-
-        // Accumulate all XP from this turn and apply level-ups immediately
-        let totalXpGained = 0;
-        if (data.xpGained) {
-          triggerDiscovery('campaign_xp');
-          totalXpGained += data.xpGained;
-        }
+      } else {
+        await supabase.from('campaign_messages').insert([{
+          campaign_id: snapshotCampaign.id,
+          sender_type: 'narrator',
+          content: 'The scene hangs in a brief, tense silence, as if the world is gathering its next words.',
+          channel: 'in_universe',
+        }]);
+      }
 
         if (data.hpChange && data.hpChange !== 0) {
           const newHp = Math.max(0, Math.min(snapshotParticipant.campaign_hp_max, snapshotParticipant.campaign_hp + data.hpChange));
