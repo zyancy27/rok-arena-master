@@ -48,19 +48,21 @@ export const CharacterCompositionEngine = {
     return {
       blueprintId: blueprint.id,
       name: blueprint.name,
-      combatIdentity: combat.combatIdentity,
-      socialIdentity: identity.socialIdentity,
-      expressionIdentity: [...new Set([...(identity.expressionIdentity || []), ...(expression.expressionIdentity || [])])],
-      movementStyle: combat.movementStyle,
-      narrativeTone: [...new Set([...(identity.narrativeTone || []), ...(expression.narrativeTone || [])])],
-      dangerProfile: combat.dangerProfile,
-      pressureStyle: [...new Set([...(combat.pressureStyle || []), ...(behavior.uniquePressureStyle || [])])],
-      signatureBehaviorPatterns: behavior.signatureBehaviorPatterns,
-      tags: composition.taxonomy.tags,
+      combatIdentity: [...new Set([...combat.combatIdentity, ...composition.runtime.pressureIdentity])],
+      socialIdentity: [...new Set([...identity.socialIdentity, composition.runtime.sceneOutputs.npcSocialReadiness])],
+      expressionIdentity: [...new Set([...(identity.expressionIdentity || []), ...(expression.expressionIdentity || []), ...composition.runtime.chatPresentationTags])],
+      movementStyle: [...new Set([...combat.movementStyle, composition.runtime.sceneOutputs.movementFriction])],
+      narrativeTone: [...new Set([...(identity.narrativeTone || []), ...(expression.narrativeTone || []), ...composition.runtime.sceneOutputs.narrationToneFlags])],
+      dangerProfile: [...new Set([...combat.dangerProfile, composition.runtime.sceneOutputs.combatVolatility])],
+      pressureStyle: [...new Set([...(combat.pressureStyle || []), ...(behavior.uniquePressureStyle || []), ...composition.runtime.sceneOutputs.environmentalPressure])],
+      signatureBehaviorPatterns: [...new Set([...(behavior.signatureBehaviorPatterns || []), ...composition.runtime.narrativeImplications])],
+      tags: composition.runtime.tags,
       traits: composition.taxonomy.traits,
       metadata: {
         sourceFields: blueprint.payload.sourceFields,
+        runtime: composition.runtime,
       },
     };
   },
 };
+

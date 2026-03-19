@@ -23,33 +23,55 @@ export const WorldCompositionEngine = {
       kind: 'world',
       name: input.name || 'Generated Region',
       tags: [...new Set(input.environmentTags || [])],
-      payload: {},
+      requiredAnchors: [
+        { key: 'regionType', required: true, fallback: input.regionType || input.name || 'contested region' },
+      ],
+      optionalModules: [
+        {
+          id: 'hazard-envelope',
+          weight: (input.activeHazards || []).length ? 0.9 : 0.25,
+          tags: ['hazardous', 'environmental_pressure'],
+          traits: [{ key: 'hazard_density', weight: (input.activeHazards || []).length * 25 }],
+        },
+        {
+          id: 'faction-friction',
+          weight: (input.factionPresence || []).length ? 0.8 : 0.2,
+          tags: ['social_pressure', 'territorial_friction'],
+          traits: [{ key: 'faction_density', weight: (input.factionPresence || []).length * 20 }],
+        },
+      ],
+      outputNormalization: ['world-state-packet', 'scene-pressure-packet'],
+      payload: {
+        regionType: input.regionType || input.name || 'contested region',
+      },
     };
 
     BlueprintRegistry.register(blueprint);
     const composition = CompositionEngine.compose({ kind: 'world', blueprintIds: [blueprint.id] });
-    const region = WorldRegionFramework.build(input.regionType, input.environmentTags || []);
-    const hazards = HazardFramework.build(input.environmentTags || [], input.activeHazards || []);
-    const pressure = EnvironmentalPressureFramework.build(input.environmentTags || [], input.activeHazards || []);
-    const territory = FactionTerritoryFramework.build(input.factionPresence || [], input.environmentTags || []);
+    const region = WorldRegionFramework.build(input.regionType, composition.runtime.tags);
+    const hazards = HazardFramework.build(composition.runtime.tags, input.activeHazards || []);
+    const pressure = EnvironmentalPressureFramework.build(composition.runtime.tags, input.activeHazards || []);
+    const territory = FactionTerritoryFramework.build(input.factionPresence || [], composition.runtime.tags);
 
     return {
       blueprintId: blueprint.id,
       regionType: region.regionType,
-      terrainLogic: region.terrainLogic,
-      dangerLogic: hazards.dangerLogic,
+      terrainLogic: [...new Set([...region.terrainLogic, composition.runtime.sceneOutputs.movementFriction])],
+      dangerLogic: [...new Set([...hazards.dangerLogic, ...composition.runtime.sceneOutputs.environmentalPressure])],
       socialDensity: pressure.socialDensity,
       economicTone: pressure.economicTone,
-      weatherPressure: pressure.weatherPressure,
-      travelPressure: pressure.travelPressure,
-      hazardFamilies: hazards.hazardFamilies,
+      weatherPressure: [...new Set([...pressure.weatherPressure, composition.runtime.sceneOutputs.scenePressure])],
+      travelPressure: [...new Set([...pressure.travelPressure, composition.runtime.sceneOutputs.movementFriction])],
+      hazardFamilies: [...new Set([...hazards.hazardFamilies, composition.runtime.sceneOutputs.hazardDensity])],
       pointsOfInterest: territory.pointsOfInterest,
       factionPresence: territory.factionPresence,
-      culturalFlavor: region.culturalFlavor,
-      tags: composition.taxonomy.tags,
+      culturalFlavor: [...new Set([...region.culturalFlavor, ...composition.runtime.narrativeImplications])],
+      tags: composition.runtime.tags,
       metadata: {
         sourceTags: input.environmentTags,
+        runtime: composition.runtime,
       },
     };
   },
 };
+
