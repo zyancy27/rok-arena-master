@@ -2476,7 +2476,7 @@ export default function CampaignView() {
                             </button>
                           ) : (
                             <button
-                              onClick={() => narratorVoice.narrate(msg.content, msg.id)}
+                              onClick={() => narratorVoice.narrate(msg.content, msg.id, buildNarrationPlaybackOptions(msg.metadata))}
                               className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
                               title="Listen to narrator"
                             >
@@ -2487,6 +2487,7 @@ export default function CampaignView() {
 
                         // If no NPC dialogue segments, render classic narrator bubble
                         const hasNpcSegments = segments.some(s => s.type === 'npc_dialogue');
+                        const narratorAnimationClass = getNarratorAnimationClass(msg.metadata);
 
                         if (!hasNpcSegments) {
                           return (
@@ -2505,11 +2506,12 @@ export default function CampaignView() {
                                     content={msg.content}
                                     activeSentenceIndex={isActiveNarration ? narratorVoice.activeSentenceIndex : -1}
                                     activeRange={isActiveNarration ? narratorVoice.activeRange : null}
+                                    animationClassName={narratorAnimationClass}
                                     voiceEnabled={userSettings.audio.narratorVoiceEnabled && userSettings.audio.tapToNarrate}
                                     requireTapConfirmation={userSettings.audio.askBeforeTapToNarrate}
                                     hasPendingTapConfirmation={narratorVoice.pendingTapRequest?.messageId === msg.id}
                                     onSentenceClick={(sentenceIdx) => {
-                                      narratorVoice.narrateFromSentence(msg.content, msg.id, sentenceIdx);
+                                      narratorVoice.narrateFromSentence(msg.content, msg.id, sentenceIdx, buildNarrationPlaybackOptions(msg.metadata));
                                     }}
                                     onConfirmSentenceClick={narratorVoice.confirmTapNarration}
                                     onCancelSentenceClick={narratorVoice.cancelTapNarration}
