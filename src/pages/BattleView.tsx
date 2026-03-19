@@ -382,7 +382,7 @@ export default function BattleView() {
 
   // Battle narrator state
   const [narratorFrequency, setNarratorFrequency] = useState<NarratorFrequency>('key_moments');
-  const [narratorMessages, setNarratorMessages] = useState<Array<{ id: string; content: string; timestamp: Date }>>([]);
+  const [narratorMessages, setNarratorMessages] = useState<Array<{ id: string; content: string; timestamp: Date; metadata?: Record<string, unknown> | null }>>([]);
   const [isNarratorLoading, setIsNarratorLoading] = useState(false);
 
   // Private narrator validation state
