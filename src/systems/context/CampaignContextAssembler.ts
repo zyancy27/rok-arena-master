@@ -10,7 +10,7 @@ export interface CampaignContextAssemblerInput {
     characterId?: string;
     name: string;
     tier?: number;
-    stats?: Record<string, number | null | undefined>;
+    stats?: Partial<Record<'stat_strength' | 'stat_speed' | 'stat_durability' | 'stat_stamina' | 'stat_skill' | 'stat_battle_iq' | 'stat_power' | 'stat_intelligence' | 'stat_luck', number | null | undefined>>;
     abilities?: string | string[] | null;
     powers?: string | string[] | null;
     equippedItems?: string[];

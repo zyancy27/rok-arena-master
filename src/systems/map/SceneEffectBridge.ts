@@ -9,7 +9,7 @@ export const SceneEffectBridge = {
       .filter((target) => target.kind === 'enemy')
       .map((target) => `enemy:${target.name}`);
     const environmentalPressureTags = [
-      context.narratorSceneContext !== 'ambient' ? `pressure:${context.narratorSceneContext}` : null,
+      context.narratorSceneContext !== 'default' ? `pressure:${context.narratorSceneContext}` : null,
       !resolvedAction.actionResult.success ? 'pressure:failure' : null,
       npcReaction?.summary ? 'pressure:npc-reactive' : null,
     ].filter((tag): tag is string => Boolean(tag));

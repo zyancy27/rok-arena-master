@@ -28,7 +28,9 @@ export const EnvironmentContextResolver = {
       ? 'combat'
       : activeHazards.length > 0
         ? 'danger'
-        : 'ambient';
+        : input.zone
+          ? 'exploration'
+          : 'default';
 
     return {
       zone: input.zone ?? null,
