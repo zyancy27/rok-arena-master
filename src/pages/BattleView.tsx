@@ -111,6 +111,11 @@ import NarratorMessageContent from '@/components/campaigns/NarratorMessageConten
 import { buildNarrationPlaybackOptions, getNarratorAnimationClass } from '@/lib/narration-playback';
 import { ChatMessagePresentationResolver } from '@/systems/chat/ChatMessagePresentationResolver';
 import type { ChatSpeakerRole, SpeakerPresentationProfile } from '@/systems/chat/presentation/SpeakerPresentationProfile';
+import {
+  getChatBoxContentClasses as getBattleMessageContentClasses,
+  getChatBoxLabelClasses as getBattleMessageLabelClasses,
+  getChatBoxSurfaceClasses as getBattleMessageSurfaceClasses,
+} from '@/systems/chat/presentation/chatBoxRenderEffects';
 import { invokeOrchestrator } from '@/lib/story-orchestrator';
 import { applyHardClamp, generateClampContext, type CharacterProfile, type ClampResult } from '@/lib/hard-clamp';
 import { detectDirectInteraction } from '@/lib/battle-hit-detection';
@@ -381,63 +386,6 @@ function resolveBattlePresentationIcon(iconTone: SpeakerPresentationProfile['ico
     default:
       return Sparkles;
   }
-}
-
-function getBattleMessageSurfaceClasses(
-  profile: SpeakerPresentationProfile | null | undefined,
-  options: { align?: 'left' | 'right' | 'center'; pending?: boolean } = {},
-) {
-  const align = options.align ?? 'left';
-  const alignClassName = align === 'right' ? 'ml-8' : align === 'center' ? 'mx-4' : 'mr-8';
-  const pressureClassName = profile?.visualPressure === 'critical'
-    ? 'shadow-lg ring-2 ring-border/70'
-    : profile?.visualPressure === 'high'
-      ? 'shadow-md ring-1 ring-border/50'
-      : 'shadow-sm';
-  const overlayClassName = profile?.overlayBehavior === 'volatile'
-    ? 'bg-gradient-to-br from-background/20 via-background/10 to-primary/10'
-    : profile?.overlayBehavior === 'layered'
-      ? 'bg-gradient-to-br from-background/10 via-background/5 to-secondary/10'
-      : profile?.overlayBehavior === 'hard'
-        ? 'border-2'
-        : '';
-  const motionClassName = profile?.animationTone === 'kinetic'
-    ? 'transition-transform duration-150 hover:-translate-y-0.5'
-    : profile?.animationTone === 'unstable'
-      ? 'transition-transform duration-200 hover:translate-x-px'
-      : 'transition-all duration-300';
-  const pulseClassName = profile?.pulseBehavior === 'surge' || profile?.pulseBehavior === 'flicker'
-    ? 'animate-pulse'
-    : '';
-  const pendingClassName = options.pending ? 'opacity-70' : '';
-
-  return [
-    'env-scope relative overflow-hidden p-3 rounded-lg border backdrop-blur-sm',
-    alignClassName,
-    profile?.surfaceClassName ?? 'bg-card/75 border-border/70 text-foreground',
-    pressureClassName,
-    overlayClassName,
-    motionClassName,
-    pulseClassName,
-    pendingClassName,
-  ].filter(Boolean).join(' ');
-}
-
-function getBattleMessageLabelClasses(profile: SpeakerPresentationProfile | null | undefined) {
-  return [
-    'text-xs font-semibold uppercase',
-    profile?.textEmphasis === 'sharp' ? 'tracking-[0.16em]' : 'tracking-wider',
-    profile?.textEmphasis === 'frayed' ? 'italic' : '',
-    profile?.labelClassName ?? 'text-foreground',
-  ].filter(Boolean).join(' ');
-}
-
-function getBattleMessageContentClasses(profile: SpeakerPresentationProfile | null | undefined) {
-  return [
-    'text-sm whitespace-pre-wrap break-words',
-    profile?.textEmphasis === 'composed' ? 'tracking-[0.01em]' : '',
-    profile?.contentClassName ?? 'text-foreground/90',
-  ].filter(Boolean).join(' ');
 }
 
 type NarratorFrequency = 'always' | 'key_moments' | 'off';

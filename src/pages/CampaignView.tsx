@@ -63,6 +63,11 @@ import { invokeOrchestrator } from '@/lib/story-orchestrator';
 import { buildNarrationPlaybackOptions, buildNarratorMessageMetadata, getNarratorAnimationClass } from '@/lib/narration-playback';
 import { ChatMessagePresentationResolver } from '@/systems/chat/ChatMessagePresentationResolver';
 import type { SpeakerPresentationProfile } from '@/systems/chat/presentation/SpeakerPresentationProfile';
+import {
+  getChatBoxContentClasses as getMessageContentClasses,
+  getChatBoxLabelClasses as getMessageLabelClasses,
+  getChatBoxSurfaceClasses as getMessageSurfaceClasses,
+} from '@/systems/chat/presentation/chatBoxRenderEffects';
 import { CampaignActionPipeline } from '@/systems/pipeline/CampaignActionPipeline';
 import { buildNarratorMessagePacket, buildPlayerMessageMetadata } from '@/systems/pipeline/PipelineMessageBridge';
 import { IntentDebugCard } from '@/components/intent/IntentDebugCard';
@@ -115,49 +120,6 @@ function resolvePresentationIcon(iconTone: SpeakerPresentationProfile['iconTone'
     default:
       return BookOpen;
   }
-}
-
-function getMessageSurfaceClasses(
-  profile: SpeakerPresentationProfile | null | undefined,
-  options: { align?: 'left' | 'right' | 'center'; pending?: boolean } = {},
-) {
-  const align = options.align ?? 'left';
-  const alignClassName = align === 'right' ? 'ml-8' : align === 'center' ? 'mx-2' : 'mr-8';
-  const pressureClassName = profile?.visualPressure === 'critical'
-    ? 'shadow-lg ring-1 ring-border/60'
-    : profile?.visualPressure === 'high'
-      ? 'shadow-md'
-      : 'shadow-sm';
-  const pulseClassName = profile?.pulseBehavior === 'surge' || profile?.pulseBehavior === 'flicker'
-    ? 'animate-pulse'
-    : '';
-  const pendingClassName = options.pending ? 'opacity-70' : '';
-
-  return [
-    'env-scope p-3 rounded-lg border backdrop-blur-sm',
-    alignClassName,
-    profile?.surfaceClassName ?? 'bg-card/75 border-border/70 text-foreground',
-    pressureClassName,
-    pulseClassName,
-    pendingClassName,
-  ].filter(Boolean).join(' ');
-}
-
-function getMessageLabelClasses(profile: SpeakerPresentationProfile | null | undefined) {
-  return [
-    'text-xs font-semibold uppercase',
-    profile?.textEmphasis === 'sharp' ? 'tracking-[0.16em]' : 'tracking-wider',
-    profile?.textEmphasis === 'frayed' ? 'italic' : '',
-    profile?.labelClassName ?? 'text-foreground',
-  ].filter(Boolean).join(' ');
-}
-
-function getMessageContentClasses(profile: SpeakerPresentationProfile | null | undefined) {
-  return [
-    'text-sm whitespace-pre-wrap break-words',
-    profile?.textEmphasis === 'composed' ? 'tracking-[0.01em]' : '',
-    profile?.contentClassName ?? 'text-foreground/90',
-  ].filter(Boolean).join(' ');
 }
 
 export default function CampaignView() {
