@@ -168,6 +168,7 @@ export default function CampaignView() {
     nickname_history?: string[];
   } | null>(null);
   const [showTacticalMap, setShowTacticalMap] = useState(false);
+  const [activeTab, setActiveTab] = useState<'adventure' | 'narrator'>('adventure');
   const userIsNearBottomRef = useRef(true);
   const introAttemptedRef = useRef(false);
   const consecutiveAdvancesRef = useRef(0);
