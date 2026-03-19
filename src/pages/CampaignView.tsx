@@ -139,12 +139,13 @@ export default function CampaignView() {
     focalCharacterName?: string | null;
     isSolo?: boolean;
     activeEnemyNames?: string[];
+    knownNpcNames?: Set<string>;
   }) => {
     const normalizedMessages = normalizeNarrationToCampaignMessages({
       campaignId: input.campaignId,
       rawNarration: input.rawNarration,
       baseMetadata: input.baseMetadata,
-      knownNpcNames,
+      knownNpcNames: input.knownNpcNames ?? knownNpcNames,
       activeEnemyNames: input.activeEnemyNames,
       focalCharacterName: input.focalCharacterName,
       isSolo: input.isSolo,
