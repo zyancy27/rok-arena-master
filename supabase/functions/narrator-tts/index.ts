@@ -88,6 +88,7 @@ serve(async (req) => {
       const ttsPromises = segments.map(async (seg) => {
         const voiceId = seg.voiceId || NARRATOR_VOICE_ID;
         const preset = seg.voiceSettings || VOICE_PRESETS[seg.context as string] || VOICE_PRESETS.default;
+        const resolvedVoiceSettings = applyVoiceOverrides(preset, seg.voiceSettings);
         
         const res = await fetch(
           `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
@@ -100,13 +101,7 @@ serve(async (req) => {
             body: JSON.stringify({
               text: seg.text.substring(0, 5000),
               model_id: "eleven_turbo_v2_5",
-              voice_settings: {
-                stability: preset.stability,
-                similarity_boost: preset.similarity_boost,
-                style: preset.style,
-                use_speaker_boost: true,
-                speed: preset.speed,
-              },
+              voice_settings: resolvedVoiceSettings,
             }),
           }
         );
