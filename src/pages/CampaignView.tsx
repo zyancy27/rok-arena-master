@@ -2607,7 +2607,7 @@ export default function CampaignView() {
                                     )}
                                   </div>
                                 </div>
-                              </div>
+                              </ExpressionChatBox>
                             );
                           })}
 
