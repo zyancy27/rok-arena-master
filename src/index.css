@@ -3663,3 +3663,272 @@
   0%, 100% { opacity: 0.6; box-shadow: 0 0 4px hsl(var(--primary) / 0.4); }
   50% { opacity: 1; box-shadow: 0 0 10px hsl(var(--primary) / 0.8); }
 }
+
+/* ================================================================
+   ADVANCED CHAT EXPRESSION SYSTEM
+   All visuals driven by data-expr-* attributes + --expr-* CSS vars.
+   JS assigns state, CSS handles rendering.
+   ================================================================ */
+
+/* ── Entry Animations ── */
+@keyframes expr-slam-in {
+  0%   { transform: translateY(-12px) scale(1.04); opacity: 0; }
+  40%  { transform: translateY(2px) scale(1.01); opacity: 1; }
+  100% { transform: translateY(0) scale(1); }
+}
+@keyframes expr-snap-in {
+  0%   { transform: scale(0.92); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes expr-tremble-in {
+  0%   { transform: translateX(-3px); opacity: 0; }
+  25%  { transform: translateX(2px); opacity: 0.7; }
+  50%  { transform: translateX(-1px); opacity: 0.9; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+@keyframes expr-jitter-in {
+  0%   { transform: translateX(0) translateY(0); opacity: 0; }
+  20%  { transform: translateX(-2px) translateY(1px); opacity: 0.5; }
+  40%  { transform: translateX(1px) translateY(-1px); opacity: 0.7; }
+  60%  { transform: translateX(-1px) translateY(0); opacity: 0.85; }
+  100% { transform: translateX(0) translateY(0); opacity: 1; }
+}
+@keyframes expr-drift-in {
+  0%   { transform: translateY(6px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+@keyframes expr-fade-in {
+  0%   { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.expr-entry-slam   { animation: expr-slam-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.expr-entry-snap   { animation: expr-snap-in 0.2s ease-out both; }
+.expr-entry-tremble { animation: expr-tremble-in 0.45s ease-out both; }
+.expr-entry-jitter { animation: expr-jitter-in 0.4s ease-out both; }
+.expr-entry-drift  { animation: expr-drift-in 0.5s ease-out both; }
+.expr-entry-fade   { animation: expr-fade-in 0.3s ease-out both; }
+
+/* ── Idle Motion (always subtle, layered) ── */
+@keyframes expr-breathe {
+  0%, 100% { transform: scale(var(--expr-scale, 1)); }
+  50%      { transform: scale(calc(var(--expr-scale, 1) + 0.003)); }
+}
+@keyframes expr-jitter-idle {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(calc(-1px * var(--expr-agitation, 0))); }
+  75%      { transform: translateX(calc(1px * var(--expr-agitation, 0))); }
+}
+@keyframes expr-drift-idle {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(calc(2px * var(--expr-tired, 0))); }
+}
+
+/* Apply idle based on state */
+[data-expr-agitation="none"],
+[data-expr-agitation="low"] {
+  animation: expr-breathe 4s ease-in-out infinite;
+}
+[data-expr-agitation="medium"] {
+  animation: expr-jitter-idle 1.5s ease-in-out infinite;
+}
+[data-expr-agitation="high"],
+[data-expr-agitation="extreme"] {
+  animation: expr-jitter-idle 0.8s ease-in-out infinite;
+}
+[data-expr-tired="high"],
+[data-expr-tired="extreme"] {
+  animation: expr-drift-idle 3s ease-in-out infinite;
+}
+
+/* ── Form System (Shape = Personality) ── */
+[data-expr-stability="high"] {
+  border-radius: 0.5rem;
+}
+[data-expr-stability="medium"] {
+  border-radius: 0.5rem 0.75rem 0.5rem 0.75rem;
+}
+[data-expr-stability="low"] {
+  border-radius: 0.75rem 0.35rem 0.85rem 0.45rem;
+}
+
+/* Aggressive shape via clip-path */
+[data-expr-emotion="angry"][data-expr-dominance="high"] {
+  clip-path: polygon(0 2%, 100% 0, 100% 98%, 0 100%);
+}
+
+/* Weak/faded edges */
+[data-expr-injured="high"],
+[data-expr-injured="extreme"] {
+  border-style: dashed;
+  border-color: hsl(var(--destructive) / 0.4);
+}
+
+/* ── Color & Light System ── */
+
+/* Emotion name colors */
+[data-expr-emotion="angry"] .expr-speaker-name {
+  color: hsl(var(--destructive));
+}
+[data-expr-emotion="fearful"] .expr-speaker-name {
+  color: hsl(270 60% 65%);
+}
+[data-expr-emotion="calm"] .expr-speaker-name {
+  color: hsl(var(--accent));
+}
+[data-expr-emotion="joyful"] .expr-speaker-name {
+  color: hsl(var(--cosmic-gold));
+}
+[data-expr-emotion="sorrowful"] .expr-speaker-name {
+  color: hsl(220 50% 60%);
+}
+[data-expr-emotion="determined"] .expr-speaker-name {
+  color: hsl(var(--primary));
+}
+[data-expr-emotion="curious"] .expr-speaker-name {
+  color: hsl(var(--accent));
+}
+[data-expr-emotion="contemptuous"] .expr-speaker-name {
+  color: hsl(var(--nebula-pink));
+}
+[data-expr-emotion="desperate"] .expr-speaker-name {
+  color: hsl(0 70% 60%);
+}
+
+/* Box tint per emotion */
+[data-expr-emotion="angry"] {
+  background-color: hsl(0 50% 12% / calc(0.15 + var(--expr-intensity, 0) * 0.2));
+}
+[data-expr-emotion="fearful"] {
+  background-color: hsl(270 40% 12% / calc(0.1 + var(--expr-intensity, 0) * 0.15));
+}
+[data-expr-emotion="calm"] {
+  background-color: hsl(180 30% 12% / 0.1);
+}
+[data-expr-emotion="joyful"] {
+  background-color: hsl(45 50% 15% / calc(0.08 + var(--expr-intensity, 0) * 0.12));
+}
+[data-expr-emotion="sorrowful"] {
+  background-color: hsl(220 40% 12% / calc(0.1 + var(--expr-intensity, 0) * 0.15));
+}
+
+/* Glow per intensity */
+[data-expr-intensity="high"],
+[data-expr-intensity="extreme"] {
+  box-shadow: 0 0 calc(8px + 12px * var(--expr-intensity, 0)) hsl(var(--primary) / var(--expr-glow-opacity, 0.1));
+}
+
+/* Flicker for fear */
+@keyframes expr-flicker {
+  0%, 100% { opacity: 1; }
+  47%      { opacity: 0.92; }
+  50%      { opacity: 0.85; }
+  53%      { opacity: 0.95; }
+}
+[data-expr-emotion="fearful"][data-expr-intensity="high"],
+[data-expr-emotion="fearful"][data-expr-intensity="extreme"] {
+  animation: expr-flicker 2s ease-in-out infinite;
+}
+
+/* ── Presence System ── */
+[data-expr-weight="high"] {
+  transform: scale(var(--expr-scale, 1));
+}
+[data-expr-weight="low"] {
+  opacity: calc(0.7 + var(--expr-presence-weight, 0.5) * 0.3);
+  transform: scale(0.97);
+}
+
+/* ── Environmental Influence ── */
+[data-expr-biome="forest"] {
+  border-left-color: hsl(120 40% 30% / 0.5);
+}
+[data-expr-biome="volcanic"] {
+  border-left-color: hsl(15 70% 40% / 0.5);
+}
+[data-expr-biome="tundra"] {
+  border-left-color: hsl(200 50% 60% / 0.4);
+}
+[data-expr-biome="void"] {
+  border-left-color: hsl(270 30% 20% / 0.6);
+}
+[data-expr-biome="aquatic"] {
+  border-left-color: hsl(200 60% 40% / 0.4);
+}
+
+[data-expr-tension="high"] {
+  border-left-width: 3px;
+}
+
+/* ── Deception Layer (subtle) ── */
+@keyframes expr-deception-flicker {
+  0%, 100% { opacity: 1; }
+  30%      { opacity: 0.97; }
+  32%      { opacity: 0.93; }
+  34%      { opacity: 0.98; }
+  70%      { opacity: 0.96; }
+  72%      { opacity: 0.91; }
+  74%      { opacity: 1; }
+}
+[data-expr-deceptive="true"] {
+  animation: expr-deception-flicker 4s ease-in-out infinite;
+  border-color: hsl(var(--border) / calc(0.5 + var(--expr-deception, 0) * 0.3));
+}
+
+/* ── Vocal Style Visual Hints ── */
+[data-expr-vocal="whisper"] .expr-content {
+  font-size: 0.8em;
+  opacity: 0.8;
+  letter-spacing: 0.02em;
+}
+[data-expr-vocal="shout"] .expr-content {
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+[data-expr-vocal="growl"] .expr-content {
+  font-style: italic;
+  letter-spacing: -0.01em;
+}
+[data-expr-vocal="commanding"] .expr-content {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+[data-expr-vocal="pleading"] .expr-content {
+  font-style: italic;
+  opacity: 0.85;
+}
+[data-expr-vocal="cold"] .expr-content {
+  letter-spacing: 0.04em;
+}
+
+/* ── Physical Degradation ── */
+[data-expr-injured="high"] .expr-content,
+[data-expr-injured="extreme"] .expr-content {
+  opacity: var(--expr-text-opacity, 0.8);
+}
+[data-expr-tired="high"] .expr-content,
+[data-expr-tired="extreme"] .expr-content {
+  opacity: var(--expr-text-opacity, 0.75);
+  font-style: italic;
+}
+[data-expr-unstable="high"] .expr-content,
+[data-expr-unstable="extreme"] .expr-content {
+  letter-spacing: 0.03em;
+}
+
+/* ── Urgency pulse ── */
+@keyframes expr-urgent-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50%      { box-shadow: 0 0 8px 2px hsl(var(--destructive) / 0.15); }
+}
+[data-expr-urgency="high"],
+[data-expr-urgency="extreme"] {
+  animation: expr-urgent-pulse 1.5s ease-in-out infinite;
+}
+
+/* ── Hesitation text effect ── */
+[data-expr-hesitation="high"] .expr-content,
+[data-expr-hesitation="extreme"] .expr-content {
+  word-spacing: 0.15em;
+}

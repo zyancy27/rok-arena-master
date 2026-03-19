@@ -61,6 +61,7 @@ import type { CharacterStats } from '@/lib/character-stats';
 import CampaignTacticalMap, { type NarratorSceneMap } from '@/components/campaigns/CampaignTacticalMap';
 import NarratorMessageContent from '@/components/campaigns/NarratorMessageContent';
 import NpcDialogueBubble from '@/components/campaigns/NpcDialogueBubble';
+import ExpressionChatBox from '@/components/chat/ExpressionChatBox';
 import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import { useNarrationController } from '@/hooks/use-narration-controller';
@@ -2518,19 +2519,20 @@ export default function CampaignView() {
                                   dialogue={envelope.content}
                                   location={activeSceneLocation || campaign.current_zone}
                                   presentationProfile={envelope.presentationProfile}
+                                  expressionPacket={envelope.expressionPacket}
                                 />
                               );
                             }
 
                             return (
-                              <div key={envelope.id} className={surfaceClassName}>
+                              <ExpressionChatBox key={envelope.id} expression={envelope.expressionPacket} className={surfaceClassName}>
                                 <div className="flex items-start gap-2 relative z-10">
                                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${envelope.presentationProfile.iconContainerClassName}`}>
                                     <Icon className="w-4 h-4" />
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1">
-                                      <span className={labelClassName}>{envelope.speakerName}</span>
+                                      <span className={`expr-speaker-name ${labelClassName}`}>{envelope.speakerName}</span>
                                       <span className="text-[10px] text-muted-foreground">{new Date(msg.created_at).toLocaleTimeString()}</span>
                                       {isNarratorEnvelope && userSettings.audio.narratorVoiceEnabled && envelopeIndex === 0 && (
                                         narratorVoice.isPlaying && narratorVoice.activeMessageId === msg.id ? (
@@ -2595,7 +2597,7 @@ export default function CampaignView() {
                                       />
                                     ) : (
                                       <>
-                                        <p className={contentClassName}>{envelope.content}</p>
+                                        <p className={`expr-content ${contentClassName}`}>{envelope.content}</p>
                                         {isMe && userSettings.audio.intentDebug && (msg.metadata as any)?.intentDebug && envelopeIndex === 0 && (
                                           <div className="mt-2">
                                             <IntentDebugCard payload={(msg.metadata as any).intentDebug} actionResult={(msg.metadata as any).actionResult ?? null} />
@@ -2605,7 +2607,7 @@ export default function CampaignView() {
                                     )}
                                   </div>
                                 </div>
-                              </div>
+                              </ExpressionChatBox>
                             );
                           })}
 

@@ -5,6 +5,7 @@ import { CampaignSpeakerBoxRegistry } from './CampaignSpeakerBoxRegistry';
 import type { CampaignMessageEnvelope } from './CampaignMessageEnvelope';
 import { ChatSpeakerResolver } from './ChatSpeakerResolver';
 import type { ChatSpeakerRole } from './presentation/SpeakerPresentationProfile';
+import { ExpressionDeriver } from '@/systems/expression/ExpressionDeriver';
 
 function toStringArray(value: unknown): string[] {
   return Array.isArray(value)
@@ -109,6 +110,15 @@ function buildEnvelope(input: {
     input.visualPressure,
   );
 
+  // Derive expression packet — try pipeline-aware first, fall back to text analysis
+  const metadata = (input.message.metadata || {}) as Record<string, unknown>;
+  const packets = getGeneratedRuntimePackets(metadata);
+  const hasPackets = !!(packets.sceneState || packets.actorIdentity || packets.npcIdentity);
+  const speakerId = input.speakerId || input.speakerName || 'unknown';
+  const expressionPacket = hasPackets
+    ? ExpressionDeriver.fromPipeline(packets, input.content, speakerId, input.role)
+    : ExpressionDeriver.fromText(input.content, speakerId, input.role);
+
   return {
     id: input.id,
     messageId: input.message.id,
@@ -123,6 +133,7 @@ function buildEnvelope(input: {
     createdAt: input.message.created_at,
     rawType: input.rawType,
     presentationProfile: profile,
+    expressionPacket,
   } satisfies CampaignMessageEnvelope;
 }
 
