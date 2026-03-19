@@ -535,16 +535,12 @@ export default function CampaignView() {
           }
 
           setMessages(prev => {
-            // Check if we have an optimistic (isPending) message that matches
             const optimisticIndex = prev.findIndex(m =>
               m.isPending && m.character_id === msg.character_id && m.content === msg.content
             );
-            
-            const enriched: CampaignMessage = {
+
+            const enriched = normalizeCampaignMessageRecord({
               ...msg,
-              metadata: (msg.metadata || {}) as Record<string, unknown>,
-              dice_result: msg.dice_result as Record<string, unknown> | null,
-              theme_snapshot: msg.theme_snapshot as Record<string, unknown> | null,
               isPending: false,
               character: (() => {
                 const participant = participantsRef.current.find(p => p.character_id === msg.character_id);
@@ -552,15 +548,16 @@ export default function CampaignView() {
                   ? { name: participant.character.name, image_url: participant.character.image_url }
                   : msg.character || null;
               })(),
-            };
+            });
 
             if (optimisticIndex !== -1) {
-              return prev.map((m, i) => i === optimisticIndex ? enriched : m);
+              const next = prev.map((m, i) => i === optimisticIndex ? enriched : m);
+              return normalizeAndSortMessages(next);
             }
-            
+
             if (prev.some(m => m.id === msg.id)) return prev;
-            
-            return [...prev, enriched];
+
+            return normalizeAndSortMessages([...prev, enriched]);
           });
         }
       )
