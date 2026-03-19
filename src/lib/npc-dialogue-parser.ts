@@ -47,6 +47,23 @@ const PATTERN_AFTER_PRONOUN = new RegExp(
   'g',
 );
 
+/**
+ * Pattern: Name [action, 1-200 chars]. "dialogue"
+ * Handles the very common AI pattern where a character performs an action
+ * then speaks, without using an explicit speech verb before the dialogue.
+ * e.g. Master Eldrin shivers, pulling his shoulders up. "I... it isn't art."
+ *
+ * To avoid false positives we require:
+ * - The name is at (or near) the start of a sentence
+ * - The gap between the name and the dialogue is ≤ 200 characters
+ * - No other capitalized two-word name appears between the matched name
+ *   and the dialogue (handled in dedup / override logic)
+ */
+const PATTERN_ACTION_THEN_SPEECH = new RegExp(
+  String.raw`${NAME_CAPTURE}[^""]{1,200}?[.!?]\s*${DIALOGUE_CAPTURE}`,
+  'g',
+);
+
 interface RawMatch {
   start: number;
   end: number;
