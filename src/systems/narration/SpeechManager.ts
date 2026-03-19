@@ -227,7 +227,7 @@ export class SpeechManager {
     for (const cb of this.stateCallbacks) cb(state);
   }
 
-  private buildTtsSegments(text: string, context: NarratorSceneContext) {
+  private buildTtsSegments(text: string, context: NarratorSceneContext, voiceSettings?: NarrationVoiceSettings) {
     const segments = splitNarrationSegments(text);
     const hasNpc = segments.some(s => s.type === 'npc');
     if (!hasNpc) return null;
@@ -235,7 +235,7 @@ export class SpeechManager {
       if (seg.type === 'npc' && seg.voiceProfile) {
         return { text: seg.text, voiceId: seg.voiceProfile.voiceId, voiceSettings: getNpcVoiceSettings(seg.voiceProfile.tone) };
       }
-      return { text: seg.text, context };
+      return { text: seg.text, context, voiceSettings };
     });
   }
 

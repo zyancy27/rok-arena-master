@@ -1,4 +1,4 @@
-import { SpeechManager, type BoundaryCallback, type NarratorSceneContext, type StateCallback } from './SpeechManager';
+import { SpeechManager, type BoundaryCallback, type NarrationVoiceSettings, type NarratorSceneContext, type StateCallback } from './SpeechManager';
 
 export class SpeechPlaybackManager {
   private readonly speech = new SpeechManager();
@@ -15,8 +15,8 @@ export class SpeechPlaybackManager {
     return this.speech.onStateChange(callback);
   }
 
-  speak(text: string, startCharIndex = 0, context?: NarratorSceneContext) {
-    return this.speech.speak(text, startCharIndex, context);
+  speak(text: string, startCharIndex = 0, context?: NarratorSceneContext, voiceSettings?: NarrationVoiceSettings) {
+    return this.speech.speak(text, startCharIndex, context, voiceSettings);
   }
 
   cancelAll() {
