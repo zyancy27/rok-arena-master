@@ -1201,58 +1201,60 @@ export default function BattleView() {
 
     if (activeChannel === 'in_universe' && userCharacter.character) {
       const char = userCharacter.character;
-      const intentResult = IntentEngine.resolve(content, {
-        mode: 'battle',
-        actorName: char.name,
-        possibleTargets: participants
-          .filter(p => p.character_id !== userCharacter.character_id && p.character?.name)
-          .map(p => ({ id: p.character_id, name: p.character!.name, kind: 'enemy' as const })),
-      });
-
-      const profile: CharacterProfile = {
-        name: char.name,
-        tier: char.level,
-        stats: {
-          stat_intelligence: char.stat_intelligence ?? 50,
-          stat_battle_iq: char.stat_battle_iq ?? 50,
-          stat_strength: char.stat_strength ?? 50,
-          stat_power: char.stat_power ?? 50,
-          stat_speed: char.stat_speed ?? 50,
-          stat_durability: char.stat_durability ?? 50,
-          stat_stamina: char.stat_stamina ?? 50,
-          stat_skill: char.stat_skill ?? 50,
-          stat_luck: char.stat_luck ?? 50,
+      const pipelineResult = BattleActionPipeline.execute({
+        rawText: content,
+        actor: {
+          characterId: userCharacter.character_id,
+          name: char.name,
+          tier: char.level,
+          stats: {
+            stat_intelligence: char.stat_intelligence ?? 50,
+            stat_battle_iq: char.stat_battle_iq ?? 50,
+            stat_strength: char.stat_strength ?? 50,
+            stat_power: char.stat_power ?? 50,
+            stat_speed: char.stat_speed ?? 50,
+            stat_durability: char.stat_durability ?? 50,
+            stat_stamina: char.stat_stamina ?? 50,
+            stat_skill: char.stat_skill ?? 50,
+            stat_luck: char.stat_luck ?? 50,
+          },
+          abilities: char.abilities,
+          powers: char.powers,
+          statusEffects: characterStatusEffects.map(effect => ({ type: effect.type, intensity: effect.intensity })),
+          stamina: char.stat_stamina ?? 50,
+          energy: char.stat_power ?? 50,
         },
-        powers: char.powers ?? null,
-        abilities: char.abilities ?? null,
+        opponents: participants
+          .filter(p => p.character_id !== userCharacter.character_id && p.character?.name)
+          .map(p => ({
+            id: p.character_id,
+            name: p.character!.name,
+            tier: p.character?.level,
+            stats: {
+              stat_intelligence: p.character?.stat_intelligence ?? 50,
+              stat_battle_iq: p.character?.stat_battle_iq ?? 50,
+              stat_strength: p.character?.stat_strength ?? 50,
+              stat_power: p.character?.stat_power ?? 50,
+              stat_speed: p.character?.stat_speed ?? 50,
+              stat_durability: p.character?.stat_durability ?? 50,
+              stat_stamina: p.character?.stat_stamina ?? 50,
+              stat_skill: p.character?.stat_skill ?? 50,
+              stat_luck: p.character?.stat_luck ?? 50,
+            },
+            abilities: p.character?.abilities,
+            powers: p.character?.powers,
+          })),
+        battleZone: battle?.chosen_location ?? null,
+        activeHazards: battlefieldEffects.map(effect => effect.type),
+        rangeState: { zone: battleDistance.currentZone, meters: battleDistance.estimatedMeters },
+        sceneState: { statusEffects: characterStatusEffects.map(effect => effect.type) },
         consecutiveHighForceTurns,
-      };
-      const clamp = applyHardClamp(intentResult.legacyMoveIntent, profile);
-      lastClampResultRef.current = clamp;
-
-      const characterContext = CharacterContextResolver.resolve({
-        characterId: userCharacter.character_id,
-        name: char.name,
-        tier: char.level,
-        stats: profile.stats as any,
-        abilities: char.abilities,
-        powers: char.powers,
-        statusEffects: characterStatusEffects.map(effect => ({ type: effect.type, intensity: effect.intensity })),
-        stamina: char.stat_stamina ?? 50,
-        energy: char.stat_power ?? 50,
       });
 
-      localIntentDebug = intentResult.debug;
-      localActionResult = ActionResolver.resolve(intentResult.intent, characterContext, {
-        hasActiveThreat: participants.length > 1,
-        currentZone: battle?.chosen_location ?? null,
-      });
-
-      if (intentResult.legacyMoveIntent.intentCategory === 'HIGH_FORCE' || intentResult.legacyMoveIntent.posture === 'RECKLESS') {
-        setConsecutiveHighForceTurns(prev => prev + 1);
-      } else {
-        setConsecutiveHighForceTurns(0);
-      }
+      lastClampResultRef.current = pipelineResult.clampResult;
+      localIntentDebug = pipelineResult.resolvedAction.intentDebug;
+      localActionResult = pipelineResult.resolvedAction.actionResult;
+      setConsecutiveHighForceTurns(pipelineResult.highForceTurnCount);
     }
 
     const optimisticMessage: Message = {
