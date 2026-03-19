@@ -15,7 +15,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { supabase } from '@/integrations/supabase/client';
 import {
   BookOpen, Send, Sparkles, Lock, Globe, User, Map, Swords,
-  Heart, Zap, Users, ChevronDown, MapPin, RefreshCw, LogOut, Play, Backpack, Crosshair,
+  Heart, Zap, Users, ChevronDown, MapPin, RefreshCw, LogOut, Play, Backpack, Crosshair, UserCheck,
 } from 'lucide-react';
 import CampaignInventoryPanel, { type InventoryItem } from './CampaignInventoryPanel';
 import CampaignTradePanel from './CampaignTradePanel';
@@ -24,6 +24,14 @@ import { getTimeEmoji } from '@/lib/campaign-types';
 import type { CampaignParticipant } from '@/lib/campaign-types';
 import TacticalBattleMap from '@/components/battles/TacticalBattleMap';
 import { generateTacticalMap } from '@/lib/tactical-map-generator';
+import { ChatMessagePresentationResolver } from '@/systems/chat/ChatMessagePresentationResolver';
+import type { SpeakerPresentationProfile } from '@/systems/chat/presentation/SpeakerPresentationProfile';
+import {
+  getChatBoxContentClasses,
+  getChatBoxLabelClasses,
+  getChatBoxSurfaceClasses,
+  getChatBoxWrapperClasses,
+} from '@/systems/chat/presentation/chatBoxRenderEffects';
 
 interface NarratorMessage {
   id: string;
@@ -100,6 +108,43 @@ const QUICK_ASKS = [
   { label: 'Surroundings', icon: Map, prompt: 'Describe my immediate surroundings in detail — what do I see, hear, smell? What notable features, paths, or points of interest are nearby?' },
   { label: 'Threats', icon: Swords, prompt: 'What potential threats or dangers should I be aware of in the current area? Any hostile creatures, environmental hazards, or suspicious activity?' },
 ];
+
+function resolveNarratorChatIcon(iconTone: SpeakerPresentationProfile['iconTone']) {
+  switch (iconTone) {
+    case 'player':
+      return User;
+    case 'ally':
+      return UserCheck;
+    case 'enemy':
+      return Swords;
+    case 'system':
+      return Sparkles;
+    case 'npc':
+      return MapPin;
+    case 'narrator':
+    default:
+      return BookOpen;
+  }
+}
+
+function resolveNarratorChatPresentation(message: NarratorMessage) {
+  const speakerRole = message.role === 'user' ? 'player' : 'narrator';
+  const speakerName = message.role === 'user' ? 'You' : 'Narrator';
+
+  return ChatMessagePresentationResolver.resolveStandaloneProfile({
+    speakerRole,
+    speakerName,
+    metadata: message.role === 'narrator'
+      ? {
+          generatedSceneState: {
+            scenePressure: 'low',
+            narrationToneFlags: ['composed', 'guarded'],
+            chatPresentationTags: ['private', 'guidance'],
+          },
+        }
+      : null,
+  });
+}
 
 export default function CampaignNarratorChat({
   campaignId, campaignName, campaignStatus,
@@ -439,44 +484,72 @@ export default function CampaignNarratorChat({
           </div>
         ) : (
           <div className="space-y-3">
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`p-2.5 rounded-lg text-sm ${
-                  msg.role === 'user'
-                    ? 'bg-primary/10 border-l-2 border-primary ml-6'
-                    : 'bg-muted/30 border-l-2 border-amber-500/50 mr-4'
-                }`}
-              >
-                <div className="flex items-center gap-1.5 mb-1">
-                  {msg.role === 'narrator' ? (
-                    <>
-                      <BookOpen className="w-3 h-3 text-amber-400" />
-                      <span className="text-[10px] font-medium text-amber-400">Narrator</span>
-                    </>
-                  ) : (
-                    <span className="text-[10px] font-medium text-muted-foreground">You</span>
-                  )}
-                  <span className="text-[10px] text-muted-foreground/50 ml-auto">
-                    {msg.timestamp.toLocaleTimeString()}
-                  </span>
+            {messages.map((msg) => {
+              const presentationProfile = resolveNarratorChatPresentation(msg);
+              const Icon = resolveNarratorChatIcon(presentationProfile.iconTone);
+              const align = msg.role === 'user' ? 'right' : 'left';
+              const surfaceClassName = getChatBoxSurfaceClasses(presentationProfile, { align, includeEntranceAnimation: false });
+              const labelClassName = getChatBoxLabelClasses(presentationProfile);
+              const contentClassName = getChatBoxContentClasses(presentationProfile);
+              const wrapperClassName = getChatBoxWrapperClasses(presentationProfile, { includeEntranceAnimation: false });
+
+              return (
+                <div key={msg.id} className={wrapperClassName}>
+                  <div className={surfaceClassName}>
+                    <div className="flex items-start gap-2 relative z-10">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${presentationProfile.iconContainerClassName}`}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className={labelClassName}>{msg.role === 'user' ? 'You' : 'Narrator'}</span>
+                          <span className="text-[10px] text-muted-foreground/50 ml-auto">
+                            {msg.timestamp.toLocaleTimeString()}
+                          </span>
+                        </div>
+                        <p className={contentClassName}>{msg.content}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <p className="whitespace-pre-wrap break-words text-foreground/90">{msg.content}</p>
-              </div>
-            ))}
-            {isLoading && (
-              <div className="p-2.5 rounded-lg text-sm bg-muted/30 border-l-2 border-amber-500/50 mr-4">
-                <div className="flex items-center gap-1.5">
-                  <BookOpen className="w-3 h-3 text-amber-400" />
-                  <span className="text-[10px] font-medium text-amber-400">Narrator</span>
+              );
+            })}
+            {isLoading && (() => {
+              const loadingProfile = ChatMessagePresentationResolver.resolveStandaloneProfile({
+                speakerRole: 'narrator',
+                speakerName: 'Narrator',
+                metadata: {
+                  generatedSceneState: {
+                    scenePressure: 'medium',
+                    narrationToneFlags: ['guarded', 'charged'],
+                    chatPresentationTags: ['private', 'thinking'],
+                  },
+                },
+              });
+              const LoadingIcon = resolveNarratorChatIcon(loadingProfile.iconTone);
+
+              return (
+                <div className={getChatBoxWrapperClasses(loadingProfile)}>
+                  <div className={getChatBoxSurfaceClasses(loadingProfile, { align: 'left' })}>
+                    <div className="flex items-start gap-2 relative z-10">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${loadingProfile.iconContainerClassName}`}>
+                        <LoadingIcon className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className={getChatBoxLabelClasses(loadingProfile)}>Narrator</span>
+                        </div>
+                        <div className="flex items-center gap-1 mt-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <div className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: '300ms' }} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 mt-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-bounce" style={{ animationDelay: '300ms' }} />
-                </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         )}
       </div>
