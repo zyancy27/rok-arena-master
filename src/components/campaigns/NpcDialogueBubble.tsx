@@ -57,7 +57,7 @@ export default function NpcDialogueBubble({
     <ChatBoxTheme location={location} tags={tags} className={`mx-2 rounded-lg ${wrapperClassName}`}>
       <ExpressionChatBox expression={expressionPacket} className={surfaceClassName}>
         <div className="flex items-start gap-2 relative z-10">
-          <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${iconContainerClassName}`}>
+          <div className={`expr-icon w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${iconContainerClassName}`}>
             <Icon className="w-3.5 h-3.5" />
           </div>
           <div className="flex-1 min-w-0">

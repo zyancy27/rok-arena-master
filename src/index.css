@@ -3724,20 +3724,20 @@
   50%      { transform: translateY(calc(2px * var(--expr-tired, 0))); }
 }
 
-/* Apply idle based on state */
-[data-expr-agitation="none"],
-[data-expr-agitation="low"] {
+/* Apply idle motion to icon only */
+[data-expr-agitation="none"] .expr-icon,
+[data-expr-agitation="low"] .expr-icon {
   animation: expr-breathe 4s ease-in-out infinite;
 }
-[data-expr-agitation="medium"] {
+[data-expr-agitation="medium"] .expr-icon {
   animation: expr-jitter-idle 1.5s ease-in-out infinite;
 }
-[data-expr-agitation="high"],
-[data-expr-agitation="extreme"] {
+[data-expr-agitation="high"] .expr-icon,
+[data-expr-agitation="extreme"] .expr-icon {
   animation: expr-jitter-idle 0.8s ease-in-out infinite;
 }
-[data-expr-tired="high"],
-[data-expr-tired="extreme"] {
+[data-expr-tired="high"] .expr-icon,
+[data-expr-tired="extreme"] .expr-icon {
   animation: expr-drift-idle 3s ease-in-out infinite;
 }
 
@@ -3825,8 +3825,8 @@
   50%      { opacity: 0.85; }
   53%      { opacity: 0.95; }
 }
-[data-expr-emotion="fearful"][data-expr-intensity="high"],
-[data-expr-emotion="fearful"][data-expr-intensity="extreme"] {
+[data-expr-emotion="fearful"][data-expr-intensity="high"] .expr-icon,
+[data-expr-emotion="fearful"][data-expr-intensity="extreme"] .expr-icon {
   animation: expr-flicker 2s ease-in-out infinite;
 }
 
@@ -3917,13 +3917,13 @@
   letter-spacing: 0.03em;
 }
 
-/* ── Urgency pulse ── */
+/* ── Urgency pulse on icon ── */
 @keyframes expr-urgent-pulse {
   0%, 100% { box-shadow: 0 0 0 0 transparent; }
-  50%      { box-shadow: 0 0 8px 2px hsl(var(--destructive) / 0.15); }
+  50%      { box-shadow: 0 0 8px 2px hsl(var(--destructive) / 0.3); }
 }
-[data-expr-urgency="high"],
-[data-expr-urgency="extreme"] {
+[data-expr-urgency="high"] .expr-icon,
+[data-expr-urgency="extreme"] .expr-icon {
   animation: expr-urgent-pulse 1.5s ease-in-out infinite;
 }
 
