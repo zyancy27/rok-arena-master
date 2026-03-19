@@ -5,6 +5,7 @@ import { CampaignSpeakerBoxRegistry } from './CampaignSpeakerBoxRegistry';
 import type { CampaignMessageEnvelope } from './CampaignMessageEnvelope';
 import { ChatSpeakerResolver } from './ChatSpeakerResolver';
 import type { ChatSpeakerRole } from './presentation/SpeakerPresentationProfile';
+import { ExpressionDeriver } from '@/systems/expression/ExpressionDeriver';
 
 function toStringArray(value: unknown): string[] {
   return Array.isArray(value)
