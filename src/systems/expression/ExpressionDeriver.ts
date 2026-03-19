@@ -105,10 +105,10 @@ export const ExpressionDeriver = {
   ): ExpressionPacket {
     const base = this.fromText(text, speakerId, speakerRole);
 
-    const scene = packets.sceneState as Record<string, unknown> | undefined;
-    const actor = packets.actorIdentity as Record<string, unknown> | undefined;
-    const npc = packets.npcIdentity as Record<string, unknown> | undefined;
-    const world = packets.worldState as Record<string, unknown> | undefined;
+    const scene = packets.sceneState as unknown as Record<string, unknown> | undefined;
+    const actor = packets.actorIdentity as unknown as Record<string, unknown> | undefined;
+    const npc = packets.npcIdentity as unknown as Record<string, unknown> | undefined;
+    const world = packets.worldState as unknown as Record<string, unknown> | undefined;
 
     // Overlay scene pressure onto body language
     if (scene) {
