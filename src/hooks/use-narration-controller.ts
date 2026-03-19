@@ -10,6 +10,7 @@ import type { NarrationVoiceSettings, NarratorSceneContext } from '@/systems/nar
 import type { AmbientIntensityLevel } from '@/lib/audio/narration-sound-rules';
 import type { NarrationHighlightRange } from '@/systems/narration/NarrationHighlightManager';
 import { toast } from 'sonner';
+import { getNarrationSoundManager } from '@/lib/audio/narration-sound-manager';
 
 interface UseNarrationControllerOptions {
   enabled: boolean;
