@@ -3917,13 +3917,13 @@
   letter-spacing: 0.03em;
 }
 
-/* ── Urgency pulse ── */
+/* ── Urgency pulse on icon ── */
 @keyframes expr-urgent-pulse {
   0%, 100% { box-shadow: 0 0 0 0 transparent; }
-  50%      { box-shadow: 0 0 8px 2px hsl(var(--destructive) / 0.15); }
+  50%      { box-shadow: 0 0 8px 2px hsl(var(--destructive) / 0.3); }
 }
-[data-expr-urgency="high"],
-[data-expr-urgency="extreme"] {
+[data-expr-urgency="high"] .expr-icon,
+[data-expr-urgency="extreme"] .expr-icon {
   animation: expr-urgent-pulse 1.5s ease-in-out infinite;
 }
 
