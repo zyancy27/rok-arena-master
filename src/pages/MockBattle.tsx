@@ -237,6 +237,61 @@ interface Message {
   hitDetectionResult?: HitDetectionResult;
 }
 
+interface MockBattleRenderEnvelope {
+  speakerRole: ChatSpeakerRole;
+  speakerName: string;
+  presentationProfile: SpeakerPresentationProfile;
+}
+
+function resolveMockBattleSpeakerRole(message: Message): ChatSpeakerRole {
+  if (message.role === 'system') return 'system';
+  if (message.role === 'narrator') return 'narrator';
+  if (message.role === 'user') return 'player';
+  return message.channel === 'out_of_universe' ? 'enemy_combatant' : 'enemy_combatant';
+}
+
+function resolveMockBattlePresentationIcon(iconTone: SpeakerPresentationProfile['iconTone']) {
+  switch (iconTone) {
+    case 'enemy':
+      return Bot;
+    case 'player':
+      return User;
+    case 'system':
+      return Sparkles;
+    case 'npc':
+      return MapPin;
+    case 'ally':
+      return User;
+    case 'narrator':
+    default:
+      return BookOpen;
+  }
+}
+
+function resolveMockBattleEnvelope(message: Message): MockBattleRenderEnvelope {
+  const speakerRole = resolveMockBattleSpeakerRole(message);
+  const speakerName = message.characterName || (speakerRole === 'player' ? 'You' : speakerRole === 'narrator' ? 'Narrator' : speakerRole === 'system' ? 'System' : 'Opponent');
+  const presentationProfile = ChatMessagePresentationResolver.resolveStandaloneProfile({
+    speakerRole,
+    speakerName,
+    metadata: speakerRole === 'narrator'
+      ? {
+          generatedSceneState: {
+            scenePressure: 'medium',
+            narrationToneFlags: ['cinematic', 'charged'],
+            chatPresentationTags: ['arena', 'commentary'],
+          },
+        }
+      : null,
+  });
+
+  return {
+    speakerRole,
+    speakerName,
+    presentationProfile,
+  };
+}
+
 interface AIOpponent {
   id: string;
   name: string;
