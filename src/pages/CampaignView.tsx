@@ -1256,6 +1256,8 @@ export default function CampaignView() {
         narratorSentiment: narratorSentiment || undefined,
       });
 
+      let totalXpGained = 0;
+
       if (!error && data?.narration) {
         // Process narrator response for status effects
         campaignCombat.processNarratorResponse(data.narration);
@@ -1279,7 +1281,6 @@ export default function CampaignView() {
           } else {
             setCombatPulse('red');
           }
-          // Clear pulse after 8 seconds
           if (combatPulseTimerRef.current) clearTimeout(combatPulseTimerRef.current);
           combatPulseTimerRef.current = setTimeout(() => setCombatPulse('none'), 8000);
         }
@@ -1297,6 +1298,11 @@ export default function CampaignView() {
           channel: 'in_universe',
           metadata: narrationPacket.metadata as any,
         }]);
+
+        if (data.xpGained) {
+          triggerDiscovery('campaign_xp');
+          totalXpGained += data.xpGained;
+        }
       } else {
         await supabase.from('campaign_messages').insert([{
           campaign_id: snapshotCampaign.id,
@@ -1306,7 +1312,7 @@ export default function CampaignView() {
         }]);
       }
 
-        if (data.hpChange && data.hpChange !== 0) {
+      if (data) {
           const newHp = Math.max(0, Math.min(snapshotParticipant.campaign_hp_max, snapshotParticipant.campaign_hp + data.hpChange));
           await supabase.from('campaign_participants')
             .update({ campaign_hp: newHp })
