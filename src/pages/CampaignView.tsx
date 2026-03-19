@@ -2532,7 +2532,7 @@ export default function CampaignView() {
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1">
-                                      <span className={labelClassName}>{envelope.speakerName}</span>
+                                      <span className={`expr-speaker-name ${labelClassName}`}>{envelope.speakerName}</span>
                                       <span className="text-[10px] text-muted-foreground">{new Date(msg.created_at).toLocaleTimeString()}</span>
                                       {isNarratorEnvelope && userSettings.audio.narratorVoiceEnabled && envelopeIndex === 0 && (
                                         narratorVoice.isPlaying && narratorVoice.activeMessageId === msg.id ? (
