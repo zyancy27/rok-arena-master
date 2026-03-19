@@ -9,6 +9,12 @@ import { Sparkles, Swords, User, UserCheck } from 'lucide-react';
 import ChatBoxTheme from '@/components/battles/ChatBoxTheme';
 import type { EnvironmentTag } from '@/lib/theme-engine';
 import type { SpeakerPresentationProfile } from '@/systems/chat/presentation/SpeakerPresentationProfile';
+import {
+  getChatBoxContentClasses,
+  getChatBoxLabelClasses,
+  getChatBoxSurfaceClasses,
+  getChatBoxWrapperClasses,
+} from '@/systems/chat/presentation/chatBoxRenderEffects';
 
 interface NpcDialogueBubbleProps {
   speakerName: string;
@@ -28,18 +34,11 @@ export default function NpcDialogueBubble({
   presentationProfile,
 }: NpcDialogueBubbleProps) {
   const isUnknown = speakerName === '*Name Unknown*';
-  const surfaceClassName = presentationProfile?.surfaceClassName ?? 'bg-accent/15 border-accent/30 text-foreground backdrop-blur-sm';
+  const surfaceClassName = getChatBoxSurfaceClasses(presentationProfile);
   const iconContainerClassName = presentationProfile?.iconContainerClassName ?? 'bg-accent/25 text-accent-foreground';
-  const labelClassName = presentationProfile?.labelClassName ?? 'text-accent-foreground';
-  const contentClassName = presentationProfile?.contentClassName ?? 'text-foreground/90';
-  const pulseClassName = presentationProfile?.pulseBehavior === 'surge' || presentationProfile?.pulseBehavior === 'flicker'
-    ? 'animate-pulse'
-    : 'animate-fade-in';
-  const overlayClassName = presentationProfile?.overlayBehavior === 'volatile'
-    ? 'shadow-lg ring-1 ring-border/60'
-    : presentationProfile?.overlayBehavior === 'layered'
-      ? 'shadow-md'
-      : 'shadow-sm';
+  const labelClassName = getChatBoxLabelClasses(presentationProfile);
+  const contentClassName = getChatBoxContentClasses(presentationProfile);
+  const wrapperClassName = getChatBoxWrapperClasses(presentationProfile);
   const Icon = presentationProfile?.iconTone === 'enemy'
     ? Swords
     : presentationProfile?.iconTone === 'ally'
@@ -49,23 +48,19 @@ export default function NpcDialogueBubble({
         : User;
 
   return (
-    <ChatBoxTheme location={location} tags={tags} className={`mx-2 rounded-lg ${pulseClassName}`}>
-      <div className={`p-3 rounded-lg border ${surfaceClassName} ${overlayClassName}`}>
-        <div className="flex items-start gap-2">
+    <ChatBoxTheme location={location} tags={tags} className={`mx-2 rounded-lg ${wrapperClassName}`}>
+      <div className={surfaceClassName}>
+        <div className="flex items-start gap-2 relative z-10">
           <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${iconContainerClassName}`}>
             <Icon className="w-3.5 h-3.5" />
           </div>
           <div className="flex-1 min-w-0">
             <span
-              className={`text-xs font-semibold uppercase ${
-                isUnknown
-                  ? 'text-muted-foreground italic tracking-wider'
-                  : `${labelClassName} ${presentationProfile?.textEmphasis === 'sharp' ? 'tracking-[0.16em]' : 'tracking-wider'}`
-              }`}
+              className={isUnknown ? 'text-xs font-semibold uppercase text-muted-foreground italic tracking-wider' : labelClassName}
             >
               {speakerName}
             </span>
-            <p className={`text-sm whitespace-pre-wrap break-words mt-1 ${contentClassName} ${presentationProfile?.textEmphasis === 'frayed' ? 'italic' : ''}`}>
+            <p className={`mt-1 ${contentClassName}`}>
               &ldquo;{dialogue}&rdquo;
             </p>
           </div>

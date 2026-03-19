@@ -1,9 +1,9 @@
 /**
  * NarratorMessageContent
  *
- * Renders narrator text split by sentence. Highlights the sentence currently
- * being read aloud and lets the user click any sentence to skip the narrator
- * to that point.
+ * Renders narrator prose content while keeping playback-synced concerns local
+ * to this component. The outer chat box owns all render-time presentation,
+ * profile styling, and scene/effect-driven box effects.
  */
 
 import { useMemo, useCallback, useState } from 'react';
@@ -40,6 +40,9 @@ interface NarratorMessageContentProps {
   onConfirmSentenceClick?: () => void;
   onCancelSentenceClick?: () => void;
   hasPendingTapConfirmation?: boolean;
+  contentClassName?: string;
+  playbackClassName?: string;
+  /** @deprecated Use playbackClassName to make playback-only styling explicit. */
   animationClassName?: string;
 }
 
@@ -53,6 +56,8 @@ export default function NarratorMessageContent({
   onConfirmSentenceClick,
   onCancelSentenceClick,
   hasPendingTapConfirmation = false,
+  contentClassName = 'text-sm whitespace-pre-wrap break-words text-foreground/90 italic',
+  playbackClassName = '',
   animationClassName = '',
 }: NarratorMessageContentProps) {
   const sentences = useMemo(() => splitSentences(content), [content]);
@@ -68,10 +73,11 @@ export default function NarratorMessageContent({
   );
 
   const pendingOpen = requireTapConfirmation && hasPendingTapConfirmation && localPendingSentence !== null;
+  const resolvedPlaybackClassName = playbackClassName || animationClassName;
 
   return (
     <>
-      <p className={['text-sm whitespace-pre-wrap break-words text-foreground/90 italic', animationClassName].filter(Boolean).join(' ')}>
+      <p className={[contentClassName, resolvedPlaybackClassName].filter(Boolean).join(' ')}>
         {sentences.map((sentence, idx) => {
           const isActiveSentence = idx === activeSentenceIndex;
           const isClickable = voiceEnabled && !!onSentenceClick;
