@@ -61,6 +61,7 @@ import type { CharacterStats } from '@/lib/character-stats';
 import CampaignTacticalMap, { type NarratorSceneMap } from '@/components/campaigns/CampaignTacticalMap';
 import NarratorMessageContent from '@/components/campaigns/NarratorMessageContent';
 import NpcDialogueBubble from '@/components/campaigns/NpcDialogueBubble';
+import ExpressionChatBox from '@/components/chat/ExpressionChatBox';
 import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import { useNarrationController } from '@/hooks/use-narration-controller';
