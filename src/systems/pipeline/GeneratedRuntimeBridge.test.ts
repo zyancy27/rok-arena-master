@@ -54,6 +54,13 @@ const generatedPackets: GeneratedRuntimePackets = {
     dangerProfile: ['high-risk'],
     pressureStyle: ['relentless'],
     signatureBehaviorPatterns: ['press advantage'],
+    pressureIdentity: ['relentless'],
+    movementIdentity: ['decisive'],
+    signaturePatternIdentity: ['press advantage'],
+    narrationBias: ['kinetic description bias'],
+    effectBias: ['effect:relentless'],
+    environmentalFit: ['ruins'],
+    rolePosture: ['guarded'],
     tags: ['combat'],
     traits: ['fighter'],
   },
@@ -69,6 +76,14 @@ const generatedPackets: GeneratedRuntimePackets = {
     pointsOfInterest: ['collapsed gate'],
     factionPresence: ['raiders'],
     culturalFlavor: ['siege scars'],
+    environmentalIdentity: ['ruins', 'broken terrain'],
+    socialToneIdentity: ['sparse', 'collapsed'],
+    travelPressureIdentity: ['restricted paths'],
+    hazardPosture: ['fire', 'burning lanes'],
+    visualEffectProfile: ['visual:fire'],
+    audioPressureProfile: ['audio:ashfall'],
+    volatilityProfile: ['ashfall', 'fire'],
+    factionDensityProfile: ['raiders', 'localized faction field'],
     tags: ['ruins'],
   },
   encounter: {
@@ -121,6 +136,7 @@ describe('GeneratedRuntimeBridge', () => {
     expect(context.generated?.sceneState?.scenePressure).toBe('critical');
     expect(context.sceneState.scenePressure).toBe('critical');
     expect(context.sceneState.visualLayers).toContain('heat-shimmer');
+    expect(context.sceneState.actorExpressionIdentity).toContain('controlled');
     expect(context.narratorSceneContext).toBe('combat');
     expect(context.metadata?.generatedPackets).toEqual(generatedPackets);
   });
