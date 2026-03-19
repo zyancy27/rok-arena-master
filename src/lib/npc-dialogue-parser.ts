@@ -103,12 +103,12 @@ export function parseNarratorMessage(text: string): MessageSegment[] {
 
   const matches: RawMatch[] = [];
 
-  for (const pattern of [PATTERN_BEFORE, PATTERN_AFTER, PATTERN_AFTER_PRONOUN, PATTERN_ACTION_THEN_SPEECH]) {
+  for (const pattern of [PATTERN_BEFORE, PATTERN_BEFORE_EXTENDED, PATTERN_AFTER, PATTERN_AFTER_PRONOUN, PATTERN_ACTION_THEN_SPEECH]) {
     pattern.lastIndex = 0;
     let match: RegExpExecArray | null;
 
     while ((match = pattern.exec(text)) !== null) {
-      const isBeforePattern = pattern === PATTERN_BEFORE;
+      const isBeforePattern = pattern === PATTERN_BEFORE || pattern === PATTERN_BEFORE_EXTENDED;
       const isAfterPattern = pattern === PATTERN_AFTER;
       const isActionThenSpeech = pattern === PATTERN_ACTION_THEN_SPEECH;
       const speakerName = (isBeforePattern || isActionThenSpeech)
