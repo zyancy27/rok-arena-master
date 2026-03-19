@@ -430,6 +430,7 @@ export default function CampaignView() {
                 sender_type: 'narrator',
                 content: data.narration,
                 channel: 'in_universe',
+                metadata: buildNarratorMessageMetadata(data),
               });
               await fetchMessages();
             }
