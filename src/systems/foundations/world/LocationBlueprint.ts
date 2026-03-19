@@ -1,6 +1,6 @@
 import type { BlueprintBase } from '@/systems/blueprints/BlueprintTypes';
 
-export interface LocationBlueprintPayload {
+export interface LocationBlueprintPayload extends Record<string, unknown> {
   regionType?: string;
   pointsOfInterest?: string[];
   traversalPressure?: string[];

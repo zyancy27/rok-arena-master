@@ -1,6 +1,6 @@
 import type { BlueprintBase } from '@/systems/blueprints/BlueprintTypes';
 
-export interface WorldBlueprintPayload {
+export interface WorldBlueprintPayload extends Record<string, unknown> {
   regionType?: string;
   terrainLogic?: string[];
   dangerLogic?: string[];

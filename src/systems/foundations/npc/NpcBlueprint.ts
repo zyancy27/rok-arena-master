@@ -1,6 +1,6 @@
 import type { BlueprintBase } from '@/systems/blueprints/BlueprintTypes';
 
-export interface NpcBlueprintPayload {
+export interface NpcBlueprintPayload extends Record<string, unknown> {
   role?: string;
   personalityCluster?: string[];
   motivations?: string[];

@@ -1,6 +1,6 @@
 import type { BlueprintBase } from '@/systems/blueprints/BlueprintTypes';
 
-export interface CharacterBlueprintPayload {
+export interface CharacterBlueprintPayload extends Record<string, unknown> {
   combatIdentity?: string[];
   socialIdentity?: string[];
   expressionIdentity?: string[];

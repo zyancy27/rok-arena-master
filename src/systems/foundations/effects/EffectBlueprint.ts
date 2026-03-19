@@ -1,6 +1,6 @@
 import type { BlueprintBase } from '@/systems/blueprints/BlueprintTypes';
 
-export interface EffectBlueprintPayload {
+export interface EffectBlueprintPayload extends Record<string, unknown> {
   visualLayers?: string[];
   audioLayers?: string[];
   chatBehaviors?: string[];

@@ -1,6 +1,6 @@
 import type { BlueprintBase } from '@/systems/blueprints/BlueprintTypes';
 
-export interface CampaignBlueprintPayload {
+export interface CampaignBlueprintPayload extends Record<string, unknown> {
   centralTension?: string;
   openingHook?: string;
   pressureSources?: string[];

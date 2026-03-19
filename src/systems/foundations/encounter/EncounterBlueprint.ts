@@ -1,6 +1,6 @@
 import type { BlueprintBase } from '@/systems/blueprints/BlueprintTypes';
 
-export interface EncounterBlueprintPayload {
+export interface EncounterBlueprintPayload extends Record<string, unknown> {
   situationType?: string;
   tacticalPressure?: string[];
   threatComposition?: string[];
