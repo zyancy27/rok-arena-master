@@ -63,7 +63,7 @@ import { resolveOvercharge, getOverchargeContext } from '@/lib/battle-overcharge
 import { invokeOrchestrator } from '@/lib/story-orchestrator';
 import { buildNarrationPlaybackOptions, buildNarratorMessageMetadata, getNarratorAnimationClass } from '@/lib/narration-playback';
 import { CampaignActionPipeline } from '@/systems/pipeline/CampaignActionPipeline';
-import { NarrationPacketBuilder } from '@/systems/narration/NarrationPacketBuilder';
+import { buildNarratorMessagePacket, buildPlayerMessageMetadata } from '@/systems/pipeline/PipelineMessageBridge';
 import { IntentDebugCard } from '@/components/intent/IntentDebugCard';
 // Helper: build bag content for the inline backpack bubble
 function buildBagContent(campaignItems: InventoryItem[], characterWeapons: string | null) {

@@ -108,12 +108,13 @@ import { useNarrationController } from '@/hooks/use-narration-controller';
 import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import NarratorMessageContent from '@/components/campaigns/NarratorMessageContent';
-import { buildNarrationPlaybackOptions, buildNarratorMessageMetadata, getNarratorAnimationClass } from '@/lib/narration-playback';
+import { buildNarrationPlaybackOptions, getNarratorAnimationClass } from '@/lib/narration-playback';
+import { invokeOrchestrator } from '@/lib/story-orchestrator';
 import { applyHardClamp, generateClampContext, type CharacterProfile, type ClampResult } from '@/lib/hard-clamp';
 import { detectDirectInteraction } from '@/lib/battle-hit-detection';
 import { IntentEngine, type IntentDebugPayload } from '@/systems/intent/IntentEngine';
 import { BattleActionPipeline } from '@/systems/pipeline/BattleActionPipeline';
-import { NarrationPacketBuilder } from '@/systems/narration/NarrationPacketBuilder';
+import { buildNarratorMessagePacket } from '@/systems/pipeline/PipelineMessageBridge';
 import { type ActionResult } from '@/systems/resolution/ActionResolver';
 import { IntentDebugCard } from '@/components/intent/IntentDebugCard';
 import {
