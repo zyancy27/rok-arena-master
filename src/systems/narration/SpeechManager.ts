@@ -230,7 +230,7 @@ export class SpeechManager {
 
   private cleanup() {
     if (this.pollTimer != null) { clearInterval(this.pollTimer); this.pollTimer = null; }
-    this.audio = null;
+    this.releaseAudio();
     this.currentText = '';
     this.emitState('stopped');
   }
