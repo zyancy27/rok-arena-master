@@ -117,6 +117,7 @@ import { IntentEngine, type IntentDebugPayload } from '@/systems/intent/IntentEn
 import { BattleActionPipeline } from '@/systems/pipeline/BattleActionPipeline';
 import { buildNarratorMessagePacket } from '@/systems/pipeline/PipelineMessageBridge';
 import { type ActionResult } from '@/systems/resolution/ActionResolver';
+import { IntentDebugCard } from '@/components/intent/IntentDebugCard';
 import {
   ArrowLeft,
   Send,
