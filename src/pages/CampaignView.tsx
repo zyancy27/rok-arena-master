@@ -1381,7 +1381,7 @@ export default function CampaignView() {
           combatPulseTimerRef.current = setTimeout(() => setCombatPulse('none'), 8000);
         }
 
-        await supabase.from('campaign_messages').insert({
+        await supabase.from('campaign_messages').insert([{
           campaign_id: snapshotCampaign.id,
           sender_type: 'narrator',
           content: data.narration,
@@ -1393,7 +1393,7 @@ export default function CampaignView() {
             soundCue: npcBrainTurn.narration.soundCue,
             animationTag: npcBrainTurn.narration.animationTag,
           } : null),
-        });
+        }]);
 
         // Accumulate all XP from this turn and apply level-ups immediately
         let totalXpGained = 0;
