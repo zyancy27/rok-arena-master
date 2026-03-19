@@ -2,19 +2,24 @@ import type { Campaign, CampaignParticipant, CampaignTime } from '@/lib/campaign
 import { IntentEngine } from '@/systems/intent/IntentEngine';
 import { CombatResolver } from '@/systems/combat/CombatResolver';
 import { createCombatState } from '@/systems/combat/CombatState';
-import { CharacterCompositionEngine } from '@/systems/composition/CharacterCompositionEngine';
-import { CampaignCompositionEngine } from '@/systems/composition/CampaignCompositionEngine';
 import { EffectCompositionEngine } from '@/systems/composition/EffectCompositionEngine';
 import { EncounterCompositionEngine } from '@/systems/composition/EncounterCompositionEngine';
-import { NpcCompositionEngine } from '@/systems/composition/NpcCompositionEngine';
 import { SceneCompositionEngine } from '@/systems/composition/SceneCompositionEngine';
-import { WorldCompositionEngine } from '@/systems/composition/WorldCompositionEngine';
 import { CampaignContextAssembler } from '@/systems/context/CampaignContextAssembler';
 import { buildResolvedActionPacket } from './ActionPipeline';
 import { attachGeneratedToContext } from './GeneratedRuntimeBridge';
 import { NpcReactionCoordinator } from '@/systems/npc/NpcReactionCoordinator';
 import { NarrationPacketBuilder } from '@/systems/narration/NarrationPacketBuilder';
 import { SceneEffectBridge } from '@/systems/map/SceneEffectBridge';
+import { CharacterIdentityGenerator } from '@/systems/identity/CharacterIdentityGenerator';
+import { NpcIdentityGenerator } from '@/systems/identity/NpcIdentityGenerator';
+import { WorldIdentityGenerator } from '@/systems/identity/WorldIdentityGenerator';
+import { SparseCampaignSeedBuilder } from '@/systems/campaign/SparseCampaignSeedBuilder';
+import { RelationshipPersistenceEngine, type RelationshipPersistenceSnapshot } from '@/systems/memory/RelationshipPersistenceEngine';
+import { WorldMemoryEngine } from '@/systems/memory/WorldMemoryEngine';
+import { WorldSimulationTickEngine } from '@/systems/world/WorldSimulationTickEngine';
+import { SceneDerivationEngine } from '@/systems/scene/SceneDerivationEngine';
+import { EffectDerivationEngine } from '@/systems/effects/EffectDerivationEngine';
 import type { ActionPipelineResult, GeneratedRuntimePackets } from '@/systems/types/PipelineTypes';
 
 export interface CampaignActionPipelineInput {
@@ -52,6 +57,17 @@ function extractChaosLevel(worldState: Record<string, unknown> | null | undefine
 
 function extractEscapeRoutes(worldState: Record<string, unknown> | null | undefined) {
   return Number(worldState?.escapeRoutes ?? 2);
+}
+
+function deriveRelationshipSignals(rawText: string, combatResult: ReturnType<typeof CombatResolver.resolve> | null) {
+  const joined = `${rawText} ${combatResult?.outcome || ''}`.toLowerCase();
+  return [
+    /protect|save|shield|help/.test(joined) ? 'protect' : null,
+    /threat|threaten|intimidate/.test(joined) ? 'threaten' : null,
+    /talk|negotiate|trade|deal/.test(joined) ? 'negotiate' : null,
+    /betray|abandon/.test(joined) ? 'betray' : null,
+    /repair|restore|stabilize/.test(joined) ? 'repair' : null,
+  ].filter((value): value is string => Boolean(value));
 }
 
 export const CampaignActionPipeline = {
@@ -113,7 +129,7 @@ export const CampaignActionPipeline = {
       memoryState: input.memoryState,
     });
 
-    const generatedActorIdentity = CharacterCompositionEngine.compose({
+    const generatedActorIdentity = CharacterIdentityGenerator.generate({
       id: input.participant.character_id,
       name: input.participant.character?.name,
       level: input.participant.character?.level || input.participant.campaign_level,
@@ -135,7 +151,7 @@ export const CampaignActionPipeline = {
       stat_battle_iq: Number(character?.stat_battle_iq ?? 50),
     });
 
-    const generatedCampaignSeed = CampaignCompositionEngine.compose({
+    const sparseSeed = SparseCampaignSeedBuilder.build({
       id: input.campaign.id,
       name: input.campaign.name,
       description: input.campaign.description,
@@ -143,29 +159,52 @@ export const CampaignActionPipeline = {
       chosen_location: input.campaign.chosen_location,
       environment_tags: input.campaign.environment_tags,
       world_state: input.campaign.world_state,
-      story_context: {
-        ...((input.campaign.story_context as Record<string, unknown> | null) || {}),
-        generatedActorIdentity,
-      },
+      story_context: input.campaign.story_context,
       theme: String((input.campaign.story_context as Record<string, unknown> | null)?.theme || input.campaign.description || ''),
       goal: String((input.campaign.story_context as Record<string, unknown> | null)?.goal || ''),
+      character: {
+        id: input.participant.character_id,
+        name: input.participant.character?.name,
+        level: input.participant.character?.level || input.participant.campaign_level,
+        powers: input.participant.character?.powers,
+        abilities: input.participant.character?.abilities,
+        personality: typeof character?.personality === 'string' ? character.personality : null,
+        mentality: typeof character?.mentality === 'string' ? character.mentality : null,
+        race: typeof character?.race === 'string' ? character.race : null,
+        sub_race: typeof character?.sub_race === 'string' ? character.sub_race : null,
+        lore: typeof character?.lore === 'string' ? character.lore : null,
+        weapons_items: typeof character?.weapons_items === 'string' ? character.weapons_items : null,
+        appearance_aura: typeof character?.appearance_aura === 'string' ? character.appearance_aura : null,
+        appearance_movement_style: typeof character?.appearance_movement_style === 'string' ? character.appearance_movement_style : null,
+        appearance_voice: typeof character?.appearance_voice === 'string' ? character.appearance_voice : null,
+        stat_strength: input.participant.character?.stat_strength,
+        stat_speed: Number(character?.stat_speed ?? 50),
+        stat_power: Number(character?.stat_power ?? 50),
+        stat_skill: Number(character?.stat_skill ?? 50),
+        stat_battle_iq: Number(character?.stat_battle_iq ?? 50),
+      },
     });
+    const generatedCampaignSeed = sparseSeed.generatedCampaignSeed;
 
-    const generatedWorldState = WorldCompositionEngine.compose({
+    const generatedWorldState = WorldIdentityGenerator.generate({
       id: `campaign-world:${input.campaign.id}`,
       name: input.campaign.current_zone,
       regionType: input.campaign.current_zone,
-      environmentTags: input.environmentTags ?? input.campaign.environment_tags,
+      environmentTags: [...(input.environmentTags ?? input.campaign.environment_tags ?? []), ...generatedCampaignSeed.environmentalIdentity],
       activeHazards: input.activeHazards ?? [],
-      factionPresence: knownNpcs.map((npc) => String(npc.role || 'local actors')),
+      factionPresence: [...knownNpcs.map((npc) => String(npc.role || 'local actors')), ...generatedCampaignSeed.npcPresence],
     });
 
     const generatedNpcIdentity = knownNpcs[0]
-      ? NpcCompositionEngine.compose({
+      ? NpcIdentityGenerator.generate({
           id: typeof knownNpcs[0].id === 'string' ? knownNpcs[0].id : undefined,
           name: knownNpcs[0].name,
           role: typeof knownNpcs[0].role === 'string' ? knownNpcs[0].role : null,
           current_zone: knownNpcs[0].current_zone,
+          personality: typeof knownNpcs[0].personality === 'string' ? knownNpcs[0].personality : null,
+          npc_goal: typeof knownNpcs[0].npc_goal === 'string' ? knownNpcs[0].npc_goal : null,
+          npc_motivation: typeof knownNpcs[0].npc_motivation === 'string' ? knownNpcs[0].npc_motivation : null,
+          npc_current_activity: typeof knownNpcs[0].npc_current_activity === 'string' ? knownNpcs[0].npc_current_activity : null,
           metadata: knownNpcs[0] as Record<string, unknown>,
         })
       : null;
@@ -174,32 +213,103 @@ export const CampaignActionPipeline = {
       id: `campaign-encounter:${input.campaign.id}`,
       name: input.campaign.current_zone || input.campaign.name,
       situationType: intentResult.intent.isCombatAction ? 'campaign confrontation' : 'campaign situation',
-      environmentTags: context.environmentTags,
-      activeHazards: context.activeHazards,
-      actorTags: generatedActorIdentity.tags,
-      campaignTags: generatedCampaignSeed.tags,
+      environmentTags: [...context.environmentTags, ...generatedWorldState.environmentalIdentity],
+      activeHazards: [...context.activeHazards, ...generatedWorldState.hazardPosture],
+      actorTags: [...generatedActorIdentity.tags, ...generatedActorIdentity.effectBias, ...generatedActorIdentity.rolePosture],
+      campaignTags: [...generatedCampaignSeed.tags, ...generatedCampaignSeed.pressureSources, ...generatedCampaignSeed.npcPresence],
       npcTags: [
         ...(generatedNpcIdentity?.tags || []),
+        ...(generatedNpcIdentity?.threatPosture || []),
         ...activeEnemies.map((enemy) => enemy.name.toLowerCase().replace(/\s+/g, '_')),
       ],
-      pressureSeed: generatedCampaignSeed.pressureSources,
+      pressureSeed: [...generatedCampaignSeed.pressureSources, ...generatedActorIdentity.pressureIdentity],
     });
 
-    const generatedSceneState = SceneCompositionEngine.compose({
-      blueprintIds: [
-        generatedActorIdentity.blueprintId,
-        generatedCampaignSeed.blueprintId,
-        generatedWorldState.blueprintId,
-        generatedNpcIdentity?.blueprintId,
-        generatedEncounter.blueprintId,
-      ].filter(Boolean) as string[],
-      tags: [
-        ...generatedActorIdentity.tags,
-        ...generatedCampaignSeed.tags,
-        ...generatedWorldState.tags,
-        ...(generatedNpcIdentity?.tags || []),
-        ...generatedEncounter.tags,
-      ],
+    const worldTick = WorldSimulationTickEngine.tick({
+      factions: (generatedWorldState.factionPresence || []).slice(0, 3).map((faction, index) => ({
+        factionId: `${index}:${faction}`,
+        currentPressure: sparseSeed.encounterDensity === 'high' ? 72 : sparseSeed.encounterDensity === 'medium' ? 56 : 34,
+        activeConflicts: generatedCampaignSeed.pressureSources.slice(0, 2),
+      })),
+      locations: [{
+        locationId: input.campaign.current_zone || input.campaign.id,
+        hazardLevel: generatedWorldState.hazardPosture.some((entry) => /volatile|fire|toxic|storm/.test(entry)) ? 72 : 48,
+        pressure: generatedCampaignSeed.conflictDensity === 'high' ? 74 : generatedCampaignSeed.conflictDensity === 'medium' ? 58 : 36,
+      }],
+      npcs: (generatedNpcIdentity ? [{
+        npcId: generatedNpcIdentity.name,
+        motivations: generatedNpcIdentity.motivations,
+        pressureLevel: generatedEncounter.tacticalPressure.some((entry) => /overwhelming|critical|killbox/.test(entry)) ? 'critical' : generatedCampaignSeed.conflictDensity === 'high' ? 'high' : 'medium',
+      }] : []),
+    });
+
+    const worldMemory = WorldMemoryEngine.summarize(WorldMemoryEngine.update({
+      worldId: input.campaign.id,
+      factions: (generatedWorldState.factionPresence || []).slice(0, 3).map((faction, index) => ({
+        factionId: `${index}:${faction}`,
+        pressureHistory: [],
+        activeConflicts: generatedCampaignSeed.pressureSources.slice(0, 2),
+        stability: 55,
+      })),
+      locations: [{
+        locationId: input.campaign.current_zone || input.campaign.id,
+        hazardHistory: [],
+        changeMarkers: [],
+        stability: 52,
+      }],
+      rumorSeeds: (input.memoryState || []).map((entry) => String(entry)),
+    }, {
+      type: 'location',
+      id: input.campaign.current_zone || input.campaign.id,
+      detail: worldTick.locations[0]?.event || 'location shifts',
+    }));
+
+    const relationshipSignals = deriveRelationshipSignals(input.rawText, null);
+    const relationshipPersistence: RelationshipPersistenceSnapshot[] = (knownNpcs[0] ? [RelationshipPersistenceEngine.update({
+      entityId: String(knownNpcs[0].id || knownNpcs[0].name),
+      trust: 50,
+      disposition: 'uncertain',
+      definingMoments: [],
+    }, relationshipSignals[0] || 'talk')] : []);
+
+    const generatedSceneState = SceneDerivationEngine.derive({
+      actorIdentity: generatedActorIdentity,
+      campaignSeed: generatedCampaignSeed,
+      worldState: generatedWorldState,
+      npcIdentity: generatedNpcIdentity,
+      encounter: generatedEncounter,
+      sceneState: SceneCompositionEngine.compose({
+        blueprintIds: [
+          generatedActorIdentity.blueprintId,
+          generatedCampaignSeed.blueprintId,
+          generatedWorldState.blueprintId,
+          generatedNpcIdentity?.blueprintId,
+          generatedEncounter.blueprintId,
+        ].filter(Boolean) as string[],
+        tags: [
+          ...generatedActorIdentity.tags,
+          ...generatedActorIdentity.pressureIdentity,
+          ...generatedActorIdentity.effectBias,
+          ...generatedCampaignSeed.tags,
+          ...generatedCampaignSeed.pressureSources,
+          ...generatedCampaignSeed.npcPresence,
+          ...generatedWorldState.tags,
+          ...generatedWorldState.environmentalIdentity,
+          ...generatedWorldState.visualEffectProfile,
+          ...(generatedNpcIdentity?.tags || []),
+          ...(generatedNpcIdentity?.threatPosture || []),
+          ...generatedEncounter.tags,
+        ],
+      }),
+    }, {
+      activeHazards: context.activeHazards,
+      environmentTags: context.environmentTags,
+      worldTickTags: worldTick.driftTags,
+      narratorMetadata: {
+        actorNarrationBias: generatedActorIdentity.narrationBias,
+        npcNarrationBias: generatedNpcIdentity?.narrationBias,
+        worldVolatility: generatedWorldState.volatilityProfile,
+      },
     });
 
     const generatedPackets: GeneratedRuntimePackets = {
@@ -212,6 +322,15 @@ export const CampaignActionPipeline = {
     };
 
     attachGeneratedToContext(context, generatedPackets);
+    context.metadata = {
+      ...(context.metadata || {}),
+      activeCharacterIdentity: generatedActorIdentity,
+      activeNpcIdentity: generatedNpcIdentity,
+      activeWorldIdentity: generatedWorldState,
+      relationshipPersistence,
+      worldMemory,
+      worldTick,
+    };
 
     const primaryEnemy = activeEnemies[0] ?? null;
     const targetContext = context.primaryTarget?.kind === 'enemy' ? context.primaryTarget.context ?? null : null;
@@ -244,7 +363,7 @@ export const CampaignActionPipeline = {
             ],
             rangeZone: 'mid',
             zone: input.campaign.current_zone,
-            terrainTags: input.activeHazards ?? [],
+            terrainTags: [...(input.activeHazards ?? []), ...generatedWorldState.hazardPosture, ...generatedActorIdentity.movementIdentity],
           }),
           {
             actorId: input.participant.character_id,
@@ -297,27 +416,40 @@ export const CampaignActionPipeline = {
         generatedPackets,
         generatedCampaignSeed,
         generatedWorldState,
+        relationshipPersistence,
+        worldMemory,
+        worldTick,
       },
     });
 
     const seededSceneEffects = SceneEffectBridge.build(context, resolvedAction, npcReaction);
-    const generatedEffectState = EffectCompositionEngine.compose({
-      name: 'campaign-turn',
-      tags: [
-        ...context.environmentTags,
-        ...generatedSceneState.effectTags,
-        ...generatedSceneState.chatPresentationTags,
-        ...seededSceneEffects.zoneShiftTags,
-        ...seededSceneEffects.hazardPulseTags,
-        ...seededSceneEffects.enemyPresenceTags,
-        ...seededSceneEffects.environmentalPressureTags,
-      ],
-      environmentState: {
-        zone: context.zone,
-        worldState: input.campaign.world_state,
-        sceneState: context.sceneState,
-        scenePressure: generatedSceneState.scenePressure,
-      },
+    const generatedEffectState = EffectDerivationEngine.derive({
+      ...generatedPackets,
+      effectState: EffectCompositionEngine.compose({
+        name: 'campaign-turn',
+        tags: [
+          ...context.environmentTags,
+          ...generatedSceneState.effectTags,
+          ...generatedSceneState.chatPresentationTags,
+          ...generatedActorIdentity.effectBias,
+          ...(generatedNpcIdentity?.effectBias || []),
+          ...generatedWorldState.visualEffectProfile,
+          ...generatedWorldState.audioPressureProfile,
+          ...seededSceneEffects.zoneShiftTags,
+          ...seededSceneEffects.hazardPulseTags,
+          ...seededSceneEffects.enemyPresenceTags,
+          ...seededSceneEffects.environmentalPressureTags,
+        ],
+        environmentState: {
+          zone: context.zone,
+          worldState: input.campaign.world_state,
+          sceneState: context.sceneState,
+          scenePressure: generatedSceneState.scenePressure,
+        },
+      }),
+    }, {
+      sceneEffectPacket: seededSceneEffects,
+      narratorSceneContext: context.narratorSceneContext,
     });
 
     generatedPackets.effectState = generatedEffectState;
