@@ -16,7 +16,7 @@ export interface ChatSpeakerResolverInput {
 
 export const ChatSpeakerResolver = {
   resolve(input: ChatSpeakerResolverInput): ChatSpeakerRole {
-    const senderType = input.message.sender_type;
+    const senderType = String(input.message.sender_type) as ChatSpeakerRole | string;
     if (senderType === 'system') return 'system';
     if (senderType === 'player') return 'player';
     if (senderType === 'party_ally' || senderType === 'enemy_combatant' || senderType === 'npc') {
