@@ -9,7 +9,7 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 function collectPipelineMetadata(result: ActionPipelineResult) {
-  const generatedPackets = result.generatedPackets ?? result.context.generated ?? getGeneratedRuntimePackets(result.narrationPacket.metadata);
+  const generatedPackets = result.generatedPackets ?? result.context.generated;
 
   return {
     ...asRecord(result.context.metadata),

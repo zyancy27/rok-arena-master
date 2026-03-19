@@ -60,7 +60,7 @@ export const NpcReactionCoordinator = {
     const primaryEnemy = input.activeEnemies?.[0];
     if (!primaryEnemy) return null;
 
-    const generatedPackets = input.worldContext?.generatedPackets ?? getGeneratedRuntimePackets(input.worldContext);
+    const generatedPackets = input.worldContext?.generatedPackets ?? {};
     const generatedSceneState = asRecord(generatedPackets.sceneState);
     const generatedNpcIdentity = asRecord(generatedPackets.npcIdentity);
     const generatedEncounter = asRecord(generatedPackets.encounter);

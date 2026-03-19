@@ -16,7 +16,7 @@ function toStringArray(value: unknown): string[] {
 export const SceneEffectBridge = {
   build(context: ContextPacket, resolvedAction: ResolvedActionPacket, npcReaction?: NpcReactionPacket | null): SceneEffectPacket {
     const combatRangeTag = resolvedAction.combatResult?.positioning?.resolvedRange;
-    const generatedPackets = context.generated ?? getGeneratedRuntimePackets(context.metadata);
+    const generatedPackets = context.generated ?? {};
     const generatedWorldState = asRecord(generatedPackets.worldState);
     const generatedEncounter = asRecord(generatedPackets.encounter);
     const generatedSceneState = {
