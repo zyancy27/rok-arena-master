@@ -2151,13 +2151,13 @@ export default function CampaignView() {
       });
 
       if (!error && data?.narration) {
-        await supabase.from('campaign_messages').insert({
+        await supabase.from('campaign_messages').insert([{
           campaign_id: campaign.id,
           sender_type: 'narrator',
           content: data.narration,
           channel: 'in_universe',
           metadata: buildNarratorMessageMetadata(data),
-        });
+        }]);
 
         // Update tactical map from narrator scene data
         if (data.sceneMap && typeof data.sceneMap === 'object' && Array.isArray(data.sceneMap.zones)) {
