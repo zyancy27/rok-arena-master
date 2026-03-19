@@ -1193,6 +1193,7 @@ export default function CampaignView() {
 
       // Build narrative systems context (identity, gravity, echo, reflection, etc.)
       const activeEnemiesList = campaignEnemies.filter(e => e.status === 'active' || e.status === 'hiding');
+      const primaryEnemy = activeEnemiesList[0] ?? null;
       const intentResult = IntentEngine.resolve(messageText, {
         mode: 'campaign',
         actorName: snapshotParticipant.character?.name,
@@ -1212,8 +1213,9 @@ export default function CampaignView() {
         equippedItems: equippedCampaignItems.map(item => item.item_name),
         stamina: Math.round((snapshotParticipant.campaign_hp / Math.max(1, snapshotParticipant.campaign_hp_max)) * 100),
       });
+      const enemyContext = primaryEnemy ? resolveCampaignEnemyContext(primaryEnemy) : null;
       const hasThreat = activeEnemiesList.length > 0;
-      const combatResolution = intentResult.intent.isCombatAction && hasThreat
+      const combatResolution = intentResult.intent.isCombatAction && hasThreat && primaryEnemy && enemyContext
         ? CombatResolver.resolve(
             intentResult.intent,
             characterContext,
@@ -1230,13 +1232,13 @@ export default function CampaignView() {
                   },
                 },
                 {
-                  id: activeEnemiesList[0]?.id || 'enemy',
-                  name: activeEnemiesList[0]?.name || 'Enemy',
+                  id: primaryEnemy.id,
+                  name: primaryEnemy.name,
                   stats: {
-                    hp: activeEnemiesList[0]?.hp ?? 100,
+                    hp: primaryEnemy.hp,
                     stamina: 100,
-                    speed: 50,
-                    strength: 50,
+                    speed: enemyContext.stats.stat_speed,
+                    strength: enemyContext.stats.stat_strength,
                   },
                 },
               ],
@@ -1246,29 +1248,35 @@ export default function CampaignView() {
             }),
             {
               actorId: snapshotParticipant.character_id,
-              targetId: activeEnemiesList[0]?.id || 'enemy',
-              targetContext: activeEnemiesList[0]
-                ? CharacterContextResolver.resolve({
-                    characterId: activeEnemiesList[0].id,
-                    name: activeEnemiesList[0].name,
-                    tier: activeEnemiesList[0].tier,
-                    stats: {
-                      stat_strength: 50,
-                      stat_speed: 50,
-                      stat_durability: 50,
-                      stat_stamina: 50,
-                      stat_skill: 50,
-                      stat_battle_iq: 50,
-                      stat_power: 50,
-                      stat_intelligence: 50,
-                      stat_luck: 50,
-                    },
-                    stamina: 100,
-                    energy: 50,
-                  })
-                : null,
+              targetId: primaryEnemy.id,
+              targetContext: enemyContext,
             },
           )
+        : null;
+      const npcBrainTurn = primaryEnemy
+        ? buildCampaignNpcTurn({
+            enemy: {
+              id: primaryEnemy.id,
+              name: primaryEnemy.name,
+              tier: primaryEnemy.tier,
+              hp: primaryEnemy.hp,
+              hpMax: primaryEnemy.hp_max,
+              description: primaryEnemy.description,
+              behaviorProfile: primaryEnemy.behavior_profile,
+              lastAction: primaryEnemy.last_action,
+              metadata: primaryEnemy.metadata,
+            },
+            player: {
+              id: snapshotParticipant.character_id,
+              name: snapshotParticipant.character?.name || 'Character',
+              healthPct: Math.round((snapshotParticipant.campaign_hp / Math.max(1, snapshotParticipant.campaign_hp_max)) * 100),
+              context: characterContext,
+            },
+            combatResult: combatResolution,
+            timeOfDay: snapshotCampaign.time_of_day,
+            chaosLevel: Number((snapshotCampaign.world_state as Record<string, unknown> | null)?.chaosLevel ?? 40),
+            escapeRoutes: Number((snapshotCampaign.world_state as Record<string, unknown> | null)?.escapeRoutes ?? 2),
+          })
         : null;
       const actionResult = combatResolution
         ? toActionResult(combatResolution)
@@ -1280,8 +1288,9 @@ export default function CampaignView() {
       const structuredAction = combatResolution
         ? formatCombatResolutionForNarrator(intentResult.intent, combatResolution, messageText)
         : formatActionForNarrator(intentResult.intent, actionResult, messageText);
+      const npcBrainContext = npcBrainTurn ? formatNpcBrainForNarrator(npcBrainTurn) : null;
       const narrativeSystemsContext = campaignNarrative.buildNarrativeBlock(
-        structuredAction,
+        npcBrainContext ? `${structuredAction} | enemyBrain=${npcBrainContext}` : structuredAction,
         activeEnemiesList.length > 0,
         snapshotCampaign.current_zone,
       );
@@ -1335,6 +1344,7 @@ export default function CampaignView() {
         conversationHistory,
         knownNpcs,
         activeEnemies: activeEnemiesList,
+        activeEnemyBrain: npcBrainTurn,
         narrativeSystemsContext,
         overchargeContext: overchargeContext || undefined,
         narratorSentiment: narratorSentiment || undefined,
