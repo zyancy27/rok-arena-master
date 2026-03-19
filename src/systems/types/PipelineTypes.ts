@@ -111,4 +111,13 @@ export interface ActionPipelineResult {
   npcReaction: NpcReactionPacket | null;
   sceneEffects: SceneEffectPacket;
   narrationPacket: NarrationPacket;
+  generatedPackets?: {
+    actorIdentity?: Record<string, unknown> | null;
+    worldState?: Record<string, unknown> | null;
+    campaignSeed?: Record<string, unknown> | null;
+    npcIdentity?: Record<string, unknown> | null;
+    encounter?: Record<string, unknown> | null;
+    sceneState?: Record<string, unknown> | null;
+    effectState?: Record<string, unknown> | null;
+  };
 }

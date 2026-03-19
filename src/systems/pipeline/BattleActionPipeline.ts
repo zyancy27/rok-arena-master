@@ -5,6 +5,8 @@ import { createCombatState } from '@/systems/combat/CombatState';
 import { BattleContextAssembler } from '@/systems/context/BattleContextAssembler';
 import { CharacterCompositionEngine } from '@/systems/composition/CharacterCompositionEngine';
 import { EffectCompositionEngine } from '@/systems/composition/EffectCompositionEngine';
+import { EncounterCompositionEngine } from '@/systems/composition/EncounterCompositionEngine';
+import { SceneCompositionEngine } from '@/systems/composition/SceneCompositionEngine';
 import { WorldCompositionEngine } from '@/systems/composition/WorldCompositionEngine';
 import { buildResolvedActionPacket } from './ActionPipeline';
 import { NarrationPacketBuilder } from '@/systems/narration/NarrationPacketBuilder';
@@ -118,10 +120,34 @@ export const BattleActionPipeline = {
       activeHazards: input.activeHazards ?? [],
     });
 
+    const generatedEncounter = EncounterCompositionEngine.compose({
+      id: `battle-encounter:${input.actor.characterId}`,
+      name: input.battleZone || 'Battle Encounter',
+      situationType: intentResult.intent.isCombatAction ? 'combat exchange' : 'tense positioning',
+      environmentTags: context.environmentTags,
+      activeHazards: context.activeHazards,
+      actorTags: generatedActorIdentity.tags,
+      npcTags: (input.opponents || []).flatMap((opponent) => [opponent.name.toLowerCase().replace(/\s+/g, '_')]),
+      pressureSeed: [intentResult.legacyMoveIntent.intentCategory, intentResult.legacyMoveIntent.posture].filter(Boolean),
+    });
+
+    const generatedSceneState = SceneCompositionEngine.compose({
+      blueprintIds: [generatedActorIdentity.blueprintId, generatedWorldState.blueprintId, generatedEncounter.blueprintId].filter(Boolean) as string[],
+      tags: [
+        ...generatedActorIdentity.tags,
+        ...generatedWorldState.tags,
+        ...generatedEncounter.tags,
+        ...context.environmentTags,
+        ...context.activeHazards,
+      ],
+    });
+
     context.metadata = {
       ...(context.metadata || {}),
       generatedActorIdentity,
       generatedWorldState,
+      generatedEncounter,
+      generatedSceneState,
     };
 
     const primaryTarget = context.primaryTarget?.context ?? null;
@@ -173,19 +199,22 @@ export const BattleActionPipeline = {
       combatResult,
     });
 
-    const sceneEffects = SceneEffectBridge.build(context, resolvedAction, null);
+    const seededSceneEffects = SceneEffectBridge.build(context, resolvedAction, null);
     const generatedEffectState = EffectCompositionEngine.compose({
       name: 'battle-turn',
       tags: [
         ...context.environmentTags,
-        ...sceneEffects.zoneShiftTags,
-        ...sceneEffects.hazardPulseTags,
-        ...sceneEffects.enemyPresenceTags,
-        ...sceneEffects.environmentalPressureTags,
+        ...generatedSceneState.effectTags,
+        ...generatedSceneState.chatPresentationTags,
+        ...seededSceneEffects.zoneShiftTags,
+        ...seededSceneEffects.hazardPulseTags,
+        ...seededSceneEffects.enemyPresenceTags,
+        ...seededSceneEffects.environmentalPressureTags,
       ],
       environmentState: {
         zone: context.zone,
         sceneState: context.sceneState,
+        scenePressure: generatedSceneState.scenePressure,
       },
     });
 
@@ -194,6 +223,7 @@ export const BattleActionPipeline = {
       generatedEffectState,
     };
 
+    const sceneEffects = SceneEffectBridge.build(context, resolvedAction, null);
     const narrationPacket = NarrationPacketBuilder.build({
       resolvedAction,
       sceneEffects,
@@ -202,6 +232,8 @@ export const BattleActionPipeline = {
       ...(narrationPacket.metadata || {}),
       generatedActorIdentity,
       generatedWorldState,
+      generatedEncounter,
+      generatedSceneState,
       generatedEffectState,
       sceneEffectPacket: sceneEffects,
     };
@@ -214,8 +246,16 @@ export const BattleActionPipeline = {
       npcReaction: null,
       sceneEffects,
       narrationPacket,
+      generatedPackets: {
+        actorIdentity: generatedActorIdentity,
+        worldState: generatedWorldState,
+        encounter: generatedEncounter,
+        sceneState: generatedSceneState,
+        effectState: generatedEffectState,
+      },
       clampResult,
       highForceTurnCount: isHighForce ? (input.consecutiveHighForceTurns ?? 0) + 1 : 0,
     };
   },
 };
+

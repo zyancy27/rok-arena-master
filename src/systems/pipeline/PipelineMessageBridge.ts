@@ -11,6 +11,7 @@ function collectPipelineMetadata(result: ActionPipelineResult) {
   return {
     ...asRecord(result.context.metadata),
     ...asRecord(result.narrationPacket.metadata),
+    generatedPackets: result.generatedPackets,
     contextPacket: result.context,
     resolvedActionPacket: result.resolvedAction,
     npcReactionPacket: result.npcReaction,
