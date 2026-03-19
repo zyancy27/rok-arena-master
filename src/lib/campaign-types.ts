@@ -79,7 +79,7 @@ export interface CampaignMessage {
   content: string;
   dice_result: Record<string, unknown> | null;
   theme_snapshot: Record<string, unknown> | null;
-  metadata: Record<string, unknown>;
+  metadata: Record<string, unknown> | null;
   created_at: string;
   /** True while the message is being sent to the server */
   isPending?: boolean;

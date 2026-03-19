@@ -27,6 +27,33 @@ const VOICE_PRESETS: Record<string, {
 
 const NARRATOR_VOICE_ID = "BpjGufoPiobT79j2vtj4"; // Priyanka
 
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function applyVoiceOverrides(
+  preset: { stability: number; similarity_boost: number; style: number; speed: number },
+  override?: Partial<{ stability: number; similarity_boost: number; style: number; speed: number; pitch: number }>,
+) {
+  const speed = typeof override?.speed === 'number' ? clamp(override.speed, 0.7, 1.3) : preset.speed;
+  const pitch = typeof override?.pitch === 'number' ? clamp(override.pitch, 0.8, 1.2) : 1;
+  const pitchDelta = pitch - 1;
+
+  return {
+    stability: typeof override?.stability === 'number'
+      ? clamp(override.stability, 0, 1)
+      : clamp(preset.stability - Math.abs(pitchDelta) * 0.08, 0.2, 1),
+    similarity_boost: typeof override?.similarity_boost === 'number'
+      ? clamp(override.similarity_boost, 0, 1)
+      : clamp(preset.similarity_boost, 0, 1),
+    style: typeof override?.style === 'number'
+      ? clamp(override.style, 0, 1)
+      : clamp(preset.style + Math.max(0, pitchDelta) * 0.25, 0, 1),
+    use_speaker_boost: true,
+    speed,
+  };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -61,6 +88,7 @@ serve(async (req) => {
       const ttsPromises = segments.map(async (seg) => {
         const voiceId = seg.voiceId || NARRATOR_VOICE_ID;
         const preset = seg.voiceSettings || VOICE_PRESETS[seg.context as string] || VOICE_PRESETS.default;
+        const resolvedVoiceSettings = applyVoiceOverrides(preset, seg.voiceSettings);
         
         const res = await fetch(
           `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
@@ -73,13 +101,7 @@ serve(async (req) => {
             body: JSON.stringify({
               text: seg.text.substring(0, 5000),
               model_id: "eleven_turbo_v2_5",
-              voice_settings: {
-                stability: preset.stability,
-                similarity_boost: preset.similarity_boost,
-                style: preset.style,
-                use_speaker_boost: true,
-                speed: preset.speed,
-              },
+              voice_settings: resolvedVoiceSettings,
             }),
           }
         );
@@ -119,7 +141,7 @@ serve(async (req) => {
     }
 
     // ── Single text mode (backward compatible) ──
-    const { text, voiceId, context } = body;
+    const { text, voiceId, context, voiceSettings } = body;
 
     if (!text || text.trim().length === 0) {
       return new Response(JSON.stringify({ error: "No text provided" }), {
@@ -129,6 +151,7 @@ serve(async (req) => {
 
     const preset = VOICE_PRESETS[context as string] || VOICE_PRESETS.default;
     const selectedVoice = voiceId || NARRATOR_VOICE_ID;
+    const resolvedVoiceSettings = applyVoiceOverrides(preset, voiceSettings);
 
     const response = await fetch(
       `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoice}?output_format=mp3_44100_128`,
@@ -141,13 +164,7 @@ serve(async (req) => {
         body: JSON.stringify({
           text: text.substring(0, 5000),
           model_id: "eleven_turbo_v2_5",
-          voice_settings: {
-            stability: preset.stability,
-            similarity_boost: preset.similarity_boost,
-            style: preset.style,
-            use_speaker_boost: true,
-            speed: preset.speed,
-          },
+          voice_settings: resolvedVoiceSettings,
         }),
       }
     );

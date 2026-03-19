@@ -40,6 +40,7 @@ interface NarratorMessageContentProps {
   onConfirmSentenceClick?: () => void;
   onCancelSentenceClick?: () => void;
   hasPendingTapConfirmation?: boolean;
+  animationClassName?: string;
 }
 
 export default function NarratorMessageContent({
@@ -52,6 +53,7 @@ export default function NarratorMessageContent({
   onConfirmSentenceClick,
   onCancelSentenceClick,
   hasPendingTapConfirmation = false,
+  animationClassName = '',
 }: NarratorMessageContentProps) {
   const sentences = useMemo(() => splitSentences(content), [content]);
   const [localPendingSentence, setLocalPendingSentence] = useState<number | null>(null);
@@ -69,7 +71,7 @@ export default function NarratorMessageContent({
 
   return (
     <>
-      <p className="text-sm whitespace-pre-wrap break-words text-foreground/90 italic">
+      <p className={['text-sm whitespace-pre-wrap break-words text-foreground/90 italic', animationClassName].filter(Boolean).join(' ')}>
         {sentences.map((sentence, idx) => {
           const isActiveSentence = idx === activeSentenceIndex;
           const isClickable = voiceEnabled && !!onSentenceClick;

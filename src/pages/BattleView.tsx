@@ -108,6 +108,7 @@ import { useNarrationController } from '@/hooks/use-narration-controller';
 import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import NarratorMessageContent from '@/components/campaigns/NarratorMessageContent';
+import { buildNarrationPlaybackOptions, buildNarratorMessageMetadata, getNarratorAnimationClass } from '@/lib/narration-playback';
 import { applyHardClamp, generateClampContext, type CharacterProfile, type ClampResult } from '@/lib/hard-clamp';
 import { detectDirectInteraction } from '@/lib/battle-hit-detection';
 import { IntentEngine, type IntentDebugPayload } from '@/systems/intent/IntentEngine';
@@ -381,7 +382,7 @@ export default function BattleView() {
 
   // Battle narrator state
   const [narratorFrequency, setNarratorFrequency] = useState<NarratorFrequency>('key_moments');
-  const [narratorMessages, setNarratorMessages] = useState<Array<{ id: string; content: string; timestamp: Date }>>([]);
+  const [narratorMessages, setNarratorMessages] = useState<Array<{ id: string; content: string; timestamp: Date; metadata?: Record<string, unknown> | null }>>([]);
   const [isNarratorLoading, setIsNarratorLoading] = useState(false);
 
   // Private narrator validation state
@@ -1813,11 +1814,12 @@ export default function BattleView() {
           id: `narrator-${Date.now()}`,
           content: response.data.narration,
           timestamp: new Date(),
+          metadata: buildNarratorMessageMetadata(response.data, { context: 'combat' }),
         };
         setNarratorMessages(prev => [...prev, narratorMsg]);
         chatSoundsEngine.play('narrator_message');
         if (userSettings.audio.narratorAutoRead && userSettings.audio.narratorVoiceEnabled) {
-          await narratorVoice.narrate(response.data.narration, narratorMsg.id, 'combat');
+          await narratorVoice.narrate(response.data.narration, narratorMsg.id, buildNarrationPlaybackOptions(narratorMsg.metadata));
         }
         
         // Also post to OOC chat for persistence
@@ -3030,6 +3032,7 @@ export default function BattleView() {
                         {narratorMessages.length > 0 && !isNarratorLoading && (() => {
                           const latestNarration = narratorMessages[narratorMessages.length - 1];
                           const isActiveNarration = narratorVoice.activeMessageId === latestNarration.id;
+                          const narratorAnimationClass = getNarratorAnimationClass(latestNarration.metadata);
 
                           return (
                             <div className="p-3 rounded-lg bg-gradient-to-r from-amber-500/10 via-background to-amber-500/10 border border-amber-500/30 mx-4 animate-fade-in">
@@ -3055,7 +3058,7 @@ export default function BattleView() {
                                         </button>
                                       ) : (
                                         <button
-                                          onClick={() => narratorVoice.narrate(latestNarration.content, latestNarration.id, 'combat')}
+                                          onClick={() => narratorVoice.narrate(latestNarration.content, latestNarration.id, buildNarrationPlaybackOptions(latestNarration.metadata) ?? 'combat')}
                                           className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
                                           title="Listen to narrator"
                                         >
@@ -3068,10 +3071,11 @@ export default function BattleView() {
                                     content={latestNarration.content}
                                     activeSentenceIndex={isActiveNarration ? narratorVoice.activeSentenceIndex : -1}
                                     activeRange={isActiveNarration ? narratorVoice.activeRange : null}
+                                    animationClassName={narratorAnimationClass}
                                     voiceEnabled={userSettings.audio.narratorVoiceEnabled && userSettings.audio.tapToNarrate}
                                     requireTapConfirmation={userSettings.audio.askBeforeTapToNarrate}
                                     hasPendingTapConfirmation={narratorVoice.pendingTapRequest?.messageId === latestNarration.id}
-                                    onSentenceClick={(sentenceIdx) => narratorVoice.narrateFromSentence(latestNarration.content, latestNarration.id, sentenceIdx, 'combat')}
+                                    onSentenceClick={(sentenceIdx) => narratorVoice.narrateFromSentence(latestNarration.content, latestNarration.id, sentenceIdx, buildNarrationPlaybackOptions(latestNarration.metadata) ?? 'combat')}
                                     onConfirmSentenceClick={narratorVoice.confirmTapNarration}
                                     onCancelSentenceClick={narratorVoice.cancelTapNarration}
                                   />

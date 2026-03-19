@@ -10,6 +10,7 @@ import type { NarrationVoiceSettings, NarratorSceneContext } from '@/systems/nar
 import type { AmbientIntensityLevel } from '@/lib/audio/narration-sound-rules';
 import type { NarrationHighlightRange } from '@/systems/narration/NarrationHighlightManager';
 import { toast } from 'sonner';
+import { getNarrationSoundManager } from '@/lib/audio/narration-sound-manager';
 
 interface UseNarrationControllerOptions {
   enabled: boolean;
@@ -147,6 +148,13 @@ export function useNarrationController(options: UseNarrationControllerOptions) {
       const startCharIndex = startFromSentence > 0
         ? controller.current.highlight.getCharIndexForSentence(startFromSentence)
         : 0;
+
+      if (playback.soundCue) {
+        getNarrationSoundManager().playCueById(
+          playback.soundCue,
+          playback.context === 'combat' ? 'combat' : 'tense',
+        );
+      }
 
       await controller.current.narrate(
         text,

@@ -67,6 +67,7 @@ import { ActionResolver, formatActionForNarrator } from '@/systems/resolution/Ac
 import { CombatResolver, formatCombatResolutionForNarrator, toActionResult } from '@/systems/combat/CombatResolver';
 import { createCombatState } from '@/systems/combat/CombatState';
 import { buildCampaignNpcTurn, formatNpcBrainForNarrator } from '@/systems/npc/NpcBrainAdapters';
+import { buildNarrationPlaybackOptions, buildNarratorMessageMetadata, getNarratorAnimationClass } from '@/lib/narration-playback';
 import { IntentDebugCard } from '@/components/intent/IntentDebugCard';
 // Helper: build bag content for the inline backpack bubble
 function buildBagContent(campaignItems: InventoryItem[], characterWeapons: string | null) {
@@ -424,12 +425,13 @@ export default function CampaignView() {
             });
 
             if (!error && data?.narration) {
-              await supabase.from('campaign_messages').insert({
+              await supabase.from('campaign_messages').insert([{
                 campaign_id: campaign.id,
                 sender_type: 'narrator',
                 content: data.narration,
                 channel: 'in_universe',
-              });
+                metadata: buildNarratorMessageMetadata(data) as any,
+              }]);
               await fetchMessages();
             }
           } catch (err) {
@@ -477,7 +479,7 @@ export default function CampaignView() {
             chatSoundsEngine.play('narrator_message');
             if (userSettingsRef.current.audio.narratorAutoRead && userSettingsRef.current.audio.narratorVoiceEnabled) {
               // NarrationController handles ducking, highlighting, and sound triggers
-              narratorVoiceRef.current.narrate(msg.content, msg.id);
+              narratorVoiceRef.current.narrate(msg.content, msg.id, buildNarrationPlaybackOptions(msg.metadata));
             }
           } else if (msg.sender_type === 'player') {
             // Play received sound if it's from another player
@@ -1049,12 +1051,13 @@ export default function CampaignView() {
       });
 
       if (!error && data?.narration) {
-        await supabase.from('campaign_messages').insert({
-          campaign_id: campaign.id,
-          sender_type: 'narrator',
-          content: data.narration,
-          channel: 'in_universe',
-        });
+          await supabase.from('campaign_messages').insert([{
+            campaign_id: campaign.id,
+            sender_type: 'narrator',
+            content: data.narration,
+            channel: 'in_universe',
+            metadata: buildNarratorMessageMetadata(data) as any,
+          }]);
       }
     } catch (err) {
       console.error('Failed to generate intro:', err);
@@ -1378,12 +1381,19 @@ export default function CampaignView() {
           combatPulseTimerRef.current = setTimeout(() => setCombatPulse('none'), 8000);
         }
 
-        await supabase.from('campaign_messages').insert({
+        await supabase.from('campaign_messages').insert([{
           campaign_id: snapshotCampaign.id,
           sender_type: 'narrator',
           content: data.narration,
           channel: 'in_universe',
-        });
+          metadata: buildNarratorMessageMetadata(data, npcBrainTurn?.narration ? {
+            context: activeEnemiesList.length > 0 ? 'combat' : 'danger',
+            voiceRate: npcBrainTurn.narration.voiceRate,
+            voicePitch: npcBrainTurn.narration.voicePitch,
+            soundCue: npcBrainTurn.narration.soundCue,
+            animationTag: npcBrainTurn.narration.animationTag,
+          } : null) as any,
+        }]);
 
         // Accumulate all XP from this turn and apply level-ups immediately
         let totalXpGained = 0;
@@ -2141,12 +2151,13 @@ export default function CampaignView() {
       });
 
       if (!error && data?.narration) {
-        await supabase.from('campaign_messages').insert({
+        await supabase.from('campaign_messages').insert([{
           campaign_id: campaign.id,
           sender_type: 'narrator',
           content: data.narration,
           channel: 'in_universe',
-        });
+          metadata: buildNarratorMessageMetadata(data) as any,
+        }]);
 
         // Update tactical map from narrator scene data
         if (data.sceneMap && typeof data.sceneMap === 'object' && Array.isArray(data.sceneMap.zones)) {
@@ -2465,7 +2476,7 @@ export default function CampaignView() {
                             </button>
                           ) : (
                             <button
-                              onClick={() => narratorVoice.narrate(msg.content, msg.id)}
+                              onClick={() => narratorVoice.narrate(msg.content, msg.id, buildNarrationPlaybackOptions(msg.metadata))}
                               className="ml-auto p-1 rounded-full hover:bg-amber-500/20 transition-colors"
                               title="Listen to narrator"
                             >
@@ -2476,6 +2487,7 @@ export default function CampaignView() {
 
                         // If no NPC dialogue segments, render classic narrator bubble
                         const hasNpcSegments = segments.some(s => s.type === 'npc_dialogue');
+                        const narratorAnimationClass = getNarratorAnimationClass(msg.metadata);
 
                         if (!hasNpcSegments) {
                           return (
@@ -2494,11 +2506,12 @@ export default function CampaignView() {
                                     content={msg.content}
                                     activeSentenceIndex={isActiveNarration ? narratorVoice.activeSentenceIndex : -1}
                                     activeRange={isActiveNarration ? narratorVoice.activeRange : null}
+                                    animationClassName={narratorAnimationClass}
                                     voiceEnabled={userSettings.audio.narratorVoiceEnabled && userSettings.audio.tapToNarrate}
                                     requireTapConfirmation={userSettings.audio.askBeforeTapToNarrate}
                                     hasPendingTapConfirmation={narratorVoice.pendingTapRequest?.messageId === msg.id}
                                     onSentenceClick={(sentenceIdx) => {
-                                      narratorVoice.narrateFromSentence(msg.content, msg.id, sentenceIdx);
+                                      narratorVoice.narrateFromSentence(msg.content, msg.id, sentenceIdx, buildNarrationPlaybackOptions(msg.metadata));
                                     }}
                                     onConfirmSentenceClick={narratorVoice.confirmTapNarration}
                                     onCancelSentenceClick={narratorVoice.cancelTapNarration}
