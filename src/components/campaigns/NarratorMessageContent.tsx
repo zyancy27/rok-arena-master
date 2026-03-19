@@ -71,7 +71,7 @@ export default function NarratorMessageContent({
 
   return (
     <>
-      <p className="text-sm whitespace-pre-wrap break-words text-foreground/90 italic">
+      <p className={['text-sm whitespace-pre-wrap break-words text-foreground/90 italic', animationClassName].filter(Boolean).join(' ')}>
         {sentences.map((sentence, idx) => {
           const isActiveSentence = idx === activeSentenceIndex;
           const isClickable = voiceEnabled && !!onSentenceClick;
