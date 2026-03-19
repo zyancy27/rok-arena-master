@@ -27,9 +27,7 @@ export function getChatBoxWrapperClasses(
   options: { includeEntranceAnimation?: boolean } = {},
 ) {
   const entranceClassName = options.includeEntranceAnimation === false ? '' : 'animate-fade-in';
-  const pulseClassName = profile?.pulseBehavior === 'surge' || profile?.pulseBehavior === 'flicker'
-    ? 'animate-pulse'
-    : '';
+  const pulseClassName = '';
 
   return [
     entranceClassName,
