@@ -1277,18 +1277,20 @@ export default function CampaignView() {
           combatPulseTimerRef.current = setTimeout(() => setCombatPulse('none'), 8000);
         }
 
+        const narrationPacket = NarrationPacketBuilder.build({
+          resolvedAction: pipelineResult.resolvedAction,
+          npcReaction: pipelineResult.npcReaction,
+          sceneEffects: pipelineResult.sceneEffects,
+          narratorText: data.narration,
+          narratorSource: data,
+        });
+
         await supabase.from('campaign_messages').insert([{
           campaign_id: snapshotCampaign.id,
           sender_type: 'narrator',
           content: data.narration,
           channel: 'in_universe',
-          metadata: buildNarratorMessageMetadata(data, npcBrainTurn?.narration ? {
-            context: activeEnemiesList.length > 0 ? 'combat' : 'danger',
-            voiceRate: npcBrainTurn.narration.voiceRate,
-            voicePitch: npcBrainTurn.narration.voicePitch,
-            soundCue: npcBrainTurn.narration.soundCue,
-            animationTag: npcBrainTurn.narration.animationTag,
-          } : null) as any,
+          metadata: narrationPacket.metadata as any,
         }]);
 
         // Accumulate all XP from this turn and apply level-ups immediately
