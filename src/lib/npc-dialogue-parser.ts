@@ -119,7 +119,9 @@ export function parseNarratorMessage(text: string): MessageSegment[] {
   for (const match of deduped) {
     if (match.start > cursor) {
       const narration = text.slice(cursor, match.start).trim();
-      if (narration) segments.push({ type: 'narration', text: narration });
+      if (narration && /[\p{L}\p{N}]/u.test(narration)) {
+        segments.push({ type: 'narration', text: narration });
+      }
     }
 
     segments.push({
@@ -133,7 +135,9 @@ export function parseNarratorMessage(text: string): MessageSegment[] {
 
   if (cursor < text.length) {
     const narration = text.slice(cursor).trim();
-    if (narration) segments.push({ type: 'narration', text: narration });
+    if (narration && /[\p{L}\p{N}]/u.test(narration)) {
+      segments.push({ type: 'narration', text: narration });
+    }
   }
 
   return segments;
