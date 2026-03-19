@@ -767,7 +767,7 @@ export default function CampaignView() {
   };
 
   const fetchResponseSuggestions = useCallback(async (force = false) => {
-    if (!campaign || !myParticipant?.is_active || !myParticipant.character_id || !myParticipant.character?.name || !isCampaignActive) {
+    if (!campaign || !myParticipant?.is_active || !myParticipant.character_id || !isCampaignActive) {
       suggestionContextKeyRef.current = '';
       setSuggestionsLoading(false);
       setSelectedResponseSuggestion(null);
