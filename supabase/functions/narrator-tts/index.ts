@@ -27,6 +27,33 @@ const VOICE_PRESETS: Record<string, {
 
 const NARRATOR_VOICE_ID = "BpjGufoPiobT79j2vtj4"; // Priyanka
 
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function applyVoiceOverrides(
+  preset: { stability: number; similarity_boost: number; style: number; speed: number },
+  override?: Partial<{ stability: number; similarity_boost: number; style: number; speed: number; pitch: number }>,
+) {
+  const speed = typeof override?.speed === 'number' ? clamp(override.speed, 0.7, 1.3) : preset.speed;
+  const pitch = typeof override?.pitch === 'number' ? clamp(override.pitch, 0.8, 1.2) : 1;
+  const pitchDelta = pitch - 1;
+
+  return {
+    stability: typeof override?.stability === 'number'
+      ? clamp(override.stability, 0, 1)
+      : clamp(preset.stability - Math.abs(pitchDelta) * 0.08, 0.2, 1),
+    similarity_boost: typeof override?.similarity_boost === 'number'
+      ? clamp(override.similarity_boost, 0, 1)
+      : clamp(preset.similarity_boost, 0, 1),
+    style: typeof override?.style === 'number'
+      ? clamp(override.style, 0, 1)
+      : clamp(preset.style + Math.max(0, pitchDelta) * 0.25, 0, 1),
+    use_speaker_boost: true,
+    speed,
+  };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });

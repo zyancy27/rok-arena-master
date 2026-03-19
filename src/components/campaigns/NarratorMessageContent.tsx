@@ -40,6 +40,7 @@ interface NarratorMessageContentProps {
   onConfirmSentenceClick?: () => void;
   onCancelSentenceClick?: () => void;
   hasPendingTapConfirmation?: boolean;
+  animationClassName?: string;
 }
 
 export default function NarratorMessageContent({
@@ -52,6 +53,7 @@ export default function NarratorMessageContent({
   onConfirmSentenceClick,
   onCancelSentenceClick,
   hasPendingTapConfirmation = false,
+  animationClassName = '',
 }: NarratorMessageContentProps) {
   const sentences = useMemo(() => splitSentences(content), [content]);
   const [localPendingSentence, setLocalPendingSentence] = useState<number | null>(null);
