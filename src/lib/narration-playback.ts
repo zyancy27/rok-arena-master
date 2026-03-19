@@ -47,8 +47,10 @@ function deriveGeneratedPlayback(source: Record<string, unknown>): NarratorPlayb
   const generatedEffectState = isRecord(generatedPackets.effectState) ? generatedPackets.effectState : null;
   const generatedEncounter = isRecord(generatedPackets.encounter) ? generatedPackets.encounter : null;
   const generatedNpcIdentity = isRecord(generatedPackets.npcIdentity) ? generatedPackets.npcIdentity : null;
+  const generatedActorIdentity = isRecord(generatedPackets.actorIdentity) ? generatedPackets.actorIdentity : null;
+  const generatedWorldState = isRecord(generatedPackets.worldState) ? generatedPackets.worldState : null;
 
-  if (!generatedSceneState && !generatedEffectState && !generatedEncounter && !generatedNpcIdentity) {
+  if (!generatedSceneState && !generatedEffectState && !generatedEncounter && !generatedNpcIdentity && !generatedActorIdentity && !generatedWorldState) {
     return null;
   }
 
@@ -58,33 +60,72 @@ function deriveGeneratedPlayback(source: Record<string, unknown>): NarratorPlayb
   const combatVolatility = typeof generatedSceneState?.combatVolatility === 'string' ? generatedSceneState.combatVolatility : 'stable';
   const narrationFlags = Array.isArray(generatedSceneState?.narrationToneFlags) ? generatedSceneState.narrationToneFlags as string[] : [];
   const chatBehaviors = Array.isArray(generatedEffectState?.chatBehaviors) ? generatedEffectState.chatBehaviors as string[] : [];
+  const soundCueFamilies = Array.isArray(generatedEffectState?.soundCueFamilies) ? generatedEffectState.soundCueFamilies as string[] : [];
+  const actorTone = Array.isArray(generatedActorIdentity?.narrativeTone) ? generatedActorIdentity.narrativeTone as string[] : [];
+  const actorPressure = Array.isArray(generatedActorIdentity?.pressureStyle) ? generatedActorIdentity.pressureStyle as string[] : [];
+  const actorExpression = Array.isArray(generatedActorIdentity?.expressionIdentity) ? generatedActorIdentity.expressionIdentity as string[] : [];
+  const worldHazards = Array.isArray(generatedWorldState?.hazardFamilies) ? generatedWorldState.hazardFamilies as string[] : [];
+  const worldTravelPressure = Array.isArray(generatedWorldState?.travelPressure) ? generatedWorldState.travelPressure as string[] : [];
+  const worldFlavor = Array.isArray(generatedWorldState?.culturalFlavor) ? generatedWorldState.culturalFlavor as string[] : [];
   const powerStyle = Array.isArray(generatedNpcIdentity?.powerStyle) ? generatedNpcIdentity.powerStyle as string[] : [];
   const tacticalPressure = Array.isArray(generatedEncounter?.tacticalPressure) ? generatedEncounter.tacticalPressure as string[] : [];
 
-  const stealthAware = [npcReadiness, ...narrationFlags, ...chatBehaviors, ...powerStyle, ...tacticalPressure]
-    .some((entry) => /stealth|guarded|quiet|cautious|subtle/.test(entry));
-  const explosive = [scenePressure, visualIntensity, combatVolatility, ...narrationFlags, ...chatBehaviors]
-    .some((entry) => /critical|volatile|explosive|impact|hostile/.test(entry));
+  const stealthAware = [
+    npcReadiness,
+    ...narrationFlags,
+    ...chatBehaviors,
+    ...actorExpression,
+    ...actorTone,
+    ...powerStyle,
+    ...tacticalPressure,
+    ...worldTravelPressure,
+  ].some((entry) => /stealth|guarded|quiet|cautious|subtle|hushed|measured/.test(entry));
 
-  const voiceRate = stealthAware ? 0.84 : explosive ? 1.12 : scenePressure === 'low' ? 0.95 : scenePressure === 'critical' ? 1.16 : 1.02;
-  const voicePitch = stealthAware ? 0.9 : explosive ? 1.08 : npcReadiness === 'hostile' ? 1.04 : 0.98;
+  const explosive = [
+    scenePressure,
+    visualIntensity,
+    combatVolatility,
+    ...narrationFlags,
+    ...chatBehaviors,
+    ...actorPressure,
+    ...tacticalPressure,
+    ...worldHazards,
+  ].some((entry) => /critical|volatile|explosive|impact|hostile|overwhelming|killbox/.test(entry));
+
+  const mystic = [...actorTone, ...worldFlavor, ...narrationFlags, ...soundCueFamilies]
+    .some((entry) => /mystic|ritual|charged|omen|wonder/.test(entry));
+
+  const voiceRate = stealthAware
+    ? 0.84
+    : explosive
+      ? 1.12
+      : mystic
+        ? 0.97
+        : scenePressure === 'low'
+          ? 0.95
+          : scenePressure === 'critical'
+            ? 1.16
+            : 1.02;
+  const voicePitch = stealthAware ? 0.9 : explosive ? 1.08 : mystic ? 1.03 : npcReadiness === 'hostile' ? 1.04 : 0.98;
   const soundCue = stealthAware
     ? 'whisper_tension'
     : explosive
       ? 'combat_surge'
-      : /tone:charged/.test(narrationFlags.join(' '))
+      : mystic
         ? 'mystic_hum'
-        : 'ambient_pulse';
+        : soundCueFamilies.find((entry) => /ambient|cue:|narrator:/.test(entry))?.replace(/^narrator:/, '') || 'ambient_pulse';
   const animationTag = stealthAware
     ? 'fade_out'
     : explosive
       ? 'attack_anim'
       : combatVolatility === 'shifting'
         ? 'step_back'
-        : 'run';
+        : mystic
+          ? 'fade_out'
+          : 'run';
 
   return {
-    context: stealthAware ? 'whisper' : explosive ? 'combat' : 'default',
+    context: stealthAware ? 'whisper' : explosive ? 'combat' : mystic ? 'danger' : 'default',
     voiceRate,
     voicePitch,
     soundCue,
