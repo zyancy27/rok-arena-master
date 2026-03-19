@@ -9,9 +9,10 @@ import { EncounterCompositionEngine } from '@/systems/composition/EncounterCompo
 import { SceneCompositionEngine } from '@/systems/composition/SceneCompositionEngine';
 import { WorldCompositionEngine } from '@/systems/composition/WorldCompositionEngine';
 import { buildResolvedActionPacket } from './ActionPipeline';
+import { attachGeneratedToContext } from './GeneratedRuntimeBridge';
 import { NarrationPacketBuilder } from '@/systems/narration/NarrationPacketBuilder';
 import { SceneEffectBridge } from '@/systems/map/SceneEffectBridge';
-import type { ActionPipelineResult } from '@/systems/types/PipelineTypes';
+import type { ActionPipelineResult, GeneratedRuntimePackets } from '@/systems/types/PipelineTypes';
 
 export interface BattleActionPipelineInput {
   rawText: string;
@@ -142,13 +143,14 @@ export const BattleActionPipeline = {
       ],
     });
 
-    context.metadata = {
-      ...(context.metadata || {}),
-      generatedActorIdentity,
-      generatedWorldState,
-      generatedEncounter,
-      generatedSceneState,
+    const generatedPackets: GeneratedRuntimePackets = {
+      actorIdentity: generatedActorIdentity,
+      worldState: generatedWorldState,
+      encounter: generatedEncounter,
+      sceneState: generatedSceneState,
     };
+
+    attachGeneratedToContext(context, generatedPackets);
 
     const primaryTarget = context.primaryTarget?.context ?? null;
     const combatResult = intentResult.intent.isCombatAction && context.primaryTarget?.id && primaryTarget
@@ -218,23 +220,18 @@ export const BattleActionPipeline = {
       },
     });
 
-    context.metadata = {
-      ...(context.metadata || {}),
-      generatedEffectState,
-    };
+    generatedPackets.effectState = generatedEffectState;
+    attachGeneratedToContext(context, generatedPackets);
 
     const sceneEffects = SceneEffectBridge.build(context, resolvedAction, null);
     const narrationPacket = NarrationPacketBuilder.build({
       resolvedAction,
       sceneEffects,
+      generatedPackets,
     });
+    narrationPacket.generated = generatedPackets;
     narrationPacket.metadata = {
       ...(narrationPacket.metadata || {}),
-      generatedActorIdentity,
-      generatedWorldState,
-      generatedEncounter,
-      generatedSceneState,
-      generatedEffectState,
       sceneEffectPacket: sceneEffects,
     };
 
@@ -246,16 +243,9 @@ export const BattleActionPipeline = {
       npcReaction: null,
       sceneEffects,
       narrationPacket,
-      generatedPackets: {
-        actorIdentity: generatedActorIdentity,
-        worldState: generatedWorldState,
-        encounter: generatedEncounter,
-        sceneState: generatedSceneState,
-        effectState: generatedEffectState,
-      },
+      generatedPackets,
       clampResult,
       highForceTurnCount: isHighForce ? (input.consecutiveHighForceTurns ?? 0) + 1 : 0,
     };
   },
 };
-

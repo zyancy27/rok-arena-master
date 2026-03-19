@@ -11,10 +11,11 @@ import { SceneCompositionEngine } from '@/systems/composition/SceneCompositionEn
 import { WorldCompositionEngine } from '@/systems/composition/WorldCompositionEngine';
 import { CampaignContextAssembler } from '@/systems/context/CampaignContextAssembler';
 import { buildResolvedActionPacket } from './ActionPipeline';
+import { attachGeneratedToContext } from './GeneratedRuntimeBridge';
 import { NpcReactionCoordinator } from '@/systems/npc/NpcReactionCoordinator';
 import { NarrationPacketBuilder } from '@/systems/narration/NarrationPacketBuilder';
 import { SceneEffectBridge } from '@/systems/map/SceneEffectBridge';
-import type { ActionPipelineResult } from '@/systems/types/PipelineTypes';
+import type { ActionPipelineResult, GeneratedRuntimePackets } from '@/systems/types/PipelineTypes';
 
 export interface CampaignActionPipelineInput {
   rawText: string;
@@ -201,15 +202,16 @@ export const CampaignActionPipeline = {
       ],
     });
 
-    context.metadata = {
-      ...(context.metadata || {}),
-      generatedActorIdentity,
-      generatedCampaignSeed,
-      generatedWorldState,
-      generatedNpcIdentity,
-      generatedEncounter,
-      generatedSceneState,
+    const generatedPackets: GeneratedRuntimePackets = {
+      actorIdentity: generatedActorIdentity,
+      campaignSeed: generatedCampaignSeed,
+      worldState: generatedWorldState,
+      npcIdentity: generatedNpcIdentity,
+      encounter: generatedEncounter,
+      sceneState: generatedSceneState,
     };
+
+    attachGeneratedToContext(context, generatedPackets);
 
     const primaryEnemy = activeEnemies[0] ?? null;
     const targetContext = context.primaryTarget?.kind === 'enemy' ? context.primaryTarget.context ?? null : null;
@@ -292,6 +294,7 @@ export const CampaignActionPipeline = {
         environmentTags: context.environmentTags,
         relationshipSummary: context.relationshipContext.summary,
         memorySummary: context.memoryContext.summary,
+        generatedPackets,
         generatedCampaignSeed,
         generatedWorldState,
       },
@@ -317,26 +320,19 @@ export const CampaignActionPipeline = {
       },
     });
 
-    context.metadata = {
-      ...(context.metadata || {}),
-      generatedEffectState,
-    };
+    generatedPackets.effectState = generatedEffectState;
+    attachGeneratedToContext(context, generatedPackets);
 
     const sceneEffects = SceneEffectBridge.build(context, resolvedAction, npcReaction);
     const narrationPacket = NarrationPacketBuilder.build({
       resolvedAction,
       npcReaction,
       sceneEffects,
+      generatedPackets,
     });
+    narrationPacket.generated = generatedPackets;
     narrationPacket.metadata = {
       ...(narrationPacket.metadata || {}),
-      generatedActorIdentity,
-      generatedCampaignSeed,
-      generatedWorldState,
-      generatedNpcIdentity,
-      generatedEncounter,
-      generatedSceneState,
-      generatedEffectState,
       sceneEffectPacket: sceneEffects,
     };
 
@@ -346,17 +342,8 @@ export const CampaignActionPipeline = {
       npcReaction,
       sceneEffects,
       narrationPacket,
-      generatedPackets: {
-        actorIdentity: generatedActorIdentity,
-        campaignSeed: generatedCampaignSeed,
-        worldState: generatedWorldState,
-        npcIdentity: generatedNpcIdentity,
-        encounter: generatedEncounter,
-        sceneState: generatedSceneState,
-        effectState: generatedEffectState,
-      },
+      generatedPackets,
       primaryEnemy,
     };
   },
 };
-

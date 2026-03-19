@@ -4,6 +4,13 @@ import type { ResolvedCharacterContext } from '@/systems/character/CharacterCont
 import type { StructuredCombatResult } from '@/systems/combat/CombatResolver';
 import type { Intent, IntentDebugPayload } from '@/systems/intent/IntentEngine';
 import type { ActionResult } from '@/systems/resolution/ActionResolver';
+import type { GeneratedCampaignSeed } from '@/systems/generated/GeneratedCampaignSeed';
+import type { GeneratedCharacterIdentity } from '@/systems/generated/GeneratedCharacterIdentity';
+import type { GeneratedEffectState } from '@/systems/generated/GeneratedEffectState';
+import type { GeneratedEncounter } from '@/systems/generated/GeneratedEncounter';
+import type { GeneratedNpcIdentity } from '@/systems/generated/GeneratedNpcIdentity';
+import type { GeneratedSceneState } from '@/systems/generated/GeneratedSceneState';
+import type { GeneratedWorldState } from '@/systems/generated/GeneratedWorldState';
 
 export interface MemoryContextEntry {
   subjectId?: string;
@@ -32,6 +39,16 @@ export interface RelationshipContextPacket {
   summary: string[];
 }
 
+export interface GeneratedRuntimePackets {
+  actorIdentity?: GeneratedCharacterIdentity;
+  worldState?: GeneratedWorldState;
+  campaignSeed?: GeneratedCampaignSeed;
+  npcIdentity?: GeneratedNpcIdentity | null;
+  encounter?: GeneratedEncounter;
+  sceneState?: GeneratedSceneState;
+  effectState?: GeneratedEffectState;
+}
+
 export interface ContextTargetPacket {
   id?: string;
   name: string;
@@ -54,6 +71,7 @@ export interface ContextPacket {
   memoryContext: MemoryContextPacket;
   narratorSceneContext: NarratorSceneContext;
   sceneState: Record<string, unknown>;
+  generated?: GeneratedRuntimePackets;
   metadata?: Record<string, unknown>;
 }
 
@@ -82,6 +100,7 @@ export interface NpcReactionPacket {
     animationTag?: string;
   } | null;
   rawTurn?: unknown;
+  generated?: GeneratedRuntimePackets;
   metadata?: Record<string, unknown>;
 }
 
@@ -90,12 +109,14 @@ export interface SceneEffectPacket {
   hazardPulseTags: string[];
   enemyPresenceTags: string[];
   environmentalPressureTags: string[];
+  generated?: GeneratedRuntimePackets;
   metadata?: Record<string, unknown>;
 }
 
 export interface NarrationPacket {
   narratorText: string | null;
   context: NarratorSceneContext;
+  generated?: GeneratedRuntimePackets;
   metadata?: Record<string, unknown>;
   voiceSettings?: NarrationVoiceSettings;
   soundCue?: string;
@@ -111,13 +132,5 @@ export interface ActionPipelineResult {
   npcReaction: NpcReactionPacket | null;
   sceneEffects: SceneEffectPacket;
   narrationPacket: NarrationPacket;
-  generatedPackets?: {
-    actorIdentity?: unknown;
-    worldState?: unknown;
-    campaignSeed?: unknown;
-    npcIdentity?: unknown;
-    encounter?: unknown;
-    sceneState?: unknown;
-    effectState?: unknown;
-  };
+  generatedPackets?: GeneratedRuntimePackets;
 }
