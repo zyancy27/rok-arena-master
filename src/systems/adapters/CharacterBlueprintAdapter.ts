@@ -24,12 +24,74 @@ export interface CharacterBlueprintAdapterInput {
 
 export const CharacterBlueprintAdapter = {
   fromCharacter(input: CharacterBlueprintAdapterInput): CharacterBlueprint {
+    const level = Number(input.level ?? 1);
+    const statStrength = Number(input.stat_strength ?? 50);
+    const statSpeed = Number(input.stat_speed ?? 50);
+    const statPower = Number(input.stat_power ?? 50);
+    const statSkill = Number(input.stat_skill ?? 50);
+    const statBattleIq = Number(input.stat_battle_iq ?? 50);
+    const powerText = `${input.powers || ''} ${input.abilities || ''} ${input.weapons_items || ''}`.toLowerCase();
+
     return {
       id: input.id || `character:${input.name || 'unknown'}`,
       kind: 'character',
       name: input.name || 'Unknown Character',
-      tags: [input.race, input.sub_race, input.personality].filter(Boolean).map((value) => String(value).toLowerCase().replace(/\s+/g, '_')),
+      tags: [input.race, input.sub_race, input.personality, input.mentality]
+        .filter(Boolean)
+        .map((value) => String(value).toLowerCase().replace(/\s+/g, '_')),
       optionalFields: ['lore', 'powers', 'abilities', 'weapons_items'],
+      requiredAnchors: [
+        { key: 'sourceFields.level', required: false },
+        { key: 'sourceFields.stats', required: false },
+      ],
+      optionalModules: [
+        {
+          id: 'movement-specialist',
+          weight: statSpeed >= 70 ? 0.95 : 0.35,
+          tags: ['mobile', 'tempo_pressure'],
+          traits: [{ key: 'mobility', weight: statSpeed }],
+        },
+        {
+          id: 'power-channeler',
+          weight: statPower >= 70 ? 0.95 : 0.3,
+          tags: [/arcane|energy|beam|fire|lightning|psychic/.test(powerText) ? 'mystic' : 'grounded_power'],
+          traits: [{ key: 'power_projection', weight: statPower }],
+        },
+        {
+          id: 'tactical-operator',
+          weight: statBattleIq >= 65 || statSkill >= 65 ? 0.9 : 0.25,
+          tags: ['calculated', 'adaptive'],
+          traits: [{ key: 'tactical_reasoning', weight: Math.max(statBattleIq, statSkill) }],
+        },
+      ],
+      constraints: [
+        {
+          id: 'mystic-needs-power-signal',
+          type: 'fallback_tag',
+          value: 'mystic',
+          replacement: 'grounded_power',
+          severity: /arcane|energy|beam|fire|lightning|psychic/.test(powerText) ? 'soft' : 'hard',
+          message: 'Mystic framing without a power signal falls back to grounded power.',
+        },
+        {
+          id: 'stealth-excludes-loud-presence',
+          type: 'excludes_tag',
+          value: 'berserker',
+          severity: 'soft',
+          replacement: 'measured',
+          message: 'Stealth-leaning character identity should avoid berserker defaults unless explicit.',
+        },
+      ],
+      outputNormalization: ['character-identity-packet', 'scene-pressure-packet'],
+      derivationHooks: ['combat_identity', 'narrative_flavor', 'effect_bias'],
+      weightedTraits: [
+        { key: 'strength', weight: statStrength },
+        { key: 'speed', weight: statSpeed },
+        { key: 'power', weight: statPower },
+        { key: 'skill', weight: statSkill },
+        { key: 'battle_iq', weight: statBattleIq },
+        { key: 'level', weight: level * 10 },
+      ],
       payload: {
         sourceFields: {
           level: input.level,
@@ -56,3 +118,4 @@ export const CharacterBlueprintAdapter = {
     };
   },
 };
+

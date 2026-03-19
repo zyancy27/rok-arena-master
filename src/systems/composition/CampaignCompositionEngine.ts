@@ -18,41 +18,46 @@ export const CampaignCompositionEngine = {
     const blueprint = CampaignBlueprintAdapter.fromCampaign(input);
     BlueprintRegistry.register(blueprint);
     const composition = CompositionEngine.compose({ kind: 'campaign', blueprintIds: [blueprint.id] });
+    const storyLogic = StoryLogicFramework.build({
+      centralConflict: String(composition.blueprint.payload.centralTension || input.theme || input.goal || 'unstable status quo'),
+      pressureSources: composition.runtime.pressureIdentity,
+      pacingCurve: composition.runtime.narrativeImplications,
+      stakes: StakesFramework.build(composition.runtime.tags),
+    });
     const seed = CampaignSeedBuilder.build({
       theme: input.theme,
       goal: input.goal,
-      tags: composition.taxonomy.tags,
+      tags: composition.runtime.tags,
       worldState: input.world_state,
       currentZone: input.current_zone,
+      storyLogic,
+      actorIdentity: (input.story_context as Record<string, unknown> | null)?.generatedActorIdentity as Record<string, unknown> | null,
     });
-    const storyLogic = StoryLogicFramework.build({
-      centralConflict: seed.centralTension,
-      pressureSources: seed.pressureSources,
-      pacingCurve: seed.pacingCurve,
-    });
-    const conflict = ConflictFramework.build(seed.centralTension, composition.taxonomy.tags);
+    const conflict = ConflictFramework.build(seed.centralTension, composition.runtime.tags);
 
     return {
       blueprintId: blueprint.id,
       centralTension: storyLogic.centralConflict,
       openingHook: seed.openingHook,
-      pressureSources: seed.pressureSources,
-      worldFriction: [...new Set([...seed.worldFriction, conflict.core])],
+      pressureSources: [...new Set([...seed.pressureSources, ...storyLogic.pressureSources, ...composition.runtime.pressureIdentity])],
+      worldFriction: [...new Set([...seed.worldFriction, conflict.core, ...composition.runtime.sceneOutputs.environmentalPressure])],
       allies: seed.allies,
       enemies: seed.enemies,
       likelyObjectives: seed.likelyObjectives,
-      pacingCurve: [...new Set([...seed.pacingCurve, ...EscalationFramework.build(composition.taxonomy.tags)])],
+      pacingCurve: [...new Set([...seed.pacingCurve, ...storyLogic.pacingCurve, ...EscalationFramework.build(composition.runtime.tags)])],
       mysteryDensity: seed.mysteryDensity,
       conflictDensity: seed.conflictDensity,
       encounterOpportunities: seed.encounterOpportunities,
       npcPresence: seed.npcPresence,
-      environmentalIdentity: seed.environmentalIdentity,
+      environmentalIdentity: [...new Set([...seed.environmentalIdentity, ...composition.runtime.tags])],
       progressionShape: seed.progressionShape,
-      tags: composition.taxonomy.tags,
+      tags: composition.runtime.tags,
       metadata: {
-        stakes: StakesFramework.build(composition.taxonomy.tags),
+        stakes: storyLogic.stakes,
         conflict,
+        runtime: composition.runtime,
       },
     };
   },
 };
+
