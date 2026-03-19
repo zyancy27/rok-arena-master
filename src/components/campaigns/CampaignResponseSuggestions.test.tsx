@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import CampaignResponseSuggestions from './CampaignResponseSuggestions';
 import type { CampaignResponseSuggestion } from '@/lib/campaign-response-suggestions';
@@ -24,7 +24,7 @@ const suggestions: CampaignResponseSuggestion[] = [
 
 describe('CampaignResponseSuggestions', () => {
   it('renders suggestion options in a lightweight thought-bubble panel', () => {
-    render(
+    const view = render(
       <div>
         <CampaignResponseSuggestions
           suggestions={suggestions}
@@ -37,15 +37,17 @@ describe('CampaignResponseSuggestions', () => {
       </div>,
     );
 
-    expect(screen.getByLabelText('Suggested responses')).toBeInTheDocument();
-    expect(screen.getByText('Possible thoughts')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Ask Lyra about the distortion/i })).toBeInTheDocument();
-    expect(screen.getByRole('textbox', { name: 'Message input' })).toBeInTheDocument();
+    expect(view.getByLabelText('Suggested responses')).toBeInTheDocument();
+    expect(view.getByText('Possible thoughts')).toBeInTheDocument();
+    const thoughtButton = view.getByRole('button', { name: /Ask Lyra about the distortion/i });
+    expect(thoughtButton).toBeInTheDocument();
+    thoughtButton.click();
+    expect(view.getByRole('textbox', { name: 'Message input' })).toBeInTheDocument();
   });
 
   it('shows expanded detail when a suggestion is selected', () => {
     const onSelect = vi.fn();
-    render(
+    const view = render(
       <CampaignResponseSuggestions
         suggestions={suggestions}
         selectedSuggestion={suggestions[0]}
@@ -55,14 +57,14 @@ describe('CampaignResponseSuggestions', () => {
       />,
     );
 
-    expect(screen.getByText(/A careful, in-character question/i)).toBeInTheDocument();
-    expect(screen.getByText(/Lyra, can you tell if this is some kind of space-time distortion/i)).toBeInTheDocument();
+    expect(view.getByText(/A careful, in-character question/i)).toBeInTheDocument();
+    expect(view.getByText(/Lyra, can you tell if this is some kind of space-time distortion/i)).toBeInTheDocument();
     expect(onSelect).not.toHaveBeenCalled();
   });
 
   it('confirms through the normal send callback only when explicitly asked', () => {
     const onConfirm = vi.fn();
-    render(
+    const view = render(
       <CampaignResponseSuggestions
         suggestions={suggestions}
         selectedSuggestion={suggestions[1]}
@@ -72,14 +74,14 @@ describe('CampaignResponseSuggestions', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Send thought/i }));
+    view.getByRole('button', { name: /Send thought/i }).click();
     expect(onConfirm).toHaveBeenCalledWith(suggestions[1]);
   });
 
   it('cancel backs out without sending', () => {
     const onCancel = vi.fn();
     const onConfirm = vi.fn();
-    render(
+    const view = render(
       <CampaignResponseSuggestions
         suggestions={suggestions}
         selectedSuggestion={suggestions[0]}
@@ -89,7 +91,7 @@ describe('CampaignResponseSuggestions', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Back/i }));
+    view.getByRole('button', { name: /Back/i }).click();
     expect(onCancel).toHaveBeenCalledTimes(1);
     expect(onConfirm).not.toHaveBeenCalled();
   });

@@ -188,6 +188,10 @@ serve(async (req) => {
       return await handlePrivateQuery(requestBody, LOVABLE_API_KEY, corsHeaders);
     }
 
+    if (requestBody.type === 'campaign_response_suggestions') {
+      return await handleCampaignResponseSuggestions(requestBody, LOVABLE_API_KEY, corsHeaders);
+    }
+
     // Handle campaign intro
     if (requestBody.type === 'campaign_intro') {
       return await handleCampaignIntro(requestBody, LOVABLE_API_KEY, corsHeaders);
@@ -905,6 +909,164 @@ OUTPUT FORMAT: Return JSON with:
     console.error('Private query error:', error);
     return new Response(
       JSON.stringify({ answer: 'The narrator is momentarily unavailable.', moveApproved: null }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+async function handleCampaignResponseSuggestions(
+  body: any,
+  apiKey: string,
+  corsHeaders: Record<string, string>,
+): Promise<Response> {
+  const {
+    playerCharacter,
+    currentZone,
+    chosenLocation,
+    timeOfDay,
+    dayCount,
+    campaignDescription,
+    partyContext,
+    worldState,
+    storyContext,
+    environmentTags,
+    conversationHistory,
+    knownNpcs,
+    activeEnemies,
+    narratorSentiment,
+  } = body;
+
+  if (!playerCharacter?.name || typeof playerCharacter.name !== 'string') {
+    return new Response(
+      JSON.stringify({ error: 'playerCharacter.name is required', suggestions: [] }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const historyMessages: { role: string; content: string }[] = [];
+  if (Array.isArray(conversationHistory)) {
+    for (const entry of conversationHistory) {
+      if (!entry || typeof entry.content !== 'string') continue;
+      historyMessages.push({
+        role: entry.role === 'player' ? 'user' : 'assistant',
+        content: entry.content,
+      });
+    }
+  }
+
+  const systemPrompt = `You generate OPTIONAL player response suggestions for a roleplay campaign chat.
+${SIMPLE_LANGUAGE_RULE}
+
+These suggestions are PRIVATE THOUGHTS for ${playerCharacter.name}. They are not spoken yet, not canon yet, and never auto-send.
+
+CRITICAL RULES:
+- Return 0 to 4 suggestions only. Fewer is better than noisy or generic.
+- Every suggestion must fit ${playerCharacter.name}'s established voice, personality, mentality, motives, likely decision style, and current condition.
+- Ground suggestions in the exact current scene, recent conversation, known NPCs, enemies, and campaign state.
+- Suggestions may be dialogue, questions, reactions, or action intents.
+- Keep them practical and immediately usable as a single player message.
+- If context is thin or uncertain, return fewer and broader suggestions.
+- Do NOT generate out-of-character quips, meta commentary, or omniscient knowledge.
+- Do NOT control other player characters. In multiplayer, only generate thoughts for ${playerCharacter.name}.
+- Do NOT force combat. If the scene is unclear, prefer observation, questions, or restrained actions.
+- Respect the current tone. If the character is cautious, noble, reckless, curious, stoic, suspicious, etc., the suggestions should feel that way.
+
+FORMAT:
+Return JSON with shape {"suggestions": [{"id": string, "label": string, "message": string, "detail": string, "intent": "dialogue" | "question" | "reaction" | "action", "confidence": "low" | "medium" | "high" }]}
+
+FIELD RULES:
+- label: 3-10 words, short thought bubble text.
+- message: the exact one-message response the player could send.
+- detail: 1-2 short sentences explaining tone, intent, or likely meaning.
+- intent: one of dialogue/question/reaction/action.
+- confidence: how well the suggestion fits the scene and character.
+
+CHARACTER:
+Name: ${playerCharacter.name}
+Campaign level: ${playerCharacter.campaignLevel ?? 'unknown'}
+Original level: ${playerCharacter.originalLevel ?? 'unknown'}
+HP: ${playerCharacter.hp ?? 'unknown'}/${playerCharacter.hpMax ?? 'unknown'}
+Powers: ${playerCharacter.powers || 'None listed'}
+Abilities: ${playerCharacter.abilities || 'None listed'}
+Weapons / items: ${playerCharacter.weaponsItems || 'None listed'}
+Personality: ${playerCharacter.personality || 'Unknown'}
+Mentality: ${playerCharacter.mentality || 'Unknown'}
+Lore: ${playerCharacter.lore || 'Unknown'}
+Species: ${playerCharacter.race || 'Unknown'}${playerCharacter.subRace ? ` (${playerCharacter.subRace})` : ''}
+Solo mode: ${playerCharacter.isSolo ? 'yes' : 'no'}
+
+SCENE:
+Zone: ${currentZone || 'Unknown'}
+Chosen location: ${chosenLocation || 'Unknown'}
+Time: ${timeOfDay || 'Unknown'}
+Day: ${dayCount || 'Unknown'}
+Campaign description: ${campaignDescription || 'Unknown'}
+Party context: ${partyContext || 'Unknown'}
+Known NPCs: ${Array.isArray(knownNpcs) && knownNpcs.length > 0 ? knownNpcs.join(', ') : 'None'}
+Active enemies: ${Array.isArray(activeEnemies) && activeEnemies.length > 0 ? activeEnemies.map((enemy: any) => enemy?.name || 'Unknown').join(', ') : 'None'}
+Environment tags: ${Array.isArray(environmentTags) && environmentTags.length > 0 ? environmentTags.join(', ') : 'None'}
+Narrator opinion: ${narratorSentiment?.opinion_summary || 'None'}
+World state: ${worldState ? JSON.stringify(worldState) : '{}'}
+Story context: ${storyContext ? JSON.stringify(storyContext) : '{}'}`;
+
+  const userPrompt = `Recent scene history:
+${historyMessages.length > 0 ? historyMessages.slice(-8).map((message) => `${message.role}: ${message.content}`).join('
+') : 'No recent history.'}
+
+Generate the best private response suggestions for ${playerCharacter.name} right now.`;
+
+  try {
+    const models = ["google/gemini-2.5-flash-lite", "google/gemini-2.5-flash"];
+    let data: any = null;
+
+    for (const model of models) {
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...historyMessages.slice(-6),
+            { role: "user", content: userPrompt },
+          ],
+          max_tokens: 700,
+          temperature: 0.7,
+          response_format: { type: "json_object" },
+        }),
+      });
+
+      if (response.ok) {
+        data = await response.json();
+        break;
+      }
+
+      await response.text();
+    }
+
+    if (!data) {
+      throw new Error('All AI models returned errors');
+    }
+
+    const content = data.choices?.[0]?.message?.content || '{}';
+    let parsed: any;
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      parsed = { suggestions: [] };
+    }
+
+    return new Response(
+      JSON.stringify({ suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [] }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('Campaign response suggestion error:', error);
+    return new Response(
+      JSON.stringify({ suggestions: [] }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

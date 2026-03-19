@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { RealtimeStatus } from '@/components/ui/realtime-status';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -36,11 +36,17 @@ import { useBattlefieldEffects } from '@/components/battles/useBattlefieldEffect
 import { shouldSuppressStatus } from '@/lib/battlefield-effects';
 import MoveValidationWarning from '@/components/battles/MoveValidationWarning';
 import type { Campaign, CampaignParticipant, CampaignMessage } from '@/lib/campaign-types';
+import {
+  buildCampaignSuggestionContextKey,
+  normalizeCampaignResponseSuggestions,
+  type CampaignResponseSuggestion,
+} from '@/lib/campaign-response-suggestions';
 import { getTimeEmoji, CAMPAIGN_STARTING_ABILITIES, XP_REWARDS, advanceTime } from '@/lib/campaign-types';
 import { normalizeNarrationToCampaignMessages, sortCampaignMessagesForDisplay } from '@/lib/campaign-message-normalizer';
 import CampaignInventoryPanel, { type InventoryItem } from '@/components/campaigns/CampaignInventoryPanel';
 import CampaignEndDialog from '@/components/campaigns/CampaignEndDialog';
 import CampaignNarratorChat from '@/components/campaigns/CampaignNarratorChat';
+import CampaignResponseSuggestions from '@/components/campaigns/CampaignResponseSuggestions';
 import { useAmbientSound } from '@/hooks/use-ambient-sound';
 import { discoverMechanic, type MechanicKey } from '@/lib/mechanic-discovery';
 import { useCampaignNarrative } from '@/hooks/use-campaign-narrative';
@@ -170,6 +176,9 @@ export default function CampaignView() {
   const [messages, setMessages] = useState<CampaignMessage[]>([]);
   const [myParticipant, setMyParticipant] = useState<CampaignParticipant | null>(null);
   const [inputMessage, setInputMessage] = useState('');
+  const [responseSuggestions, setResponseSuggestions] = useState<CampaignResponseSuggestion[]>([]);
+  const [selectedResponseSuggestion, setSelectedResponseSuggestion] = useState<CampaignResponseSuggestion | null>(null);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [narratorTyping, setNarratorTyping] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -212,6 +221,8 @@ export default function CampaignView() {
   const userIsNearBottomRef = useRef(true);
   const introAttemptedRef = useRef(false);
   const consecutiveAdvancesRef = useRef(0);
+  const suggestionContextKeyRef = useRef('');
+  const isCampaignActive = campaign?.status === 'active';
   const [showNewMsgIndicator, setShowNewMsgIndicator] = useState(false);
   const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('connecting');
 
@@ -308,6 +319,9 @@ export default function CampaignView() {
 
   const handleCampaignInputChange = (value: string) => {
     setInputMessage(value);
+    if (selectedResponseSuggestion) {
+      setSelectedResponseSuggestion(null);
+    }
     // Debounce typing indicator
     if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -353,6 +367,35 @@ export default function CampaignView() {
     enabled: campaign?.status === 'active' && activeTab === 'adventure',
     location: activeSceneLocation || campaign?.current_zone,
   });
+
+  const recentSuggestionMessages = useMemo(() => (
+    messages
+      .filter(message => message.channel === 'in_universe')
+      .slice(-6)
+  ), [messages]);
+
+  const suggestionContextKey = useMemo(() => buildCampaignSuggestionContextKey({
+    campaignId: campaign?.id,
+    characterId: myParticipant?.character_id,
+    currentZone: activeSceneLocation || campaign?.current_zone,
+    timeOfDay: campaign?.time_of_day,
+    dayCount: campaign?.day_count,
+    activeEnemyNames: campaignEnemies
+      .filter(enemy => enemy.status === 'active' || enemy.status === 'hiding')
+      .map(enemy => enemy.name),
+    knownNpcNames: Array.from(knownNpcNames),
+    recentMessageKeys: recentSuggestionMessages.map(message => `${message.sender_type}:${message.character_id || 'world'}:${message.content}`),
+  }), [
+    activeSceneLocation,
+    campaign?.current_zone,
+    campaign?.day_count,
+    campaign?.id,
+    campaign?.time_of_day,
+    campaignEnemies,
+    knownNpcNames,
+    myParticipant?.character_id,
+    recentSuggestionMessages,
+  ]);
 
   // Join / swap dialog
   const [characters, setCharacters] = useState<{ id: string; name: string; level: number; image_url: string | null }[]>([]);
@@ -722,6 +765,125 @@ export default function CampaignView() {
       }, 150);
     }
   };
+
+  const fetchResponseSuggestions = useCallback(async (force = false) => {
+    if (!campaign || !myParticipant?.is_active || !myParticipant.character_id || !myParticipant.character?.name || !isCampaignActive) {
+      suggestionContextKeyRef.current = '';
+      setSuggestionsLoading(false);
+      setSelectedResponseSuggestion(null);
+      setResponseSuggestions([]);
+      return;
+    }
+
+    const requestKey = suggestionContextKey;
+    if (!force && suggestionContextKeyRef.current === requestKey) return;
+
+    suggestionContextKeyRef.current = requestKey;
+    setSuggestionsLoading(true);
+
+    try {
+      const activeEnemiesList = campaignEnemies
+        .filter(enemy => enemy.status === 'active' || enemy.status === 'hiding')
+        .map(enemy => ({
+          id: enemy.id,
+          name: enemy.name,
+          tier: enemy.tier,
+          status: enemy.status,
+          behavior_profile: enemy.behavior_profile,
+          description: enemy.description,
+        }));
+
+      const conversationHistory = recentSuggestionMessages.map(message => ({
+        role: message.sender_type === 'player' ? 'player' : 'world',
+        content: message.content,
+      }));
+
+      const activePartyContext = participants
+        .filter(participant => participant.is_active)
+        .map(participant => `${participant.character?.name} (Campaign Lv.${participant.campaign_level}, HP: ${participant.campaign_hp}/${participant.campaign_hp_max}${participant.is_solo ? ', SOLO — away from group' : ''})`)
+        .join(', ');
+
+      const { data, error } = await supabase.functions.invoke('battle-narrator', {
+        body: {
+          type: 'campaign_response_suggestions',
+          campaignId: campaign.id,
+          currentZone: activeSceneLocation || campaign.current_zone,
+          chosenLocation: activeSceneLocation || campaign.chosen_location,
+          timeOfDay: campaign.time_of_day,
+          dayCount: campaign.day_count,
+          campaignDescription: campaign.description,
+          worldState: campaign.world_state,
+          storyContext: campaign.story_context,
+          environmentTags: campaign.environment_tags,
+          partyContext: activePartyContext,
+          conversationHistory,
+          knownNpcs: Array.from(knownNpcNames),
+          activeEnemies: activeEnemiesList,
+          narratorSentiment: narratorSentiment || undefined,
+          playerCharacter: {
+            characterId: myParticipant.character_id,
+            name: myParticipant.character.name,
+            campaignLevel: myParticipant.campaign_level,
+            originalLevel: myParticipant.character.level,
+            hp: myParticipant.campaign_hp,
+            hpMax: myParticipant.campaign_hp_max,
+            powers: myParticipant.character.powers,
+            abilities: myParticipant.character.abilities,
+            weaponsItems: (myParticipant.character as any)?.weapons_items ?? null,
+            personality: myParticipant.character.personality,
+            mentality: myParticipant.character.mentality,
+            lore: myParticipant.character.lore,
+            race: myParticipant.character.race,
+            subRace: (myParticipant.character as any)?.sub_race ?? null,
+            isSolo: myParticipant.is_solo ?? false,
+          },
+        },
+      });
+
+      if (error) throw error;
+      if (suggestionContextKeyRef.current != requestKey) return;
+
+      const normalized = normalizeCampaignResponseSuggestions(data);
+      setResponseSuggestions(normalized);
+      setSelectedResponseSuggestion(prev => (
+        prev && normalized.some(suggestion => suggestion.id === prev.id && suggestion.message === prev.message)
+          ? prev
+          : null
+      ));
+    } catch (error) {
+      console.warn('Failed to fetch campaign response suggestions:', error);
+      if (suggestionContextKeyRef.current != requestKey) return;
+      setResponseSuggestions([]);
+      setSelectedResponseSuggestion(null);
+    } finally {
+      if (suggestionContextKeyRef.current === requestKey) {
+        setSuggestionsLoading(false);
+      }
+    }
+  }, [
+    activeSceneLocation,
+    campaign,
+    campaignEnemies,
+    isCampaignActive,
+    knownNpcNames,
+    myParticipant,
+    narratorSentiment,
+    participants,
+    recentSuggestionMessages,
+    suggestionContextKey,
+  ]);
+
+  useEffect(() => {
+    if (!isCampaignActive || !myParticipant?.is_active) {
+      suggestionContextKeyRef.current = '';
+      setSelectedResponseSuggestion(null);
+      setResponseSuggestions([]);
+      setSuggestionsLoading(false);
+      return;
+    }
+
+    void fetchResponseSuggestions();
+  }, [fetchResponseSuggestions, isCampaignActive, myParticipant?.is_active]);
 
   const fetchCharacters = async () => {
     const { data } = await supabase
@@ -1776,10 +1938,10 @@ export default function CampaignView() {
     }
   };
 
-   const handleSendMessage = async () => {
-    if (!inputMessage.trim() || !myParticipant || !campaign) return;
+   const handleSendMessage = async (overrideText?: string) => {
+    const messageText = (overrideText ?? inputMessage).trim();
+    if (!messageText || !myParticipant || !campaign) return;
     consecutiveAdvancesRef.current = 0; // Reset idle counter when player types
-    const messageText = inputMessage.trim();
 
     // Move validation — check before sending
     const validation = campaignCombat.validateCampaignMove(messageText);
@@ -1787,7 +1949,12 @@ export default function CampaignView() {
       return;
     }
 
-    setInputMessage('');
+    if (!overrideText) {
+      setInputMessage('');
+    }
+    setSelectedResponseSuggestion(null);
+    setResponseSuggestions([]);
+    suggestionContextKeyRef.current = '';
     updateTypingStatus(false);
     setSending(true);
 
@@ -1824,6 +1991,10 @@ export default function CampaignView() {
       toast.error('Failed to send message');
       setSending(false);
     }
+  };
+
+  const handleConfirmSuggestedResponse = async (suggestion: CampaignResponseSuggestion) => {
+    await handleSendMessage(suggestion.message);
   };
 
   /**
@@ -2639,6 +2810,16 @@ export default function CampaignView() {
                 {/* Input */}
                 {isActive && myParticipant?.is_active && (
                   <div className="p-3 border-t border-border/40 bg-background/60 backdrop-blur-sm relative z-10 shrink-0 space-y-2">
+                    <CampaignResponseSuggestions
+                      suggestions={responseSuggestions}
+                      selectedSuggestion={selectedResponseSuggestion}
+                      isLoading={suggestionsLoading}
+                      disabled={sending || narratorTyping}
+                      onSelect={setSelectedResponseSuggestion}
+                      onCancel={() => setSelectedResponseSuggestion(null)}
+                      onConfirm={handleConfirmSuggestedResponse}
+                      onRefresh={() => { void fetchResponseSuggestions(true); }}
+                    />
                     <form onSubmit={e => { e.preventDefault(); handleSendMessage(); }} className="flex gap-2 items-end">
                       <VoiceTextarea
                         placeholder={isSoloMode ? "Describe your solo action..." : "Describe your action..."}
