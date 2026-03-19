@@ -27,6 +27,7 @@ export function finalizeContextPacket(context: ContextPacket): ContextPacket {
       summary: [...context.memoryContext.summary],
     },
     sceneState: { ...context.sceneState },
+    generated: context.generated ? { ...context.generated } : undefined,
     metadata: context.metadata ? { ...context.metadata } : undefined,
   };
 }

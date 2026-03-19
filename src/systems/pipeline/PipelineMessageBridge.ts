@@ -1,5 +1,6 @@
 import { NarrationPacketBuilder } from '@/systems/narration/NarrationPacketBuilder';
 import type { ActionPipelineResult, NarrationPacket } from '@/systems/types/PipelineTypes';
+import { buildGeneratedRuntimeMetadata, getGeneratedRuntimePackets } from './GeneratedRuntimeBridge';
 
 function asRecord(value: unknown): Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -8,10 +9,12 @@ function asRecord(value: unknown): Record<string, unknown> {
 }
 
 function collectPipelineMetadata(result: ActionPipelineResult) {
+  const generatedPackets = result.generatedPackets ?? result.context.generated ?? getGeneratedRuntimePackets(result.narrationPacket.metadata);
+
   return {
     ...asRecord(result.context.metadata),
     ...asRecord(result.narrationPacket.metadata),
-    generatedPackets: result.generatedPackets,
+    ...buildGeneratedRuntimeMetadata(generatedPackets),
     contextPacket: result.context,
     resolvedActionPacket: result.resolvedAction,
     npcReactionPacket: result.npcReaction,
@@ -43,6 +46,7 @@ export function buildNarratorMessagePacket(
     sceneEffects: result.sceneEffects,
     narratorText,
     narratorSource,
+    generatedPackets: result.generatedPackets ?? result.context.generated,
   });
 
   narrationPacket.metadata = {
@@ -56,6 +60,7 @@ export function buildNarratorMessagePacket(
     npcReactionSummary: narrationPacket.npcReactionSummary,
     mapEffectTags: narrationPacket.mapEffectTags,
   };
+  narrationPacket.generated = result.generatedPackets ?? result.context.generated;
 
   return narrationPacket;
 }

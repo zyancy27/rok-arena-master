@@ -1,4 +1,5 @@
 import type { NarrationVoiceSettings, NarratorSceneContext } from '@/systems/narration/SpeechManager';
+import { getGeneratedRuntimePackets } from '@/systems/pipeline/GeneratedRuntimeBridge';
 
 export interface NarratorPlaybackMetadata {
   context?: NarratorSceneContext;
@@ -41,10 +42,11 @@ function sanitizePlaybackMetadata(value: unknown): NarratorPlaybackMetadata | nu
 }
 
 function deriveGeneratedPlayback(source: Record<string, unknown>): NarratorPlaybackMetadata | null {
-  const generatedSceneState = isRecord(source.generatedSceneState) ? source.generatedSceneState : null;
-  const generatedEffectState = isRecord(source.generatedEffectState) ? source.generatedEffectState : null;
-  const generatedEncounter = isRecord(source.generatedEncounter) ? source.generatedEncounter : null;
-  const generatedNpcIdentity = isRecord(source.generatedNpcIdentity) ? source.generatedNpcIdentity : null;
+  const generatedPackets = getGeneratedRuntimePackets(source);
+  const generatedSceneState = isRecord(generatedPackets.sceneState) ? generatedPackets.sceneState : null;
+  const generatedEffectState = isRecord(generatedPackets.effectState) ? generatedPackets.effectState : null;
+  const generatedEncounter = isRecord(generatedPackets.encounter) ? generatedPackets.encounter : null;
+  const generatedNpcIdentity = isRecord(generatedPackets.npcIdentity) ? generatedPackets.npcIdentity : null;
 
   if (!generatedSceneState && !generatedEffectState && !generatedEncounter && !generatedNpcIdentity) {
     return null;

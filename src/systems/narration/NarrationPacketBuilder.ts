@@ -1,5 +1,6 @@
 import { buildNarrationPlaybackOptions, buildNarratorMessageMetadata, getNarratorPlaybackMetadata } from '@/lib/narration-playback';
-import type { NarrationPacket, NpcReactionPacket, ResolvedActionPacket, SceneEffectPacket } from '@/systems/types/PipelineTypes';
+import { buildGeneratedRuntimeMetadata, getGeneratedRuntimePackets } from '@/systems/pipeline/GeneratedRuntimeBridge';
+import type { GeneratedRuntimePackets, NarrationPacket, NpcReactionPacket, ResolvedActionPacket, SceneEffectPacket } from '@/systems/types/PipelineTypes';
 
 export interface NarrationPacketBuilderInput {
   resolvedAction: ResolvedActionPacket;
@@ -7,6 +8,13 @@ export interface NarrationPacketBuilderInput {
   sceneEffects?: SceneEffectPacket | null;
   narratorText?: string | null;
   narratorSource?: unknown;
+  generatedPackets?: GeneratedRuntimePackets;
+}
+
+function asRecord(value: unknown): Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 export const NarrationPacketBuilder = {
@@ -23,13 +31,32 @@ export const NarrationPacketBuilder = {
           context: input.resolvedAction.context.narratorSceneContext,
         };
 
-    const metadata = buildNarratorMessageMetadata(input.narratorSource, fallbackPlayback);
+    const generatedPackets = input.generatedPackets
+      ?? input.sceneEffects?.generated
+      ?? input.npcReaction?.generated
+      ?? input.resolvedAction.context.generated
+      ?? getGeneratedRuntimePackets(input.narratorSource);
+    const sourceMetadata = asRecord(input.narratorSource);
+    const generatedMetadata = buildGeneratedRuntimeMetadata(generatedPackets);
+    const playbackMetadata = buildNarratorMessageMetadata(
+      {
+        ...generatedMetadata,
+        ...sourceMetadata,
+      },
+      fallbackPlayback,
+    );
+    const metadata = {
+      ...generatedMetadata,
+      ...sourceMetadata,
+      ...(playbackMetadata || {}),
+    };
     const playback = buildNarrationPlaybackOptions(metadata);
     const rawPlayback = getNarratorPlaybackMetadata(metadata);
 
     return {
       narratorText: input.narratorText ?? null,
       context: rawPlayback?.context ?? input.resolvedAction.context.narratorSceneContext,
+      generated: generatedPackets,
       metadata,
       voiceSettings: playback?.voiceSettings,
       soundCue: rawPlayback?.soundCue,
