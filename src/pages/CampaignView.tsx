@@ -1668,7 +1668,7 @@ export default function CampaignView() {
 
         // explicit check, items found, items used, or equip/use intent in their message
         const inventoryInteracted =
-          isInventoryCheck ||
+          /\b(check|look|search|dig|rummage|open|peek|use|equip|unequip|drink|eat|consume|apply|wear|wield|pick up|grab|take|pocket|collect|loot|drop|discard|throw away|bag|backpack|inventory|items|gear|potion|weapon|armor)\b/i.test(messageText) ||
           (data.itemsFound && Array.isArray(data.itemsFound) && data.itemsFound.length > 0) ||
           (data.itemsUsed && Array.isArray(data.itemsUsed) && data.itemsUsed.length > 0);
 
