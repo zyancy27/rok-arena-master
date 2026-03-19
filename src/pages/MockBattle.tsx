@@ -75,6 +75,13 @@ import {
 } from '@/lib/immersion-engine';
 import ChatBubbleImmersion from '@/components/battles/ChatBubbleImmersion';
 import AmbientOverlay, { WhisperMessage, NarratorCuriosityMoment } from '@/components/battles/AmbientOverlay';
+import { ChatMessagePresentationResolver } from '@/systems/chat/ChatMessagePresentationResolver';
+import type { ChatSpeakerRole, SpeakerPresentationProfile } from '@/systems/chat/presentation/SpeakerPresentationProfile';
+import {
+  getChatBoxContentClasses,
+  getChatBoxLabelClasses,
+  getChatBoxSurfaceClasses,
+} from '@/systems/chat/presentation/chatBoxRenderEffects';
 import ArenaStatusBar from '@/components/battles/ArenaStatusBar';
 import { CharacterStatusOverlay } from '@/components/battles/CharacterStatusOverlay';
 import { useBattleTurnColor } from '@/hooks/use-battle-turn-color';
