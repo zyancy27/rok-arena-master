@@ -111,12 +111,12 @@ import NarratorMessageContent from '@/components/campaigns/NarratorMessageConten
 import { buildNarrationPlaybackOptions, getNarratorAnimationClass } from '@/lib/narration-playback';
 import { ChatMessagePresentationResolver } from '@/systems/chat/ChatMessagePresentationResolver';
 import { invokeOrchestrator } from '@/lib/story-orchestrator';
+import { applyHardClamp, generateClampContext, type CharacterProfile, type ClampResult } from '@/lib/hard-clamp';
 import { detectDirectInteraction } from '@/lib/battle-hit-detection';
 import { IntentEngine, type IntentDebugPayload } from '@/systems/intent/IntentEngine';
 import { BattleActionPipeline } from '@/systems/pipeline/BattleActionPipeline';
 import { buildNarratorMessagePacket } from '@/systems/pipeline/PipelineMessageBridge';
 import { type ActionResult } from '@/systems/resolution/ActionResolver';
-import { IntentDebugCard } from '@/components/intent/IntentDebugCard';
 import {
   ArrowLeft,
   Send,

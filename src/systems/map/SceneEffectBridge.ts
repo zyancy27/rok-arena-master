@@ -106,7 +106,7 @@ export const SceneEffectBridge = {
       environmentalPressureTags: [...new Set(environmentalPressureTags)],
       chatPresentationTags,
       ambientCueFamilies,
-      scenePresentationProfile: scenePresentationProfile as Record<string, unknown>,
+      scenePresentationProfile: scenePresentationProfile as unknown as Record<string, unknown>,
       generated: generatedPackets,
       metadata: {
         zone: context.zone,
