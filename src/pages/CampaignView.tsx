@@ -67,6 +67,7 @@ import { ActionResolver, formatActionForNarrator } from '@/systems/resolution/Ac
 import { CombatResolver, formatCombatResolutionForNarrator, toActionResult } from '@/systems/combat/CombatResolver';
 import { createCombatState } from '@/systems/combat/CombatState';
 import { buildCampaignNpcTurn, formatNpcBrainForNarrator } from '@/systems/npc/NpcBrainAdapters';
+import { buildNarrationPlaybackOptions, buildNarratorMessageMetadata, getNarratorAnimationClass } from '@/lib/narration-playback';
 import { IntentDebugCard } from '@/components/intent/IntentDebugCard';
 // Helper: build bag content for the inline backpack bubble
 function buildBagContent(campaignItems: InventoryItem[], characterWeapons: string | null) {
