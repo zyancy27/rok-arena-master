@@ -1260,13 +1260,11 @@ export default function CampaignView() {
           combatPulseTimerRef.current = setTimeout(() => setCombatPulse('none'), 8000);
         }
 
-        const narrationPacket = NarrationPacketBuilder.build({
-          resolvedAction: pipelineResult.resolvedAction,
-          npcReaction: pipelineResult.npcReaction,
-          sceneEffects: pipelineResult.sceneEffects,
-          narratorText: data.narration,
-          narratorSource: data,
-        });
+        const narrationPacket = buildNarratorMessagePacket(
+          pipelineResult,
+          data.narration,
+          data,
+        );
 
         await supabase.from('campaign_messages').insert([{
           campaign_id: snapshotCampaign.id,
