@@ -64,10 +64,10 @@ const BIOME_KEYWORDS: Record<BiomeTag, RegExp> = {
 
 /* ── Helpers ── */
 
-function matchBest<T extends string>(text: string, map: Record<T, RegExp>, fallback: T): T {
-  let best: T = fallback;
+function matchBest(text: string, map: Record<string, RegExp>, fallback: string): string {
+  let best: string = fallback;
   let bestCount = 0;
-  for (const [key, regex] of Object.entries(map) as [T, RegExp][]) {
+  for (const [key, regex] of Object.entries(map)) {
     const matches = text.match(new RegExp(regex.source, 'gi'));
     if (matches && matches.length > bestCount) {
       bestCount = matches.length;
