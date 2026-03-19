@@ -87,6 +87,45 @@ function resolveProfile(
   });
 }
 
+function buildEnvelope(input: {
+  id: string;
+  message: CampaignMessage;
+  role: ChatSpeakerRole;
+  speakerId?: string | null;
+  speakerName: string;
+  content: string;
+  rawType: CampaignMessageEnvelope['rawType'];
+  identityCues: string[];
+  sceneEffectCues: string[];
+  narrationFlags: string[];
+  visualPressure?: string | null;
+}) {
+  const profile = resolveProfile(
+    input.role,
+    input.speakerName,
+    input.identityCues,
+    input.sceneEffectCues,
+    input.narrationFlags,
+    input.visualPressure,
+  );
+
+  return {
+    id: input.id,
+    messageId: input.message.id,
+    speakerRole: input.role,
+    speakerId: input.speakerId,
+    speakerName: input.speakerName,
+    presentationProfileId: profile.id,
+    identityCues: input.identityCues,
+    sceneEffectCues: input.sceneEffectCues,
+    narrationFlags: input.narrationFlags,
+    content: input.content,
+    createdAt: input.message.created_at,
+    rawType: input.rawType,
+    presentationProfile: profile,
+  } satisfies CampaignMessageEnvelope;
+}
+
 export const ChatMessagePresentationResolver = {
   resolveCampaignMessage(
     message: CampaignMessage,
@@ -100,8 +139,25 @@ export const ChatMessagePresentationResolver = {
     const metadata = (message.metadata || {}) as Record<string, unknown>;
     const generatedSceneState = (metadata.generatedSceneState || {}) as Record<string, unknown>;
     const visualPressure = typeof generatedSceneState.scenePressure === 'string' ? generatedSceneState.scenePressure : null;
+    const structuredMessageKind = typeof metadata.structuredMessageKind === 'string' ? metadata.structuredMessageKind : null;
 
     if (message.sender_type === 'narrator') {
+      if (structuredMessageKind === 'narration') {
+        return [buildEnvelope({
+          id: message.id,
+          message,
+          role: 'narrator',
+          speakerId: null,
+          speakerName: 'Narrator',
+          content: message.content,
+          rawType: 'narration',
+          identityCues,
+          sceneEffectCues,
+          narrationFlags,
+          visualPressure,
+        })];
+      }
+
       const segments = parseNarratorMessage(message.content);
       return segments.map((segment, index) => {
         const speakerName = segment.type === 'npc_dialogue'
@@ -113,51 +169,50 @@ export const ChatMessagePresentationResolver = {
           speakerName: segment.type === 'npc_dialogue' ? segment.speakerName : 'Narrator',
           displayName: speakerName,
         });
-        const profile = resolveProfile(role, speakerName, identityCues, sceneEffectCues, narrationFlags, visualPressure);
 
-        return {
+        return buildEnvelope({
           id: `${message.id}:${index}`,
-          messageId: message.id,
-          speakerRole: role,
+          message,
+          role,
           speakerId: segment.type === 'npc_dialogue' ? segment.speakerName : null,
           speakerName,
-          presentationProfileId: profile.id,
+          content: segment.type === 'npc_dialogue' ? segment.dialogue : segment.text,
+          rawType: segment.type === 'npc_dialogue' ? 'speech' : 'narration',
           identityCues,
           sceneEffectCues,
           narrationFlags,
-          content: segment.type === 'npc_dialogue' ? segment.dialogue : segment.text,
-          createdAt: message.created_at,
-          rawType: segment.type === 'npc_dialogue' ? 'speech' : 'narration',
-          presentationProfile: profile,
-        } satisfies CampaignMessageEnvelope;
+          visualPressure,
+        });
       });
     }
 
+    const storedSpeakerName = typeof metadata.speakerName === 'string' ? metadata.speakerName : null;
+    const storedDisplayName = typeof metadata.displaySpeakerName === 'string' ? metadata.displaySpeakerName : null;
     const role = ChatSpeakerResolver.resolve({
       message,
-      speakerName: message.character?.name || null,
-      displayName: message.character?.name || null,
+      speakerName: storedSpeakerName || message.character?.name || null,
+      displayName: storedDisplayName || storedSpeakerName || message.character?.name || null,
     });
     const speakerName = role === 'system'
       ? 'System'
-      : message.character?.name || (role === 'player' ? 'Player' : 'Unknown');
-    const profile = resolveProfile(role, speakerName, identityCues, sceneEffectCues, narrationFlags, visualPressure);
+      : storedDisplayName
+        || storedSpeakerName
+        || message.character?.name
+        || (role === 'player' ? 'Player' : 'Unknown');
 
-    return [{
+    return [buildEnvelope({
       id: message.id,
-      messageId: message.id,
-      speakerRole: role,
-      speakerId: message.character_id,
+      message,
+      role,
+      speakerId: storedSpeakerName || message.character_id,
       speakerName,
-      presentationProfileId: profile.id,
+      content: message.content,
+      rawType: role === 'system' ? 'system' : role === 'player' ? 'player' : 'speech',
       identityCues,
       sceneEffectCues,
       narrationFlags,
-      content: message.content,
-      createdAt: message.created_at,
-      rawType: role === 'system' ? 'system' : 'player',
-      presentationProfile: profile,
-    } satisfies CampaignMessageEnvelope];
+      visualPressure,
+    })];
   },
   resolveStandaloneProfile(input: {
     speakerRole: ChatSpeakerRole;

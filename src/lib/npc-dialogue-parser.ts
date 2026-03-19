@@ -9,6 +9,7 @@
  *   - Name: "dialogue"
  *   - "dialogue," Name says.
  *   - "dialogue" — **Name**
+ *   - Name acts. "dialogue," he says.
  */
 
 export interface NarrationSegment {
@@ -24,21 +25,23 @@ export interface NpcDialogueSegment {
 
 export type MessageSegment = NarrationSegment | NpcDialogueSegment;
 
-// Speech verbs the narrator commonly uses
 const SPEECH_VERBS =
   'says?|whispers?|shouts?|mutters?|growls?|replies?|responds?|asks?|calls?|hisses?|murmurs?|barks?|snaps?|laughs?|chuckles?|sighs?|announces?|exclaims?|declares?|pleads?|demands?|commands?|speaks?|adds?|continues?|interrupts?|stammers?|cries?';
 
-const NAME_CAPTURE = `(?:\\*\\*([^*]+)\\*\\*|([A-Z][A-Za-z\\'’.-]*(?:\\s+[A-Z][A-Za-z\\'’.-]*){0,3}))`;
+const NAME_CAPTURE = `(?:\*\*([^*]+)\*\*|([A-Z][A-Za-z\'’.-]*(?:\s+[A-Z][A-Za-z\'’.-]*){0,3}))`;
 
-// 1. **Name** says, "dialogue" / Name says, "dialogue" / Name: "dialogue"
 const PATTERN_BEFORE = new RegExp(
-  `${NAME_CAPTURE}\\s*(?:(?:${SPEECH_VERBS})\\s*[,:]?\\s*|[:\\—–-]\\s*)["“]([^"”]+)["”]`,
+  `${NAME_CAPTURE}\s*(?:(?:${SPEECH_VERBS})\s*[,:]?\s*|[:\—–-]\s*)["“]([^"”]+)["”]`,
   'g',
 );
 
-// 2. "dialogue," says **Name** / says Name
 const PATTERN_AFTER = new RegExp(
-  `["“]([^"”]+)["”][,.]?\\s*(?:${SPEECH_VERBS})\\s+${NAME_CAPTURE}`,
+  `["“]([^"”]+)["”][,.]?\s*(?:${SPEECH_VERBS})\s+${NAME_CAPTURE}`,
+  'g',
+);
+
+const PATTERN_AFTER_PRONOUN = new RegExp(
+  `["“]([^"”]+)["”][,.]?\s*(?:he|she|they)\s+(?:${SPEECH_VERBS})`,
   'g',
 );
 
@@ -53,20 +56,35 @@ function resolveMatchedName(...candidates: Array<string | undefined>) {
   return candidates.find((value) => typeof value === 'string' && value.trim().length > 0)?.trim() ?? '';
 }
 
+function inferContextualSpeakerName(context: string) {
+  const namePattern = new RegExp(NAME_CAPTURE, 'g');
+  let lastName = '';
+  let match: RegExpExecArray | null;
+
+  while ((match = namePattern.exec(context)) !== null) {
+    lastName = resolveMatchedName(match[1], match[2]);
+  }
+
+  return lastName;
+}
+
 export function parseNarratorMessage(text: string): MessageSegment[] {
   if (!text) return [{ type: 'narration', text }];
 
   const matches: RawMatch[] = [];
 
-  for (const pattern of [PATTERN_BEFORE, PATTERN_AFTER]) {
+  for (const pattern of [PATTERN_BEFORE, PATTERN_AFTER, PATTERN_AFTER_PRONOUN]) {
     pattern.lastIndex = 0;
     let match: RegExpExecArray | null;
 
     while ((match = pattern.exec(text)) !== null) {
       const isBeforePattern = pattern === PATTERN_BEFORE;
+      const isAfterPattern = pattern === PATTERN_AFTER;
       const speakerName = isBeforePattern
         ? resolveMatchedName(match[1], match[2])
-        : resolveMatchedName(match[2], match[3]);
+        : isAfterPattern
+          ? resolveMatchedName(match[2], match[3])
+          : inferContextualSpeakerName(text.slice(Math.max(0, match.index - 160), match.index));
       const dialogue = (isBeforePattern ? match[3] : match[1])?.trim() ?? '';
 
       if (!speakerName || !dialogue) continue;

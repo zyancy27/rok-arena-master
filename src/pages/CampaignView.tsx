@@ -37,6 +37,7 @@ import { shouldSuppressStatus } from '@/lib/battlefield-effects';
 import MoveValidationWarning from '@/components/battles/MoveValidationWarning';
 import type { Campaign, CampaignParticipant, CampaignMessage } from '@/lib/campaign-types';
 import { getTimeEmoji, CAMPAIGN_STARTING_ABILITIES, XP_REWARDS, advanceTime } from '@/lib/campaign-types';
+import { normalizeNarrationToCampaignMessages, sortCampaignMessagesForDisplay } from '@/lib/campaign-message-normalizer';
 import CampaignInventoryPanel, { type InventoryItem } from '@/components/campaigns/CampaignInventoryPanel';
 import CampaignEndDialog from '@/components/campaigns/CampaignEndDialog';
 import CampaignNarratorChat from '@/components/campaigns/CampaignNarratorChat';
@@ -123,6 +124,42 @@ function resolvePresentationIcon(iconTone: SpeakerPresentationProfile['iconTone'
 }
 
 export default function CampaignView() {
+  const normalizeCampaignMessageRecord = useCallback((message: any): CampaignMessage => ({
+    ...message,
+    metadata: (message.metadata || {}) as Record<string, unknown>,
+    dice_result: message.dice_result as Record<string, unknown> | null,
+    theme_snapshot: message.theme_snapshot as Record<string, unknown> | null,
+    character: Array.isArray(message.character) ? message.character[0] : message.character,
+  }), []);
+
+  const insertStructuredNarrationMessages = useCallback(async (input: {
+    campaignId: string;
+    rawNarration: string;
+    baseMetadata?: Record<string, unknown> | null;
+    focalCharacterName?: string | null;
+    isSolo?: boolean;
+    activeEnemyNames?: string[];
+    knownNpcNames?: Set<string>;
+  }) => {
+    const normalizedMessages = normalizeNarrationToCampaignMessages({
+      campaignId: input.campaignId,
+      rawNarration: input.rawNarration,
+      baseMetadata: input.baseMetadata,
+      knownNpcNames: input.knownNpcNames,
+      activeEnemyNames: input.activeEnemyNames,
+      focalCharacterName: input.focalCharacterName,
+      isSolo: input.isSolo,
+    });
+
+    if (normalizedMessages.length === 0) return;
+    await supabase.from('campaign_messages').insert(normalizedMessages as any);
+  }, []);
+
+
+  const normalizeAndSortMessages = useCallback((items: any[]) => {
+    return sortCampaignMessagesForDisplay(items.map(normalizeCampaignMessageRecord));
+  }, [normalizeCampaignMessageRecord]);
+
   const { id: campaignId } = useParams<{ id: string }>();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -429,13 +466,13 @@ export default function CampaignView() {
             });
 
             if (!error && data?.narration) {
-              await supabase.from('campaign_messages').insert([{
-                campaign_id: campaign.id,
-                sender_type: 'narrator',
-                content: data.narration,
-                channel: 'in_universe',
-                metadata: buildNarratorMessageMetadata(data) as any,
-              }]);
+              await insertStructuredNarrationMessages({
+                campaignId: campaign.id,
+                rawNarration: data.narration,
+                baseMetadata: buildNarratorMessageMetadata(data) ?? null,
+                focalCharacterName: myParticipant?.character?.name ?? null,
+                isSolo: campaign.max_players === 1,
+              });
               await fetchMessages();
             }
           } catch (err) {
@@ -500,16 +537,12 @@ export default function CampaignView() {
           }
 
           setMessages(prev => {
-            // Check if we have an optimistic (isPending) message that matches
             const optimisticIndex = prev.findIndex(m =>
               m.isPending && m.character_id === msg.character_id && m.content === msg.content
             );
-            
-            const enriched: CampaignMessage = {
+
+            const enriched = normalizeCampaignMessageRecord({
               ...msg,
-              metadata: (msg.metadata || {}) as Record<string, unknown>,
-              dice_result: msg.dice_result as Record<string, unknown> | null,
-              theme_snapshot: msg.theme_snapshot as Record<string, unknown> | null,
               isPending: false,
               character: (() => {
                 const participant = participantsRef.current.find(p => p.character_id === msg.character_id);
@@ -517,15 +550,16 @@ export default function CampaignView() {
                   ? { name: participant.character.name, image_url: participant.character.image_url }
                   : msg.character || null;
               })(),
-            };
+            });
 
             if (optimisticIndex !== -1) {
-              return prev.map((m, i) => i === optimisticIndex ? enriched : m);
+              const next = prev.map((m, i) => i === optimisticIndex ? enriched : m);
+              return normalizeAndSortMessages(next);
             }
-            
+
             if (prev.some(m => m.id === msg.id)) return prev;
-            
-            return [...prev, enriched];
+
+            return normalizeAndSortMessages([...prev, enriched]);
           });
         }
       )
@@ -675,7 +709,6 @@ export default function CampaignView() {
   };
 
   const fetchMessages = async () => {
-    // Fetch the LATEST 200 messages (descending) then reverse to chronological order
     const { data } = await supabase
       .from('campaign_messages')
       .select('*, character:characters(name, image_url)')
@@ -683,15 +716,7 @@ export default function CampaignView() {
       .order('created_at', { ascending: false })
       .limit(200);
     if (data) {
-      const chronological = data.reverse();
-      setMessages(chronological.map(m => ({
-        ...m,
-        metadata: (m.metadata || {}) as Record<string, unknown>,
-        dice_result: m.dice_result as Record<string, unknown> | null,
-        theme_snapshot: m.theme_snapshot as Record<string, unknown> | null,
-        character: Array.isArray(m.character) ? m.character[0] : m.character,
-      })) as CampaignMessage[]);
-      // Scroll to bottom after loading messages (e.g. on page refresh)
+      setMessages(normalizeAndSortMessages(data));
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
       }, 150);
@@ -809,18 +834,20 @@ export default function CampaignView() {
             partyContext: activeParty,
           },
         });
-        await supabase.from('campaign_messages').insert({
-          campaign_id: campaignId!,
-          sender_type: 'narrator',
-          content: data?.narration || `A new figure appears — **${char?.name}** has arrived at ${campaign.current_zone}.`,
-          channel: 'in_universe',
+        await insertStructuredNarrationMessages({
+          campaignId: campaignId!,
+          rawNarration: data?.narration || `A new figure appears — **${char?.name}** has arrived at ${campaign.current_zone}.`,
+          focalCharacterName: char?.name ?? null,
+          isSolo: campaign.max_players === 1,
+          knownNpcNames,
         });
       } catch {
-        await supabase.from('campaign_messages').insert({
-          campaign_id: campaignId!,
-          sender_type: 'narrator',
-          content: `A new figure emerges from the path — **${char?.name || 'a new adventurer'}** has arrived at ${campaign.current_zone}.`,
-          channel: 'in_universe',
+        await insertStructuredNarrationMessages({
+          campaignId: campaignId!,
+          rawNarration: `A new figure emerges from the path — **${char?.name || 'a new adventurer'}** has arrived at ${campaign.current_zone}.`,
+          focalCharacterName: char?.name ?? null,
+          isSolo: campaign.max_players === 1,
+          knownNpcNames,
         });
       }
     } else {
@@ -904,18 +931,20 @@ export default function CampaignView() {
             partyContext: participants.filter(p => p.is_active && p.id !== myParticipant.id).map(p => `${p.character?.name}`).join(', '),
           },
         });
-        await supabase.from('campaign_messages').insert({
-          campaign_id: campaign.id,
-          sender_type: 'narrator',
-          content: data?.narration || `**${charName}** turns and walks away from the group.`,
-          channel: 'in_universe',
+        await insertStructuredNarrationMessages({
+          campaignId: campaign.id,
+          rawNarration: data?.narration || `**${charName}** turns and walks away from the group.`,
+          focalCharacterName: charName,
+          isSolo: campaign.max_players === 1,
+          knownNpcNames,
         });
       } catch {
-        await supabase.from('campaign_messages').insert({
-          campaign_id: campaign.id,
-          sender_type: 'narrator',
-          content: `**${charName}** quietly slips away from the party, disappearing into the ${campaign.current_zone}.`,
-          channel: 'in_universe',
+        await insertStructuredNarrationMessages({
+          campaignId: campaign.id,
+          rawNarration: `**${charName}** quietly slips away from the party, disappearing into the ${campaign.current_zone}.`,
+          focalCharacterName: charName,
+          isSolo: campaign.max_players === 1,
+          knownNpcNames,
         });
       }
     } else {
@@ -998,19 +1027,20 @@ export default function CampaignView() {
         });
 
         const narration = narratorData?.narration;
-        await supabase.from('campaign_messages').insert({
-          campaign_id: campaign.id,
-          sender_type: 'narrator',
-          content: narration || `${oldName} fades from view as ${newChar?.name} ${returning ? 'returns' : 'arrives'}.`,
-          channel: 'in_universe',
+        await insertStructuredNarrationMessages({
+          campaignId: campaign.id,
+          rawNarration: narration || `${oldName} fades from view as ${newChar?.name} ${returning ? 'returns' : 'arrives'}.`,
+          focalCharacterName: newChar?.name ?? oldName,
+          isSolo: campaign.max_players === 1,
+          knownNpcNames,
         });
       } catch {
-        // Fallback if narrator fails
-        await supabase.from('campaign_messages').insert({
-          campaign_id: campaign.id,
-          sender_type: 'narrator',
-          content: `${oldName} slips away as ${newChar?.name} ${returning ? 'rejoins the group' : 'steps into the scene for the first time'}.`,
-          channel: 'in_universe',
+        await insertStructuredNarrationMessages({
+          campaignId: campaign.id,
+          rawNarration: `${oldName} slips away as ${newChar?.name} ${returning ? 'rejoins the group' : 'steps into the scene for the first time'}.`,
+          focalCharacterName: newChar?.name ?? oldName,
+          isSolo: campaign.max_players === 1,
+          knownNpcNames,
         });
       }
 
@@ -1055,13 +1085,13 @@ export default function CampaignView() {
       });
 
       if (!error && data?.narration) {
-          await supabase.from('campaign_messages').insert([{
-            campaign_id: campaign.id,
-            sender_type: 'narrator',
-            content: data.narration,
-            channel: 'in_universe',
-            metadata: buildNarratorMessageMetadata(data) as any,
-          }]);
+        await insertStructuredNarrationMessages({
+          campaignId: campaign.id,
+          rawNarration: data.narration,
+          baseMetadata: buildNarratorMessageMetadata(data) ?? null,
+          isSolo: campaign.max_players === 1,
+          knownNpcNames,
+        });
       }
     } catch (err) {
       console.error('Failed to generate intro:', err);
@@ -1291,25 +1321,28 @@ export default function CampaignView() {
           data,
         );
 
-        await supabase.from('campaign_messages').insert([{
-          campaign_id: snapshotCampaign.id,
-          sender_type: 'narrator',
-          content: data.narration,
-          channel: 'in_universe',
-          metadata: narrationPacket.metadata as any,
-        }]);
+        await insertStructuredNarrationMessages({
+          campaignId: snapshotCampaign.id,
+          rawNarration: data.narration,
+          baseMetadata: narrationPacket.metadata as Record<string, unknown>,
+          focalCharacterName: snapshotParticipant.character?.name ?? null,
+          isSolo: snapshotParticipant.is_solo ?? snapshotCampaign.max_players === 1,
+          activeEnemyNames: activeEnemiesList.map((enemy) => enemy.name),
+          knownNpcNames: new Set(knownNpcs.map((npc) => npc.name)),
+        });
 
         if (data.xpGained) {
           triggerDiscovery('campaign_xp');
           totalXpGained += data.xpGained;
         }
       } else {
-        await supabase.from('campaign_messages').insert([{
-          campaign_id: snapshotCampaign.id,
-          sender_type: 'narrator',
-          content: 'The scene hangs in a brief, tense silence, as if the world is gathering its next words.',
-          channel: 'in_universe',
-        }]);
+        await insertStructuredNarrationMessages({
+          campaignId: snapshotCampaign.id,
+          rawNarration: 'The scene hangs in a brief, tense silence, as if the world is gathering its next words.',
+          focalCharacterName: snapshotParticipant.character?.name ?? null,
+          isSolo: snapshotParticipant.is_solo ?? snapshotCampaign.max_players === 1,
+          knownNpcNames: new Set(knownNpcs.map((npc) => npc.name)),
+        });
       }
 
       if (data) {
@@ -1985,13 +2018,14 @@ export default function CampaignView() {
       });
 
       if (!error && data?.narration) {
-        await supabase.from('campaign_messages').insert([{
-          campaign_id: campaign.id,
-          sender_type: 'narrator',
-          content: data.narration,
-          channel: 'in_universe',
-          metadata: buildNarratorMessageMetadata(data) as any,
-        }]);
+        await insertStructuredNarrationMessages({
+          campaignId: campaign.id,
+          rawNarration: data.narration,
+          baseMetadata: buildNarratorMessageMetadata(data) ?? null,
+          focalCharacterName: myParticipant.character?.name ?? null,
+          isSolo: isSoloCampaign,
+          knownNpcNames,
+        });
 
         // Update tactical map from narrator scene data
         if (data.sceneMap && typeof data.sceneMap === 'object' && Array.isArray(data.sceneMap.zones)) {
