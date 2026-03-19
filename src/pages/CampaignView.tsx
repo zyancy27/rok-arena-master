@@ -2597,7 +2597,7 @@ export default function CampaignView() {
                                       />
                                     ) : (
                                       <>
-                                        <p className={contentClassName}>{envelope.content}</p>
+                                        <p className={`expr-content ${contentClassName}`}>{envelope.content}</p>
                                         {isMe && userSettings.audio.intentDebug && (msg.metadata as any)?.intentDebug && envelopeIndex === 0 && (
                                           <div className="mt-2">
                                             <IntentDebugCard payload={(msg.metadata as any).intentDebug} actionResult={(msg.metadata as any).actionResult ?? null} />
