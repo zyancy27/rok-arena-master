@@ -2819,6 +2819,8 @@ export default function CampaignView() {
                       selectedSuggestion={selectedResponseSuggestion}
                       isLoading={suggestionsLoading}
                       disabled={sending || narratorTyping}
+                      collapsed={suggestionsCollapsed}
+                      onToggleCollapse={() => setSuggestionsCollapsed(prev => !prev)}
                       onSelect={setSelectedResponseSuggestion}
                       onCancel={() => setSelectedResponseSuggestion(null)}
                       onConfirm={handleConfirmSuggestedResponse}
