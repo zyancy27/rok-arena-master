@@ -17,7 +17,7 @@ import { WorldIdentityGenerator } from '@/systems/identity/WorldIdentityGenerato
 import { SparseCampaignSeedBuilder } from '@/systems/campaign/SparseCampaignSeedBuilder';
 import { RelationshipPersistenceEngine, type RelationshipPersistenceSnapshot } from '@/systems/memory/RelationshipPersistenceEngine';
 import { WorldMemoryEngine } from '@/systems/memory/WorldMemoryEngine';
-import { WorldSimulationTickEngine } from '@/systems/world/WorldSimulationTickEngine';
+
 import { SceneDerivationEngine } from '@/systems/scene/SceneDerivationEngine';
 import { EffectDerivationEngine } from '@/systems/effects/EffectDerivationEngine';
 import type { ActionPipelineResult, GeneratedRuntimePackets } from '@/systems/types/PipelineTypes';
@@ -225,23 +225,11 @@ export const CampaignActionPipeline = {
       pressureSeed: [...generatedCampaignSeed.pressureSources, ...generatedActorIdentity.pressureIdentity],
     });
 
-    const worldTick = WorldSimulationTickEngine.tick({
-      factions: (generatedWorldState.factionPresence || []).slice(0, 3).map((faction, index) => ({
-        factionId: `${index}:${faction}`,
-        currentPressure: sparseSeed.encounterDensity === 'high' ? 72 : sparseSeed.encounterDensity === 'medium' ? 56 : 34,
-        activeConflicts: generatedCampaignSeed.pressureSources.slice(0, 2),
-      })),
-      locations: [{
-        locationId: input.campaign.current_zone || input.campaign.id,
-        hazardLevel: generatedWorldState.hazardPosture.some((entry) => /volatile|fire|toxic|storm/.test(entry)) ? 72 : 48,
-        pressure: generatedCampaignSeed.conflictDensity === 'high' ? 74 : generatedCampaignSeed.conflictDensity === 'medium' ? 58 : 36,
-      }],
-      npcs: (generatedNpcIdentity ? [{
-        npcId: generatedNpcIdentity.name,
-        motivations: generatedNpcIdentity.motivations,
-        pressureLevel: generatedEncounter.tacticalPressure.some((entry) => /overwhelming|critical|killbox/.test(entry)) ? 'critical' : generatedCampaignSeed.conflictDensity === 'high' ? 'high' : 'medium',
-      }] : []),
-    });
+    // World simulation is now narrator-owned (server-side). Derive minimal drift tags from existing generated state.
+    const worldTickDriftTags = [
+      ...generatedCampaignSeed.pressureSources.slice(0, 2),
+      ...(generatedNpcIdentity?.motivations.slice(0, 1).map((g) => `npc-goal:${g}`) || []),
+    ];
 
     const worldMemory = WorldMemoryEngine.summarize(WorldMemoryEngine.update({
       worldId: input.campaign.id,
@@ -261,7 +249,7 @@ export const CampaignActionPipeline = {
     }, {
       type: 'location',
       id: input.campaign.current_zone || input.campaign.id,
-      detail: worldTick.locations[0]?.event || 'location shifts',
+      detail: 'location shifts',
     }));
 
     const relationshipSignals = deriveRelationshipSignals(input.rawText, null);
@@ -304,7 +292,7 @@ export const CampaignActionPipeline = {
     }, {
       activeHazards: context.activeHazards,
       environmentTags: context.environmentTags,
-      worldTickTags: worldTick.driftTags,
+      worldTickTags: worldTickDriftTags,
       narratorMetadata: {
         actorNarrationBias: generatedActorIdentity.narrationBias,
         npcNarrationBias: generatedNpcIdentity?.narrationBias,
@@ -329,7 +317,7 @@ export const CampaignActionPipeline = {
       activeWorldIdentity: generatedWorldState,
       relationshipPersistence,
       worldMemory,
-      worldTick,
+      worldTick: { driftTags: worldTickDriftTags },
     };
 
     const primaryEnemy = activeEnemies[0] ?? null;
@@ -418,7 +406,7 @@ export const CampaignActionPipeline = {
         generatedWorldState,
         relationshipPersistence,
         worldMemory,
-        worldTick,
+        worldTick: { driftTags: worldTickDriftTags },
       },
     });
 
