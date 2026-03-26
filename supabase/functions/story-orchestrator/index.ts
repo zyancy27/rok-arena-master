@@ -161,6 +161,8 @@ interface OrchestratorContext {
   api_key: string;
   supabase_url: string;
   body?: any;
+  /** Shared admin client — created once in the main handler */
+  supabaseAdmin: ReturnType<typeof createClient>;
 }
 
 interface SoundEvent {
@@ -229,11 +231,7 @@ async function fetchWorldContext(
   campaignId: string,
 ): Promise<void> {
   try {
-    const supabaseAdmin = createClient(
-      ctx.supabase_url,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false } },
-    );
+    const supabaseAdmin = ctx.supabaseAdmin;
 
     const [sentimentResult, campaignResult, worldEventsResult, worldRumorsResult, worldStateResult, campaignBrainResult] = await Promise.all([
       supabaseAdmin
@@ -1026,11 +1024,7 @@ async function updateSentimentInDb(
   if (!su || !characterId) return;
 
   try {
-    const supabaseAdmin = createClient(
-      ctx.supabase_url,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false } },
-    );
+    const supabaseAdmin = ctx.supabaseAdmin;
 
     const prev = ctx.cached_sentiment || {};
     const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
@@ -1223,11 +1217,7 @@ async function persistNpcUpdates(
   if (!npcUpdates || !Array.isArray(npcUpdates) || npcUpdates.length === 0 || !campaignId) return null;
 
   try {
-    const supabaseAdmin = createClient(
-      ctx.supabase_url,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false } },
-    );
+    const supabaseAdmin = ctx.supabaseAdmin;
 
     const brain = ctx.campaign_brain;
     const campaignState = ctx.campaign_state || {};
@@ -1346,11 +1336,7 @@ async function persistCharacterDiscoveries(
   type DiscoverableField = typeof VALID_FIELDS[number];
 
   try {
-    const supabaseAdmin = createClient(
-      ctx.supabase_url,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false } },
-    );
+    const supabaseAdmin = ctx.supabaseAdmin;
 
     // Fetch current character fields
     const { data: character, error: fetchError } = await supabaseAdmin
@@ -1421,11 +1407,7 @@ async function persistHookUpdates(
   if (!brain) return;
 
   try {
-    const supabaseAdmin = createClient(
-      ctx.supabase_url,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false } },
-    );
+    const supabaseAdmin = ctx.supabaseAdmin;
 
     let hooks: any[] = Array.isArray(brain.story_hooks) ? [...brain.story_hooks] : [];
     const currentDay = brain.current_day || 1;
@@ -1536,11 +1518,7 @@ async function persistWorldStateUpdates(
   if (!Array.isArray(updates) || updates.length === 0 || !campaignId) return null;
 
   try {
-    const supabaseAdmin = createClient(
-      ctx.supabase_url,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false } },
-    );
+    const supabaseAdmin = ctx.supabaseAdmin;
 
     const brain = ctx.campaign_brain;
     const currentDay = brain?.current_day || ctx.campaign_state?.day_count || 1;
@@ -1598,22 +1576,13 @@ async function persistWorldStateUpdates(
         }
 
         case 'rumor_spawned': {
-          // Insert into world_rumors if table exists, otherwise store in campaign brain
-          try {
-            await supabaseAdmin.from('world_rumors').insert({
-              campaign_id: campaignId,
-              rumor_text: update.description,
-              origin_location: location,
-              spread_level: 1,
-            });
-            rumorsAdded++;
-          } catch {
-            // world_rumors table may not exist — store in brain instead
-            if (brain) {
-              const rumors = Array.isArray(brain.story_hooks) ? brain.story_hooks : [];
-              // No-op: rumors stored as hooks handled separately
-            }
-          }
+          await supabaseAdmin.from('world_rumors').insert({
+            campaign_id: campaignId,
+            rumor_text: update.description,
+            origin_location: location,
+            spread_level: 1,
+          });
+          rumorsAdded++;
           break;
         }
 
@@ -1700,11 +1669,7 @@ async function persistFactionUpdates(
   if (!Array.isArray(factionUpdates) || factionUpdates.length === 0 || !campaignId) return null;
 
   try {
-    const supabaseAdmin = createClient(
-      ctx.supabase_url,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false } },
-    );
+    const supabaseAdmin = ctx.supabaseAdmin;
 
     let updated = 0;
     const brain = ctx.campaign_brain;
@@ -1892,6 +1857,7 @@ serve(async (req) => {
       api_key: LOVABLE_API_KEY,
       supabase_url: SUPABASE_URL,
       body: narratorPayload,
+      supabaseAdmin,
     };
 
     // ─── Step 4: Fetch World Context (gated by priority) ───────
@@ -1902,48 +1868,35 @@ serve(async (req) => {
     // ─── Step 5: Call Battle Narrator (enriched context) ────────
     await callBattleNarrator(ctx, narratorPayload);
 
-    // ─── Step 6: Update Sentiment (async, non-blocking) ────────
-    if (characterId && ctx.narration_result?.sentimentUpdate) {
-      updateSentimentInDb(ctx, characterId).catch((e) => {
-        console.error('Background sentiment update failed:', e);
-      });
-    }
-
-    // ─── Step 6b: Update Campaign Time (narrator-driven) ───────
+    // ─── Step 6: Persist all side-effects (parallelized) ─────────
+    // Time update must run first (other steps may depend on day count)
     let timeUpdate: { timeBlock: string; day: number; elapsedHours: number } | null = null;
     if (campaignId && ctx.narration_result?.advanceTime) {
       timeUpdate = await updateCampaignTime(ctx, campaignId);
     }
 
-    // ─── Step 6c: Persist NPC Updates (narrator-owned) ─────────
-    let npcPersistResult: { created: number; updated: number } | null = null;
-    if (campaignId && ctx.narration_result?.npcUpdates?.length > 0) {
-      npcPersistResult = await persistNpcUpdates(ctx, campaignId, characterId);
-    }
+    // Run remaining persistence steps in parallel — they're independent
+    const [npcPersistResult, discoveryResults, worldStateResults, factionResults] = await Promise.all([
+      (campaignId && ctx.narration_result?.npcUpdates?.length > 0)
+        ? persistNpcUpdates(ctx, campaignId, characterId)
+        : Promise.resolve(null),
+      (characterId && ctx.narration_result?.characterDiscoveries?.length > 0)
+        ? persistCharacterDiscoveries(ctx, characterId)
+        : Promise.resolve(null),
+      (campaignId && ctx.narration_result?.worldStateUpdates?.length > 0)
+        ? persistWorldStateUpdates(ctx, campaignId)
+        : Promise.resolve(null),
+      (campaignId && ctx.narration_result?.factionUpdates?.length > 0)
+        ? persistFactionUpdates(ctx, campaignId)
+        : Promise.resolve(null),
+    ]);
 
-    // ─── Step 6d: Persist Hook Updates (narrator-owned) ─────────
+    // Fire-and-forget: sentiment & hooks (non-critical)
+    if (characterId && ctx.narration_result?.sentimentUpdate) {
+      updateSentimentInDb(ctx, characterId).catch((e) => console.error('Background sentiment update failed:', e));
+    }
     if (campaignId && ctx.campaign_brain) {
-      persistHookUpdates(ctx, campaignId).catch((e) => {
-        console.error('Background hook update failed:', e);
-      });
-    }
-
-    // ─── Step 6e: Persist Character Discoveries (gated) ──────────
-    let discoveryResults: { synced: number; fields: string[] } | null = null;
-    if (characterId && ctx.narration_result?.characterDiscoveries?.length > 0) {
-      discoveryResults = await persistCharacterDiscoveries(ctx, characterId);
-    }
-
-    // ─── Step 6f: Persist World State Updates (narrator-owned) ───
-    let worldStateResults: { eventsCreated: number; eventsResolved: number; dangerUpdated: boolean; rumorsAdded: number } | null = null;
-    if (campaignId && ctx.narration_result?.worldStateUpdates?.length > 0) {
-      worldStateResults = await persistWorldStateUpdates(ctx, campaignId);
-    }
-
-    // ─── Step 6g: Persist Faction Updates (narrator-owned) ───────
-    let factionResults: { updated: number } | null = null;
-    if (campaignId && ctx.narration_result?.factionUpdates?.length > 0) {
-      factionResults = await persistFactionUpdates(ctx, campaignId);
+      persistHookUpdates(ctx, campaignId).catch((e) => console.error('Background hook update failed:', e));
     }
 
     // ─── Step 7: Build Orchestrated Response ───────────────────
