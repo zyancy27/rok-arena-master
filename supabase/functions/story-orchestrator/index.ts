@@ -1427,6 +1427,12 @@ serve(async (req) => {
       timeUpdate = await updateCampaignTime(ctx, campaignId);
     }
 
+    // ─── Step 6c: Persist NPC Updates (narrator-owned) ─────────
+    let npcPersistResult: { created: number; updated: number } | null = null;
+    if (campaignId && ctx.narration_result?.npcUpdates?.length > 0) {
+      npcPersistResult = await persistNpcUpdates(ctx, campaignId);
+    }
+
     // ─── Step 7: Build Orchestrated Response ───────────────────
     const tension = classifyServerTension(ctx);
     const emergentHints = detectEmergentHints(ctx);
