@@ -1190,7 +1190,7 @@ async function persistNpcUpdates(
     const campaignState = ctx.campaign_state || {};
     const currentDay = brain?.current_day || campaignState.day_count || 1;
     const currentZone = campaignState.current_zone || 'Unknown';
-    const characterId = ctx.body?.characterId || null;
+    const charId = characterId || null;
 
     let created = 0;
     let updated = 0;
