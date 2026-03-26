@@ -1576,22 +1576,13 @@ async function persistWorldStateUpdates(
         }
 
         case 'rumor_spawned': {
-          // Insert into world_rumors if table exists, otherwise store in campaign brain
-          try {
-            await supabaseAdmin.from('world_rumors').insert({
-              campaign_id: campaignId,
-              rumor_text: update.description,
-              origin_location: location,
-              spread_level: 1,
-            });
-            rumorsAdded++;
-          } catch {
-            // world_rumors table may not exist — store in brain instead
-            if (brain) {
-              const rumors = Array.isArray(brain.story_hooks) ? brain.story_hooks : [];
-              // No-op: rumors stored as hooks handled separately
-            }
-          }
+          await supabaseAdmin.from('world_rumors').insert({
+            campaign_id: campaignId,
+            rumor_text: update.description,
+            origin_location: location,
+            spread_level: 1,
+          });
+          rumorsAdded++;
           break;
         }
 
