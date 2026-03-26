@@ -1496,7 +1496,7 @@ export default function CampaignView() {
           isSolo: snapshotParticipant.is_solo ?? snapshotCampaign.max_players === 1,
           activeEnemyNames: activeEnemiesList.map((enemy) => enemy.name),
           knownNpcNames: new Set(knownNpcs.map((npc) => npc.name)),
-          sceneBeats: data.sceneBeats ?? null,
+          sceneBeats: (data.sceneBeats as SceneBeat[] | null) ?? null,
         });
 
         if (data.xpGained) {
