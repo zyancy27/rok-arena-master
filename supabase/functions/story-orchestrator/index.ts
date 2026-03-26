@@ -1305,6 +1305,122 @@ async function persistNpcUpdates(
   }
 }
 
+// ─── Pipeline Step: Persist Hook Updates (Narrator-Owned) ──────
+async function persistHookUpdates(
+  ctx: OrchestratorContext,
+  campaignId: string,
+): Promise<void> {
+  const hookUpdates = ctx.narration_result?.hookUpdates;
+  const brain = ctx.campaign_brain;
+  if (!brain) return;
+
+  try {
+    const supabaseAdmin = createClient(
+      ctx.supabase_url,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } },
+    );
+
+    let hooks: any[] = Array.isArray(brain.story_hooks) ? [...brain.story_hooks] : [];
+    const currentDay = brain.current_day || 1;
+    let nextId = hooks.length > 0 
+      ? Math.max(...hooks.map((h: any) => parseInt(String(h.id).replace('hook_', '')) || 0)) + 1 
+      : 1;
+
+    // Process narrator-reported hook updates
+    if (Array.isArray(hookUpdates) && hookUpdates.length > 0) {
+      for (const update of hookUpdates) {
+        if (update.action === 'created' && update.description) {
+          hooks.push({
+            id: `hook_${nextId++}`,
+            description: update.description,
+            surface_method: update.surface_method || 'environment',
+            priority: Math.min(10, Math.max(1, update.priority || 5)),
+            status: 'active',
+            created_day: currentDay,
+            last_surfaced_day: null,
+            times_surfaced: 0,
+            times_ignored: 0,
+            tied_thread: null,
+          });
+        } else if (update.id) {
+          const idx = hooks.findIndex((h: any) => h.id === update.id);
+          if (idx >= 0) {
+            switch (update.action) {
+              case 'surfaced':
+                hooks[idx].status = 'surfaced';
+                hooks[idx].last_surfaced_day = currentDay;
+                hooks[idx].times_surfaced = (hooks[idx].times_surfaced || 0) + 1;
+                break;
+              case 'engaged':
+                hooks[idx].status = 'engaged';
+                hooks[idx].last_surfaced_day = currentDay;
+                // Boost priority when player engages
+                hooks[idx].priority = Math.min(10, (hooks[idx].priority || 5) + 1);
+                break;
+              case 'resolved':
+                hooks[idx].status = 'resolved';
+                break;
+              case 'ignored':
+                hooks[idx].times_ignored = (hooks[idx].times_ignored || 0) + 1;
+                // After 3 ignores, mark as stale
+                if (hooks[idx].times_ignored >= 3) {
+                  hooks[idx].status = 'stale';
+                }
+                break;
+              case 'reshaped':
+                hooks[idx].status = 'active';
+                hooks[idx].description = update.description || hooks[idx].description;
+                hooks[idx].surface_method = update.surface_method || hooks[idx].surface_method;
+                hooks[idx].priority = update.priority || hooks[idx].priority;
+                hooks[idx].times_ignored = 0; // Reset ignore count on reshape
+                hooks[idx].last_surfaced_day = null;
+                break;
+            }
+          }
+        }
+      }
+    }
+
+    // Age-based hook maintenance (run every turn)
+    for (const hook of hooks) {
+      if (hook.status === 'resolved') continue;
+      const age = currentDay - (hook.created_day || 1);
+      // Mark hooks stale if not surfaced in 3+ days
+      if (hook.status === 'active' && age > 3 && !hook.last_surfaced_day) {
+        hook.status = 'stale';
+      }
+      // Reduce priority of stale hooks over time
+      if (hook.status === 'stale') {
+        hook.priority = Math.max(1, (hook.priority || 5) - 1);
+      }
+    }
+
+    // Keep max 8 hooks, prioritizing active/engaged over stale/resolved
+    const statusOrder: Record<string, number> = { engaged: 0, active: 1, surfaced: 2, stale: 3, resolved: 4 };
+    hooks.sort((a: any, b: any) => {
+      const sa = statusOrder[a.status] ?? 3;
+      const sb = statusOrder[b.status] ?? 3;
+      if (sa !== sb) return sa - sb;
+      return (b.priority || 0) - (a.priority || 0);
+    });
+    // Keep resolved hooks for history but cap total
+    hooks = hooks.slice(0, 12);
+
+    await supabaseAdmin.from('campaign_brain').update({
+      story_hooks: hooks,
+      updated_at: new Date().toISOString(),
+    }).eq('campaign_id', campaignId);
+
+  } catch (e) {
+    ctx.errors.push({
+      step: 'persist_hook_updates',
+      error: e instanceof Error ? e.message : 'Unknown error',
+      recoverable: true,
+    });
+  }
+}
+
 // ─── Main Orchestrator ─────────────────────────────────────────
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
