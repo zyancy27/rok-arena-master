@@ -2210,7 +2210,8 @@ export default function CampaignView() {
           setSceneMap(data.sceneMap as NarratorSceneMap);
         }
 
-        if (data.advanceTime) {
+        // Time — orchestrator handles server-side; client fallback only
+        if (data.advanceTime && !data._orchestrator?.time_update) {
           const { time: newTime, newDay } = advanceTime(campaign.time_of_day, data.advanceTime);
           await supabase.from('campaigns').update({
             time_of_day: newTime,
