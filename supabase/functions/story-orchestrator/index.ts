@@ -1877,48 +1877,35 @@ serve(async (req) => {
     // ─── Step 5: Call Battle Narrator (enriched context) ────────
     await callBattleNarrator(ctx, narratorPayload);
 
-    // ─── Step 6: Update Sentiment (async, non-blocking) ────────
-    if (characterId && ctx.narration_result?.sentimentUpdate) {
-      updateSentimentInDb(ctx, characterId).catch((e) => {
-        console.error('Background sentiment update failed:', e);
-      });
-    }
-
-    // ─── Step 6b: Update Campaign Time (narrator-driven) ───────
+    // ─── Step 6: Persist all side-effects (parallelized) ─────────
+    // Time update must run first (other steps may depend on day count)
     let timeUpdate: { timeBlock: string; day: number; elapsedHours: number } | null = null;
     if (campaignId && ctx.narration_result?.advanceTime) {
       timeUpdate = await updateCampaignTime(ctx, campaignId);
     }
 
-    // ─── Step 6c: Persist NPC Updates (narrator-owned) ─────────
-    let npcPersistResult: { created: number; updated: number } | null = null;
-    if (campaignId && ctx.narration_result?.npcUpdates?.length > 0) {
-      npcPersistResult = await persistNpcUpdates(ctx, campaignId, characterId);
-    }
+    // Run remaining persistence steps in parallel — they're independent
+    const [npcPersistResult, discoveryResults, worldStateResults, factionResults] = await Promise.all([
+      (campaignId && ctx.narration_result?.npcUpdates?.length > 0)
+        ? persistNpcUpdates(ctx, campaignId, characterId)
+        : Promise.resolve(null),
+      (characterId && ctx.narration_result?.characterDiscoveries?.length > 0)
+        ? persistCharacterDiscoveries(ctx, characterId)
+        : Promise.resolve(null),
+      (campaignId && ctx.narration_result?.worldStateUpdates?.length > 0)
+        ? persistWorldStateUpdates(ctx, campaignId)
+        : Promise.resolve(null),
+      (campaignId && ctx.narration_result?.factionUpdates?.length > 0)
+        ? persistFactionUpdates(ctx, campaignId)
+        : Promise.resolve(null),
+    ]);
 
-    // ─── Step 6d: Persist Hook Updates (narrator-owned) ─────────
+    // Fire-and-forget: sentiment & hooks (non-critical)
+    if (characterId && ctx.narration_result?.sentimentUpdate) {
+      updateSentimentInDb(ctx, characterId).catch((e) => console.error('Background sentiment update failed:', e));
+    }
     if (campaignId && ctx.campaign_brain) {
-      persistHookUpdates(ctx, campaignId).catch((e) => {
-        console.error('Background hook update failed:', e);
-      });
-    }
-
-    // ─── Step 6e: Persist Character Discoveries (gated) ──────────
-    let discoveryResults: { synced: number; fields: string[] } | null = null;
-    if (characterId && ctx.narration_result?.characterDiscoveries?.length > 0) {
-      discoveryResults = await persistCharacterDiscoveries(ctx, characterId);
-    }
-
-    // ─── Step 6f: Persist World State Updates (narrator-owned) ───
-    let worldStateResults: { eventsCreated: number; eventsResolved: number; dangerUpdated: boolean; rumorsAdded: number } | null = null;
-    if (campaignId && ctx.narration_result?.worldStateUpdates?.length > 0) {
-      worldStateResults = await persistWorldStateUpdates(ctx, campaignId);
-    }
-
-    // ─── Step 6g: Persist Faction Updates (narrator-owned) ───────
-    let factionResults: { updated: number } | null = null;
-    if (campaignId && ctx.narration_result?.factionUpdates?.length > 0) {
-      factionResults = await persistFactionUpdates(ctx, campaignId);
+      persistHookUpdates(ctx, campaignId).catch((e) => console.error('Background hook update failed:', e));
     }
 
     // ─── Step 7: Build Orchestrated Response ───────────────────
