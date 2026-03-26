@@ -231,11 +231,7 @@ async function fetchWorldContext(
   campaignId: string,
 ): Promise<void> {
   try {
-    const supabaseAdmin = createClient(
-      ctx.supabase_url,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false } },
-    );
+    const supabaseAdmin = ctx.supabaseAdmin;
 
     const [sentimentResult, campaignResult, worldEventsResult, worldRumorsResult, worldStateResult, campaignBrainResult] = await Promise.all([
       supabaseAdmin
