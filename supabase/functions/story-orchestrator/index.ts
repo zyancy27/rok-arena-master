@@ -1024,11 +1024,7 @@ async function updateSentimentInDb(
   if (!su || !characterId) return;
 
   try {
-    const supabaseAdmin = createClient(
-      ctx.supabase_url,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false } },
-    );
+    const supabaseAdmin = ctx.supabaseAdmin;
 
     const prev = ctx.cached_sentiment || {};
     const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
