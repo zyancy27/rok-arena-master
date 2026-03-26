@@ -1174,6 +1174,7 @@ async function updateCampaignTime(
 async function persistNpcUpdates(
   ctx: OrchestratorContext,
   campaignId: string,
+  characterId?: string,
 ): Promise<{ created: number; updated: number } | null> {
   const npcUpdates = ctx.narration_result?.npcUpdates;
   if (!npcUpdates || !Array.isArray(npcUpdates) || npcUpdates.length === 0 || !campaignId) return null;
