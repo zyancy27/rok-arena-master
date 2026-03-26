@@ -17,7 +17,7 @@ import { WorldIdentityGenerator } from '@/systems/identity/WorldIdentityGenerato
 import { SparseCampaignSeedBuilder } from '@/systems/campaign/SparseCampaignSeedBuilder';
 import { RelationshipPersistenceEngine, type RelationshipPersistenceSnapshot } from '@/systems/memory/RelationshipPersistenceEngine';
 import { WorldMemoryEngine } from '@/systems/memory/WorldMemoryEngine';
-import { WorldSimulationTickEngine } from '@/systems/world/WorldSimulationTickEngine';
+
 import { SceneDerivationEngine } from '@/systems/scene/SceneDerivationEngine';
 import { EffectDerivationEngine } from '@/systems/effects/EffectDerivationEngine';
 import type { ActionPipelineResult, GeneratedRuntimePackets } from '@/systems/types/PipelineTypes';
