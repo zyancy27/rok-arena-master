@@ -406,7 +406,7 @@ export const CampaignActionPipeline = {
         generatedWorldState,
         relationshipPersistence,
         worldMemory,
-        worldTick,
+        worldTick: { driftTags: worldTickDriftTags },
       },
     });
 
