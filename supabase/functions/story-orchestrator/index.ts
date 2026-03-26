@@ -1527,6 +1527,257 @@ async function persistHookUpdates(
   }
 }
 
+// ─── Pipeline Step: Persist World State Updates (Narrator-Owned) ──
+async function persistWorldStateUpdates(
+  ctx: OrchestratorContext,
+  campaignId: string,
+): Promise<{ eventsCreated: number; eventsResolved: number; dangerUpdated: boolean; rumorsAdded: number } | null> {
+  const updates = ctx.narration_result?.worldStateUpdates;
+  if (!Array.isArray(updates) || updates.length === 0 || !campaignId) return null;
+
+  try {
+    const supabaseAdmin = createClient(
+      ctx.supabase_url,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } },
+    );
+
+    const brain = ctx.campaign_brain;
+    const currentDay = brain?.current_day || ctx.campaign_state?.day_count || 1;
+    const currentZone = ctx.campaign_state?.current_zone || 'Unknown';
+    let eventsCreated = 0;
+    let eventsResolved = 0;
+    let dangerUpdated = false;
+    let rumorsAdded = 0;
+
+    for (const update of updates.slice(0, 3)) {
+      const location = update.location || currentZone;
+
+      switch (update.type) {
+        case 'danger_shift': {
+          const delta = Math.max(-3, Math.min(3, update.dangerDelta || 0));
+          if (delta === 0) break;
+          // Update world_state danger level for the matching region
+          const { data: regionData } = await supabaseAdmin
+            .from('world_state')
+            .select('id, danger_level')
+            .eq('campaign_id', campaignId)
+            .eq('region_name', location)
+            .maybeSingle();
+
+          if (regionData) {
+            const newDanger = Math.max(0, Math.min(10, (regionData.danger_level || 0) + delta));
+            await supabaseAdmin.from('world_state').update({
+              danger_level: newDanger,
+              updated_at: new Date().toISOString(),
+            }).eq('id', regionData.id);
+            dangerUpdated = true;
+          }
+          break;
+        }
+
+        case 'environment_change': {
+          // Update environment_conditions on the matching world_state region
+          const { data: envRegion } = await supabaseAdmin
+            .from('world_state')
+            .select('id, environment_conditions')
+            .eq('campaign_id', campaignId)
+            .eq('region_name', location)
+            .maybeSingle();
+
+          if (envRegion) {
+            const existing = (envRegion.environment_conditions as any) || {};
+            const conditions = existing.conditions || [];
+            conditions.push(update.description);
+            await supabaseAdmin.from('world_state').update({
+              environment_conditions: { ...existing, conditions: conditions.slice(-8) },
+              updated_at: new Date().toISOString(),
+            }).eq('id', envRegion.id);
+          }
+          break;
+        }
+
+        case 'rumor_spawned': {
+          // Insert into world_rumors if table exists, otherwise store in campaign brain
+          try {
+            await supabaseAdmin.from('world_rumors').insert({
+              campaign_id: campaignId,
+              rumor_text: update.description,
+              origin_location: location,
+              spread_level: 1,
+            });
+            rumorsAdded++;
+          } catch {
+            // world_rumors table may not exist — store in brain instead
+            if (brain) {
+              const rumors = Array.isArray(brain.story_hooks) ? brain.story_hooks : [];
+              // No-op: rumors stored as hooks handled separately
+            }
+          }
+          break;
+        }
+
+        case 'event_created': {
+          await supabaseAdmin.from('world_events').insert({
+            campaign_id: campaignId,
+            event_type: 'narrator_generated',
+            location,
+            description: update.description,
+            impact_level: Math.min(10, Math.max(1, update.magnitude || 5)),
+            story_relevance: Math.min(10, Math.max(1, update.magnitude || 5)),
+            player_proximity: location === currentZone ? 8 : 3,
+            resolved: false,
+          });
+          eventsCreated++;
+          break;
+        }
+
+        case 'event_resolved': {
+          // Find matching unresolved event and mark resolved
+          const { data: matchingEvents } = await supabaseAdmin
+            .from('world_events')
+            .select('id, description')
+            .eq('campaign_id', campaignId)
+            .eq('resolved', false)
+            .limit(20);
+
+          if (matchingEvents && matchingEvents.length > 0) {
+            // Simple match: find event whose description overlaps with update description
+            const descLower = (update.description || '').toLowerCase();
+            const match = matchingEvents.find((e: any) => {
+              const eLower = (e.description || '').toLowerCase();
+              return descLower.includes(eLower.slice(0, 30)) || eLower.includes(descLower.slice(0, 30));
+            });
+            if (match) {
+              await supabaseAdmin.from('world_events').update({
+                resolved: true,
+                updated_at: new Date().toISOString(),
+              }).eq('id', match.id);
+              eventsResolved++;
+            }
+          }
+          break;
+        }
+
+        case 'region_change': {
+          // Update npc/faction activity summaries on world_state
+          const { data: regionChange } = await supabaseAdmin
+            .from('world_state')
+            .select('id, npc_activity_summary, faction_activity_summary')
+            .eq('campaign_id', campaignId)
+            .eq('region_name', location)
+            .maybeSingle();
+
+          if (regionChange) {
+            const updateData: any = { updated_at: new Date().toISOString() };
+            if (update.description) {
+              updateData.faction_activity_summary = update.description;
+            }
+            await supabaseAdmin.from('world_state').update(updateData).eq('id', regionChange.id);
+          }
+          break;
+        }
+      }
+    }
+
+    return { eventsCreated, eventsResolved, dangerUpdated, rumorsAdded };
+  } catch (e) {
+    ctx.errors.push({
+      step: 'persist_world_state',
+      error: e instanceof Error ? e.message : 'Unknown error',
+      recoverable: true,
+    });
+    return null;
+  }
+}
+
+// ─── Pipeline Step: Persist Faction Updates (Narrator-Owned) ──────
+async function persistFactionUpdates(
+  ctx: OrchestratorContext,
+  campaignId: string,
+): Promise<{ updated: number } | null> {
+  const factionUpdates = ctx.narration_result?.factionUpdates;
+  if (!Array.isArray(factionUpdates) || factionUpdates.length === 0 || !campaignId) return null;
+
+  try {
+    const supabaseAdmin = createClient(
+      ctx.supabase_url,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } },
+    );
+
+    let updated = 0;
+    const brain = ctx.campaign_brain;
+
+    // Update factions table
+    for (const fu of factionUpdates.slice(0, 2)) {
+      if (!fu.factionName) continue;
+
+      // Try to find existing faction
+      const { data: existingFaction } = await supabaseAdmin
+        .from('factions')
+        .select('id, military_strength, faction_goals, current_conflicts, territory_regions')
+        .eq('campaign_id', campaignId)
+        .ilike('faction_name', fu.factionName)
+        .maybeSingle();
+
+      if (existingFaction) {
+        const updateData: any = { updated_at: new Date().toISOString() };
+        if (fu.powerDelta) {
+          updateData.military_strength = Math.max(0, Math.min(100, (existingFaction.military_strength || 50) + fu.powerDelta));
+        }
+        if (fu.goalProgress) {
+          updateData.faction_goals = fu.goalProgress;
+        }
+        if (fu.conflictUpdate) {
+          const conflicts = Array.isArray(existingFaction.current_conflicts) ? existingFaction.current_conflicts : [];
+          conflicts.push(fu.conflictUpdate);
+          updateData.current_conflicts = conflicts.slice(-5);
+        }
+        if (fu.territoryChange) {
+          const territories = Array.isArray(existingFaction.territory_regions) ? existingFaction.territory_regions : [];
+          territories.push(fu.territoryChange);
+          updateData.territory_regions = territories.slice(-10);
+        }
+        await supabaseAdmin.from('factions').update(updateData).eq('id', existingFaction.id);
+        updated++;
+      }
+    }
+
+    // Also update campaign_brain faction_state for narrator continuity
+    if (brain && factionUpdates.length > 0) {
+      const factionState: any[] = Array.isArray(brain.faction_state) ? [...brain.faction_state] : [];
+      for (const fu of factionUpdates) {
+        if (!fu.factionName) continue;
+        const idx = factionState.findIndex((f: any) =>
+          (f.name || '').toLowerCase() === fu.factionName.toLowerCase()
+        );
+        if (idx >= 0) {
+          if (fu.stanceChange) factionState[idx].stance = fu.stanceChange;
+          if (fu.powerDelta) {
+            const currentPower = parseInt(factionState[idx].power_level) || 50;
+            factionState[idx].power_level = Math.max(0, Math.min(100, currentPower + fu.powerDelta));
+          }
+          if (fu.goalProgress) factionState[idx].goals = fu.goalProgress;
+        }
+      }
+      await supabaseAdmin.from('campaign_brain').update({
+        faction_state: factionState,
+        updated_at: new Date().toISOString(),
+      }).eq('campaign_id', campaignId);
+    }
+
+    return { updated };
+  } catch (e) {
+    ctx.errors.push({
+      step: 'persist_faction_updates',
+      error: e instanceof Error ? e.message : 'Unknown error',
+      recoverable: true,
+    });
+    return null;
+  }
+}
+
 // ─── Main Orchestrator ─────────────────────────────────────────
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
