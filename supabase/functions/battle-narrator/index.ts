@@ -1687,7 +1687,13 @@ OUTPUT FORMAT (JSON):
   "narration": "Full narration text as a single string (backwards compatibility — combine all beat content).${isMultiplayer ? ` MULTIPLAYER: NEVER use 'you' or 'your'. Always use character names. NEVER write dialogue, actions, movement, emotions, or reactions for any player character other than ${playerCharacter.name}. Other party members (${partyNames.filter((n: string) => n !== playerCharacter.name).join(', ')}) are controlled by REAL PEOPLE — only their players decide what they do or say.` : ''}",
   "xpGained": <number 0-50 based on action significance>,
   "hpChange": <number, negative for damage, positive for healing, 0 for none>,
-  "advanceTime": <number 0-2, how many time periods to advance>,
+  "advanceTime": <number 0-3, how many time blocks to advance based on action type:
+    0 = instant actions (quick dialogue, examining something nearby, picking up an item)
+    1 = short actions (a brief conversation, a single combat encounter, searching a room, a short walk within the same zone)
+    2 = medium actions (extended travel between zones, a full rest/camp, a long negotiation, thorough exploration of a large area, an extended fight)
+    3 = long actions (overnight rest, long-distance travel, full day of activity, major construction/crafting)
+    Apply realistically. Most actions are 0-1. Travel and rest are typically 2. Only use 3 for major time jumps.
+    TIME AFFECTS THE WORLD: When time advances, the world changes — lighting shifts, NPCs move to different locations, shops open/close, guard patrols rotate, weather changes. Reflect this in your narration.>,
   "newZone": <string or null if zone changes>,
   "encounterType": <"combat"|"social"|"exploration"|"rest"|null>,
   "sceneMap": {
