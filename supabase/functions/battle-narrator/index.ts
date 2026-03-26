@@ -2353,6 +2353,7 @@ ${isMultiplayer ? `MULTIPLAYER: Respond using "${playerCharacter.name}" — NEVE
         enemySpawned: parsed.enemySpawned && typeof parsed.enemySpawned === 'object' && parsed.enemySpawned.name ? parsed.enemySpawned : null,
         enemyUpdates: Array.isArray(parsed.enemyUpdates) ? parsed.enemyUpdates : [],
         hookUpdates: Array.isArray(parsed.hookUpdates) ? parsed.hookUpdates : [],
+        gatedOpportunityUpdates: Array.isArray(parsed.gatedOpportunityUpdates) ? parsed.gatedOpportunityUpdates : [],
         characterDiscoveries: Array.isArray(parsed.characterDiscoveries) ? parsed.characterDiscoveries : [],
         worldStateUpdates: Array.isArray(parsed.worldStateUpdates) ? parsed.worldStateUpdates : [],
         factionUpdates: Array.isArray(parsed.factionUpdates) ? parsed.factionUpdates : [],
