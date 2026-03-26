@@ -1243,7 +1243,7 @@ Day: ${dayCount || 1}
 Party: ${partyMembers}${envTagsList}${chosenLocNote}${worldStateNote}${storyCtxNote}`;
 
   try {
-    const introModels = ["google/gemini-2.5-flash-lite", "google/gemini-2.5-flash"];
+    const introModels = ["google/gemini-2.5-flash", "google/gemini-2.5-flash-lite"];
     let rawText = '';
     let responseOk = false;
 
@@ -1255,10 +1255,11 @@ Party: ${partyMembers}${envTagsList}${chosenLocNote}${worldStateNote}${storyCtxN
           model,
           messages: [
             { role: "system", content: systemPrompt },
-            { role: "user", content: `Generate a unique campaign opening for seed "${seed}". Make it feel completely different from any generic intro.` },
+            { role: "user", content: `Generate a unique campaign opening for seed "${seed}". Return valid JSON with sceneBeats array, narration string, and npcUpdates array. Make it feel completely different from any generic intro.` },
           ],
-          max_tokens: 1000,
+          max_tokens: 1500,
           temperature: 0.95,
+          response_format: { type: "json_object" },
         }),
       });
 
@@ -1283,9 +1284,9 @@ Party: ${partyMembers}${envTagsList}${chosenLocNote}${worldStateNote}${storyCtxN
       throw new Error("Failed to parse AI response");
     }
 
-    let narrationContent = data.choices?.[0]?.message?.content || "The adventure begins...";
+    let content = data.choices?.[0]?.message?.content || '{}';
     // Strip thinking/reasoning tags if present
-    narrationContent = narrationContent
+    content = content
       .replace(/<think>[\s\S]*?<\/think>/gi, '')
       .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
       .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
@@ -1293,16 +1294,46 @@ Party: ${partyMembers}${envTagsList}${chosenLocNote}${worldStateNote}${storyCtxN
       .replace(/```json\n?/g, '')
       .replace(/```\n?/g, '')
       .trim();
-    const narration = narrationContent || "The adventure begins...";
+
+    let parsed;
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      // Fallback: treat content as flat narration
+      parsed = { narration: content || "The adventure begins..." };
+    }
+
+    // Extract and validate sceneBeats
+    const sceneBeats = Array.isArray(parsed.sceneBeats)
+      ? parsed.sceneBeats.filter((b: any) =>
+          b && typeof b === 'object' && typeof b.type === 'string' && typeof b.content === 'string' && b.content.trim().length > 0
+        ).map((b: any) => ({
+          type: b.type,
+          content: b.content.trim(),
+          speaker: typeof b.speaker === 'string' ? b.speaker.trim() : null,
+        }))
+      : null;
+
+    const narration = typeof parsed.narration === 'string' && parsed.narration.trim().length > 10
+      ? parsed.narration.trim()
+      : (sceneBeats && sceneBeats.length > 0
+          ? sceneBeats.map((b: any) => b.content).join('\n\n')
+          : "The adventure begins...");
+
+    const npcUpdates = Array.isArray(parsed.npcUpdates) ? parsed.npcUpdates : [];
 
     return new Response(
-      JSON.stringify({ narration }),
+      JSON.stringify({
+        narration,
+        sceneBeats: sceneBeats && sceneBeats.length > 0 ? sceneBeats : null,
+        npcUpdates,
+      }),
       { headers: { ...cors, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Campaign intro error:", error);
     return new Response(
-      JSON.stringify({ narration: "The world stirs as your party arrives..." }),
+      JSON.stringify({ narration: "The world stirs as your party arrives...", sceneBeats: null, npcUpdates: [] }),
       { status: 500, headers: { ...cors, "Content-Type": "application/json" } }
     );
   }
