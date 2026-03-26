@@ -48,12 +48,13 @@ export default function CampaignResponseSuggestions({
   selectedSuggestion,
   isLoading = false,
   disabled = false,
+  collapsed,
+  onToggleCollapse,
   onSelect,
   onCancel,
   onConfirm,
   onRefresh,
 }: CampaignResponseSuggestionsProps) {
-  const [collapsed, setCollapsed] = useState(false);
 
   if (!isLoading && suggestions.length === 0 && !selectedSuggestion) return null;
 
