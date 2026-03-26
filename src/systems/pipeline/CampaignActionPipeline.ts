@@ -317,7 +317,7 @@ export const CampaignActionPipeline = {
       activeWorldIdentity: generatedWorldState,
       relationshipPersistence,
       worldMemory,
-      worldTick,
+      worldTick: { driftTags: worldTickDriftTags },
     };
 
     const primaryEnemy = activeEnemies[0] ?? null;
