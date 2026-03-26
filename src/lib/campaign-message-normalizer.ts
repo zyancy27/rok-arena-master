@@ -97,9 +97,99 @@ function mergeAdjacentDialogueSegments(segments: MessageSegment[]) {
   return merged;
 }
 
+/**
+ * Map a SceneBeat type to a sender_type for the campaign_messages table.
+ */
+function beatTypeToSenderType(beatType: SceneBeatType): CampaignMessage['sender_type'] {
+  switch (beatType) {
+    case 'npc_dialogue': return 'npc';
+    case 'system': return 'system';
+    case 'environment':
+    case 'consequence':
+    case 'hook':
+    case 'gated_opportunity':
+    case 'narrator':
+    default:
+      return 'narrator';
+  }
+}
+
+/**
+ * Convert AI-returned structured scene beats directly into campaign messages,
+ * bypassing regex parsing. Each beat maps to a distinct DB record with proper
+ * sender_type and metadata.
+ */
+function normalizeSceneBeatsToCampaignMessages(
+  beats: SceneBeat[],
+  options: NarrationNormalizationOptions,
+): NormalizedCampaignMessageInsert[] {
+  const turnGroupId = options.turnGroupId ?? `turn-${Date.now()}`;
+  const baseMetadata = isRecord(options.baseMetadata) ? options.baseMetadata : {};
+  const channel = options.channel ?? 'in_universe';
+  const knownNpcNames = options.knownNpcNames ?? new Set<string>();
+  const activeEnemyNames = options.activeEnemyNames ?? [];
+  const messages: NormalizedCampaignMessageInsert[] = [];
+
+  beats.forEach((beat, index) => {
+    const content = cleanText(beat.content);
+    if (!content) return;
+
+    if (beat.type === 'npc_dialogue' && beat.speaker) {
+      const displaySpeakerName = resolveNpcDisplayName(beat.speaker, knownNpcNames);
+      messages.push({
+        campaign_id: options.campaignId,
+        character_id: null,
+        sender_type: resolveStructuredSpeakerType(beat.speaker, activeEnemyNames),
+        channel,
+        content,
+        metadata: {
+          ...baseMetadata,
+          structuredTurnGroupId: turnGroupId,
+          structuredTurnSequence: index,
+          structuredMessageKind: 'npc_dialogue',
+          structuredOriginalNarration: options.rawNarration,
+          speakerName: toSentenceCaseName(beat.speaker),
+          displaySpeakerName,
+        },
+      });
+      return;
+    }
+
+    // narrator / environment / consequence / hook / gated_opportunity / system
+    const finalContent = beat.type === 'narrator'
+      ? sanitizeNarratorPov(content, { isSolo: options.isSolo, focalCharacterName: options.focalCharacterName })
+      : content;
+    if (!finalContent) return;
+
+    messages.push({
+      campaign_id: options.campaignId,
+      character_id: null,
+      sender_type: beatTypeToSenderType(beat.type),
+      channel,
+      content: finalContent,
+      metadata: {
+        ...baseMetadata,
+        structuredTurnGroupId: turnGroupId,
+        structuredTurnSequence: index,
+        structuredMessageKind: beat.type,
+        structuredOriginalNarration: options.rawNarration,
+        sceneBeatType: beat.type,
+      },
+    });
+  });
+
+  return messages;
+}
+
 export function normalizeNarrationToCampaignMessages(
   options: NarrationNormalizationOptions,
 ): NormalizedCampaignMessageInsert[] {
+  // If structured beats are provided by the AI, use them directly
+  if (options.sceneBeats && Array.isArray(options.sceneBeats) && options.sceneBeats.length > 0) {
+    return normalizeSceneBeatsToCampaignMessages(options.sceneBeats, options);
+  }
+
+  // Fallback: regex-based parsing of flat narration string
   const rawNarration = cleanText(options.rawNarration);
   if (!rawNarration) return [];
 
