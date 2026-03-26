@@ -1593,8 +1593,9 @@ export default function CampaignView() {
           }
         }
 
-        // Persist NPC changes from AI response
-        if (data.npcUpdates && Array.isArray(data.npcUpdates)) {
+        // Persist NPC changes — orchestrator handles server-side;
+        // only run client fallback if orchestrator didn't handle it
+        if (data.npcUpdates && Array.isArray(data.npcUpdates) && !data._orchestrator?.npc_persist) {
           for (const npcUpdate of data.npcUpdates) {
             if (npcUpdate.isNew) {
               const { data: newNpc } = await supabase.from('campaign_npcs').insert({
@@ -1651,7 +1652,9 @@ export default function CampaignView() {
               }
             }
           }
-          // Refresh known NPC names after updates
+        }
+        // Always refresh NPC names after any updates (server or client)
+        if (data.npcUpdates?.length > 0) {
           fetchKnownNpcs();
         }
 

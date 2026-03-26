@@ -38,6 +38,10 @@ export interface OrchestratorMeta {
     day: number;
     elapsedHours: number;
   };
+  npc_persist?: {
+    created: number;
+    updated: number;
+  };
   pipeline_errors?: Array<{
     step: string;
     error: string;
