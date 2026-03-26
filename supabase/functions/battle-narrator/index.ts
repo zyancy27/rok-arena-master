@@ -1699,9 +1699,11 @@ CLARITY:
 - Avoid vague scene progression. Reinforce the immediate situation clearly.
 - After zone changes or major events, ground the player in the new reality.
 
-NAME USAGE (CRITICAL — natural prose style):
+NPC NAMING RULE (CRITICAL — FIRST NAMES BY DEFAULT):
+- In narration and dialogue attribution, use NPC FIRST NAMES by default (e.g. "Marcus" not "Marcus Vale").
+- Reserve full names for dramatically significant moments: formal introductions, legal proceedings, threats, ceremonies, emotional reveals, or when a character asserts authority.
 - Once a character has been established as the subject of a passage, use pronouns (he, she, they, it) or descriptive references ("the beast", "the warrior") instead of repeating their name.
-- Only re-use a character's full name when switching focus to a DIFFERENT character, to avoid confusion.
+- Only re-use a character's name when switching focus to a DIFFERENT character, to avoid confusion.
 - This applies to both player characters AND NPCs/enemies.
 - BAD: "QwWe raises his fist. QwWe slams it down. QwWe roars."
 - GOOD: "QwWe raises his fist and slams it down with a thunderous roar."
