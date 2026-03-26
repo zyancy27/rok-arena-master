@@ -1173,6 +1173,7 @@ serve(async (req) => {
       character_state: narratorPayload.playerCharacter || {},
       world_state: narratorPayload.worldState || {},
       campaign_state: {},
+      campaign_brain: null,
       npc_context: narratorPayload.knownNpcs || [],
       active_enemies: narratorPayload.activeEnemies || [],
       conversation_history: narratorPayload.conversationHistory || [],
@@ -1188,6 +1189,7 @@ serve(async (req) => {
       auth_header: authHeader,
       api_key: LOVABLE_API_KEY,
       supabase_url: SUPABASE_URL,
+      body: narratorPayload,
     };
 
     // ─── Step 4: Fetch World Context (gated by priority) ───────
