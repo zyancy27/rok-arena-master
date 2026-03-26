@@ -48,6 +48,9 @@ export default function Campaigns() {
   const [visibility, setVisibility] = useState<CampaignVisibility>('public');
   const [creating, setCreating] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [campaignLength, setCampaignLength] = useState<'short' | 'medium' | 'long'>('medium');
+  const [campaignGenre, setCampaignGenre] = useState('');
+  const [campaignTone, setCampaignTone] = useState('');
 
   useEffect(() => {
     if (user) {
