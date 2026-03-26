@@ -51,7 +51,22 @@ export const ACTION_TIME_COSTS = {
   long: 3,          // overnight rest, long-distance travel, major undertaking
 } as const;
 
+/** Legacy build method for CampaignSeedBuilder compatibility */
+function build(conflictDensity: 'low' | 'medium' | 'high' = 'medium') {
+  const pacingCurve = conflictDensity === 'high'
+    ? ['immediate hook', 'compounding pressure', 'hard turn', 'counterplay', 'payoff']
+    : ['hook', 'exploration', 'complication', 'escalation', 'payoff'];
+
+  return {
+    pacingCurve,
+    progressionShape: conflictDensity === 'high'
+      ? ['sharp rise', 'compressed midpoint', 'volatile finish']
+      : ['steady rise', 'midpoint reveal', 'earned resolution'],
+  };
+}
+
 export const CampaignPacingFramework = {
+  build,
   getPacingPhase,
   getPacingProgress,
   getPacingLabel,
