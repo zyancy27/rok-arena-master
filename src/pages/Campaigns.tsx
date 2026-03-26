@@ -251,6 +251,9 @@ export default function Campaigns() {
       await supabase.from('campaign_npcs').delete().eq('campaign_id', campaignId);
       await supabase.from('campaign_logs').delete().eq('campaign_id', campaignId);
       await supabase.from('campaign_join_requests').delete().eq('campaign_id', campaignId);
+      await supabase.from('world_events').delete().eq('campaign_id', campaignId);
+      await supabase.from('world_state').delete().eq('campaign_id', campaignId);
+      await supabase.from('campaign_brain').delete().eq('campaign_id', campaignId);
       await supabase.from('campaign_participants').delete().eq('campaign_id', campaignId);
       await supabase.from('campaigns').delete().eq('id', campaignId);
       setCampaigns(prev => prev.filter(c => c.id !== campaignId));
