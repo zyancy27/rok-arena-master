@@ -2528,6 +2528,19 @@ export default function CampaignView() {
                             const isActiveNarration = narratorVoice.activeMessageId === msg.id && envelopeIndex === 0;
                             const narratorAnimationClass = getNarratorAnimationClass(msg.metadata);
 
+                            // Environment / consequence / hook beats get their own distinct bubble
+                            const sceneBeatType = (msg.metadata as any)?.sceneBeatType as string | undefined;
+                            if (isNarratorEnvelope && (sceneBeatType === 'environment' || sceneBeatType === 'consequence' || sceneBeatType === 'hook')) {
+                              return (
+                                <EnvironmentBeatBubble
+                                  key={envelope.id}
+                                  content={envelope.content}
+                                  location={activeSceneLocation || campaign.current_zone}
+                                  beatType={sceneBeatType as 'environment' | 'consequence' | 'hook'}
+                                />
+                              );
+                            }
+
                             if (isNpcEnvelope) {
                               return (
                                 <NpcDialogueBubble
