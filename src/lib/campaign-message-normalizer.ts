@@ -1,6 +1,17 @@
 import type { CampaignMessage } from '@/lib/campaign-types';
 import { parseNarratorMessage, resolveNpcDisplayName, type MessageSegment } from '@/lib/npc-dialogue-parser';
 
+// ── Scene Beat Types (from AI structured output) ──
+
+export type SceneBeatType = 'narrator' | 'npc_dialogue' | 'environment' | 'consequence' | 'system' | 'hook' | 'gated_opportunity';
+
+export interface SceneBeat {
+  type: SceneBeatType;
+  content: string;
+  /** Speaker name — only for npc_dialogue beats */
+  speaker?: string | null;
+}
+
 interface NarrationNormalizationOptions {
   campaignId: string;
   channel?: CampaignMessage['channel'];
@@ -11,6 +22,8 @@ interface NarrationNormalizationOptions {
   focalCharacterName?: string | null;
   isSolo?: boolean;
   turnGroupId?: string;
+  /** Structured scene beats from AI — bypasses regex parsing when present */
+  sceneBeats?: SceneBeat[] | null;
 }
 
 export interface NormalizedCampaignMessageInsert {
