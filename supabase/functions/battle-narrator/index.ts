@@ -1631,7 +1631,28 @@ CORE RULES:
 
 OUTPUT FORMAT (JSON):
 {
-  "narration": "World response (1-3 short paragraphs, mostly NPC dialogue and world reactions — keep language simple).${isMultiplayer ? ` MULTIPLAYER: NEVER use 'you' or 'your'. Always use character names. NEVER write dialogue, actions, movement, emotions, or reactions for any player character other than ${playerCharacter.name}. Other party members (${partyNames.filter((n: string) => n !== playerCharacter.name).join(', ')}) are controlled by REAL PEOPLE — only their players decide what they do or say.` : ''}",
+  "sceneBeats": [
+    // REQUIRED — array of structured scene beats. Each beat is a distinct unit of the response.
+    // Beat types:
+    //   "narrator" — narrator framing, scene description, transitions, consequences. Use for world-level observations.
+    //   "npc_dialogue" — spoken dialogue from a named NPC. MUST include "speaker" field with the NPC's name.
+    //   "environment" — atmospheric/world detail (weather, ambient sounds, subtle changes). Short, sensory, standalone.
+    //   "consequence" — direct consequences of the player's action on the world. What changed, what broke, what shifted.
+    //   "hook" — a story hook woven into the scene. Something that invites investigation or engagement.
+    // Rules:
+    //   - Every response MUST have at least one beat.
+    //   - NPC speech MUST be its own beat with type "npc_dialogue" and a "speaker" field. NEVER embed NPC dialogue inside a narrator beat.
+    //   - Narrator beats should be scene framing ONLY — not impersonating NPCs.
+    //   - Environment beats are brief atmospheric notes (1-2 sentences max). Use sparingly.
+    //   - Keep beats short and focused. One idea per beat.
+    //   - Order beats as they would naturally unfold in the scene.
+    {"type": "narrator", "content": "Scene framing text."},
+    {"type": "npc_dialogue", "speaker": "NPC Name", "content": "What the NPC says."},
+    {"type": "environment", "content": "Brief atmospheric detail."},
+    {"type": "consequence", "content": "What changed as a result."},
+    {"type": "hook", "content": "Something interesting that invites engagement."}
+  ],
+  "narration": "Full narration text as a single string (backwards compatibility — combine all beat content).${isMultiplayer ? ` MULTIPLAYER: NEVER use 'you' or 'your'. Always use character names. NEVER write dialogue, actions, movement, emotions, or reactions for any player character other than ${playerCharacter.name}. Other party members (${partyNames.filter((n: string) => n !== playerCharacter.name).join(', ')}) are controlled by REAL PEOPLE — only their players decide what they do or say.` : ''}",
   "xpGained": <number 0-50 based on action significance>,
   "hpChange": <number, negative for damage, positive for healing, 0 for none>,
   "advanceTime": <number 0-2, how many time periods to advance>,
