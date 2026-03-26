@@ -1516,14 +1516,17 @@ export default function CampaignView() {
             .eq('id', snapshotParticipant.id);
         }
 
-        // Time advancement
-        if (data.advanceTime) {
+        // Time advancement — orchestrator persists time server-side;
+        // only run client fallback if orchestrator didn't handle it
+        if (data.advanceTime && !data._orchestrator?.time_update) {
           triggerDiscovery('campaign_time');
           const { time: newTime, newDay } = advanceTime(snapshotCampaign.time_of_day, data.advanceTime);
           await supabase.from('campaigns').update({
             time_of_day: newTime,
             day_count: newDay ? snapshotCampaign.day_count + 1 : snapshotCampaign.day_count,
           }).eq('id', snapshotCampaign.id);
+        } else if (data._orchestrator?.time_update) {
+          triggerDiscovery('campaign_time');
         }
 
         // Zone change
@@ -2207,7 +2210,8 @@ export default function CampaignView() {
           setSceneMap(data.sceneMap as NarratorSceneMap);
         }
 
-        if (data.advanceTime) {
+        // Time — orchestrator handles server-side; client fallback only
+        if (data.advanceTime && !data._orchestrator?.time_update) {
           const { time: newTime, newDay } = advanceTime(campaign.time_of_day, data.advanceTime);
           await supabase.from('campaigns').update({
             time_of_day: newTime,
