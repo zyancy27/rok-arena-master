@@ -144,6 +144,7 @@ interface OrchestratorContext {
   character_state: any;
   world_state: any;
   campaign_state: any;
+  campaign_brain: any | null;
   npc_context: any[];
   active_enemies: any[];
   conversation_history: any[];
@@ -159,6 +160,7 @@ interface OrchestratorContext {
   auth_header: string;
   api_key: string;
   supabase_url: string;
+  body?: any;
 }
 
 interface SoundEvent {
@@ -233,7 +235,7 @@ async function fetchWorldContext(
       { auth: { persistSession: false } },
     );
 
-    const [sentimentResult, campaignResult, worldEventsResult, worldRumorsResult, worldStateResult] = await Promise.all([
+    const [sentimentResult, campaignResult, worldEventsResult, worldRumorsResult, worldStateResult, campaignBrainResult] = await Promise.all([
       supabaseAdmin
         .from('narrator_sentiments')
         .select('*')
@@ -242,7 +244,7 @@ async function fetchWorldContext(
       campaignId
         ? supabaseAdmin
             .from('campaigns')
-            .select('world_state, story_context, environment_tags, current_zone, time_of_day, day_count, difficulty_scale')
+            .select('world_state, story_context, environment_tags, current_zone, time_of_day, day_count, difficulty_scale, campaign_length, genre, tone')
             .eq('id', campaignId)
             .maybeSingle()
         : Promise.resolve({ data: null, error: null }),
@@ -269,6 +271,13 @@ async function fetchWorldContext(
             .select('region_name, environment_conditions, danger_level, npc_activity_summary, faction_activity_summary')
             .eq('campaign_id', campaignId)
             .limit(5)
+        : Promise.resolve({ data: null, error: null }),
+      campaignId
+        ? supabaseAdmin
+            .from('campaign_brain')
+            .select('*')
+            .eq('campaign_id', campaignId)
+            .maybeSingle()
         : Promise.resolve({ data: null, error: null }),
     ]);
 
@@ -310,7 +319,14 @@ async function fetchWorldContext(
         time_of_day: campaignResult.data.time_of_day,
         day_count: campaignResult.data.day_count,
         difficulty_scale: campaignResult.data.difficulty_scale,
+        campaign_length: campaignResult.data.campaign_length,
+        genre: campaignResult.data.genre,
+        tone: campaignResult.data.tone,
       };
+    }
+
+    if (campaignBrainResult?.data) {
+      ctx.campaign_brain = campaignBrainResult.data;
     }
 
     ctx.world_state = {
@@ -603,6 +619,118 @@ function buildCharacterDepthContext(ctx: OrchestratorContext): string {
   return parts.join('\n');
 }
 
+// ─── Build Campaign Brain Context (Narrator's Persistent Memory) ──
+function buildCampaignBrainContext(ctx: OrchestratorContext): string {
+  const brain = ctx.campaign_brain;
+  if (!brain) return '';
+
+  const parts: string[] = [];
+  parts.push('═══════════════════════════════════════════════════');
+  parts.push('CAMPAIGN BRAIN — NARRATOR\'S PERSISTENT MEMORY');
+  parts.push('You are the single authoritative intelligence running this campaign.');
+  parts.push('Everything below is YOUR memory. Use it to maintain continuity.');
+  parts.push('═══════════════════════════════════════════════════');
+
+  // Core identity
+  if (brain.premise) parts.push(`\nCAMPAIGN PREMISE: ${brain.premise}`);
+  if (brain.genre) parts.push(`GENRE: ${brain.genre}`);
+  if (brain.tone) parts.push(`TONE: ${brain.tone}`);
+  if (brain.campaign_objective) parts.push(`CAMPAIGN OBJECTIVE: ${brain.campaign_objective}`);
+  if (brain.core_storyline) parts.push(`CORE STORYLINE: ${brain.core_storyline}`);
+
+  // Arc tracking
+  if (brain.current_arc) parts.push(`\nCURRENT ARC: ${brain.current_arc}`);
+  const arcs = brain.major_arcs || [];
+  if (arcs.length > 0) {
+    parts.push('MAJOR ARCS:');
+    for (const arc of arcs) {
+      parts.push(`- ${arc.order || '?'}. ${arc.name}: ${arc.summary}`);
+    }
+  }
+
+  // Story beats and threads
+  const beats = brain.active_story_beats || [];
+  if (beats.length > 0) {
+    parts.push(`\nACTIVE STORY BEATS (what should happen soon):`);
+    for (const beat of beats) parts.push(`- ${beat}`);
+  }
+
+  const threads = brain.unresolved_threads || [];
+  if (threads.length > 0) {
+    parts.push(`\nUNRESOLVED THREADS (do NOT forget these):`);
+    for (const t of threads) parts.push(`- ${t}`);
+  }
+
+  // Truths
+  const known = brain.known_truths || [];
+  if (known.length > 0) {
+    parts.push(`\nKNOWN TRUTHS (the world openly knows):`);
+    for (const k of known) parts.push(`- ${k}`);
+  }
+  const hidden = brain.hidden_truths || [];
+  if (hidden.length > 0) {
+    parts.push(`\nHIDDEN TRUTHS (players don't know yet — reveal through play):`);
+    for (const h of hidden) parts.push(`- ${h}`);
+  }
+
+  // Pressures
+  const pressures = brain.future_pressures || [];
+  if (pressures.length > 0) {
+    parts.push(`\nFUTURE PRESSURES (will escalate if ignored):`);
+    for (const p of pressures) parts.push(`- ${p}`);
+  }
+  if (brain.current_pressure) parts.push(`CURRENT PRESSURE: ${brain.current_pressure}`);
+
+  // Time state
+  parts.push(`\nCAMPAIGN TIME: Day ${brain.current_day}, ${brain.current_time_block} (${brain.elapsed_hours || 0} hours elapsed)`);
+  parts.push(`CAMPAIGN LENGTH TARGET: ${brain.campaign_length_target}`);
+  if (brain.remaining_narrative_runway) parts.push(`NARRATIVE RUNWAY: ${brain.remaining_narrative_runway}`);
+
+  // World and factions
+  if (brain.world_summary) parts.push(`\nWORLD STATE: ${brain.world_summary}`);
+  const factions = brain.faction_state || [];
+  if (factions.length > 0) {
+    parts.push('FACTIONS:');
+    for (const f of factions) {
+      parts.push(`- ${f.name}: ${f.stance} | Goals: ${f.goals} | Power: ${f.power_level}`);
+    }
+  }
+
+  // Victory/failure
+  const victory = brain.victory_conditions || [];
+  const failure = brain.failure_conditions || [];
+  if (victory.length > 0) {
+    parts.push(`\nVICTORY CONDITIONS: ${victory.join(' | ')}`);
+  }
+  if (failure.length > 0) {
+    parts.push(`FAILURE CONDITIONS: ${failure.join(' | ')}`);
+  }
+
+  // Player impact
+  const impacts = brain.player_impact_log || [];
+  if (impacts.length > 0) {
+    parts.push(`\nPLAYER IMPACT LOG (consequences of player actions):`);
+    for (const imp of impacts.slice(-10)) {
+      parts.push(`- ${typeof imp === 'string' ? imp : JSON.stringify(imp)}`);
+    }
+  }
+
+  // Location
+  if (brain.current_location) parts.push(`\nCURRENT LOCATION: ${brain.current_location}`);
+
+  parts.push('\n═══════════════════════════════════════════════════');
+  parts.push('NARRATOR DIRECTIVES:');
+  parts.push('- NEVER forget the campaign objective or current arc');
+  parts.push('- ALWAYS weave player actions into the existing story — do not erase the story');
+  parts.push('- Track time realistically based on action types');
+  parts.push('- NPCs refer to each other by FIRST NAME unless full name is dramatically significant');
+  parts.push('- The world existed before the players arrived — NPCs have lives, agendas, and routines');
+  parts.push('- Inaction has consequences when time-sensitive pressures exist');
+  parts.push('═══════════════════════════════════════════════════');
+
+  return parts.join('\n');
+}
+
 // ─── Build Living World Context for Narrator (with Priority Gating) ──
 function buildLivingWorldContext(ctx: OrchestratorContext): string {
   const parts: string[] = [];
@@ -610,6 +738,10 @@ function buildLivingWorldContext(ctx: OrchestratorContext): string {
   const ps = ctx.priority_stack;
   const directive = ctx.narrative_directive;
   const suppressed = new Set(ps.suppressedSystems);
+
+  // ── CAMPAIGN BRAIN (narrator's persistent memory — always first) ──
+  const brainCtx = buildCampaignBrainContext(ctx);
+  if (brainCtx) parts.push(brainCtx);
 
   // ── TENSION CLASSIFICATION (Narrative Pressure Engine v2) ──
   const tension = classifyServerTension(ctx);
@@ -1041,6 +1173,7 @@ serve(async (req) => {
       character_state: narratorPayload.playerCharacter || {},
       world_state: narratorPayload.worldState || {},
       campaign_state: {},
+      campaign_brain: null,
       npc_context: narratorPayload.knownNpcs || [],
       active_enemies: narratorPayload.activeEnemies || [],
       conversation_history: narratorPayload.conversationHistory || [],
@@ -1056,6 +1189,7 @@ serve(async (req) => {
       auth_header: authHeader,
       api_key: LOVABLE_API_KEY,
       supabase_url: SUPABASE_URL,
+      body: narratorPayload,
     };
 
     // ─── Step 4: Fetch World Context (gated by priority) ───────
