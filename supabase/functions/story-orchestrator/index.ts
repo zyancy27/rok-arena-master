@@ -695,10 +695,37 @@ function buildCampaignBrainContext(ctx: OrchestratorContext): string {
   }
   if (brain.current_pressure) parts.push(`CURRENT PRESSURE: ${brain.current_pressure}`);
 
-  // Time state
+  // Time state with pacing awareness
   parts.push(`\nCAMPAIGN TIME: Day ${brain.current_day}, ${brain.current_time_block} (${brain.elapsed_hours || 0} hours elapsed)`);
   parts.push(`CAMPAIGN LENGTH TARGET: ${brain.campaign_length_target}`);
   if (brain.remaining_narrative_runway) parts.push(`NARRATIVE RUNWAY: ${brain.remaining_narrative_runway}`);
+
+  // Campaign pacing guidance based on length target
+  const lengthTarget = brain.campaign_length_target || 'medium';
+  const currentDay = brain.current_day || 1;
+  const pacingConfig: Record<string, { maxDays: number; earlyUntil: number; midUntil: number; lateFrom: number }> = {
+    short: { maxDays: 5, earlyUntil: 2, midUntil: 3, lateFrom: 4 },
+    medium: { maxDays: 15, earlyUntil: 4, midUntil: 10, lateFrom: 12 },
+    long: { maxDays: 40, earlyUntil: 10, midUntil: 28, lateFrom: 35 },
+  };
+  const pacing = pacingConfig[lengthTarget] || pacingConfig.medium;
+  let pacingPhase: string;
+  let pacingGuidance: string;
+  if (currentDay <= pacing.earlyUntil) {
+    pacingPhase = 'EARLY';
+    pacingGuidance = 'Establish the world, introduce key NPCs and threats. Plant hooks for later. Time moves at a normal pace — don\'t rush.';
+  } else if (currentDay <= pacing.midUntil) {
+    pacingPhase = 'MIDGAME';
+    pacingGuidance = 'Complications deepen. Threads interweave. Pressure builds. Some hooks should pay off, new ones emerge. Balance exploration with rising stakes.';
+  } else if (currentDay >= pacing.lateFrom) {
+    pacingPhase = 'ENDGAME';
+    pacingGuidance = `The campaign is approaching its conclusion (target: ~${pacing.maxDays} days). Threads should converge. Unresolved pressures escalate. Drive toward climax and resolution. Time-sensitive elements become URGENT.`;
+  } else {
+    pacingPhase = 'LATE-MID';
+    pacingGuidance = 'Stakes are high. Major arcs should be in motion. Some threads resolve, creating consequences. Begin foreshadowing the endgame.';
+  }
+  parts.push(`\nPACING PHASE: ${pacingPhase} (Day ${currentDay} of ~${pacing.maxDays} target)`);
+  parts.push(`PACING GUIDANCE: ${pacingGuidance}`);
 
   // World and factions
   if (brain.world_summary) parts.push(`\nWORLD STATE: ${brain.world_summary}`);
@@ -736,10 +763,12 @@ function buildCampaignBrainContext(ctx: OrchestratorContext): string {
   parts.push('NARRATOR DIRECTIVES:');
   parts.push('- NEVER forget the campaign objective or current arc');
   parts.push('- ALWAYS weave player actions into the existing story — do not erase the story');
-  parts.push('- Track time realistically based on action types');
+  parts.push('- Track time realistically: rest=long, combat=short, travel=medium, dialogue=quick');
+  parts.push('- When time advances, the world CHANGES: NPCs relocate, weather shifts, deadlines approach');
+  parts.push('- Time-sensitive pressures ESCALATE when ignored — a rescue becomes a recovery, a threat becomes an attack');
+  parts.push('- Inaction has consequences when time-sensitive pressures exist — the world does not wait');
   parts.push('- NPCs refer to each other by FIRST NAME unless full name is dramatically significant');
   parts.push('- The world existed before the players arrived — NPCs have lives, agendas, and routines');
-  parts.push('- Inaction has consequences when time-sensitive pressures exist');
   parts.push('═══════════════════════════════════════════════════');
 
   return parts.join('\n');
@@ -1099,16 +1128,16 @@ function estimateElapsedHours(steps: number, mode: string): number {
   // Each "step" is one time block (~3 hours), but mode adjusts realism
   const BASE_HOURS_PER_STEP = 3;
   const modeMultipliers: Record<string, number> = {
-    combat: 0.5,    // combat is fast — 1.5h per step
-    rest: 2.0,      // rest is long — 6h per step
-    travel: 1.5,    // travel takes time — 4.5h per step
-    dialogue: 0.3,  // conversations are quick — ~1h per step
-    exploration: 1.0,
-    investigation: 0.7,
-    crisis: 0.3,
-    social: 0.5,
-    economy: 0.5,
-    discovery: 0.8,
+    combat: 0.3,      // combat is fast — ~1h per step
+    rest: 2.5,         // rest/sleep is long — 7.5h per step  
+    travel: 1.5,       // travel takes time — 4.5h per step
+    dialogue: 0.2,     // conversations are quick — ~40min per step
+    exploration: 0.8,  // exploring takes moderate time
+    investigation: 0.5, // focused investigation
+    crisis: 0.2,       // crisis moments are compressed
+    social: 0.4,       // social interactions
+    economy: 0.3,      // trading/shopping
+    discovery: 0.6,    // discovering things
   };
   const mult = modeMultipliers[mode] || 1.0;
   return Math.round((steps * BASE_HOURS_PER_STEP * mult) * 10) / 10;

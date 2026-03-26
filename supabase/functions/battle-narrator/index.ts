@@ -1657,7 +1657,12 @@ CORE RULES:
    Describe this naturally without breaking immersion.
 3. DYNAMIC WORLD: React to player actions. If they start a fight, create an encounter. If they explore, describe discoveries. If they're creative, reward it narratively.
 4. SCALING: Scale encounters based on party level and size. Create a mix of easy, moderate, and overwhelming encounters as the story demands.
-5. TIME: Current time is ${timeOfDay}, Day ${dayCount}. Reflect this in descriptions (lighting, NPC availability, creature behavior).
+5. TIME: Current time is ${timeOfDay}, Day ${dayCount}. Time is a real resource in this world:
+   - Reflect time in descriptions: lighting, shadows, NPC schedules, creature behavior, temperature.
+   - dawn/morning: merchants open, guards change shift, streets fill. midday/afternoon: peak activity, heat. dusk/evening: shops close, taverns fill, patrols thin. night/midnight: dangerous, most NPCs sleep, predators active.
+   - When advanceTime > 0, describe what changed: "The sun has shifted — afternoon now. The market crowd has thinned."
+   - Time-sensitive hooks and pressures should escalate or expire when time passes. A kidnapped NPC doesn't wait forever. A storm approaches. A deadline looms.
+   - If the player rests or sleeps, jump time appropriately (advanceTime: 2-3) and describe what happened overnight — NPC movements, weather changes, distant events.
 6. You MUST respond with valid JSON (no markdown fences).
 7. COMBAT INTENT vs OUTCOME: Player messages describe what they INTEND to do. If dice results are provided, they determine whether the action succeeds. Respect the dice outcome in your narration.${diceInstructions}
 
@@ -1687,7 +1692,13 @@ OUTPUT FORMAT (JSON):
   "narration": "Full narration text as a single string (backwards compatibility — combine all beat content).${isMultiplayer ? ` MULTIPLAYER: NEVER use 'you' or 'your'. Always use character names. NEVER write dialogue, actions, movement, emotions, or reactions for any player character other than ${playerCharacter.name}. Other party members (${partyNames.filter((n: string) => n !== playerCharacter.name).join(', ')}) are controlled by REAL PEOPLE — only their players decide what they do or say.` : ''}",
   "xpGained": <number 0-50 based on action significance>,
   "hpChange": <number, negative for damage, positive for healing, 0 for none>,
-  "advanceTime": <number 0-2, how many time periods to advance>,
+  "advanceTime": <number 0-3, how many time blocks to advance based on action type:
+    0 = instant actions (quick dialogue, examining something nearby, picking up an item)
+    1 = short actions (a brief conversation, a single combat encounter, searching a room, a short walk within the same zone)
+    2 = medium actions (extended travel between zones, a full rest/camp, a long negotiation, thorough exploration of a large area, an extended fight)
+    3 = long actions (overnight rest, long-distance travel, full day of activity, major construction/crafting)
+    Apply realistically. Most actions are 0-1. Travel and rest are typically 2. Only use 3 for major time jumps.
+    TIME AFFECTS THE WORLD: When time advances, the world changes — lighting shifts, NPCs move to different locations, shops open/close, guard patrols rotate, weather changes. Reflect this in your narration.>,
   "newZone": <string or null if zone changes>,
   "encounterType": <"combat"|"social"|"exploration"|"rest"|null>,
   "sceneMap": {
