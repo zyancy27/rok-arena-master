@@ -2260,6 +2260,10 @@ ${isMultiplayer ? `MULTIPLAYER: Respond using "${playerCharacter.name}" — NEVE
         npcUpdates: Array.isArray(parsed.npcUpdates) ? parsed.npcUpdates : [],
         enemySpawned: parsed.enemySpawned && typeof parsed.enemySpawned === 'object' && parsed.enemySpawned.name ? parsed.enemySpawned : null,
         enemyUpdates: Array.isArray(parsed.enemyUpdates) ? parsed.enemyUpdates : [],
+        hookUpdates: Array.isArray(parsed.hookUpdates) ? parsed.hookUpdates : [],
+        characterDiscoveries: Array.isArray(parsed.characterDiscoveries) ? parsed.characterDiscoveries : [],
+        worldStateUpdates: Array.isArray(parsed.worldStateUpdates) ? parsed.worldStateUpdates : [],
+        factionUpdates: Array.isArray(parsed.factionUpdates) ? parsed.factionUpdates : [],
         sentimentUpdate: parsed.sentimentUpdate && typeof parsed.sentimentUpdate === 'object' ? parsed.sentimentUpdate : null,
       }),
       { headers: { ...cors, "Content-Type": "application/json" } }
