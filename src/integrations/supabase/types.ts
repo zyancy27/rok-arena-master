@@ -315,6 +315,7 @@ export type Database = {
           player_impact_log: Json
           premise: string
           remaining_narrative_runway: string | null
+          story_hooks: Json
           tone: string | null
           unresolved_threads: Json
           updated_at: string
@@ -347,6 +348,7 @@ export type Database = {
           player_impact_log?: Json
           premise?: string
           remaining_narrative_runway?: string | null
+          story_hooks?: Json
           tone?: string | null
           unresolved_threads?: Json
           updated_at?: string
@@ -379,6 +381,7 @@ export type Database = {
           player_impact_log?: Json
           premise?: string
           remaining_narrative_runway?: string | null
+          story_hooks?: Json
           tone?: string | null
           unresolved_threads?: Json
           updated_at?: string
