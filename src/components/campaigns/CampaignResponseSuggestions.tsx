@@ -65,7 +65,7 @@ export default function CampaignResponseSuggestions({
     >
       <button
         type="button"
-        onClick={() => setCollapsed((prev) => !prev)}
+        onClick={onToggleCollapse}
         className="flex w-full items-center gap-2 text-xs text-muted-foreground"
       >
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent/50 text-accent-foreground">
