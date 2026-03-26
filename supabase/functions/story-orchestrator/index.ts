@@ -1431,7 +1431,7 @@ serve(async (req) => {
     // ─── Step 6c: Persist NPC Updates (narrator-owned) ─────────
     let npcPersistResult: { created: number; updated: number } | null = null;
     if (campaignId && ctx.narration_result?.npcUpdates?.length > 0) {
-      npcPersistResult = await persistNpcUpdates(ctx, campaignId);
+      npcPersistResult = await persistNpcUpdates(ctx, campaignId, characterId);
     }
 
     // ─── Step 7: Build Orchestrated Response ───────────────────
