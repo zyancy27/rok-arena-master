@@ -292,7 +292,7 @@ export const CampaignActionPipeline = {
     }, {
       activeHazards: context.activeHazards,
       environmentTags: context.environmentTags,
-      worldTickTags: worldTick.driftTags,
+      worldTickTags: worldTickDriftTags,
       narratorMetadata: {
         actorNarrationBias: generatedActorIdentity.narrationBias,
         npcNarrationBias: generatedNpcIdentity?.narrationBias,
