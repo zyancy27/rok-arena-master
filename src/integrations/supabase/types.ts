@@ -288,6 +288,113 @@ export type Database = {
           },
         ]
       }
+      campaign_brain: {
+        Row: {
+          active_story_beats: Json
+          campaign_id: string
+          campaign_length_target: string
+          campaign_objective: string | null
+          core_storyline: string | null
+          created_at: string
+          current_arc: string | null
+          current_day: number
+          current_location: string | null
+          current_pressure: string | null
+          current_time_block: string
+          elapsed_hours: number
+          faction_state: Json
+          failure_conditions: Json
+          future_pressures: Json
+          genre: string | null
+          hidden_truths: Json
+          id: string
+          known_truths: Json
+          major_arcs: Json
+          npc_roster_summary: Json
+          opening_hook: string | null
+          player_impact_log: Json
+          premise: string
+          remaining_narrative_runway: string | null
+          tone: string | null
+          unresolved_threads: Json
+          updated_at: string
+          victory_conditions: Json
+          world_summary: string | null
+        }
+        Insert: {
+          active_story_beats?: Json
+          campaign_id: string
+          campaign_length_target?: string
+          campaign_objective?: string | null
+          core_storyline?: string | null
+          created_at?: string
+          current_arc?: string | null
+          current_day?: number
+          current_location?: string | null
+          current_pressure?: string | null
+          current_time_block?: string
+          elapsed_hours?: number
+          faction_state?: Json
+          failure_conditions?: Json
+          future_pressures?: Json
+          genre?: string | null
+          hidden_truths?: Json
+          id?: string
+          known_truths?: Json
+          major_arcs?: Json
+          npc_roster_summary?: Json
+          opening_hook?: string | null
+          player_impact_log?: Json
+          premise?: string
+          remaining_narrative_runway?: string | null
+          tone?: string | null
+          unresolved_threads?: Json
+          updated_at?: string
+          victory_conditions?: Json
+          world_summary?: string | null
+        }
+        Update: {
+          active_story_beats?: Json
+          campaign_id?: string
+          campaign_length_target?: string
+          campaign_objective?: string | null
+          core_storyline?: string | null
+          created_at?: string
+          current_arc?: string | null
+          current_day?: number
+          current_location?: string | null
+          current_pressure?: string | null
+          current_time_block?: string
+          elapsed_hours?: number
+          faction_state?: Json
+          failure_conditions?: Json
+          future_pressures?: Json
+          genre?: string | null
+          hidden_truths?: Json
+          id?: string
+          known_truths?: Json
+          major_arcs?: Json
+          npc_roster_summary?: Json
+          opening_hook?: string | null
+          player_impact_log?: Json
+          premise?: string
+          remaining_narrative_runway?: string | null
+          tone?: string | null
+          unresolved_threads?: Json
+          updated_at?: string
+          victory_conditions?: Json
+          world_summary?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_brain_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: true
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_enemies: {
         Row: {
           abilities: string | null
@@ -572,63 +679,135 @@ export type Database = {
       }
       campaign_npcs: {
         Row: {
+          age_range: string | null
           appearance: string | null
           backstory: string | null
           campaign_id: string
           created_at: string
           current_zone: string | null
+          faction_ties: Json
+          fears: Json
           first_met_day: number
+          first_name: string | null
+          full_name: string | null
+          gender_presentation: string | null
+          goals: Json
+          home_zone: string | null
           id: string
+          is_chaotic: boolean
+          is_outgoing: boolean
+          knows_key_facts: Json
           last_seen_day: number | null
+          likely_to_initiate: boolean
+          memory_summary: string | null
           metadata: Json | null
+          mobility: string
           name: string
+          notable_hooks: Json
           npc_current_activity: string | null
           npc_goal: string | null
           npc_motivation: string | null
           npc_relationships: Json
+          occupation: string | null
           personality: string | null
+          personality_traits: Json
+          relationship_summary: string | null
           role: string
+          secrets: Json
+          social_ties: Json
           status: string
+          story_relevance_level: string
+          temperament: string | null
+          title_honorific: string | null
+          trust_disposition: number
           updated_at: string
         }
         Insert: {
+          age_range?: string | null
           appearance?: string | null
           backstory?: string | null
           campaign_id: string
           created_at?: string
           current_zone?: string | null
+          faction_ties?: Json
+          fears?: Json
           first_met_day?: number
+          first_name?: string | null
+          full_name?: string | null
+          gender_presentation?: string | null
+          goals?: Json
+          home_zone?: string | null
           id?: string
+          is_chaotic?: boolean
+          is_outgoing?: boolean
+          knows_key_facts?: Json
           last_seen_day?: number | null
+          likely_to_initiate?: boolean
+          memory_summary?: string | null
           metadata?: Json | null
+          mobility?: string
           name: string
+          notable_hooks?: Json
           npc_current_activity?: string | null
           npc_goal?: string | null
           npc_motivation?: string | null
           npc_relationships?: Json
+          occupation?: string | null
           personality?: string | null
+          personality_traits?: Json
+          relationship_summary?: string | null
           role?: string
+          secrets?: Json
+          social_ties?: Json
           status?: string
+          story_relevance_level?: string
+          temperament?: string | null
+          title_honorific?: string | null
+          trust_disposition?: number
           updated_at?: string
         }
         Update: {
+          age_range?: string | null
           appearance?: string | null
           backstory?: string | null
           campaign_id?: string
           created_at?: string
           current_zone?: string | null
+          faction_ties?: Json
+          fears?: Json
           first_met_day?: number
+          first_name?: string | null
+          full_name?: string | null
+          gender_presentation?: string | null
+          goals?: Json
+          home_zone?: string | null
           id?: string
+          is_chaotic?: boolean
+          is_outgoing?: boolean
+          knows_key_facts?: Json
           last_seen_day?: number | null
+          likely_to_initiate?: boolean
+          memory_summary?: string | null
           metadata?: Json | null
+          mobility?: string
           name?: string
+          notable_hooks?: Json
           npc_current_activity?: string | null
           npc_goal?: string | null
           npc_motivation?: string | null
           npc_relationships?: Json
+          occupation?: string | null
           personality?: string | null
+          personality_traits?: Json
+          relationship_summary?: string | null
           role?: string
+          secrets?: Json
+          social_ties?: Json
           status?: string
+          story_relevance_level?: string
+          temperament?: string | null
+          title_honorific?: string | null
+          trust_disposition?: number
           updated_at?: string
         }
         Relationships: [
@@ -806,6 +985,7 @@ export type Database = {
       campaigns: {
         Row: {
           average_party_level: number
+          campaign_length: string
           campaign_seed: string | null
           chosen_location: string | null
           created_at: string
@@ -814,19 +994,23 @@ export type Database = {
           day_count: number
           description: string | null
           difficulty_scale: number
+          elapsed_hours: number
           environment_tags: Json | null
+          genre: string | null
           id: string
           max_players: number
           name: string
           status: Database["public"]["Enums"]["campaign_status"]
           story_context: Json | null
           time_of_day: Database["public"]["Enums"]["campaign_time"]
+          tone: string | null
           updated_at: string
           visibility: string
           world_state: Json | null
         }
         Insert: {
           average_party_level?: number
+          campaign_length?: string
           campaign_seed?: string | null
           chosen_location?: string | null
           created_at?: string
@@ -835,19 +1019,23 @@ export type Database = {
           day_count?: number
           description?: string | null
           difficulty_scale?: number
+          elapsed_hours?: number
           environment_tags?: Json | null
+          genre?: string | null
           id?: string
           max_players?: number
           name: string
           status?: Database["public"]["Enums"]["campaign_status"]
           story_context?: Json | null
           time_of_day?: Database["public"]["Enums"]["campaign_time"]
+          tone?: string | null
           updated_at?: string
           visibility?: string
           world_state?: Json | null
         }
         Update: {
           average_party_level?: number
+          campaign_length?: string
           campaign_seed?: string | null
           chosen_location?: string | null
           created_at?: string
@@ -856,13 +1044,16 @@ export type Database = {
           day_count?: number
           description?: string | null
           difficulty_scale?: number
+          elapsed_hours?: number
           environment_tags?: Json | null
+          genre?: string | null
           id?: string
           max_players?: number
           name?: string
           status?: Database["public"]["Enums"]["campaign_status"]
           story_context?: Json | null
           time_of_day?: Database["public"]["Enums"]["campaign_time"]
+          tone?: string | null
           updated_at?: string
           visibility?: string
           world_state?: Json | null
