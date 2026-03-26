@@ -1305,6 +1305,83 @@ async function persistNpcUpdates(
   }
 }
 
+// ─── Pipeline Step: Persist Character Discoveries (Gated) ──────
+async function persistCharacterDiscoveries(
+  ctx: OrchestratorContext,
+  characterId: string,
+): Promise<{ synced: number; fields: string[] } | null> {
+  const discoveries = ctx.narration_result?.characterDiscoveries;
+  if (!Array.isArray(discoveries) || discoveries.length === 0) return null;
+
+  const VALID_FIELDS = ['personality', 'mentality', 'lore', 'abilities', 'powers', 'weapons_items'] as const;
+  type DiscoverableField = typeof VALID_FIELDS[number];
+
+  try {
+    const supabaseAdmin = createClient(
+      ctx.supabase_url,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } },
+    );
+
+    // Fetch current character fields
+    const { data: character, error: fetchError } = await supabaseAdmin
+      .from('characters')
+      .select('personality, mentality, lore, abilities, powers, weapons_items')
+      .eq('id', characterId)
+      .maybeSingle();
+
+    if (fetchError || !character) {
+      ctx.errors.push({ step: 'persist_discoveries', error: 'Character not found', recoverable: true });
+      return null;
+    }
+
+    // Filter valid discoveries and deduplicate against existing content
+    const validDiscoveries = discoveries.filter((d: any) => {
+      if (!d.targetField || !VALID_FIELDS.includes(d.targetField)) return false;
+      if (!d.content || typeof d.content !== 'string' || d.content.length < 5) return false;
+      // Check if this content already exists in the field (prevent duplicates)
+      const existing = (character as any)[d.targetField] || '';
+      if (existing.toLowerCase().includes(d.content.toLowerCase().slice(0, 30))) return false;
+      return true;
+    });
+
+    if (validDiscoveries.length === 0) return null;
+
+    // Build field updates by appending discoveries
+    const updates: Partial<Record<DiscoverableField, string>> = {};
+    const touchedFields: string[] = [];
+
+    for (const disc of validDiscoveries) {
+      const field = disc.targetField as DiscoverableField;
+      const existing = updates[field] ?? ((character as any)[field] || '');
+      const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      const entry = `[Discovered ${date}] ${disc.content}`;
+      const separator = existing.trim() ? '\n\n' : '';
+      updates[field] = `${existing}${separator}${entry}`;
+      if (!touchedFields.includes(field)) touchedFields.push(field);
+    }
+
+    const { error: updateError } = await supabaseAdmin
+      .from('characters')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', characterId);
+
+    if (updateError) {
+      ctx.errors.push({ step: 'persist_discoveries', error: updateError.message, recoverable: true });
+      return null;
+    }
+
+    return { synced: validDiscoveries.length, fields: touchedFields };
+  } catch (e) {
+    ctx.errors.push({
+      step: 'persist_discoveries',
+      error: e instanceof Error ? e.message : 'Unknown error',
+      recoverable: true,
+    });
+    return null;
+  }
+}
+
 // ─── Pipeline Step: Persist Hook Updates (Narrator-Owned) ──────
 async function persistHookUpdates(
   ctx: OrchestratorContext,
