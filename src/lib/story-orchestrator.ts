@@ -33,6 +33,11 @@ export interface OrchestratorMeta {
     rumors_count: number;
     danger_level: number;
   };
+  time_update?: {
+    timeBlock: string;
+    day: number;
+    elapsedHours: number;
+  };
   pipeline_errors?: Array<{
     step: string;
     error: string;
