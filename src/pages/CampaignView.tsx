@@ -147,6 +147,7 @@ export default function CampaignView() {
     isSolo?: boolean;
     activeEnemyNames?: string[];
     knownNpcNames?: Set<string>;
+    sceneBeats?: SceneBeat[] | null;
   }) => {
     const normalizedMessages = normalizeNarrationToCampaignMessages({
       campaignId: input.campaignId,
@@ -156,6 +157,7 @@ export default function CampaignView() {
       activeEnemyNames: input.activeEnemyNames,
       focalCharacterName: input.focalCharacterName,
       isSolo: input.isSolo,
+      sceneBeats: input.sceneBeats,
     });
 
     if (normalizedMessages.length === 0) return;
