@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import type { CampaignResponseSuggestion } from '@/lib/campaign-response-suggestions';
 import { Brain, ChevronDown, ChevronUp, MessageCircleQuestion, RefreshCw, Send, Sparkles, Swords, Undo2 } from 'lucide-react';
@@ -8,6 +7,8 @@ interface CampaignResponseSuggestionsProps {
   selectedSuggestion: CampaignResponseSuggestion | null;
   isLoading?: boolean;
   disabled?: boolean;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
   onSelect: (suggestion: CampaignResponseSuggestion) => void;
   onCancel: () => void;
   onConfirm: (suggestion: CampaignResponseSuggestion) => void;
@@ -47,12 +48,13 @@ export default function CampaignResponseSuggestions({
   selectedSuggestion,
   isLoading = false,
   disabled = false,
+  collapsed,
+  onToggleCollapse,
   onSelect,
   onCancel,
   onConfirm,
   onRefresh,
 }: CampaignResponseSuggestionsProps) {
-  const [collapsed, setCollapsed] = useState(false);
 
   if (!isLoading && suggestions.length === 0 && !selectedSuggestion) return null;
 
@@ -63,7 +65,7 @@ export default function CampaignResponseSuggestions({
     >
       <button
         type="button"
-        onClick={() => setCollapsed((prev) => !prev)}
+        onClick={onToggleCollapse}
         className="flex w-full items-center gap-2 text-xs text-muted-foreground"
       >
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent/50 text-accent-foreground">

@@ -29,6 +29,8 @@ describe('CampaignResponseSuggestions', () => {
         <CampaignResponseSuggestions
           suggestions={suggestions}
           selectedSuggestion={null}
+          collapsed={false}
+          onToggleCollapse={vi.fn()}
           onSelect={vi.fn()}
           onCancel={vi.fn()}
           onConfirm={vi.fn()}
@@ -51,6 +53,8 @@ describe('CampaignResponseSuggestions', () => {
       <CampaignResponseSuggestions
         suggestions={suggestions}
         selectedSuggestion={suggestions[0]}
+        collapsed={false}
+        onToggleCollapse={vi.fn()}
         onSelect={onSelect}
         onCancel={vi.fn()}
         onConfirm={vi.fn()}
@@ -68,6 +72,8 @@ describe('CampaignResponseSuggestions', () => {
       <CampaignResponseSuggestions
         suggestions={suggestions}
         selectedSuggestion={suggestions[1]}
+        collapsed={false}
+        onToggleCollapse={vi.fn()}
         onSelect={vi.fn()}
         onCancel={vi.fn()}
         onConfirm={onConfirm}
@@ -85,6 +91,8 @@ describe('CampaignResponseSuggestions', () => {
       <CampaignResponseSuggestions
         suggestions={suggestions}
         selectedSuggestion={suggestions[0]}
+        collapsed={false}
+        onToggleCollapse={vi.fn()}
         onSelect={vi.fn()}
         onCancel={onCancel}
         onConfirm={onConfirm}
@@ -94,5 +102,22 @@ describe('CampaignResponseSuggestions', () => {
     view.getByRole('button', { name: /Back/i }).click();
     expect(onCancel).toHaveBeenCalledTimes(1);
     expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it('hides suggestions content when collapsed', () => {
+    const view = render(
+      <CampaignResponseSuggestions
+        suggestions={suggestions}
+        selectedSuggestion={null}
+        collapsed={true}
+        onToggleCollapse={vi.fn()}
+        onSelect={vi.fn()}
+        onCancel={vi.fn()}
+        onConfirm={vi.fn()}
+      />,
+    );
+
+    expect(view.getByText('Possible thoughts')).toBeInTheDocument();
+    expect(view.queryByRole('button', { name: /Ask Lyra about the distortion/i })).not.toBeInTheDocument();
   });
 });

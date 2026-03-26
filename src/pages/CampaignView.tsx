@@ -180,6 +180,7 @@ export default function CampaignView() {
   const [responseSuggestions, setResponseSuggestions] = useState<CampaignResponseSuggestion[]>([]);
   const [selectedResponseSuggestion, setSelectedResponseSuggestion] = useState<CampaignResponseSuggestion | null>(null);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [suggestionsCollapsed, setSuggestionsCollapsed] = useState(true);
   const [sending, setSending] = useState(false);
   const [narratorTyping, setNarratorTyping] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -1955,6 +1956,7 @@ export default function CampaignView() {
     }
     setSelectedResponseSuggestion(null);
     setResponseSuggestions([]);
+    setSuggestionsCollapsed(true);
     suggestionContextKeyRef.current = '';
     updateTypingStatus(false);
     setSending(true);
@@ -1995,6 +1997,7 @@ export default function CampaignView() {
   };
 
   const handleConfirmSuggestedResponse = async (suggestion: CampaignResponseSuggestion) => {
+    setSuggestionsCollapsed(true);
     await handleSendMessage(suggestion.message);
   };
 
@@ -2817,6 +2820,8 @@ export default function CampaignView() {
                       selectedSuggestion={selectedResponseSuggestion}
                       isLoading={suggestionsLoading}
                       disabled={sending || narratorTyping}
+                      collapsed={suggestionsCollapsed}
+                      onToggleCollapse={() => setSuggestionsCollapsed(prev => !prev)}
                       onSelect={setSelectedResponseSuggestion}
                       onCancel={() => setSelectedResponseSuggestion(null)}
                       onConfirm={handleConfirmSuggestedResponse}
