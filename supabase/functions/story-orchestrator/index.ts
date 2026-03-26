@@ -1571,6 +1571,12 @@ serve(async (req) => {
       });
     }
 
+    // ─── Step 6e: Persist Character Discoveries (gated) ──────────
+    let discoveryResults: { synced: number; fields: string[] } | null = null;
+    if (characterId && ctx.narration_result?.characterDiscoveries?.length > 0) {
+      discoveryResults = await persistCharacterDiscoveries(ctx, characterId);
+    }
+
     // ─── Step 7: Build Orchestrated Response ───────────────────
     const tension = classifyServerTension(ctx);
     const emergentHints = detectEmergentHints(ctx);

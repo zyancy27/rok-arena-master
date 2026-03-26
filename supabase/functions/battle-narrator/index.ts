@@ -1784,6 +1784,28 @@ OUTPUT FORMAT (JSON):
       "priority": "<number 1-10, only for created/reshaped hooks>"
     }
   ] or [] if no hook changes,
+  "characterDiscoveries": [
+    // OPTIONAL — report character trait/ability revelations that emerged through gameplay THIS turn.
+    // The narrator observes character behavior and identifies moments where something meaningful about the character was REVEALED or CONFIRMED through their actions.
+    // RULES:
+    // - Only include discoveries that are EARNED through gameplay — not assumed from the character sheet.
+    // - A discovery happens when the character DEMONSTRATES a trait, not when they merely state it.
+    // - Examples of valid discoveries:
+    //   • Character showed compassion by helping a wounded NPC → personality discovery
+    //   • Character used creative tactics under pressure → mentality discovery  
+    //   • Character revealed backstory through dialogue with an NPC → lore discovery
+    //   • Character unlocked or demonstrated a new ability through combat → abilities discovery
+    //   • Character found a significant weapon/artifact → weapons_items discovery
+    // - Do NOT discover basic/obvious traits (e.g. "can walk" or "has hands")
+    // - Do NOT rediscover things already on the character sheet
+    // - Maximum 1-2 discoveries per turn. Most turns should have 0.
+    // - Discoveries should feel meaningful and earned, not routine.
+    {
+      "targetField": "personality|mentality|lore|abilities|powers|weapons_items",
+      "content": "Concise description of what was revealed (1-2 sentences max)",
+      "trigger": "Brief description of WHAT the character did that revealed this"
+    }
+  ] or [] if no discoveries this turn,
   "sentimentUpdate": {
     "nickname": "a short nickname for this character. Evolve it over time — early on use observational nicknames ('the quiet one'), later use earned ones ('iron saint', 'world-walker'). Keep if still fitting, change when your perception shifts. 1-3 words.",
     "sentiment_shift": <number -10 to +10, how much your overall opinion changed this turn. Base this on CREATIVITY and ENGAGEMENT:
