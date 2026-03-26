@@ -763,10 +763,12 @@ function buildCampaignBrainContext(ctx: OrchestratorContext): string {
   parts.push('NARRATOR DIRECTIVES:');
   parts.push('- NEVER forget the campaign objective or current arc');
   parts.push('- ALWAYS weave player actions into the existing story — do not erase the story');
-  parts.push('- Track time realistically based on action types');
+  parts.push('- Track time realistically: rest=long, combat=short, travel=medium, dialogue=quick');
+  parts.push('- When time advances, the world CHANGES: NPCs relocate, weather shifts, deadlines approach');
+  parts.push('- Time-sensitive pressures ESCALATE when ignored — a rescue becomes a recovery, a threat becomes an attack');
+  parts.push('- Inaction has consequences when time-sensitive pressures exist — the world does not wait');
   parts.push('- NPCs refer to each other by FIRST NAME unless full name is dramatically significant');
   parts.push('- The world existed before the players arrived — NPCs have lives, agendas, and routines');
-  parts.push('- Inaction has consequences when time-sensitive pressures exist');
   parts.push('═══════════════════════════════════════════════════');
 
   return parts.join('\n');
