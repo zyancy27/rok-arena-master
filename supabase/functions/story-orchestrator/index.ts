@@ -1336,11 +1336,7 @@ async function persistCharacterDiscoveries(
   type DiscoverableField = typeof VALID_FIELDS[number];
 
   try {
-    const supabaseAdmin = createClient(
-      ctx.supabase_url,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false } },
-    );
+    const supabaseAdmin = ctx.supabaseAdmin;
 
     // Fetch current character fields
     const { data: character, error: fetchError } = await supabaseAdmin
