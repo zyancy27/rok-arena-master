@@ -765,7 +765,7 @@ function buildCampaignBrainContext(ctx: OrchestratorContext): string {
   parts.push('- When time advances, the world CHANGES: NPCs relocate, weather shifts, deadlines approach');
   parts.push('- Time-sensitive pressures ESCALATE when ignored — a rescue becomes a recovery, a threat becomes an attack');
   parts.push('- Inaction has consequences when time-sensitive pressures exist — the world does not wait');
-  parts.push('- NPCs refer to each other by FIRST NAME unless full name is dramatically significant');
+  parts.push('- NPC NAMING: Use FIRST NAMES by default in narration and dialogue attribution. Reserve full names for dramatically significant moments (formal introductions, threats, ceremonies, emotional reveals).');
   parts.push('- The world existed before the players arrived — NPCs have lives, agendas, and routines');
   parts.push('═══════════════════════════════════════════════════');
 
