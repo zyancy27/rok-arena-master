@@ -180,6 +180,7 @@ export default function CampaignView() {
   const [responseSuggestions, setResponseSuggestions] = useState<CampaignResponseSuggestion[]>([]);
   const [selectedResponseSuggestion, setSelectedResponseSuggestion] = useState<CampaignResponseSuggestion | null>(null);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  const [suggestionsCollapsed, setSuggestionsCollapsed] = useState(true);
   const [sending, setSending] = useState(false);
   const [narratorTyping, setNarratorTyping] = useState(false);
   const [loading, setLoading] = useState(true);
