@@ -1338,6 +1338,7 @@ serve(async (req) => {
           rumors_count: (ctx.world_state.world_rumors || []).length,
           danger_level: (ctx.world_state.regional_states || []).reduce((max: number, r: any) => Math.max(max, r.danger_level || 0), 0),
         },
+        time_update: timeUpdate || undefined,
         pipeline_errors: ctx.errors.length > 0 ? ctx.errors : undefined,
       },
     };
