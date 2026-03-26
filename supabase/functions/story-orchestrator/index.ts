@@ -1128,16 +1128,16 @@ function estimateElapsedHours(steps: number, mode: string): number {
   // Each "step" is one time block (~3 hours), but mode adjusts realism
   const BASE_HOURS_PER_STEP = 3;
   const modeMultipliers: Record<string, number> = {
-    combat: 0.5,    // combat is fast — 1.5h per step
-    rest: 2.0,      // rest is long — 6h per step
-    travel: 1.5,    // travel takes time — 4.5h per step
-    dialogue: 0.3,  // conversations are quick — ~1h per step
-    exploration: 1.0,
-    investigation: 0.7,
-    crisis: 0.3,
-    social: 0.5,
-    economy: 0.5,
-    discovery: 0.8,
+    combat: 0.3,      // combat is fast — ~1h per step
+    rest: 2.5,         // rest/sleep is long — 7.5h per step  
+    travel: 1.5,       // travel takes time — 4.5h per step
+    dialogue: 0.2,     // conversations are quick — ~40min per step
+    exploration: 0.8,  // exploring takes moderate time
+    investigation: 0.5, // focused investigation
+    crisis: 0.2,       // crisis moments are compressed
+    social: 0.4,       // social interactions
+    economy: 0.3,      // trading/shopping
+    discovery: 0.6,    // discovering things
   };
   const mult = modeMultipliers[mode] || 1.0;
   return Math.round((steps * BASE_HOURS_PER_STEP * mult) * 10) / 10;
