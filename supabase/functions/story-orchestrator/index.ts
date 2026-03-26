@@ -1076,6 +1076,100 @@ async function updateSentimentInDb(
   }
 }
 
+// ─── Time Progression Constants ────────────────────────────────
+const TIME_BLOCKS = ['dawn', 'morning', 'midday', 'afternoon', 'dusk', 'evening', 'night', 'midnight'] as const;
+
+/** Map narrative mode + advanceTime steps to realistic elapsed hours */
+function estimateElapsedHours(steps: number, mode: string): number {
+  if (steps === 0) return 0;
+  // Each "step" is one time block (~3 hours), but mode adjusts realism
+  const BASE_HOURS_PER_STEP = 3;
+  const modeMultipliers: Record<string, number> = {
+    combat: 0.5,    // combat is fast — 1.5h per step
+    rest: 2.0,      // rest is long — 6h per step
+    travel: 1.5,    // travel takes time — 4.5h per step
+    dialogue: 0.3,  // conversations are quick — ~1h per step
+    exploration: 1.0,
+    investigation: 0.7,
+    crisis: 0.3,
+    social: 0.5,
+    economy: 0.5,
+    discovery: 0.8,
+  };
+  const mult = modeMultipliers[mode] || 1.0;
+  return Math.round((steps * BASE_HOURS_PER_STEP * mult) * 10) / 10;
+}
+
+function advanceTimeBlock(current: string, steps: number): { time: string; newDay: boolean } {
+  const idx = TIME_BLOCKS.indexOf(current as any);
+  const startIdx = idx >= 0 ? idx : 1; // default to morning
+  const newIdx = (startIdx + steps) % TIME_BLOCKS.length;
+  const newDay = steps > 0 && newIdx <= startIdx;
+  return { time: TIME_BLOCKS[newIdx], newDay };
+}
+
+// ─── Pipeline Step: Update Campaign Time (Narrator-Driven) ─────
+async function updateCampaignTime(
+  ctx: OrchestratorContext,
+  campaignId: string,
+): Promise<{ timeBlock: string; day: number; elapsedHours: number } | null> {
+  const steps = ctx.narration_result?.advanceTime;
+  if (!steps || steps <= 0 || !campaignId) return null;
+
+  try {
+    const supabaseAdmin = createClient(
+      ctx.supabase_url,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } },
+    );
+
+    // Get current time state from brain (source of truth) or campaign
+    const brain = ctx.campaign_brain;
+    const campaignState = ctx.campaign_state || {};
+    const currentTimeBlock = brain?.current_time_block || campaignState.time_of_day || 'morning';
+    const currentDay = brain?.current_day || campaignState.day_count || 1;
+    const currentElapsed = parseFloat(brain?.elapsed_hours || campaignState.elapsed_hours || '0');
+
+    // Calculate new time
+    const mode = ctx.narrative_directive?.mode || 'exploration';
+    const hoursAdvanced = estimateElapsedHours(steps, mode);
+    const { time: newTimeBlock, newDay } = advanceTimeBlock(currentTimeBlock, steps);
+    const newDay_ = newDay ? currentDay + 1 : currentDay;
+    const newElapsed = Math.round((currentElapsed + hoursAdvanced) * 10) / 10;
+
+    // Update both tables in parallel
+    const updates = [
+      supabaseAdmin.from('campaigns').update({
+        time_of_day: newTimeBlock,
+        day_count: newDay_,
+        elapsed_hours: newElapsed,
+      }).eq('id', campaignId),
+    ];
+
+    if (brain) {
+      updates.push(
+        supabaseAdmin.from('campaign_brain').update({
+          current_time_block: newTimeBlock,
+          current_day: newDay_,
+          elapsed_hours: newElapsed,
+          updated_at: new Date().toISOString(),
+        }).eq('campaign_id', campaignId),
+      );
+    }
+
+    await Promise.all(updates);
+
+    return { timeBlock: newTimeBlock, day: newDay_, elapsedHours: newElapsed };
+  } catch (e) {
+    ctx.errors.push({
+      step: 'update_campaign_time',
+      error: e instanceof Error ? e.message : 'Unknown error',
+      recoverable: true,
+    });
+    return null;
+  }
+}
+
 // ─── Main Orchestrator ─────────────────────────────────────────
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
