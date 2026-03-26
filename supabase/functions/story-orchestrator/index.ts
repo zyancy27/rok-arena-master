@@ -1301,6 +1301,12 @@ serve(async (req) => {
       });
     }
 
+    // ─── Step 6b: Update Campaign Time (narrator-driven) ───────
+    let timeUpdate: { timeBlock: string; day: number; elapsedHours: number } | null = null;
+    if (campaignId && ctx.narration_result?.advanceTime) {
+      timeUpdate = await updateCampaignTime(ctx, campaignId);
+    }
+
     // ─── Step 7: Build Orchestrated Response ───────────────────
     const tension = classifyServerTension(ctx);
     const emergentHints = detectEmergentHints(ctx);
