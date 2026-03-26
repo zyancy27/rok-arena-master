@@ -2211,7 +2211,7 @@ export default function CampaignView() {
           focalCharacterName: myParticipant.character?.name ?? null,
           isSolo: isSoloCampaign,
           knownNpcNames,
-          sceneBeats: data.sceneBeats ?? null,
+          sceneBeats: (data.sceneBeats as SceneBeat[] | null) ?? null,
         });
 
         // Update tactical map from narrator scene data
