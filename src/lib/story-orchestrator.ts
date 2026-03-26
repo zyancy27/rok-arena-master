@@ -51,6 +51,10 @@ export interface OrchestratorMeta {
   faction_persist?: {
     updated: number;
   };
+  gated_opportunity_persist?: {
+    created: number;
+    updated: number;
+  };
   character_discoveries?: {
     synced: number;
     fields: string[];

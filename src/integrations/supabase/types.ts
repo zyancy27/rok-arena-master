@@ -305,6 +305,7 @@ export type Database = {
           faction_state: Json
           failure_conditions: Json
           future_pressures: Json
+          gated_opportunities: Json
           genre: string | null
           hidden_truths: Json
           id: string
@@ -338,6 +339,7 @@ export type Database = {
           faction_state?: Json
           failure_conditions?: Json
           future_pressures?: Json
+          gated_opportunities?: Json
           genre?: string | null
           hidden_truths?: Json
           id?: string
@@ -371,6 +373,7 @@ export type Database = {
           faction_state?: Json
           failure_conditions?: Json
           future_pressures?: Json
+          gated_opportunities?: Json
           genre?: string | null
           hidden_truths?: Json
           id?: string

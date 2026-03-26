@@ -1131,6 +1131,7 @@ async function handleCampaignIntro(
     : '';
 
   const systemPrompt = `You are the Dungeon Master for "Realm of Kings" — opening a new campaign chapter. Your voice is grounded, practical, and immersive. You describe what's actually happening, not what the atmosphere feels like.
+${SIMPLE_LANGUAGE_RULE}
 
 UNIQUE EXPERIENCE SEED: "${seed}"
 Use this seed to make THIS campaign's opening feel different from any other. The seed should influence:
@@ -1147,10 +1148,14 @@ DUNGEON MASTER TONE:
 
 BANNED PHRASES: "smell of ozone", "electric tang", "air hums", "crackling with energy/power", "ancient whisper", "impossible silence", "palpable tension", "the very air seemed to", "shimmered with power", "pulsed with energy". Use plain, concrete language instead.
 
+NPC NAMING RULE (CRITICAL):
+- You know every NPC's full name internally.
+- In narration and dialogue attribution, use FIRST NAMES by default.
+- Reserve full names for moments of dramatic significance (formal introductions, threats, ceremonies).
+
 WORLD POPULATION (CRITICAL — make the world feel ALIVE):
 - Every campaign world MUST feel populated and lived-in. The world is NOT empty or waiting for the player.
 - Generate AT LEAST 2-3 named NPCs in the opening scene, each with distinct personality, appearance, and purpose.
-- YOU (the narrator) have FULL KNOWLEDGE of every character in this world. You ALWAYS know their names, backgrounds, and motivations — even if the player hasn't been introduced yet. Use their real names in narration.
 - Include ambient population: background characters, crowds, workers, travelers, creatures, animals, or autonomous entities (drones, golems, automated systems) appropriate to the setting.
 - Even desolate or remote areas should have SOME signs of life nearby — a settlement on the horizon, tracks of creatures, autonomous patrols, hermits, wildlife, passing caravans, distant smoke, ruins with squatters.
 - The only exception is when isolation itself IS the story (stranded, lost, post-apocalyptic wasteland that's meant to feel dead). But even then, hint at life elsewhere.
@@ -1197,6 +1202,39 @@ PARTY TRACKING (CRITICAL):
 - Mention EVERY party member by name at least once. State their location in the scene.
 - Do NOT distribute "actions" or "activities" across the group. Only NPCs and the environment act freely.
 
+OUTPUT FORMAT (CRITICAL — return valid JSON):
+{
+  "sceneBeats": [
+    // REQUIRED — structured scene beats, same format as ongoing campaign narration.
+    // Beat types: "narrator", "npc_dialogue", "environment", "hook", "consequence"
+    // NPC speech MUST be its own beat with type "npc_dialogue" and a "speaker" field (use FIRST NAME).
+    // Narrator beats = scene framing ONLY. Environment beats = brief atmospheric notes (1-2 sentences).
+    // Hook beats = interesting details that invite engagement.
+    // Order beats as they would naturally unfold in the opening scene.
+    {"type": "narrator", "content": "Opening scene framing."},
+    {"type": "environment", "content": "Atmospheric detail."},
+    {"type": "npc_dialogue", "speaker": "NPC First Name", "content": "What the NPC says."},
+    {"type": "hook", "content": "Something interesting that invites engagement."}
+  ],
+  "narration": "Full combined narration text as a single string (backwards compatibility).",
+  "npcUpdates": [
+    {
+      "isNew": true,
+      "name": "Full NPC Name",
+      "role": "merchant|guard|civilian|etc",
+      "personality": "brief personality",
+      "appearance": "brief appearance",
+      "backstory": "one-line backstory",
+      "occupation": "their job/role",
+      "temperament": "calm|nervous|aggressive|etc",
+      "is_outgoing": true/false,
+      "is_chaotic": true/false,
+      "trust_disposition": 0,
+      "current_zone": "zone name"
+    }
+  ]
+}
+
 Campaign: ${campaignName}
 Description: ${campaignDescription || 'An adventure awaits.'}
 Location: ${location}
@@ -1205,7 +1243,7 @@ Day: ${dayCount || 1}
 Party: ${partyMembers}${envTagsList}${chosenLocNote}${worldStateNote}${storyCtxNote}`;
 
   try {
-    const introModels = ["google/gemini-2.5-flash-lite", "google/gemini-2.5-flash"];
+    const introModels = ["google/gemini-2.5-flash", "google/gemini-2.5-flash-lite"];
     let rawText = '';
     let responseOk = false;
 
@@ -1217,10 +1255,11 @@ Party: ${partyMembers}${envTagsList}${chosenLocNote}${worldStateNote}${storyCtxN
           model,
           messages: [
             { role: "system", content: systemPrompt },
-            { role: "user", content: `Generate a unique campaign opening for seed "${seed}". Make it feel completely different from any generic intro.` },
+            { role: "user", content: `Generate a unique campaign opening for seed "${seed}". Return valid JSON with sceneBeats array, narration string, and npcUpdates array. Make it feel completely different from any generic intro.` },
           ],
-          max_tokens: 1000,
+          max_tokens: 1500,
           temperature: 0.95,
+          response_format: { type: "json_object" },
         }),
       });
 
@@ -1245,9 +1284,9 @@ Party: ${partyMembers}${envTagsList}${chosenLocNote}${worldStateNote}${storyCtxN
       throw new Error("Failed to parse AI response");
     }
 
-    let narrationContent = data.choices?.[0]?.message?.content || "The adventure begins...";
+    let content = data.choices?.[0]?.message?.content || '{}';
     // Strip thinking/reasoning tags if present
-    narrationContent = narrationContent
+    content = content
       .replace(/<think>[\s\S]*?<\/think>/gi, '')
       .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
       .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
@@ -1255,16 +1294,46 @@ Party: ${partyMembers}${envTagsList}${chosenLocNote}${worldStateNote}${storyCtxN
       .replace(/```json\n?/g, '')
       .replace(/```\n?/g, '')
       .trim();
-    const narration = narrationContent || "The adventure begins...";
+
+    let parsed;
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      // Fallback: treat content as flat narration
+      parsed = { narration: content || "The adventure begins..." };
+    }
+
+    // Extract and validate sceneBeats
+    const sceneBeats = Array.isArray(parsed.sceneBeats)
+      ? parsed.sceneBeats.filter((b: any) =>
+          b && typeof b === 'object' && typeof b.type === 'string' && typeof b.content === 'string' && b.content.trim().length > 0
+        ).map((b: any) => ({
+          type: b.type,
+          content: b.content.trim(),
+          speaker: typeof b.speaker === 'string' ? b.speaker.trim() : null,
+        }))
+      : null;
+
+    const narration = typeof parsed.narration === 'string' && parsed.narration.trim().length > 10
+      ? parsed.narration.trim()
+      : (sceneBeats && sceneBeats.length > 0
+          ? sceneBeats.map((b: any) => b.content).join('\n\n')
+          : "The adventure begins...");
+
+    const npcUpdates = Array.isArray(parsed.npcUpdates) ? parsed.npcUpdates : [];
 
     return new Response(
-      JSON.stringify({ narration }),
+      JSON.stringify({
+        narration,
+        sceneBeats: sceneBeats && sceneBeats.length > 0 ? sceneBeats : null,
+        npcUpdates,
+      }),
       { headers: { ...cors, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Campaign intro error:", error);
     return new Response(
-      JSON.stringify({ narration: "The world stirs as your party arrives..." }),
+      JSON.stringify({ narration: "The world stirs as your party arrives...", sceneBeats: null, npcUpdates: [] }),
       { status: 500, headers: { ...cors, "Content-Type": "application/json" } }
     );
   }
@@ -1630,9 +1699,11 @@ CLARITY:
 - Avoid vague scene progression. Reinforce the immediate situation clearly.
 - After zone changes or major events, ground the player in the new reality.
 
-NAME USAGE (CRITICAL — natural prose style):
+NPC NAMING RULE (CRITICAL — FIRST NAMES BY DEFAULT):
+- In narration and dialogue attribution, use NPC FIRST NAMES by default (e.g. "Marcus" not "Marcus Vale").
+- Reserve full names for dramatically significant moments: formal introductions, legal proceedings, threats, ceremonies, emotional reveals, or when a character asserts authority.
 - Once a character has been established as the subject of a passage, use pronouns (he, she, they, it) or descriptive references ("the beast", "the warrior") instead of repeating their name.
-- Only re-use a character's full name when switching focus to a DIFFERENT character, to avoid confusion.
+- Only re-use a character's name when switching focus to a DIFFERENT character, to avoid confusion.
 - This applies to both player characters AND NPCs/enemies.
 - BAD: "QwWe raises his fist. QwWe slams it down. QwWe roars."
 - GOOD: "QwWe raises his fist and slams it down with a thunderous roar."
@@ -1795,6 +1866,27 @@ OUTPUT FORMAT (JSON):
       "priority": "<number 1-10, only for created/reshaped hooks>"
     }
   ] or [] if no hook changes,
+  "gatedOpportunityUpdates": [
+    // OPTIONAL — report changes to persistent gated opportunities (hidden paths, skill-gated discoveries, character-specific unlocks).
+    // Gated opportunities are narrator-owned mechanics that persist across turns. They represent things the player CAN discover or unlock IF they have the right ability, skill, item, timing, or approach.
+    // RULES:
+    // - Introduce opportunities naturally through scene beats — NEVER as menus or lists.
+    // - If a player misses an OPTIONAL opportunity, it can fade, come back later, or be reshaped.
+    // - If a player misses a CRITICAL PATH opportunity, you MUST reroute the campaign naturally. The story must remain playable.
+    // - Outgoing NPCs may help surface opportunities. Chaotic NPCs may accidentally reveal or disrupt them.
+    // - Maximum 1-2 opportunity updates per turn. Most turns should have 0.
+    {
+      "id": "opportunity ID from ACTIVE OPPORTUNITIES list (e.g. op_1) OR 'new' for a new one",
+      "action": "created|surfaced|used|missed|expired|reshaped|resolved",
+      "type": "story_clue|item|path|progress_gate|npc_unlock|ability_discovery",
+      "description": "what the opportunity is",
+      "requires_kind": "ability|skill_style|specific_character|item|timing|none",
+      "requires_value": "what specifically is needed (e.g. 'fire magic', 'lockpicking', 'strength > 70')",
+      "reward_summary": "what the player gains if they succeed",
+      "critical_path": false,
+      "tied_zone": "zone name where this opportunity exists"
+    }
+  ] or [] if no opportunity changes,
   "characterDiscoveries": [
     // OPTIONAL — report character trait/ability revelations that emerged through gameplay THIS turn.
     // The narrator observes character behavior and identifies moments where something meaningful about the character was REVEALED or CONFIRMED through their actions.
@@ -2018,7 +2110,7 @@ NPC PERSISTENCE RULES:
 - REGISTER LIBERALLY: Even minor background NPCs (a street vendor who shouted something, a guard at a gate, a child who stared) should be registered. This builds a living, persistent world.
 - Give NPCs memorable personalities — quirks, speech patterns, attitudes. Make them feel real and individual.
 - NPCs should remember past interactions based on their relationship data.
-- You have FULL KNOWLEDGE of all NPCs. You always know their real names. ALWAYS use their real names in narration.
+- You have FULL KNOWLEDGE of all NPCs. You always know their full names internally. In narration and dialogue attribution, use FIRST NAMES by default. Use full names only for dramatically significant moments (formal introductions, threats, ceremonies, emotional reveals).
 
 NPC NAME COLLISION PREVENTION (CRITICAL — NEVER BREAK):
 - Before naming a new NPC, CHECK the lists below for names already in use:
@@ -2251,7 +2343,7 @@ ${isMultiplayer ? `MULTIPLAYER: Respond using "${playerCharacter.name}" — NEVE
         sceneBeats: sceneBeats && sceneBeats.length > 0 ? sceneBeats : null,
         xpGained: typeof parsed.xpGained === 'number' ? Math.max(0, Math.min(50, parsed.xpGained)) : 5,
         hpChange: typeof parsed.hpChange === 'number' ? Math.max(-50, Math.min(30, parsed.hpChange)) : 0,
-        advanceTime: typeof parsed.advanceTime === 'number' ? Math.max(0, Math.min(2, Math.floor(parsed.advanceTime))) : 0,
+        advanceTime: typeof parsed.advanceTime === 'number' ? Math.max(0, Math.min(3, Math.floor(parsed.advanceTime))) : 0,
         newZone: typeof parsed.newZone === 'string' ? parsed.newZone : null,
         encounterType: parsed.encounterType || null,
         sceneMap: parsed.sceneMap && typeof parsed.sceneMap === 'object' ? parsed.sceneMap : null,
@@ -2261,6 +2353,7 @@ ${isMultiplayer ? `MULTIPLAYER: Respond using "${playerCharacter.name}" — NEVE
         enemySpawned: parsed.enemySpawned && typeof parsed.enemySpawned === 'object' && parsed.enemySpawned.name ? parsed.enemySpawned : null,
         enemyUpdates: Array.isArray(parsed.enemyUpdates) ? parsed.enemyUpdates : [],
         hookUpdates: Array.isArray(parsed.hookUpdates) ? parsed.hookUpdates : [],
+        gatedOpportunityUpdates: Array.isArray(parsed.gatedOpportunityUpdates) ? parsed.gatedOpportunityUpdates : [],
         characterDiscoveries: Array.isArray(parsed.characterDiscoveries) ? parsed.characterDiscoveries : [],
         worldStateUpdates: Array.isArray(parsed.worldStateUpdates) ? parsed.worldStateUpdates : [],
         factionUpdates: Array.isArray(parsed.factionUpdates) ? parsed.factionUpdates : [],

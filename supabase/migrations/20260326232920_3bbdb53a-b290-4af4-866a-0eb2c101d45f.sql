@@ -1,0 +1,1 @@
+ALTER TABLE public.campaign_brain ADD COLUMN IF NOT EXISTS gated_opportunities jsonb NOT NULL DEFAULT '[]'::jsonb;
