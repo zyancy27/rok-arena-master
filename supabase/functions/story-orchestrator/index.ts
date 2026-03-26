@@ -1267,7 +1267,7 @@ async function persistNpcUpdates(
           } else {
             await supabaseAdmin.from('npc_relationships').insert({
               npc_id: npcUpdate.id,
-              character_id: characterId,
+              character_id: charId,
               campaign_id: campaignId,
               disposition: npcUpdate.disposition || 'neutral',
               trust_level: npcUpdate.trust_change || 0,
