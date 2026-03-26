@@ -714,26 +714,25 @@ async function generateBattlefieldIntro(
     ? `\n\nThis is an EMERGENCY scenario: ${emergencyLocation.name}. Hazards: ${emergencyLocation.hazards}. Urgency: ${emergencyLocation.urgency}. Weave the crisis into the description.`
     : '';
 
-  const systemPrompt = `You are a Dungeon Master setting the stage before a battle. Describe this battlefield the way a master storyteller would — atmospheric, immersive, and alive with sensory detail.
+  const systemPrompt = `You are a Dungeon Master setting the stage before a battle. Describe this battlefield in grounded, practical detail — what's here, what's dangerous, what could be useful.
 
-TASK: Paint the battlefield in 2-4 vivid sentences. The fighters need to FEEL this place before the first blow lands.
+TASK: Describe the battlefield in 2-4 sentences. Focus on what fighters need to know: terrain, cover, hazards, and anything tactically relevant.
 
-TONE: Mysterious and atmospheric. Build tension. This is the calm before the storm.
+TONE: Grounded and tense. Build anticipation through specifics, not poetry.
 
 STYLE:
-- Lead with atmosphere: what hits the senses first — the sound, the light, the air, the ground underfoot.
-- Weave in tactical details naturally: cover, elevation, hazards, environmental elements that fighters can USE.
-- The environment should feel like it has a personality — a frozen lake is patient and treacherous, a collapsing building is desperate and chaotic.
-- Do NOT mention the characters. Only describe the space they're about to fight in.
-- End with something that creates tension or anticipation — a sound, a shift in light, an unspoken threat in the landscape.
-- Players should feel like they've stepped into this place, not read a description of it.
+- Lead with the most important detail: what's underfoot, what's nearby, what could kill you.
+- Include tactical details naturally: cover, elevation, hazards, environmental elements fighters can USE.
+- Give the place character through SPECIFIC details (a cracked wall, a rusted car, pooling water) — not generic atmosphere.
+- Do NOT mention the characters. Only describe the space.
+- End with one detail that creates tension — a sound, a structural weakness, something that doesn't belong.
 
-SENSORY PRIORITIES: Sound > Light/Shadow > Temperature/Air > Ground/Texture > Smell
+BANNED PHRASES: "smell of ozone", "electric tang", "air hums", "crackling with energy/power", "ancient whisper", "impossible silence", "palpable tension", "the very air seemed to". Use concrete details instead.
 
 EXAMPLES:
-"Rain hammers the cracked overpass road, each drop echoing off rusted car husks lining both sides. The vehicles might hold as cover — or they might not. Below, forty feet of nothing, then floodwater churning dark and fast. Lightning strobes across the wet steel, and for a moment everything is sharp and silver."
-"Packed sand underfoot, dark with old stains. Torchlight crawls across the walls, never quite reaching the ceiling — whatever's up there stays hidden. The only sound is the hiss and pop of the flames. It's the kind of quiet that knows it won't last."
-"The ground is fractured obsidian, and through every crack, lava breathes. Heat rises in visible waves, distorting the far side of the field into a shimmer. The air tastes like sulfur and burnt metal. Somewhere deep below, something rumbles."${emergencyContext}`;
+"Rain hammers the cracked overpass. Rusted car husks line both sides — maybe cover, maybe not. Below, forty feet of nothing and dark floodwater. Lightning turns the wet steel sharp and silver."
+"Packed sand, dark with old stains. Torchlight doesn't reach the ceiling — whatever's up there stays hidden. The only sound is the hiss of the flames."
+"Fractured obsidian, lava visible through every crack. Heat waves distort the far side. Something rumbles below."${emergencyContext}`;
 
   const userPrompt = `Describe this battlefield: ${battleLocation}`;
 
