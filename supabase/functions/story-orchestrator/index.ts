@@ -695,10 +695,37 @@ function buildCampaignBrainContext(ctx: OrchestratorContext): string {
   }
   if (brain.current_pressure) parts.push(`CURRENT PRESSURE: ${brain.current_pressure}`);
 
-  // Time state
+  // Time state with pacing awareness
   parts.push(`\nCAMPAIGN TIME: Day ${brain.current_day}, ${brain.current_time_block} (${brain.elapsed_hours || 0} hours elapsed)`);
   parts.push(`CAMPAIGN LENGTH TARGET: ${brain.campaign_length_target}`);
   if (brain.remaining_narrative_runway) parts.push(`NARRATIVE RUNWAY: ${brain.remaining_narrative_runway}`);
+
+  // Campaign pacing guidance based on length target
+  const lengthTarget = brain.campaign_length_target || 'medium';
+  const currentDay = brain.current_day || 1;
+  const pacingConfig: Record<string, { maxDays: number; earlyUntil: number; midUntil: number; lateFrom: number }> = {
+    short: { maxDays: 5, earlyUntil: 2, midUntil: 3, lateFrom: 4 },
+    medium: { maxDays: 15, earlyUntil: 4, midUntil: 10, lateFrom: 12 },
+    long: { maxDays: 40, earlyUntil: 10, midUntil: 28, lateFrom: 35 },
+  };
+  const pacing = pacingConfig[lengthTarget] || pacingConfig.medium;
+  let pacingPhase: string;
+  let pacingGuidance: string;
+  if (currentDay <= pacing.earlyUntil) {
+    pacingPhase = 'EARLY';
+    pacingGuidance = 'Establish the world, introduce key NPCs and threats. Plant hooks for later. Time moves at a normal pace — don\'t rush.';
+  } else if (currentDay <= pacing.midUntil) {
+    pacingPhase = 'MIDGAME';
+    pacingGuidance = 'Complications deepen. Threads interweave. Pressure builds. Some hooks should pay off, new ones emerge. Balance exploration with rising stakes.';
+  } else if (currentDay >= pacing.lateFrom) {
+    pacingPhase = 'ENDGAME';
+    pacingGuidance = `The campaign is approaching its conclusion (target: ~${pacing.maxDays} days). Threads should converge. Unresolved pressures escalate. Drive toward climax and resolution. Time-sensitive elements become URGENT.`;
+  } else {
+    pacingPhase = 'LATE-MID';
+    pacingGuidance = 'Stakes are high. Major arcs should be in motion. Some threads resolve, creating consequences. Begin foreshadowing the endgame.';
+  }
+  parts.push(`\nPACING PHASE: ${pacingPhase} (Day ${currentDay} of ~${pacing.maxDays} target)`);
+  parts.push(`PACING GUIDANCE: ${pacingGuidance}`);
 
   // World and factions
   if (brain.world_summary) parts.push(`\nWORLD STATE: ${brain.world_summary}`);
