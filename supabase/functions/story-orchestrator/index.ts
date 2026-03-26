@@ -1170,6 +1170,126 @@ async function updateCampaignTime(
   }
 }
 
+// ─── Pipeline Step: Persist NPC Updates (Narrator-Owned) ───────
+async function persistNpcUpdates(
+  ctx: OrchestratorContext,
+  campaignId: string,
+): Promise<{ created: number; updated: number } | null> {
+  const npcUpdates = ctx.narration_result?.npcUpdates;
+  if (!npcUpdates || !Array.isArray(npcUpdates) || npcUpdates.length === 0 || !campaignId) return null;
+
+  try {
+    const supabaseAdmin = createClient(
+      ctx.supabase_url,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } },
+    );
+
+    const brain = ctx.campaign_brain;
+    const campaignState = ctx.campaign_state || {};
+    const currentDay = brain?.current_day || campaignState.day_count || 1;
+    const currentZone = campaignState.current_zone || 'Unknown';
+    const characterId = ctx.body?.characterId || null;
+
+    let created = 0;
+    let updated = 0;
+
+    for (const npcUpdate of npcUpdates) {
+      if (npcUpdate.isNew && npcUpdate.name) {
+        // Narrator introduces a new NPC — persist with grounded fields
+        const firstName = npcUpdate.name.split(' ')[0];
+        const { data: newNpc } = await supabaseAdmin.from('campaign_npcs').insert({
+          campaign_id: campaignId,
+          name: npcUpdate.name,
+          full_name: npcUpdate.name,
+          first_name: firstName,
+          role: npcUpdate.role || 'civilian',
+          personality: npcUpdate.personality || null,
+          appearance: npcUpdate.appearance || null,
+          current_zone: npcUpdate.current_zone || currentZone,
+          backstory: npcUpdate.backstory || null,
+          first_met_day: currentDay,
+          last_seen_day: currentDay,
+          occupation: npcUpdate.occupation || null,
+          temperament: npcUpdate.temperament || null,
+          is_outgoing: npcUpdate.is_outgoing ?? false,
+          is_chaotic: npcUpdate.is_chaotic ?? false,
+          trust_disposition: npcUpdate.trust_disposition ?? 0,
+          story_relevance_level: npcUpdate.story_relevance || 'minor',
+          status: 'alive',
+        }).select('id').single();
+
+        if (newNpc && characterId) {
+          await supabaseAdmin.from('npc_relationships').insert({
+            npc_id: newNpc.id,
+            character_id: characterId,
+            campaign_id: campaignId,
+            disposition: npcUpdate.disposition || 'neutral',
+            trust_level: npcUpdate.trust_level || 0,
+            notes: npcUpdate.relationship_notes || null,
+            last_interaction_day: currentDay,
+          });
+        }
+        created++;
+      } else if (npcUpdate.id) {
+        // Narrator updates an existing NPC
+        const updateData: any = {
+          last_seen_day: currentDay,
+          updated_at: new Date().toISOString(),
+        };
+        if (npcUpdate.current_zone) updateData.current_zone = npcUpdate.current_zone;
+        if (npcUpdate.status) updateData.status = npcUpdate.status;
+        if (npcUpdate.npc_current_activity) updateData.npc_current_activity = npcUpdate.npc_current_activity;
+        if (npcUpdate.npc_goal) updateData.npc_goal = npcUpdate.npc_goal;
+        if (npcUpdate.memory_summary) updateData.memory_summary = npcUpdate.memory_summary;
+
+        await supabaseAdmin.from('campaign_npcs').update(updateData).eq('id', npcUpdate.id);
+
+        // Update relationship if disposition/trust changed
+        if (characterId && (npcUpdate.disposition || npcUpdate.trust_change)) {
+          const { data: existingRel } = await supabaseAdmin
+            .from('npc_relationships')
+            .select('id, trust_level, disposition')
+            .eq('npc_id', npcUpdate.id)
+            .eq('character_id', characterId)
+            .eq('campaign_id', campaignId)
+            .maybeSingle();
+
+          if (existingRel) {
+            const newTrust = Math.max(-100, Math.min(100, (existingRel.trust_level || 0) + (npcUpdate.trust_change || 0)));
+            await supabaseAdmin.from('npc_relationships').update({
+              disposition: npcUpdate.disposition || existingRel.disposition,
+              trust_level: newTrust,
+              notes: npcUpdate.relationship_notes || null,
+              last_interaction_day: currentDay,
+            }).eq('id', existingRel.id);
+          } else {
+            await supabaseAdmin.from('npc_relationships').insert({
+              npc_id: npcUpdate.id,
+              character_id: characterId,
+              campaign_id: campaignId,
+              disposition: npcUpdate.disposition || 'neutral',
+              trust_level: npcUpdate.trust_change || 0,
+              notes: npcUpdate.relationship_notes || null,
+              last_interaction_day: currentDay,
+            });
+          }
+        }
+        updated++;
+      }
+    }
+
+    return { created, updated };
+  } catch (e) {
+    ctx.errors.push({
+      step: 'persist_npc_updates',
+      error: e instanceof Error ? e.message : 'Unknown error',
+      recoverable: true,
+    });
+    return null;
+  }
+}
+
 // ─── Main Orchestrator ─────────────────────────────────────────
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
