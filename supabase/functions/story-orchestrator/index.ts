@@ -235,7 +235,7 @@ async function fetchWorldContext(
       { auth: { persistSession: false } },
     );
 
-    const [sentimentResult, campaignResult, worldEventsResult, worldRumorsResult, worldStateResult] = await Promise.all([
+    const [sentimentResult, campaignResult, worldEventsResult, worldRumorsResult, worldStateResult, campaignBrainResult] = await Promise.all([
       supabaseAdmin
         .from('narrator_sentiments')
         .select('*')
@@ -244,7 +244,7 @@ async function fetchWorldContext(
       campaignId
         ? supabaseAdmin
             .from('campaigns')
-            .select('world_state, story_context, environment_tags, current_zone, time_of_day, day_count, difficulty_scale')
+            .select('world_state, story_context, environment_tags, current_zone, time_of_day, day_count, difficulty_scale, campaign_length, genre, tone')
             .eq('id', campaignId)
             .maybeSingle()
         : Promise.resolve({ data: null, error: null }),
@@ -271,6 +271,13 @@ async function fetchWorldContext(
             .select('region_name, environment_conditions, danger_level, npc_activity_summary, faction_activity_summary')
             .eq('campaign_id', campaignId)
             .limit(5)
+        : Promise.resolve({ data: null, error: null }),
+      campaignId
+        ? supabaseAdmin
+            .from('campaign_brain')
+            .select('*')
+            .eq('campaign_id', campaignId)
+            .maybeSingle()
         : Promise.resolve({ data: null, error: null }),
     ]);
 
