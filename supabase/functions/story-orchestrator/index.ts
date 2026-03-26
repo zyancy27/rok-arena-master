@@ -1498,7 +1498,112 @@ async function persistHookUpdates(
       if (hook.status === 'stale') {
         hook.priority = Math.max(1, (hook.priority || 5) - 1);
       }
+}
+
+// ─── Pipeline Step: Persist Gated Opportunity Updates (Narrator-Owned) ──
+async function persistGatedOpportunityUpdates(
+  ctx: OrchestratorContext,
+  campaignId: string,
+): Promise<void> {
+  const oppUpdates = ctx.narration_result?.gatedOpportunityUpdates;
+  const brain = ctx.campaign_brain;
+  if (!brain) return;
+
+  try {
+    const supabaseAdmin = ctx.supabaseAdmin;
+    let opps: any[] = Array.isArray(brain.gated_opportunities) ? [...brain.gated_opportunities] : [];
+    const currentDay = brain.current_day || 1;
+    let nextId = opps.length > 0
+      ? Math.max(...opps.map((o: any) => parseInt(String(o.id).replace('op_', '')) || 0)) + 1
+      : 1;
+
+    if (Array.isArray(oppUpdates) && oppUpdates.length > 0) {
+      for (const update of oppUpdates) {
+        if (update.action === 'created' && update.description) {
+          opps.push({
+            id: `op_${nextId++}`,
+            type: update.type || 'story_clue',
+            description: update.description,
+            requires_kind: update.requires_kind || 'none',
+            requires_value: update.requires_value || '',
+            tied_zone: update.tied_zone || null,
+            tied_hook_id: update.tied_hook_id || null,
+            status: 'active',
+            critical_path: update.critical_path || false,
+            reward_summary: update.reward_summary || null,
+            created_day: currentDay,
+            first_surfaced_day: null,
+            last_surfaced_day: null,
+            times_surfaced: 0,
+            times_missed: 0,
+          });
+        } else if (update.id) {
+          const idx = opps.findIndex((o: any) => o.id === update.id);
+          if (idx >= 0) {
+            switch (update.action) {
+              case 'surfaced':
+                opps[idx].status = 'surfaced';
+                if (!opps[idx].first_surfaced_day) opps[idx].first_surfaced_day = currentDay;
+                opps[idx].last_surfaced_day = currentDay;
+                opps[idx].times_surfaced = (opps[idx].times_surfaced || 0) + 1;
+                break;
+              case 'used':
+              case 'resolved':
+                opps[idx].status = update.action;
+                break;
+              case 'missed':
+                opps[idx].times_missed = (opps[idx].times_missed || 0) + 1;
+                if (!opps[idx].critical_path && opps[idx].times_missed >= 3) {
+                  opps[idx].status = 'expired';
+                }
+                break;
+              case 'expired':
+                opps[idx].status = 'expired';
+                break;
+              case 'reshaped':
+                opps[idx].status = 'active';
+                opps[idx].description = update.description || opps[idx].description;
+                opps[idx].tied_zone = update.tied_zone || opps[idx].tied_zone;
+                opps[idx].requires_kind = update.requires_kind || opps[idx].requires_kind;
+                opps[idx].requires_value = update.requires_value || opps[idx].requires_value;
+                opps[idx].times_missed = 0;
+                break;
+            }
+          }
+        }
+      }
     }
+
+    // Age-based maintenance
+    for (const opp of opps) {
+      if (opp.status === 'resolved' || opp.status === 'used' || opp.status === 'expired') continue;
+      const age = currentDay - (opp.created_day || 1);
+      if (!opp.critical_path && opp.status === 'active' && age > 5 && !opp.first_surfaced_day) {
+        opp.status = 'expired';
+      }
+    }
+
+    // Cap at 10, prioritize active/surfaced/critical
+    const statusOrder: Record<string, number> = { surfaced: 0, active: 1, expired: 3, used: 4, resolved: 4, missed: 2 };
+    opps.sort((a: any, b: any) => {
+      if (a.critical_path && !b.critical_path) return -1;
+      if (!a.critical_path && b.critical_path) return 1;
+      return (statusOrder[a.status] ?? 3) - (statusOrder[b.status] ?? 3);
+    });
+    opps = opps.slice(0, 15);
+
+    await supabaseAdmin.from('campaign_brain').update({
+      gated_opportunities: opps,
+      updated_at: new Date().toISOString(),
+    }).eq('campaign_id', campaignId);
+  } catch (e) {
+    ctx.errors.push({
+      step: 'persist_gated_opportunities',
+      error: e instanceof Error ? e.message : 'Unknown error',
+      recoverable: true,
+    });
+  }
+}
 
     // Keep max 8 hooks, prioritizing active/engaged over stale/resolved
     const statusOrder: Record<string, number> = { engaged: 0, active: 1, surfaced: 2, stale: 3, resolved: 4 };
