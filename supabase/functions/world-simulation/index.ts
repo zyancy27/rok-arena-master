@@ -84,7 +84,7 @@ serve(async (req) => {
       );
     }
 
-    // ─── Fetch existing world context in parallel ─────────────
+    // ─── Fetch existing world context + campaign brain in parallel ──
     const [
       { data: existingEvents },
       { data: npcs },
@@ -93,15 +93,20 @@ serve(async (req) => {
       { data: existingRumors },
       { data: campaignData },
       { data: recentLogs },
+      { data: brainData },
     ] = await Promise.all([
       supabaseAdmin.from('world_events').select('*').eq('campaign_id', campaignId).eq('resolved', false).limit(20),
       supabaseAdmin.from('campaign_npcs').select('*').eq('campaign_id', campaignId).eq('status', 'alive').limit(30),
       supabaseAdmin.from('factions').select('*').eq('campaign_id', campaignId).limit(10),
       supabaseAdmin.from('world_state').select('*').eq('campaign_id', campaignId).limit(5),
       supabaseAdmin.from('world_rumors').select('*').eq('campaign_id', campaignId).order('created_at', { ascending: false }).limit(10),
-      supabaseAdmin.from('campaigns').select('story_context, world_state').eq('id', campaignId).maybeSingle(),
+      supabaseAdmin.from('campaigns').select('story_context, world_state, genre, tone, campaign_length').eq('id', campaignId).maybeSingle(),
       supabaseAdmin.from('campaign_logs').select('event_type, event_data').eq('campaign_id', campaignId).order('created_at', { ascending: false }).limit(15),
+      supabaseAdmin.from('campaign_brain').select('*').eq('campaign_id', campaignId).maybeSingle(),
     ]);
+
+    // Campaign brain = narrator's persistent memory
+    const brain = brainData || null;
 
     // Extract story arcs and location history from campaign story_context
     const storyContext = (campaignData?.story_context as any) || {};
