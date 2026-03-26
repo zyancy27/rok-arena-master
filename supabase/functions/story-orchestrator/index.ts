@@ -1934,6 +1934,18 @@ serve(async (req) => {
       discoveryResults = await persistCharacterDiscoveries(ctx, characterId);
     }
 
+    // ─── Step 6f: Persist World State Updates (narrator-owned) ───
+    let worldStateResults: { eventsCreated: number; eventsResolved: number; dangerUpdated: boolean; rumorsAdded: number } | null = null;
+    if (campaignId && ctx.narration_result?.worldStateUpdates?.length > 0) {
+      worldStateResults = await persistWorldStateUpdates(ctx, campaignId);
+    }
+
+    // ─── Step 6g: Persist Faction Updates (narrator-owned) ───────
+    let factionResults: { updated: number } | null = null;
+    if (campaignId && ctx.narration_result?.factionUpdates?.length > 0) {
+      factionResults = await persistFactionUpdates(ctx, campaignId);
+    }
+
     // ─── Step 7: Build Orchestrated Response ───────────────────
     const tension = classifyServerTension(ctx);
     const emergentHints = detectEmergentHints(ctx);
@@ -1961,13 +1973,15 @@ serve(async (req) => {
             }
           : null,
         living_world: {
-          active_events_count: (ctx.world_state.active_world_events || []).length,
-          rumors_count: (ctx.world_state.world_rumors || []).length,
+          active_events_count: (ctx.world_state.active_world_events || []).length + (worldStateResults?.eventsCreated || 0),
+          rumors_count: (ctx.world_state.world_rumors || []).length + (worldStateResults?.rumorsAdded || 0),
           danger_level: (ctx.world_state.regional_states || []).reduce((max: number, r: any) => Math.max(max, r.danger_level || 0), 0),
         },
         time_update: timeUpdate || undefined,
         npc_persist: npcPersistResult || undefined,
         character_discoveries: discoveryResults || undefined,
+        world_state_persist: worldStateResults || undefined,
+        faction_persist: factionResults || undefined,
         pipeline_errors: ctx.errors.length > 0 ? ctx.errors : undefined,
       },
     };
