@@ -1465,6 +1465,7 @@ serve(async (req) => {
           danger_level: (ctx.world_state.regional_states || []).reduce((max: number, r: any) => Math.max(max, r.danger_level || 0), 0),
         },
         time_update: timeUpdate || undefined,
+        npc_persist: npcPersistResult || undefined,
         pipeline_errors: ctx.errors.length > 0 ? ctx.errors : undefined,
       },
     };
