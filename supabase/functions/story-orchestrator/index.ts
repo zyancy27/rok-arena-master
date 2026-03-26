@@ -1217,11 +1217,7 @@ async function persistNpcUpdates(
   if (!npcUpdates || !Array.isArray(npcUpdates) || npcUpdates.length === 0 || !campaignId) return null;
 
   try {
-    const supabaseAdmin = createClient(
-      ctx.supabase_url,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false } },
-    );
+    const supabaseAdmin = ctx.supabaseAdmin;
 
     const brain = ctx.campaign_brain;
     const campaignState = ctx.campaign_state || {};
