@@ -1956,6 +1956,7 @@ export default function CampaignView() {
     }
     setSelectedResponseSuggestion(null);
     setResponseSuggestions([]);
+    setSuggestionsCollapsed(true);
     suggestionContextKeyRef.current = '';
     updateTypingStatus(false);
     setSending(true);
