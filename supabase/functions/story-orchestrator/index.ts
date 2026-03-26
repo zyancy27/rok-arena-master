@@ -660,6 +660,22 @@ function buildCampaignBrainContext(ctx: OrchestratorContext): string {
     parts.push('HOOK RULES: Surface hooks through environment, NPCs, or consequences. If a hook is STALE, reshape it — change the delivery method, escalate the stakes, or connect it to something new. If a hook was ENGAGED by the player, reinforce it. If IGNORED 3+ times, cool it off or retire it.');
   }
 
+  // Gated opportunities (persistent narrator-owned mechanic)
+  const opportunities = brain.gated_opportunities || [];
+  const activeOpps = opportunities.filter((o: any) => o.status === 'active' || o.status === 'surfaced');
+  if (activeOpps.length > 0) {
+    parts.push(`\nACTIVE GATED OPPORTUNITIES (surface naturally through scene beats — NEVER as menus):`);
+    for (const o of activeOpps) {
+      const age = (brain.current_day || 1) - (o.first_surfaced_day || o.created_day || 1);
+      const staleNote = age > 4 ? ' [STALE — reshape or relocate]' : '';
+      const criticalNote = o.critical_path ? ' [CRITICAL PATH — if missed, reroute naturally]' : '';
+      const missedNote = o.times_missed > 0 ? ` [MISSED ${o.times_missed}x]` : '';
+      parts.push(`- [${o.id}] ${o.description} (type: ${o.type}, requires: ${o.requires_kind}/${o.requires_value}, zone: ${o.tied_zone || 'any'})${criticalNote}${staleNote}${missedNote}`);
+      if (o.reward_summary) parts.push(`  Reward: ${o.reward_summary}`);
+    }
+    parts.push('OPPORTUNITY RULES: Introduce through environment or NPC behavior. Outgoing NPCs may help surface them. Chaotic NPCs may accidentally reveal or disrupt them. If OPTIONAL and stale, reshape or let expire. If CRITICAL PATH and missed, reroute the campaign naturally — the story must remain playable. Never present as a menu.');
+  }
+
   // Story beats and threads
   const beats = brain.active_story_beats || [];
   if (beats.length > 0) {
