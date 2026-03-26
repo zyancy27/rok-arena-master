@@ -1996,6 +1996,7 @@ export default function CampaignView() {
   };
 
   const handleConfirmSuggestedResponse = async (suggestion: CampaignResponseSuggestion) => {
+    setSuggestionsCollapsed(true);
     await handleSendMessage(suggestion.message);
   };
 
