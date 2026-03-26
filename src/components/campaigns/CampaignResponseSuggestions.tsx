@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import type { CampaignResponseSuggestion } from '@/lib/campaign-response-suggestions';
 import { Brain, ChevronDown, ChevronUp, MessageCircleQuestion, RefreshCw, Send, Sparkles, Swords, Undo2 } from 'lucide-react';
@@ -8,6 +7,8 @@ interface CampaignResponseSuggestionsProps {
   selectedSuggestion: CampaignResponseSuggestion | null;
   isLoading?: boolean;
   disabled?: boolean;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
   onSelect: (suggestion: CampaignResponseSuggestion) => void;
   onCancel: () => void;
   onConfirm: (suggestion: CampaignResponseSuggestion) => void;
