@@ -61,8 +61,8 @@ export default function Campaigns() {
 
   const fetchCharacters = async () => {
     const { data } = await supabase
-      .from('characters')
-      .select('id, name, level, image_url')
+      .from('characters_decrypted')
+      .select('id, name, level, image_url, powers, personality')
       .eq('user_id', user!.id)
       .order('name');
     if (data) setCharacters(data);
