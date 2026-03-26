@@ -1247,12 +1247,12 @@ async function persistNpcUpdates(
         await supabaseAdmin.from('campaign_npcs').update(updateData).eq('id', npcUpdate.id);
 
         // Update relationship if disposition/trust changed
-        if (characterId && (npcUpdate.disposition || npcUpdate.trust_change)) {
+        if (charId && (npcUpdate.disposition || npcUpdate.trust_change)) {
           const { data: existingRel } = await supabaseAdmin
             .from('npc_relationships')
             .select('id, trust_level, disposition')
             .eq('npc_id', npcUpdate.id)
-            .eq('character_id', characterId)
+            .eq('character_id', charId)
             .eq('campaign_id', campaignId)
             .maybeSingle();
 
