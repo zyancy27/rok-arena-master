@@ -319,7 +319,14 @@ async function fetchWorldContext(
         time_of_day: campaignResult.data.time_of_day,
         day_count: campaignResult.data.day_count,
         difficulty_scale: campaignResult.data.difficulty_scale,
+        campaign_length: campaignResult.data.campaign_length,
+        genre: campaignResult.data.genre,
+        tone: campaignResult.data.tone,
       };
+    }
+
+    if (campaignBrainResult?.data) {
+      ctx.campaign_brain = campaignBrainResult.data;
     }
 
     ctx.world_state = {
