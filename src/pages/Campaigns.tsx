@@ -332,9 +332,44 @@ export default function Campaigns() {
                   </Button>
                 </div>
               </div>
-              <div>
+               <div>
                 <Label>Description (optional)</Label>
-                <Textarea placeholder="Brief campaign premise..." value={newDescription} onChange={e => setNewDescription(e.target.value)} rows={3} />
+                <Textarea placeholder="Describe your campaign premise — the Narrator will fill in the rest..." value={newDescription} onChange={e => setNewDescription(e.target.value)} rows={3} />
+              </div>
+              <div>
+                <Label>Campaign Length</Label>
+                <div className="grid grid-cols-3 gap-2 mt-1.5">
+                  {([
+                    { value: 'short' as const, icon: Clock, label: 'Short', desc: '2-10 in-world days' },
+                    { value: 'medium' as const, icon: Compass, label: 'Medium', desc: 'Moderate arc' },
+                    { value: 'long' as const, icon: Globe, label: 'Long', desc: 'Extended journey' },
+                  ]).map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setCampaignLength(opt.value)}
+                      className={`flex flex-col items-center gap-1 p-2.5 rounded-lg border text-center transition-all ${
+                        campaignLength === opt.value
+                          ? 'border-primary bg-primary/10 ring-2 ring-primary/50'
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                    >
+                      <opt.icon className="w-4 h-4" />
+                      <span className="text-xs font-medium">{opt.label}</span>
+                      <span className="text-[10px] text-muted-foreground leading-tight">{opt.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Genre (optional)</Label>
+                  <Input placeholder="e.g., noir, survival..." value={campaignGenre} onChange={e => setCampaignGenre(e.target.value)} />
+                </div>
+                <div>
+                  <Label>Tone (optional)</Label>
+                  <Input placeholder="e.g., gritty, hopeful..." value={campaignTone} onChange={e => setCampaignTone(e.target.value)} />
+                </div>
               </div>
               <div>
                 <Label>Your Character</Label>
