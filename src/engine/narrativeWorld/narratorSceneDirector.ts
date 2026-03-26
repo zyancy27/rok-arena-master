@@ -188,7 +188,7 @@ export function buildSceneDirectorPromptBlock(directive: SceneDirective): string
   }
 
   if (directive.includeAtmosphere) {
-    parts.push('Include brief atmospheric detail (1 sentence max).');
+    parts.push('Include one concrete environmental detail if relevant (not generic atmosphere).');
   }
 
   return parts.join(' ');
