@@ -249,7 +249,7 @@ export const CampaignActionPipeline = {
     }, {
       type: 'location',
       id: input.campaign.current_zone || input.campaign.id,
-      detail: worldTick.locations[0]?.event || 'location shifts',
+      detail: 'location shifts',
     }));
 
     const relationshipSignals = deriveRelationshipSignals(input.rawText, null);
