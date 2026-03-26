@@ -144,6 +144,7 @@ interface OrchestratorContext {
   character_state: any;
   world_state: any;
   campaign_state: any;
+  campaign_brain: any | null;
   npc_context: any[];
   active_enemies: any[];
   conversation_history: any[];
@@ -159,6 +160,7 @@ interface OrchestratorContext {
   auth_header: string;
   api_key: string;
   supabase_url: string;
+  body?: any;
 }
 
 interface SoundEvent {
