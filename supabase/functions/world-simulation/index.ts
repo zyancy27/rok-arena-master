@@ -964,6 +964,53 @@ Respond ONLY with valid JSON:
       updatedWorldState.memory_weight = memWeight;
     }
 
+    // ─── Sync relevant changes back to campaign_brain ──────────
+    if (brain) {
+      const brainUpdate: any = { updated_at: new Date().toISOString() };
+
+      // Sync faction state
+      if (simulation.faction_updates?.length > 0 && factions?.length) {
+        const factionSummary = (factions || []).map(f => {
+          const fu = (simulation.faction_updates || []).find((u: any) => u.faction_name?.toLowerCase() === f.faction_name.toLowerCase());
+          return {
+            name: f.faction_name,
+            stance: fu?.new_conflict ? 'conflicted' : 'stable',
+            goals: f.faction_goals,
+            power_level: f.military_strength + (fu?.strength_change || 0),
+          };
+        });
+        brainUpdate.faction_state = factionSummary;
+      }
+
+      // Sync current pressure from emergent events
+      if (simulation.emergent_events?.length > 0) {
+        const topEvent = simulation.emergent_events.sort((a: any, b: any) => (b.gravity || 0) - (a.gravity || 0))[0];
+        if (topEvent && (topEvent.gravity || 0) >= 6) {
+          brainUpdate.current_pressure = `${topEvent.title}: ${topEvent.description}`;
+        }
+      }
+
+      // Add future pressures from story gravity events
+      if (simulation.story_gravity_events?.length > 0) {
+        const existingPressures = brain.future_pressures || [];
+        const newPressures = simulation.story_gravity_events
+          .filter((ge: any) => (ge.gravity_score || 0) >= 5)
+          .map((ge: any) => `${ge.event_description} (if ignored: ${ge.evolution_if_ignored})`);
+        brainUpdate.future_pressures = [...existingPressures, ...newPressures].slice(-10);
+      }
+
+      // Sync world summary from environment
+      if (simulation.environment_update?.summary) {
+        brainUpdate.world_summary = `${currentZone}: ${simulation.environment_update.summary}`;
+      }
+
+      brainUpdate.current_location = currentZone;
+
+      dbOps.push(
+        supabaseAdmin.from('campaign_brain').update(brainUpdate).eq('campaign_id', campaignId)
+      );
+    }
+
     // Persist updated world_state and story_context to campaign
     dbOps.push(
       supabaseAdmin.from('campaigns').update({
