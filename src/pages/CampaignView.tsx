@@ -42,7 +42,7 @@ import {
   type CampaignResponseSuggestion,
 } from '@/lib/campaign-response-suggestions';
 import { getTimeEmoji, CAMPAIGN_STARTING_ABILITIES, XP_REWARDS, advanceTime } from '@/lib/campaign-types';
-import { normalizeNarrationToCampaignMessages, sortCampaignMessagesForDisplay } from '@/lib/campaign-message-normalizer';
+import { normalizeNarrationToCampaignMessages, sortCampaignMessagesForDisplay, type SceneBeat } from '@/lib/campaign-message-normalizer';
 import CampaignInventoryPanel, { type InventoryItem } from '@/components/campaigns/CampaignInventoryPanel';
 import CampaignEndDialog from '@/components/campaigns/CampaignEndDialog';
 import CampaignNarratorChat from '@/components/campaigns/CampaignNarratorChat';
@@ -61,6 +61,7 @@ import type { CharacterStats } from '@/lib/character-stats';
 import CampaignTacticalMap, { type NarratorSceneMap } from '@/components/campaigns/CampaignTacticalMap';
 import NarratorMessageContent from '@/components/campaigns/NarratorMessageContent';
 import NpcDialogueBubble from '@/components/campaigns/NpcDialogueBubble';
+import EnvironmentBeatBubble from '@/components/campaigns/EnvironmentBeatBubble';
 import ExpressionChatBox from '@/components/chat/ExpressionChatBox';
 import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
@@ -147,6 +148,7 @@ export default function CampaignView() {
     isSolo?: boolean;
     activeEnemyNames?: string[];
     knownNpcNames?: Set<string>;
+    sceneBeats?: SceneBeat[] | null;
   }) => {
     const normalizedMessages = normalizeNarrationToCampaignMessages({
       campaignId: input.campaignId,
@@ -156,6 +158,7 @@ export default function CampaignView() {
       activeEnemyNames: input.activeEnemyNames,
       focalCharacterName: input.focalCharacterName,
       isSolo: input.isSolo,
+      sceneBeats: input.sceneBeats,
     });
 
     if (normalizedMessages.length === 0) return;
@@ -517,6 +520,7 @@ export default function CampaignView() {
                 baseMetadata: buildNarratorMessageMetadata(data) ?? null,
                 focalCharacterName: myParticipant?.character?.name ?? null,
                 isSolo: campaign.max_players === 1,
+                sceneBeats: data.sceneBeats ?? null,
               });
               await fetchMessages();
             }
@@ -1255,6 +1259,7 @@ export default function CampaignView() {
           baseMetadata: buildNarratorMessageMetadata(data) ?? null,
           isSolo: campaign.max_players === 1,
           knownNpcNames,
+          sceneBeats: (data.sceneBeats as SceneBeat[] | null) ?? null,
         });
       }
     } catch (err) {
@@ -1493,6 +1498,7 @@ export default function CampaignView() {
           isSolo: snapshotParticipant.is_solo ?? snapshotCampaign.max_players === 1,
           activeEnemyNames: activeEnemiesList.map((enemy) => enemy.name),
           knownNpcNames: new Set(knownNpcs.map((npc) => npc.name)),
+          sceneBeats: (data.sceneBeats as SceneBeat[] | null) ?? null,
         });
 
         if (data.xpGained) {
@@ -2206,6 +2212,7 @@ export default function CampaignView() {
           focalCharacterName: myParticipant.character?.name ?? null,
           isSolo: isSoloCampaign,
           knownNpcNames,
+          sceneBeats: (data.sceneBeats as SceneBeat[] | null) ?? null,
         });
 
         // Update tactical map from narrator scene data
@@ -2520,6 +2527,19 @@ export default function CampaignView() {
                             const contentClassName = getMessageContentClasses(envelope.presentationProfile);
                             const isActiveNarration = narratorVoice.activeMessageId === msg.id && envelopeIndex === 0;
                             const narratorAnimationClass = getNarratorAnimationClass(msg.metadata);
+
+                            // Environment / consequence / hook beats get their own distinct bubble
+                            const sceneBeatType = (msg.metadata as any)?.sceneBeatType as string | undefined;
+                            if (isNarratorEnvelope && (sceneBeatType === 'environment' || sceneBeatType === 'consequence' || sceneBeatType === 'hook')) {
+                              return (
+                                <EnvironmentBeatBubble
+                                  key={envelope.id}
+                                  content={envelope.content}
+                                  location={activeSceneLocation || campaign.current_zone}
+                                  beatType={sceneBeatType as 'environment' | 'consequence' | 'hook'}
+                                />
+                              );
+                            }
 
                             if (isNpcEnvelope) {
                               return (
