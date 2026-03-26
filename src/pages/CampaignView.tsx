@@ -1735,6 +1735,22 @@ export default function CampaignView() {
           fetchEnemies();
         }
 
+        // Handle character discoveries from orchestrator
+        if (data._orchestrator?.character_discoveries?.synced > 0) {
+          const disc = data._orchestrator.character_discoveries;
+          const fieldNames = disc.fields.join(', ');
+          toast.success('Character sheet updated', {
+            description: `New discoveries added to: ${fieldNames}`,
+          });
+          // Post a system message about the discovery
+          await supabase.from('campaign_messages').insert({
+            campaign_id: snapshotCampaign.id,
+            sender_type: 'system',
+            content: `📜 **Character Discovery** — New traits revealed through gameplay (${fieldNames})`,
+            channel: 'in_universe',
+          });
+        }
+
         // Handle narrator sentiment update
         if (data.sentimentUpdate && typeof data.sentimentUpdate === 'object' && snapshotParticipant?.character_id) {
           const su = data.sentimentUpdate;

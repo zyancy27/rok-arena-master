@@ -42,6 +42,10 @@ export interface OrchestratorMeta {
     created: number;
     updated: number;
   };
+  character_discoveries?: {
+    synced: number;
+    fields: string[];
+  };
   pipeline_errors?: Array<{
     step: string;
     error: string;
