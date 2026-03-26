@@ -1448,6 +1448,13 @@ serve(async (req) => {
       npcPersistResult = await persistNpcUpdates(ctx, campaignId, characterId);
     }
 
+    // ─── Step 6d: Persist Hook Updates (narrator-owned) ─────────
+    if (campaignId && ctx.campaign_brain) {
+      persistHookUpdates(ctx, campaignId).catch((e) => {
+        console.error('Background hook update failed:', e);
+      });
+    }
+
     // ─── Step 7: Build Orchestrated Response ───────────────────
     const tension = classifyServerTension(ctx);
     const emergentHints = detectEmergentHints(ctx);
