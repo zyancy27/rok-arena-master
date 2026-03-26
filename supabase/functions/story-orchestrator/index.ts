@@ -2018,6 +2018,7 @@ serve(async (req) => {
     }
     if (campaignId && ctx.campaign_brain) {
       persistHookUpdates(ctx, campaignId).catch((e) => console.error('Background hook update failed:', e));
+      persistGatedOpportunityUpdates(ctx, campaignId).catch((e) => console.error('Background opportunity update failed:', e));
     }
 
     // ─── Step 7: Build Orchestrated Response ───────────────────
