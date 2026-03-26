@@ -1678,11 +1678,7 @@ async function persistFactionUpdates(
   if (!Array.isArray(factionUpdates) || factionUpdates.length === 0 || !campaignId) return null;
 
   try {
-    const supabaseAdmin = createClient(
-      ctx.supabase_url,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false } },
-    );
+    const supabaseAdmin = ctx.supabaseAdmin;
 
     let updated = 0;
     const brain = ctx.campaign_brain;
