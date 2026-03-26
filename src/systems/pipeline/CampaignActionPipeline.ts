@@ -225,23 +225,11 @@ export const CampaignActionPipeline = {
       pressureSeed: [...generatedCampaignSeed.pressureSources, ...generatedActorIdentity.pressureIdentity],
     });
 
-    const worldTick = WorldSimulationTickEngine.tick({
-      factions: (generatedWorldState.factionPresence || []).slice(0, 3).map((faction, index) => ({
-        factionId: `${index}:${faction}`,
-        currentPressure: sparseSeed.encounterDensity === 'high' ? 72 : sparseSeed.encounterDensity === 'medium' ? 56 : 34,
-        activeConflicts: generatedCampaignSeed.pressureSources.slice(0, 2),
-      })),
-      locations: [{
-        locationId: input.campaign.current_zone || input.campaign.id,
-        hazardLevel: generatedWorldState.hazardPosture.some((entry) => /volatile|fire|toxic|storm/.test(entry)) ? 72 : 48,
-        pressure: generatedCampaignSeed.conflictDensity === 'high' ? 74 : generatedCampaignSeed.conflictDensity === 'medium' ? 58 : 36,
-      }],
-      npcs: (generatedNpcIdentity ? [{
-        npcId: generatedNpcIdentity.name,
-        motivations: generatedNpcIdentity.motivations,
-        pressureLevel: generatedEncounter.tacticalPressure.some((entry) => /overwhelming|critical|killbox/.test(entry)) ? 'critical' : generatedCampaignSeed.conflictDensity === 'high' ? 'high' : 'medium',
-      }] : []),
-    });
+    // World simulation is now narrator-owned (server-side). Derive minimal drift tags from existing generated state.
+    const worldTickDriftTags = [
+      ...generatedCampaignSeed.pressureSources.slice(0, 2),
+      ...(generatedNpcIdentity?.motivations.slice(0, 1).map((g) => `npc-goal:${g}`) || []),
+    ];
 
     const worldMemory = WorldMemoryEngine.summarize(WorldMemoryEngine.update({
       worldId: input.campaign.id,
