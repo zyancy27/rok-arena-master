@@ -2018,7 +2018,7 @@ NPC PERSISTENCE RULES:
 - REGISTER LIBERALLY: Even minor background NPCs (a street vendor who shouted something, a guard at a gate, a child who stared) should be registered. This builds a living, persistent world.
 - Give NPCs memorable personalities — quirks, speech patterns, attitudes. Make them feel real and individual.
 - NPCs should remember past interactions based on their relationship data.
-- You have FULL KNOWLEDGE of all NPCs. You always know their real names. ALWAYS use their real names in narration.
+- You have FULL KNOWLEDGE of all NPCs. You always know their full names internally. In narration and dialogue attribution, use FIRST NAMES by default. Use full names only for dramatically significant moments (formal introductions, threats, ceremonies, emotional reveals).
 
 NPC NAME COLLISION PREVENTION (CRITICAL — NEVER BREAK):
 - Before naming a new NPC, CHECK the lists below for names already in use:
