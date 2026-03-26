@@ -171,6 +171,9 @@ export default function Campaigns() {
           chosen_location: startingLocation.trim(),
           status: isSolo ? 'active' : 'recruiting',
           visibility: isSolo ? 'private' : visibility,
+          campaign_length: campaignLength,
+          genre: campaignGenre.trim() || null,
+          tone: campaignTone.trim() || null,
         } as any)
         .select('id')
         .single();
@@ -196,37 +199,42 @@ export default function Campaigns() {
         event_data: { creator: user!.id, name: newName.trim(), solo: isSolo },
       });
 
-      // For solo campaigns, generate intro narration immediately
-      if (isSolo) {
-        const char = characters.find(c => c.id === selectedCharacter);
-        try {
-          const { data: narData } = await supabase.functions.invoke('battle-narrator', {
-            body: {
-              type: 'campaign_intro',
-              campaignName: newName.trim(),
-              campaignDescription: newDescription.trim() || null,
-              location: startingLocation.trim(),
-              timeOfDay: 'morning',
-              partyMembers: `${char?.name || 'An adventurer'} (Campaign Lv.1, Original Tier ${char?.level || 1})`,
-            },
-          });
-          if (narData?.narration) {
-            await supabase.from('campaign_messages').insert({
-              campaign_id: campaign.id,
-              sender_type: 'narrator',
-              content: narData.narration,
-              channel: 'in_universe',
-            });
-          }
-        } catch (e) {
-          console.error('Solo intro generation failed:', e);
+      // Invoke narrator-owned campaign creation (generates brain + 100 NPCs + opening narration)
+      const char = characters.find(c => c.id === selectedCharacter);
+      toast.info('Narrator is building your world...', { duration: 30000, id: 'campaign-build' });
+
+      try {
+        const { data: createData, error: createError } = await supabase.functions.invoke('campaign-create', {
+          body: {
+            campaignId: campaign.id,
+            description: newDescription.trim() || '',
+            name: newName.trim(),
+            location: startingLocation.trim(),
+            campaignLength,
+            genre: campaignGenre.trim() || undefined,
+            tone: campaignTone.trim() || undefined,
+            characterName: char?.name || 'Unknown',
+            characterLevel: char?.level || 1,
+            characterPowers: char?.powers || undefined,
+            characterPersonality: char?.personality || undefined,
+          },
+        });
+
+        if (createError) {
+          console.error('Campaign brain generation failed:', createError);
+        } else {
+          console.log(`Campaign brain created: ${createData?.npcCount || 0} NPCs generated`);
         }
+      } catch (e) {
+        console.error('Campaign creation pipeline error:', e);
       }
 
+      toast.dismiss('campaign-build');
       toast.success('Campaign created!');
       setCreateOpen(false);
       navigate(`/campaigns/${campaign.id}`);
     } catch (err: any) {
+      toast.dismiss('campaign-build');
       toast.error(err.message || 'Failed to create campaign');
     } finally {
       setCreating(false);
