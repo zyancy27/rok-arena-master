@@ -2115,9 +2115,21 @@ ${isMultiplayer ? `MULTIPLAYER: Respond using "${playerCharacter.name}" — NEVE
       ? narrationText
       : buildContextualFallback(playerAction, currentZone, playerCharacter.name);
 
+    // Extract and validate sceneBeats
+    const sceneBeats = Array.isArray(parsed.sceneBeats)
+      ? parsed.sceneBeats.filter((b: any) =>
+          b && typeof b === 'object' && typeof b.type === 'string' && typeof b.content === 'string' && b.content.trim().length > 0
+        ).map((b: any) => ({
+          type: b.type,
+          content: b.content.trim(),
+          speaker: typeof b.speaker === 'string' ? b.speaker.trim() : null,
+        }))
+      : null;
+
     return new Response(
       JSON.stringify({
         narration: finalNarration,
+        sceneBeats: sceneBeats && sceneBeats.length > 0 ? sceneBeats : null,
         xpGained: typeof parsed.xpGained === 'number' ? Math.max(0, Math.min(50, parsed.xpGained)) : 5,
         hpChange: typeof parsed.hpChange === 'number' ? Math.max(-50, Math.min(30, parsed.hpChange)) : 0,
         advanceTime: typeof parsed.advanceTime === 'number' ? Math.max(0, Math.min(2, Math.floor(parsed.advanceTime))) : 0,
