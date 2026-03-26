@@ -1407,11 +1407,7 @@ async function persistHookUpdates(
   if (!brain) return;
 
   try {
-    const supabaseAdmin = createClient(
-      ctx.supabase_url,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      { auth: { persistSession: false } },
-    );
+    const supabaseAdmin = ctx.supabaseAdmin;
 
     let hooks: any[] = Array.isArray(brain.story_hooks) ? [...brain.story_hooks] : [];
     const currentDay = brain.current_day || 1;
