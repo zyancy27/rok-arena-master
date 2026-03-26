@@ -152,15 +152,15 @@ function buildDirectorNote(
   const notes: string[] = [];
 
   const behaviorNotes: Record<NarratorBehavior, string> = {
-    describe: 'Describe the environment with practical, sensory details. What does the player see, hear, smell?',
-    let_npc_speak: 'Let an NPC carry this response with dialogue. The world speaks through its inhabitants.',
-    reveal_clue: 'Surface a story clue or discovery naturally. Something catches the player\'s attention.',
-    apply_pressure: 'Create a situation that reveals character. Present a choice, a moral dilemma, or a risk.',
-    let_breathe: 'Minimal narration. Let the player explore at their own pace. Brief atmospheric detail only.',
-    remind_stakes: 'Subtly remind the player of what\'s at stake — an unresolved thread, a ticking clock, a consequence.',
-    acknowledge: 'The world acknowledges the character\'s reputation or recurring behavior. NPCs react to patterns.',
-    transition: 'Bridge between scenes. Describe the journey briefly. Signal the new environment.',
-    combat_focus: 'Tight, action-focused. Enemy acts and reacts. No atmospheric padding during combat.',
+    describe: 'Describe the environment with concrete, useful detail. What is here? What could matter? Skip generic atmosphere.',
+    let_npc_speak: 'Let an NPC carry this response with direct dialogue. The world speaks through its people, not narrator prose.',
+    reveal_clue: 'Surface a story clue naturally — something specific the player notices or finds. Not atmospheric hints.',
+    apply_pressure: 'Create a concrete situation that forces a decision. A real problem, not a vague feeling of tension.',
+    let_breathe: 'Minimal narration. One or two short sentences. Let the player decide what to do next.',
+    remind_stakes: 'Remind the player of something unresolved — a specific thread, deadline, or consequence. Be concrete.',
+    acknowledge: 'An NPC reacts to the character\'s reputation or behavior pattern. Show it through NPC action or dialogue.',
+    transition: 'Bridge between scenes briefly. What changed? Where are they now? One or two sentences.',
+    combat_focus: 'Tight, action-focused. What the enemy does. What happened. No atmospheric padding.',
   };
 
   notes.push(`NARRATOR DIRECTIVE: ${behaviorNotes[primary]}`);
