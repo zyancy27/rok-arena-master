@@ -1687,6 +1687,7 @@ serve(async (req) => {
         },
         time_update: timeUpdate || undefined,
         npc_persist: npcPersistResult || undefined,
+        character_discoveries: discoveryResults || undefined,
         pipeline_errors: ctx.errors.length > 0 ? ctx.errors : undefined,
       },
     };
