@@ -1866,6 +1866,27 @@ OUTPUT FORMAT (JSON):
       "priority": "<number 1-10, only for created/reshaped hooks>"
     }
   ] or [] if no hook changes,
+  "gatedOpportunityUpdates": [
+    // OPTIONAL — report changes to persistent gated opportunities (hidden paths, skill-gated discoveries, character-specific unlocks).
+    // Gated opportunities are narrator-owned mechanics that persist across turns. They represent things the player CAN discover or unlock IF they have the right ability, skill, item, timing, or approach.
+    // RULES:
+    // - Introduce opportunities naturally through scene beats — NEVER as menus or lists.
+    // - If a player misses an OPTIONAL opportunity, it can fade, come back later, or be reshaped.
+    // - If a player misses a CRITICAL PATH opportunity, you MUST reroute the campaign naturally. The story must remain playable.
+    // - Outgoing NPCs may help surface opportunities. Chaotic NPCs may accidentally reveal or disrupt them.
+    // - Maximum 1-2 opportunity updates per turn. Most turns should have 0.
+    {
+      "id": "opportunity ID from ACTIVE OPPORTUNITIES list (e.g. op_1) OR 'new' for a new one",
+      "action": "created|surfaced|used|missed|expired|reshaped|resolved",
+      "type": "story_clue|item|path|progress_gate|npc_unlock|ability_discovery",
+      "description": "what the opportunity is",
+      "requires_kind": "ability|skill_style|specific_character|item|timing|none",
+      "requires_value": "what specifically is needed (e.g. 'fire magic', 'lockpicking', 'strength > 70')",
+      "reward_summary": "what the player gains if they succeed",
+      "critical_path": false,
+      "tied_zone": "zone name where this opportunity exists"
+    }
+  ] or [] if no opportunity changes,
   "characterDiscoveries": [
     // OPTIONAL — report character trait/ability revelations that emerged through gameplay THIS turn.
     // The narrator observes character behavior and identifies moments where something meaningful about the character was REVEALED or CONFIRMED through their actions.
