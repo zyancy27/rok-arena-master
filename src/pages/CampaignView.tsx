@@ -519,6 +519,7 @@ export default function CampaignView() {
                 baseMetadata: buildNarratorMessageMetadata(data) ?? null,
                 focalCharacterName: myParticipant?.character?.name ?? null,
                 isSolo: campaign.max_players === 1,
+                sceneBeats: data.sceneBeats ?? null,
               });
               await fetchMessages();
             }
