@@ -1866,6 +1866,7 @@ serve(async (req) => {
       api_key: LOVABLE_API_KEY,
       supabase_url: SUPABASE_URL,
       body: narratorPayload,
+      supabaseAdmin,
     };
 
     // ─── Step 4: Fetch World Context (gated by priority) ───────
