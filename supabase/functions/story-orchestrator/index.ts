@@ -1220,10 +1220,10 @@ async function persistNpcUpdates(
           status: 'alive',
         }).select('id').single();
 
-        if (newNpc && characterId) {
+        if (newNpc && charId) {
           await supabaseAdmin.from('npc_relationships').insert({
             npc_id: newNpc.id,
-            character_id: characterId,
+            character_id: charId,
             campaign_id: campaignId,
             disposition: npcUpdate.disposition || 'neutral',
             trust_level: npcUpdate.trust_level || 0,
