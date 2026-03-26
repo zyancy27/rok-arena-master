@@ -648,6 +648,20 @@ function buildCampaignBrainContext(ctx: OrchestratorContext): string {
     }
   }
 
+  // Story hooks (persistent interest tracking)
+  const hooks = brain.story_hooks || [];
+  const activeHooks = hooks.filter((h: any) => h.status === 'active' || h.status === 'surfaced');
+  if (activeHooks.length > 0) {
+    parts.push(`\nACTIVE STORY HOOKS (weave 1-2 into your response naturally — NEVER list them as options):`);
+    for (const h of activeHooks) {
+      const age = (brain.current_day || 1) - (h.created_day || 1);
+      const staleNote = age > 3 ? ' [STALE — reshape or escalate]' : '';
+      const engagedNote = h.status === 'surfaced' ? ' [SURFACED — player has seen this]' : '';
+      parts.push(`- [${h.id}] ${h.description} (method: ${h.surface_method}, priority: ${h.priority}/10)${engagedNote}${staleNote}`);
+    }
+    parts.push('HOOK RULES: Surface hooks through environment, NPCs, or consequences. If a hook is STALE, reshape it — change the delivery method, escalate the stakes, or connect it to something new. If a hook was ENGAGED by the player, reinforce it. If IGNORED 3+ times, cool it off or retire it.');
+  }
+
   // Story beats and threads
   const beats = brain.active_story_beats || [];
   if (beats.length > 0) {

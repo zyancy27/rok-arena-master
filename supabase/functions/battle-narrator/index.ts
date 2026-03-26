@@ -1768,6 +1768,22 @@ OUTPUT FORMAT (JSON):
       "lastAction": "brief description of what the enemy did this turn (attacked, dodged, taunted, tried to flee, etc.)"
     }
   ] or [] if no active enemy changes,
+  "hookUpdates": [
+    // OPTIONAL — report what happened with story hooks this turn. Only include hooks you referenced or that changed status.
+    {
+      "id": "hook ID from the ACTIVE STORY HOOKS list (e.g. hook_1) OR 'new' for a brand new hook",
+      "action": "surfaced|engaged|resolved|ignored|reshaped|created",
+      // surfaced = you mentioned/wove it into the scene
+      // engaged = the player actively interacted with or followed this hook  
+      // resolved = the hook's thread reached a conclusion
+      // ignored = the player clearly ignored or dismissed this hook
+      // reshaped = you changed the hook's delivery (new angle, new NPC, escalation)
+      // created = brand new hook introduced this turn
+      "description": "current description of the hook (required for 'created' and 'reshaped')",
+      "surface_method": "environment|npc|danger|rumor|clue|consequence|objective_reminder",
+      "priority": "<number 1-10, only for created/reshaped hooks>"
+    }
+  ] or [] if no hook changes,
   "sentimentUpdate": {
     "nickname": "a short nickname for this character. Evolve it over time — early on use observational nicknames ('the quiet one'), later use earned ones ('iron saint', 'world-walker'). Keep if still fitting, change when your perception shifts. 1-3 words.",
     "sentiment_shift": <number -10 to +10, how much your overall opinion changed this turn. Base this on CREATIVITY and ENGAGEMENT:
