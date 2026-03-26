@@ -117,9 +117,49 @@ serve(async (req) => {
     const playerInfluence = worldStateJson.player_influence || [];
 
     // ─── AI-powered world simulation with all 28 systems ──────
-    const simulationPrompt = `You are a COMPREHENSIVE World Simulation Engine for a living fantasy world. You simulate ALL aspects of the world evolving INDEPENDENTLY of player actions.
+    // ─── Build narrator brain context for the simulation AI ──────
+    let brainContext = '';
+    if (brain) {
+      const brainParts: string[] = [];
+      brainParts.push('═══ NARRATOR CAMPAIGN BRAIN (your authoritative memory) ═══');
+      brainParts.push('You are an internal module of the Narrator intelligence. Your job is to evolve the world OFF-SCREEN in ways that serve the active story.');
+      if (brain.premise) brainParts.push(`PREMISE: ${brain.premise}`);
+      if (brain.genre) brainParts.push(`GENRE: ${brain.genre}`);
+      if (brain.tone) brainParts.push(`TONE: ${brain.tone}`);
+      if (brain.campaign_objective) brainParts.push(`CAMPAIGN OBJECTIVE: ${brain.campaign_objective}`);
+      if (brain.core_storyline) brainParts.push(`CORE STORYLINE: ${brain.core_storyline}`);
+      if (brain.current_arc) brainParts.push(`CURRENT ARC: ${brain.current_arc}`);
+      const arcs = brain.major_arcs || [];
+      if (arcs.length > 0) brainParts.push(`MAJOR ARCS: ${arcs.map((a: any) => `${a.order}. ${a.name} (${a.status || 'active'})`).join(' | ')}`);
+      const threads = brain.unresolved_threads || [];
+      if (threads.length > 0) brainParts.push(`UNRESOLVED THREADS: ${threads.join(' | ')}`);
+      const beats = brain.active_story_beats || [];
+      if (beats.length > 0) brainParts.push(`ACTIVE BEATS: ${beats.join(' | ')}`);
+      const pressures = brain.future_pressures || [];
+      if (pressures.length > 0) brainParts.push(`FUTURE PRESSURES: ${pressures.join(' | ')}`);
+      if (brain.current_pressure) brainParts.push(`CURRENT PRESSURE: ${brain.current_pressure}`);
+      const hidden = brain.hidden_truths || [];
+      if (hidden.length > 0) brainParts.push(`HIDDEN TRUTHS (weave clues, don't reveal): ${hidden.join(' | ')}`);
+      const victory = brain.victory_conditions || [];
+      if (victory.length > 0) brainParts.push(`VICTORY CONDITIONS: ${victory.join(' | ')}`);
+      const failure = brain.failure_conditions || [];
+      if (failure.length > 0) brainParts.push(`FAILURE CONDITIONS: ${failure.join(' | ')}`);
+      brainParts.push(`CAMPAIGN LENGTH: ${brain.campaign_length_target} | Day ${brain.current_day} | ${brain.current_time_block}`);
+      if (brain.remaining_narrative_runway) brainParts.push(`NARRATIVE RUNWAY: ${brain.remaining_narrative_runway}`);
+      brainParts.push('═══════════════════════════════════════════════════════════');
+      brainParts.push('CRITICAL RULES FOR WORLD SIMULATION:');
+      brainParts.push('- All world events MUST serve or connect to the active story arcs, unresolved threads, or future pressures');
+      brainParts.push('- NPC autonomous actions should advance their established goals, not random behavior');
+      brainParts.push('- Economy/faction shifts should create narrative consequences, not just flavor');
+      brainParts.push('- New discoveries should plant seeds for active arcs or hidden truths');
+      brainParts.push('- Respect the genre and tone — a noir campaign shouldn\'t generate whimsical events');
+      brainParts.push('═══════════════════════════════════════════════════════════');
+      brainContext = brainParts.join('\n');
+    }
 
-You must think like a Dungeon Master maintaining a living world behind the scenes. Everything you generate becomes context that the narrator uses to make the world feel alive.
+    const simulationPrompt = `You are the OFF-SCREEN MODULE of a unified Narrator intelligence for a living campaign world. You simulate the parts of the world the player cannot see — but everything you generate must serve the narrator's story vision.
+
+${brainContext}
 
 CURRENT WORLD STATE:
 - Current Zone: ${currentZone}
@@ -129,15 +169,19 @@ CURRENT WORLD STATE:
 - Party Level: ${partyLevel}
 - Party Members: ${(partyMembers || []).join(', ') || 'Unknown'}
 - Environment Tags: ${JSON.stringify(environmentTags || [])}
+- Genre: ${campaignData?.genre || 'fantasy'}
+- Tone: ${campaignData?.tone || 'balanced'}
 
 ACTIVE EVENTS (do not duplicate):
 ${JSON.stringify((existingEvents || []).map(e => ({ type: e.event_type, location: e.location, description: e.description })), null, 2)}
 
 KNOWN NPCs (with personalities, goals, memory):
 ${JSON.stringify((npcs || []).map(n => ({
-  name: n.name, role: n.role, zone: n.current_zone,
+  name: n.name, first_name: n.first_name, role: n.role, zone: n.current_zone,
   goal: n.npc_goal, motivation: n.npc_motivation,
   activity: n.npc_current_activity, personality: n.personality,
+  temperament: n.temperament, occupation: n.occupation,
+  is_outgoing: n.is_outgoing, is_chaotic: n.is_chaotic,
   relationships: n.npc_relationships,
   backstory: n.backstory ? n.backstory.substring(0, 100) : null,
 })), null, 2)}
@@ -153,7 +197,7 @@ RECENT RUMORS:
 ${JSON.stringify((existingRumors || []).map(r => r.rumor_text).slice(0, 5))}
 
 ACTIVE STORY ARCS:
-${JSON.stringify(activeArcs.length > 0 ? activeArcs : 'No active arcs — consider seeding one')}
+${JSON.stringify(activeArcs.length > 0 ? activeArcs : 'No active arcs — consider seeding one that connects to the campaign brain')}
 
 LOCATION HISTORY (what happened at key places):
 ${JSON.stringify(locationHistory)}
