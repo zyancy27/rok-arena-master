@@ -26,6 +26,8 @@ interface CharacterOption {
   name: string;
   level: number;
   image_url: string | null;
+  powers: string | null;
+  personality: string | null;
 }
 
 export default function Campaigns() {
