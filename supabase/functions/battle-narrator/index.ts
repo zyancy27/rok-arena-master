@@ -2251,7 +2251,7 @@ ${isMultiplayer ? `MULTIPLAYER: Respond using "${playerCharacter.name}" — NEVE
         sceneBeats: sceneBeats && sceneBeats.length > 0 ? sceneBeats : null,
         xpGained: typeof parsed.xpGained === 'number' ? Math.max(0, Math.min(50, parsed.xpGained)) : 5,
         hpChange: typeof parsed.hpChange === 'number' ? Math.max(-50, Math.min(30, parsed.hpChange)) : 0,
-        advanceTime: typeof parsed.advanceTime === 'number' ? Math.max(0, Math.min(2, Math.floor(parsed.advanceTime))) : 0,
+        advanceTime: typeof parsed.advanceTime === 'number' ? Math.max(0, Math.min(3, Math.floor(parsed.advanceTime))) : 0,
         newZone: typeof parsed.newZone === 'string' ? parsed.newZone : null,
         encounterType: parsed.encounterType || null,
         sceneMap: parsed.sceneMap && typeof parsed.sceneMap === 'object' ? parsed.sceneMap : null,
