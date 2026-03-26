@@ -53,6 +53,7 @@ export interface OrchestratorMeta {
 export interface OrchestratedNarrationResponse {
   // Standard narrator fields
   narration?: string;
+  sceneBeats?: Array<{ type: string; content: string; speaker?: string | null }> | null;
   intro?: string;
   xpGained?: number;
   hpChange?: number;
