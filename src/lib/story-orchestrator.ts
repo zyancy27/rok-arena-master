@@ -42,6 +42,15 @@ export interface OrchestratorMeta {
     created: number;
     updated: number;
   };
+  world_state_persist?: {
+    eventsCreated: number;
+    eventsResolved: number;
+    dangerUpdated: boolean;
+    rumorsAdded: number;
+  };
+  faction_persist?: {
+    updated: number;
+  };
   character_discoveries?: {
     synced: number;
     fields: string[];

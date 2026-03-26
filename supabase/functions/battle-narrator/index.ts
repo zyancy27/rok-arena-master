@@ -1817,6 +1817,44 @@ OUTPUT FORMAT (JSON):
       "trigger": "Brief description of WHAT the character did that revealed this"
     }
   ] or [] if no discoveries this turn,
+  "worldStateUpdates": [
+    // OPTIONAL — report changes to the world that resulted from this turn's events.
+    // The narrator tracks how the world CHANGES in response to player actions, NPC behavior, time passage, and natural consequences.
+    // RULES:
+    // - Only report MEANINGFUL changes. Not every action changes the world.
+    // - Each update targets a specific aspect of the world state.
+    // - Types: "danger_shift", "environment_change", "rumor_spawned", "event_created", "event_resolved", "region_change"
+    // - danger_shift: the danger level of the current region changed (combat, crime, monster activity, player pacification)
+    // - environment_change: weather, lighting, terrain, or conditions changed meaningfully
+    // - rumor_spawned: a new rumor begins spreading through the world (NPCs will mention it)
+    // - event_created: a new world event begins (faction conflict, natural disaster, crime wave, festival, etc.)
+    // - event_resolved: an existing world event is resolved or concluded
+    // - region_change: the region's character changed (new faction presence, population shift, economic change)
+    // - Maximum 1-3 updates per turn. Most turns should have 0-1.
+    {
+      "type": "danger_shift|environment_change|rumor_spawned|event_created|event_resolved|region_change",
+      "description": "What changed and why",
+      "location": "Where this change applies (zone name or region name)",
+      "magnitude": 1-10,
+      "dangerDelta": "<number -3 to +3, only for danger_shift type — how much danger level changed>"
+    }
+  ] or [] if no world changes,
+  "factionUpdates": [
+    // OPTIONAL — report changes to faction states resulting from this turn's events.
+    // Factions are persistent political/social forces in the campaign world.
+    // RULES:
+    // - Only include updates when a faction's state ACTUALLY changed this turn.
+    // - Changes can result from: player actions affecting a faction, NPC faction agents acting, faction goals progressing, inter-faction conflicts evolving.
+    // - Maximum 1-2 faction updates per turn. Most turns should have 0.
+    {
+      "factionName": "Name of the faction",
+      "stanceChange": "friendly|neutral|wary|hostile — new stance toward player, only if changed",
+      "powerDelta": "<number -10 to +10, change in faction power/influence>",
+      "goalProgress": "Brief update on faction goal progress, if any",
+      "territoryChange": "Brief description of territory gained/lost, if any",
+      "conflictUpdate": "Brief update on faction conflicts, if any"
+    }
+  ] or [] if no faction changes,
   "sentimentUpdate": {
     "nickname": "a short nickname for this character. Evolve it over time — early on use observational nicknames ('the quiet one'), later use earned ones ('iron saint', 'world-walker'). Keep if still fitting, change when your perception shifts. 1-3 words.",
     "sentiment_shift": <number -10 to +10, how much your overall opinion changed this turn. Base this on CREATIVITY and ENGAGEMENT:
@@ -2222,6 +2260,10 @@ ${isMultiplayer ? `MULTIPLAYER: Respond using "${playerCharacter.name}" — NEVE
         npcUpdates: Array.isArray(parsed.npcUpdates) ? parsed.npcUpdates : [],
         enemySpawned: parsed.enemySpawned && typeof parsed.enemySpawned === 'object' && parsed.enemySpawned.name ? parsed.enemySpawned : null,
         enemyUpdates: Array.isArray(parsed.enemyUpdates) ? parsed.enemyUpdates : [],
+        hookUpdates: Array.isArray(parsed.hookUpdates) ? parsed.hookUpdates : [],
+        characterDiscoveries: Array.isArray(parsed.characterDiscoveries) ? parsed.characterDiscoveries : [],
+        worldStateUpdates: Array.isArray(parsed.worldStateUpdates) ? parsed.worldStateUpdates : [],
+        factionUpdates: Array.isArray(parsed.factionUpdates) ? parsed.factionUpdates : [],
         sentimentUpdate: parsed.sentimentUpdate && typeof parsed.sentimentUpdate === 'object' ? parsed.sentimentUpdate : null,
       }),
       { headers: { ...cors, "Content-Type": "application/json" } }
