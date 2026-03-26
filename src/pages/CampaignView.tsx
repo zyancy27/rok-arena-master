@@ -1258,6 +1258,7 @@ export default function CampaignView() {
           baseMetadata: buildNarratorMessageMetadata(data) ?? null,
           isSolo: campaign.max_players === 1,
           knownNpcNames,
+          sceneBeats: data.sceneBeats ?? null,
         });
       }
     } catch (err) {
