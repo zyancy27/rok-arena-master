@@ -26,6 +26,8 @@ interface CharacterOption {
   name: string;
   level: number;
   image_url: string | null;
+  powers: string | null;
+  personality: string | null;
 }
 
 export default function Campaigns() {
@@ -46,6 +48,9 @@ export default function Campaigns() {
   const [visibility, setVisibility] = useState<CampaignVisibility>('public');
   const [creating, setCreating] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [campaignLength, setCampaignLength] = useState<'short' | 'medium' | 'long'>('medium');
+  const [campaignGenre, setCampaignGenre] = useState('');
+  const [campaignTone, setCampaignTone] = useState('');
 
   useEffect(() => {
     if (user) {
@@ -56,8 +61,8 @@ export default function Campaigns() {
 
   const fetchCharacters = async () => {
     const { data } = await supabase
-      .from('characters')
-      .select('id, name, level, image_url')
+      .from('characters_decrypted')
+      .select('id, name, level, image_url, powers, personality')
       .eq('user_id', user!.id)
       .order('name');
     if (data) setCharacters(data);
@@ -166,6 +171,9 @@ export default function Campaigns() {
           chosen_location: startingLocation.trim(),
           status: isSolo ? 'active' : 'recruiting',
           visibility: isSolo ? 'private' : visibility,
+          campaign_length: campaignLength,
+          genre: campaignGenre.trim() || null,
+          tone: campaignTone.trim() || null,
         } as any)
         .select('id')
         .single();
@@ -191,37 +199,42 @@ export default function Campaigns() {
         event_data: { creator: user!.id, name: newName.trim(), solo: isSolo },
       });
 
-      // For solo campaigns, generate intro narration immediately
-      if (isSolo) {
-        const char = characters.find(c => c.id === selectedCharacter);
-        try {
-          const { data: narData } = await supabase.functions.invoke('battle-narrator', {
-            body: {
-              type: 'campaign_intro',
-              campaignName: newName.trim(),
-              campaignDescription: newDescription.trim() || null,
-              location: startingLocation.trim(),
-              timeOfDay: 'morning',
-              partyMembers: `${char?.name || 'An adventurer'} (Campaign Lv.1, Original Tier ${char?.level || 1})`,
-            },
-          });
-          if (narData?.narration) {
-            await supabase.from('campaign_messages').insert({
-              campaign_id: campaign.id,
-              sender_type: 'narrator',
-              content: narData.narration,
-              channel: 'in_universe',
-            });
-          }
-        } catch (e) {
-          console.error('Solo intro generation failed:', e);
+      // Invoke narrator-owned campaign creation (generates brain + 100 NPCs + opening narration)
+      const char = characters.find(c => c.id === selectedCharacter);
+      toast.info('Narrator is building your world...', { duration: 30000, id: 'campaign-build' });
+
+      try {
+        const { data: createData, error: createError } = await supabase.functions.invoke('campaign-create', {
+          body: {
+            campaignId: campaign.id,
+            description: newDescription.trim() || '',
+            name: newName.trim(),
+            location: startingLocation.trim(),
+            campaignLength,
+            genre: campaignGenre.trim() || undefined,
+            tone: campaignTone.trim() || undefined,
+            characterName: char?.name || 'Unknown',
+            characterLevel: char?.level || 1,
+            characterPowers: char?.powers || undefined,
+            characterPersonality: char?.personality || undefined,
+          },
+        });
+
+        if (createError) {
+          console.error('Campaign brain generation failed:', createError);
+        } else {
+          console.log(`Campaign brain created: ${createData?.npcCount || 0} NPCs generated`);
         }
+      } catch (e) {
+        console.error('Campaign creation pipeline error:', e);
       }
 
+      toast.dismiss('campaign-build');
       toast.success('Campaign created!');
       setCreateOpen(false);
       navigate(`/campaigns/${campaign.id}`);
     } catch (err: any) {
+      toast.dismiss('campaign-build');
       toast.error(err.message || 'Failed to create campaign');
     } finally {
       setCreating(false);
@@ -238,6 +251,9 @@ export default function Campaigns() {
       await supabase.from('campaign_npcs').delete().eq('campaign_id', campaignId);
       await supabase.from('campaign_logs').delete().eq('campaign_id', campaignId);
       await supabase.from('campaign_join_requests').delete().eq('campaign_id', campaignId);
+      await supabase.from('world_events').delete().eq('campaign_id', campaignId);
+      await supabase.from('world_state').delete().eq('campaign_id', campaignId);
+      await supabase.from('campaign_brain').delete().eq('campaign_id', campaignId);
       await supabase.from('campaign_participants').delete().eq('campaign_id', campaignId);
       await supabase.from('campaigns').delete().eq('id', campaignId);
       setCampaigns(prev => prev.filter(c => c.id !== campaignId));
@@ -319,9 +335,44 @@ export default function Campaigns() {
                   </Button>
                 </div>
               </div>
-              <div>
+               <div>
                 <Label>Description (optional)</Label>
-                <Textarea placeholder="Brief campaign premise..." value={newDescription} onChange={e => setNewDescription(e.target.value)} rows={3} />
+                <Textarea placeholder="Describe your campaign premise — the Narrator will fill in the rest..." value={newDescription} onChange={e => setNewDescription(e.target.value)} rows={3} />
+              </div>
+              <div>
+                <Label>Campaign Length</Label>
+                <div className="grid grid-cols-3 gap-2 mt-1.5">
+                  {([
+                    { value: 'short' as const, icon: Clock, label: 'Short', desc: '2-10 in-world days' },
+                    { value: 'medium' as const, icon: Compass, label: 'Medium', desc: 'Moderate arc' },
+                    { value: 'long' as const, icon: Globe, label: 'Long', desc: 'Extended journey' },
+                  ]).map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setCampaignLength(opt.value)}
+                      className={`flex flex-col items-center gap-1 p-2.5 rounded-lg border text-center transition-all ${
+                        campaignLength === opt.value
+                          ? 'border-primary bg-primary/10 ring-2 ring-primary/50'
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                    >
+                      <opt.icon className="w-4 h-4" />
+                      <span className="text-xs font-medium">{opt.label}</span>
+                      <span className="text-[10px] text-muted-foreground leading-tight">{opt.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Genre (optional)</Label>
+                  <Input placeholder="e.g., noir, survival..." value={campaignGenre} onChange={e => setCampaignGenre(e.target.value)} />
+                </div>
+                <div>
+                  <Label>Tone (optional)</Label>
+                  <Input placeholder="e.g., gritty, hopeful..." value={campaignTone} onChange={e => setCampaignTone(e.target.value)} />
+                </div>
               </div>
               <div>
                 <Label>Your Character</Label>
