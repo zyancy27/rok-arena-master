@@ -38,7 +38,7 @@ async function callAI(
   model = "google/gemini-2.5-flash",
   maxTokens = 8000
 ): Promise<string> {
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
