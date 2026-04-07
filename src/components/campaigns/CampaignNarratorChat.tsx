@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import CampaignInventoryPanel, { type InventoryItem } from './CampaignInventoryPanel';
 import CampaignTradePanel from './CampaignTradePanel';
+import CampaignNpcRoster from './CampaignNpcRoster';
+import CampaignPressureIndicator from './CampaignPressureIndicator';
 import type { CampaignTrade } from '@/hooks/use-campaign-trades';
 import { getTimeEmoji } from '@/lib/campaign-types';
 import type { CampaignParticipant } from '@/lib/campaign-types';
@@ -444,6 +446,12 @@ export default function CampaignNarratorChat({
           </div>
         )}
       </div>
+
+      {/* NPC Roster */}
+      <CampaignNpcRoster campaignId={campaignId} currentDay={dayCount} />
+
+      {/* Story Pressure & Opportunities */}
+      <CampaignPressureIndicator campaignId={campaignId} />
 
       {/* Quick Ask Buttons */}
       <div className="flex flex-wrap gap-1.5 px-3 pt-2 pb-1">

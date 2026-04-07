@@ -80,6 +80,7 @@ import {
 import { CampaignActionPipeline } from '@/systems/pipeline/CampaignActionPipeline';
 import { buildNarratorMessagePacket, buildPlayerMessageMetadata } from '@/systems/pipeline/PipelineMessageBridge';
 import { IntentDebugCard } from '@/components/intent/IntentDebugCard';
+import CampaignHUD from '@/components/campaigns/CampaignHUD';
 // Helper: build bag content for the inline backpack bubble
 function buildBagContent(campaignItems: InventoryItem[], characterWeapons: string | null) {
   const items: { name: string; type: string; rarity: string; equipped: boolean }[] = [];
@@ -2457,6 +2458,17 @@ export default function CampaignView() {
 
             <TabsContent value="adventure" className="flex-1 flex flex-col mt-0 min-h-0 data-[state=inactive]:hidden">
               <div className="relative flex flex-col flex-1 min-h-0">
+
+                {/* Campaign HUD — persistent status bar */}
+                {isActive && campaignId && (
+                  <CampaignHUD
+                    campaignId={campaignId}
+                    currentZone={campaign.current_zone}
+                    timeOfDay={campaign.time_of_day}
+                    dayCount={campaign.day_count}
+                    campaignStatus={campaign.status}
+                  />
+                )}
 
                 {/* Narrator-driven Tactical Map */}
                 {showTacticalMap && sceneMap && (
