@@ -1058,6 +1058,13 @@ function buildLivingWorldContext(ctx: OrchestratorContext): string {
     }
     parts.push('EMOTIONAL RULES: NPCs speak and act from their emotional state. An irritated NPC is curt. A grateful one offers more. A fearful one avoids eye contact. This is NOT separate AI — YOU perform these emotions consistently.');
   }
+
+  // ── LOCATION IDENTITY (Phase 3 — territorial ownership, habits, friction, residue) ──
+  const locationCtx = buildLocationIdentityContext(ctx);
+  if (locationCtx) {
+    parts.push(`\n${locationCtx}`);
+  }
+
   const factionDetails = ws.faction_details || [];
   if (factionDetails.length > 0) {
     parts.push('\nFACTION DETAILS (persistent political/social forces):');
