@@ -233,7 +233,7 @@ async function fetchWorldContext(
   try {
     const supabaseAdmin = ctx.supabaseAdmin;
 
-    const [sentimentResult, campaignResult, worldEventsResult, worldRumorsResult, worldStateResult, campaignBrainResult, npcRelationshipsResult, factionsResult] = await Promise.all([
+    const [sentimentResult, campaignResult, worldEventsResult, worldRumorsResult, worldStateResult, campaignBrainResult, npcRelationshipsResult, factionsResult, socialStateResult, npcEmotionalResult] = await Promise.all([
       supabaseAdmin
         .from('narrator_sentiments')
         .select('*')
@@ -293,6 +293,23 @@ async function fetchWorldContext(
             .select('faction_name, faction_goals, military_strength, allies, rivals, current_conflicts, territory_regions')
             .eq('campaign_id', campaignId)
             .limit(10)
+        : Promise.resolve({ data: null, error: null }),
+      // Phase 2: Fetch regional social state (heat + mood per region)
+      campaignId
+        ? supabaseAdmin
+            .from('regional_social_state')
+            .select('region_name, world_mood, civilian_heat, merchant_heat, guard_heat, criminal_heat, faction_heat, community_heat, mood_drivers, social_memory')
+            .eq('campaign_id', campaignId)
+            .limit(10)
+        : Promise.resolve({ data: null, error: null }),
+      // Phase 2: Fetch NPC emotional carryover
+      campaignId
+        ? supabaseAdmin
+            .from('campaign_npcs')
+            .select('id, name, first_name, emotional_tone, emotional_memory, last_emotional_shift')
+            .eq('campaign_id', campaignId)
+            .not('emotional_tone', 'eq', 'neutral')
+            .limit(20)
         : Promise.resolve({ data: null, error: null }),
     ]);
 
