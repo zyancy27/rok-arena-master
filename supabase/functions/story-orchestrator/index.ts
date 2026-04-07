@@ -935,7 +935,47 @@ function buildLivingWorldContext(ctx: OrchestratorContext): string {
     parts.push('NPCs should carry emotional tone from past interactions — not just facts.');
   }
 
-  // ── FACTION DETAILS (from factions table — richer than brain summary) ──
+  // ── REGIONAL SOCIAL STATE (Phase 2 — social heat + world mood) ──
+  const socialStates = ws.regional_social_state || [];
+  if (socialStates.length > 0) {
+    parts.push('\nREGIONAL SOCIAL STATE (how different groups perceive the player in each region):');
+    for (const ss of socialStates) {
+      const heats: string[] = [];
+      if (ss.civilian_heat !== 0) heats.push(`civilians: ${ss.civilian_heat > 0 ? '+' : ''}${ss.civilian_heat}`);
+      if (ss.merchant_heat !== 0) heats.push(`merchants: ${ss.merchant_heat > 0 ? '+' : ''}${ss.merchant_heat}`);
+      if (ss.guard_heat !== 0) heats.push(`guards: ${ss.guard_heat > 0 ? '+' : ''}${ss.guard_heat}`);
+      if (ss.criminal_heat !== 0) heats.push(`criminals: ${ss.criminal_heat > 0 ? '+' : ''}${ss.criminal_heat}`);
+      if (ss.faction_heat !== 0) heats.push(`factions: ${ss.faction_heat > 0 ? '+' : ''}${ss.faction_heat}`);
+      if (ss.community_heat !== 0) heats.push(`locals: ${ss.community_heat > 0 ? '+' : ''}${ss.community_heat}`);
+      const heatStr = heats.length > 0 ? ` | Heat: ${heats.join(', ')}` : '';
+      parts.push(`- ${ss.region_name}: mood=${ss.world_mood}${heatStr}`);
+      // Recent social memory
+      const memories = Array.isArray(ss.social_memory) ? ss.social_memory.slice(-3) : [];
+      for (const mem of memories) {
+        if (typeof mem === 'object' && mem.event) {
+          parts.push(`  └ ${mem.group || 'general'} remembers: "${mem.event}"`);
+        }
+      }
+    }
+    parts.push('SOCIAL HEAT RULES: Positive heat = favorable, negative = hostile/suspicious. Different groups remember different things.');
+    parts.push('- Guards remember defiance and law-breaking. Merchants remember cost and reliability.');
+    parts.push('- Civilians remember kindness and disruption. Criminals remember weakness and leverage.');
+    parts.push('- Use social heat to shape NPC behavior: a guard in a region where guard_heat is -30 will be suspicious and confrontational.');
+    parts.push('WORLD MOOD RULES: The region mood colors everything — NPC tone, ambient descriptions, crowd behavior, tension level.');
+  }
+
+  // ── NPC EMOTIONAL CARRYOVER (Phase 2 — persistent emotional tone) ──
+  const npcEmotions = ws.npc_emotional_carryover || [];
+  if (npcEmotions.length > 0) {
+    parts.push('\nNPC EMOTIONAL CARRYOVER (NPCs carry feelings, not just facts):');
+    for (const npc of npcEmotions.slice(0, 10)) {
+      const firstName = npc.first_name || npc.name?.split(' ')[0] || npc.name;
+      const recentMemory = Array.isArray(npc.emotional_memory) ? npc.emotional_memory.slice(-2) : [];
+      const memStr = recentMemory.map((m: any) => typeof m === 'object' ? `${m.emotion} from "${m.cause}"` : m).join('; ');
+      parts.push(`- ${firstName}: tone=${npc.emotional_tone}${npc.last_emotional_shift ? ` (shifted: ${npc.last_emotional_shift})` : ''}${memStr ? ` | recent: ${memStr}` : ''}`);
+    }
+    parts.push('EMOTIONAL RULES: NPCs speak and act from their emotional state. An irritated NPC is curt. A grateful one offers more. A fearful one avoids eye contact. This is NOT separate AI — YOU perform these emotions consistently.');
+  }
   const factionDetails = ws.faction_details || [];
   if (factionDetails.length > 0) {
     parts.push('\nFACTION DETAILS (persistent political/social forces):');
