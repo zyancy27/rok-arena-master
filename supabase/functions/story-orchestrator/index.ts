@@ -233,7 +233,7 @@ async function fetchWorldContext(
   try {
     const supabaseAdmin = ctx.supabaseAdmin;
 
-    const [sentimentResult, campaignResult, worldEventsResult, worldRumorsResult, worldStateResult, campaignBrainResult, npcRelationshipsResult, factionsResult, socialStateResult, npcEmotionalResult] = await Promise.all([
+    const [sentimentResult, campaignResult, worldEventsResult, worldRumorsResult, worldStateResult, campaignBrainResult, npcRelationshipsResult, factionsResult, socialStateResult, npcEmotionalResult, locationStateResult] = await Promise.all([
       supabaseAdmin
         .from('narrator_sentiments')
         .select('*')
@@ -311,6 +311,14 @@ async function fetchWorldContext(
             .not('emotional_tone', 'eq', 'neutral')
             .limit(20)
         : Promise.resolve({ data: null, error: null }),
+      // Phase 3: Fetch location identity state for current and nearby zones
+      campaignId
+        ? supabaseAdmin
+            .from('campaign_location_state')
+            .select('zone_name, controlled_by, control_type, control_description, local_habits, environmental_friction, scene_residue, quiet_scene_value, location_mood, familiarity_level, times_visited, last_visited_day, notable_features')
+            .eq('campaign_id', campaignId)
+            .limit(10)
+        : Promise.resolve({ data: null, error: null }),
     ]);
 
     if (sentimentResult.data) {
@@ -370,6 +378,7 @@ async function fetchWorldContext(
       faction_details: factionsResult?.data || [],
       regional_social_state: socialStateResult?.data || [],
       npc_emotional_carryover: npcEmotionalResult?.data || [],
+      location_identity: locationStateResult?.data || [],
     };
   } catch (e) {
     ctx.errors.push({
