@@ -1947,6 +1947,29 @@ OUTPUT FORMAT (JSON):
       "conflictUpdate": "Brief update on faction conflicts, if any"
     }
   ] or [] if no faction changes,
+  "campaignBrainUpdates": {
+    // IMPORTANT — report changes to the campaign's narrative spine this turn.
+    // This is how you maintain long-term story coherence. Every meaningful turn should update at least one field.
+    // The orchestrator persists these so your memory stays accurate across the entire campaign.
+    // RULES:
+    // - Only include fields that ACTUALLY changed this turn. Omit unchanged fields.
+    // - This is YOUR memory updating itself. Be precise and honest about what shifted.
+    // - The story spine is YOUR authority. Keep it accurate.
+    "current_arc": "string — update if the campaign transitioned to a new arc or the arc name needs refinement. Omit if unchanged.",
+    "current_pressure": "string — what is pressing RIGHT NOW. Update when the immediate pressure shifts. e.g. 'The kidnappers' deadline is tonight' or 'The faction blockade tightens'.",
+    "current_location": "string — update when the party meaningfully changes location/zone.",
+    "remaining_narrative_runway": "string — your assessment of where the story stands. e.g. 'Early act 1 — world still being established' or 'Approaching climax — threads converging'.",
+    "active_story_beats": ["string array — NEW story beats that should happen soon. Don't repeat existing ones."],
+    "completed_beats": ["string array — beats from the existing list that were COMPLETED or made irrelevant this turn."],
+    "new_threads": ["string array — new unresolved threads introduced this turn."],
+    "resolved_threads": ["string array — threads from the existing list that were RESOLVED this turn."],
+    "player_impacts": ["string array — consequences of the player's action on the world this turn. e.g. 'Destroyed the bridge — north road is impassable' or 'Befriended the merchant guild leader'."],
+    "new_pressures": ["string array — new future pressures that will escalate if ignored."],
+    "resolved_pressures": ["string array — pressures that were addressed or expired."],
+    "new_known_truths": ["string array — truths newly revealed to the player this turn."],
+    "revealed_hidden_truths": ["string array — hidden truths that were REVEALED this turn (move from hidden to known)."],
+    "world_summary_update": "string — update only if the world state changed significantly enough to warrant a new summary. Omit for minor changes."
+  },
   "sentimentUpdate": {
     "nickname": "a short nickname for this character. Evolve it over time — early on use observational nicknames ('the quiet one'), later use earned ones ('iron saint', 'world-walker'). Keep if still fitting, change when your perception shifts. 1-3 words.",
     "sentiment_shift": <number -10 to +10, how much your overall opinion changed this turn. Base this on CREATIVITY and ENGAGEMENT:
