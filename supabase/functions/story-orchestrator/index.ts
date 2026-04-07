@@ -2382,6 +2382,10 @@ serve(async (req) => {
       persistGatedOpportunityUpdates(ctx, campaignId).catch((e) => console.error('Background opportunity update failed:', e));
       // Phase 1: Persist campaign brain narrative updates (arc, beats, threads, pressure, player impact)
       persistCampaignBrainUpdates(ctx, campaignId).catch((e) => console.error('Background brain update failed:', e));
+      // Phase 2: Persist social state updates (regional heat, mood, social memory)
+      persistSocialStateUpdates(ctx, campaignId).catch((e) => console.error('Background social state update failed:', e));
+      // Phase 2: Persist NPC emotional carryover updates
+      persistNpcEmotionalUpdates(ctx, campaignId).catch((e) => console.error('Background NPC emotional update failed:', e));
     }
 
     // ─── Step 7: Build Orchestrated Response ───────────────────
