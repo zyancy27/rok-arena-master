@@ -906,7 +906,29 @@ function buildLivingWorldContext(ctx: OrchestratorContext): string {
     }
   }
 
-  // ── STORY ARCS (always active — they're central) ──
+  // ── NPC RELATIONSHIPS (emotional carryover — always useful) ──
+  const npcRels = ws.npc_relationships || [];
+  if (npcRels.length > 0 && !suppressed.has('environment_details')) {
+    parts.push('\nNPC RELATIONSHIP MEMORY (how NPCs feel about the player):');
+    for (const rel of npcRels.slice(0, 10)) {
+      parts.push(`- NPC ${rel.npc_id}: disposition=${rel.disposition}, trust=${rel.trust_level}, last interaction day ${rel.last_interaction_day || '?'}${rel.notes ? ' — ' + rel.notes : ''}`);
+    }
+    parts.push('NPCs should carry emotional tone from past interactions — not just facts.');
+  }
+
+  // ── FACTION DETAILS (from factions table — richer than brain summary) ──
+  const factionDetails = ws.faction_details || [];
+  if (factionDetails.length > 0) {
+    parts.push('\nFACTION DETAILS (persistent political/social forces):');
+    for (const f of factionDetails.slice(0, 6)) {
+      const allies = Array.isArray(f.allies) && f.allies.length > 0 ? ` Allies: ${f.allies.join(', ')}` : '';
+      const rivals = Array.isArray(f.rivals) && f.rivals.length > 0 ? ` Rivals: ${f.rivals.join(', ')}` : '';
+      const conflicts = Array.isArray(f.current_conflicts) && f.current_conflicts.length > 0 ? ` Conflicts: ${f.current_conflicts.join(', ')}` : '';
+      const territories = Array.isArray(f.territory_regions) && f.territory_regions.length > 0 ? ` Territory: ${f.territory_regions.join(', ')}` : '';
+      parts.push(`- ${f.faction_name}: strength ${f.military_strength}/100. Goals: ${f.faction_goals || 'unknown'}.${allies}${rivals}${conflicts}${territories}`);
+    }
+  }
+
   const campaignState = ctx.campaign_state || {};
   const storyCtx = campaignState.story_context || {};
   const activeArcs = storyCtx.active_arcs || [];
