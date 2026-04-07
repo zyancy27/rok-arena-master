@@ -835,6 +835,79 @@ function buildCampaignBrainContext(ctx: OrchestratorContext): string {
   return parts.join('\n');
 }
 
+// ─── Build Location Identity Context (Phase 3 — Narrator-Readable) ──
+function buildLocationIdentityContext(ctx: OrchestratorContext): string {
+  const locations = ctx.world_state?.location_identity || [];
+  if (locations.length === 0) return '';
+
+  const currentZone = ctx.campaign_state?.current_zone || '';
+  const parts: string[] = [];
+  parts.push('LOCATION IDENTITY (each place has ownership, habits, friction, and memory):');
+
+  // Sort: current zone first, then most-visited
+  const sorted = [...locations].sort((a: any, b: any) => {
+    if (a.zone_name === currentZone) return -1;
+    if (b.zone_name === currentZone) return 1;
+    return (b.times_visited || 0) - (a.times_visited || 0);
+  });
+
+  for (const loc of sorted.slice(0, 6)) {
+    const isCurrent = loc.zone_name === currentZone;
+    const marker = isCurrent ? ' [CURRENT ZONE]' : '';
+    parts.push(`\n📍 ${loc.zone_name}${marker} (mood: ${loc.location_mood || 'neutral'}, visited ${loc.times_visited || 0}x, familiarity: ${loc.familiarity_level || 0}/10)`);
+
+    // Territorial ownership
+    if (loc.controlled_by) {
+      parts.push(`  Controlled by: ${loc.controlled_by} (${loc.control_type || 'unclaimed'})${loc.control_description ? ' — ' + loc.control_description : ''}`);
+    }
+
+    // Local habits
+    const habits = Array.isArray(loc.local_habits) ? loc.local_habits : [];
+    if (habits.length > 0) {
+      parts.push(`  Habits: ${habits.slice(0, 3).join('; ')}`);
+    }
+
+    // Environmental friction
+    const friction = Array.isArray(loc.environmental_friction) ? loc.environmental_friction : [];
+    if (friction.length > 0) {
+      parts.push(`  Friction: ${friction.slice(0, 3).join('; ')}`);
+    }
+
+    // Scene residue
+    const residue = Array.isArray(loc.scene_residue) ? loc.scene_residue : [];
+    if (residue.length > 0) {
+      const recent = residue.slice(-3);
+      for (const r of recent) {
+        const desc = typeof r === 'object' ? r.description : r;
+        const perm = typeof r === 'object' && r.permanent ? ' [permanent]' : '';
+        parts.push(`  Residue: ${desc}${perm}`);
+      }
+    }
+
+    // Quiet-scene value
+    const quietValue = Array.isArray(loc.quiet_scene_value) ? loc.quiet_scene_value : [];
+    if (quietValue.length > 0 && isCurrent) {
+      parts.push(`  Quiet-scene value: ${quietValue.slice(0, 2).join('; ')}`);
+    }
+
+    // Notable features
+    const features = Array.isArray(loc.notable_features) ? loc.notable_features : [];
+    if (features.length > 0) {
+      parts.push(`  Features: ${features.join(', ')}`);
+    }
+  }
+
+  parts.push('\nLOCATION RULES:');
+  parts.push('- Locations feel INHABITED — they have owners, routines, and memory of past events.');
+  parts.push('- Scene residue is VISIBLE: scorch marks, bloodstains, broken structures, changed crowd routes.');
+  parts.push('- Environmental friction shapes what is easy/hard: mud slows movement, crowds provide cover, guards patrol certain routes.');
+  parts.push('- Quiet scenes have VALUE: trust, information, access, familiarity. Not every turn needs action.');
+  parts.push('- When the player enters a new zone, describe its personality — ownership, mood, habits — before anything else.');
+  parts.push('- Territorial control affects WHO is present, what is allowed, and how NPCs behave.');
+
+  return parts.join('\n');
+}
+
 // ─── Build Living World Context for Narrator (with Priority Gating) ──
 function buildLivingWorldContext(ctx: OrchestratorContext): string {
   const parts: string[] = [];
