@@ -349,6 +349,8 @@ async function fetchWorldContext(
       active_world_events: worldEventsResult?.data || [],
       world_rumors: worldRumorsResult?.data || [],
       regional_states: worldStateResult?.data || [],
+      npc_relationships: npcRelationshipsResult?.data || [],
+      faction_details: factionsResult?.data || [],
     };
   } catch (e) {
     ctx.errors.push({
