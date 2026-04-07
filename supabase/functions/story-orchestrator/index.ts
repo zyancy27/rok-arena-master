@@ -1857,7 +1857,141 @@ async function persistCampaignBrainUpdates(
   }
 }
 
-// ─── Pipeline Step: Persist World State Updates (Narrator-Owned) ──
+// ─── Pipeline Step: Persist Social State Updates (Phase 2 — Narrator-Owned) ──
+async function persistSocialStateUpdates(
+  ctx: OrchestratorContext,
+  campaignId: string,
+): Promise<void> {
+  const socialUpdates = ctx.narration_result?.socialStateUpdates;
+  if (!Array.isArray(socialUpdates) || socialUpdates.length === 0 || !campaignId) return;
+
+  try {
+    const supabaseAdmin = ctx.supabaseAdmin;
+    const brain = ctx.campaign_brain;
+    const currentDay = brain?.current_day || ctx.campaign_state?.day_count || 1;
+
+    for (const update of socialUpdates.slice(0, 3)) {
+      if (!update.region) continue;
+
+      // Upsert regional social state
+      const { data: existing } = await supabaseAdmin
+        .from('regional_social_state')
+        .select('*')
+        .eq('campaign_id', campaignId)
+        .eq('region_name', update.region)
+        .maybeSingle();
+
+      const clampHeat = (v: number) => Math.max(-100, Math.min(100, v));
+
+      if (existing) {
+        const updateData: any = { updated_at: new Date().toISOString() };
+        if (update.mood) updateData.world_mood = update.mood;
+        if (update.civilian_delta) updateData.civilian_heat = clampHeat((existing.civilian_heat || 0) + update.civilian_delta);
+        if (update.merchant_delta) updateData.merchant_heat = clampHeat((existing.merchant_heat || 0) + update.merchant_delta);
+        if (update.guard_delta) updateData.guard_heat = clampHeat((existing.guard_heat || 0) + update.guard_delta);
+        if (update.criminal_delta) updateData.criminal_heat = clampHeat((existing.criminal_heat || 0) + update.criminal_delta);
+        if (update.faction_delta) updateData.faction_heat = clampHeat((existing.faction_heat || 0) + update.faction_delta);
+        if (update.community_delta) updateData.community_heat = clampHeat((existing.community_heat || 0) + update.community_delta);
+
+        // Append social memory
+        if (update.memory_event) {
+          const memories = Array.isArray(existing.social_memory) ? [...existing.social_memory] : [];
+          memories.push({ event: update.memory_event, group: update.memory_group || 'general', day: currentDay });
+          updateData.social_memory = memories.slice(-15);
+        }
+
+        // Mood drivers
+        if (update.mood_driver) {
+          const drivers = Array.isArray(existing.mood_drivers) ? [...existing.mood_drivers] : [];
+          drivers.push({ driver: update.mood_driver, day: currentDay });
+          updateData.mood_drivers = drivers.slice(-10);
+        }
+
+        await supabaseAdmin.from('regional_social_state').update(updateData).eq('id', existing.id);
+      } else {
+        // Create new regional social state
+        const insertData: any = {
+          campaign_id: campaignId,
+          region_name: update.region,
+          world_mood: update.mood || 'neutral',
+          civilian_heat: clampHeat(update.civilian_delta || 0),
+          merchant_heat: clampHeat(update.merchant_delta || 0),
+          guard_heat: clampHeat(update.guard_delta || 0),
+          criminal_heat: clampHeat(update.criminal_delta || 0),
+          faction_heat: clampHeat(update.faction_delta || 0),
+          community_heat: clampHeat(update.community_delta || 0),
+          social_memory: update.memory_event ? [{ event: update.memory_event, group: update.memory_group || 'general', day: currentDay }] : [],
+          mood_drivers: update.mood_driver ? [{ driver: update.mood_driver, day: currentDay }] : [],
+        };
+        await supabaseAdmin.from('regional_social_state').insert(insertData);
+      }
+    }
+  } catch (e) {
+    ctx.errors.push({
+      step: 'persist_social_state',
+      error: e instanceof Error ? e.message : 'Unknown error',
+      recoverable: true,
+    });
+  }
+}
+
+// ─── Pipeline Step: Persist NPC Emotional Updates (Phase 2 — Narrator-Owned) ──
+async function persistNpcEmotionalUpdates(
+  ctx: OrchestratorContext,
+  campaignId: string,
+): Promise<void> {
+  const emotionalUpdates = ctx.narration_result?.npcEmotionalUpdates;
+  if (!Array.isArray(emotionalUpdates) || emotionalUpdates.length === 0 || !campaignId) return;
+
+  try {
+    const supabaseAdmin = ctx.supabaseAdmin;
+    const brain = ctx.campaign_brain;
+    const currentDay = brain?.current_day || ctx.campaign_state?.day_count || 1;
+
+    for (const update of emotionalUpdates.slice(0, 5)) {
+      if (!update.npc_name && !update.npc_id) continue;
+
+      // Find the NPC
+      let npcQuery = supabaseAdmin
+        .from('campaign_npcs')
+        .select('id, emotional_tone, emotional_memory')
+        .eq('campaign_id', campaignId);
+
+      if (update.npc_id) {
+        npcQuery = npcQuery.eq('id', update.npc_id);
+      } else {
+        npcQuery = npcQuery.or(`name.ilike.%${update.npc_name}%,first_name.ilike.%${update.npc_name}%`);
+      }
+
+      const { data: npc } = await npcQuery.maybeSingle();
+      if (!npc) continue;
+
+      const existingMemory = Array.isArray(npc.emotional_memory) ? [...npc.emotional_memory] : [];
+      if (update.cause) {
+        existingMemory.push({
+          emotion: update.new_tone || update.emotional_shift,
+          cause: update.cause,
+          day: currentDay,
+        });
+      }
+
+      await supabaseAdmin.from('campaign_npcs').update({
+        emotional_tone: update.new_tone || npc.emotional_tone,
+        emotional_memory: existingMemory.slice(-8),
+        last_emotional_shift: update.emotional_shift || null,
+        updated_at: new Date().toISOString(),
+      }).eq('id', npc.id);
+    }
+  } catch (e) {
+    ctx.errors.push({
+      step: 'persist_npc_emotional',
+      error: e instanceof Error ? e.message : 'Unknown error',
+      recoverable: true,
+    });
+  }
+}
+
+
 async function persistWorldStateUpdates(
   ctx: OrchestratorContext,
   campaignId: string,
