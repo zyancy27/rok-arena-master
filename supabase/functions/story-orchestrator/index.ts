@@ -233,7 +233,7 @@ async function fetchWorldContext(
   try {
     const supabaseAdmin = ctx.supabaseAdmin;
 
-    const [sentimentResult, campaignResult, worldEventsResult, worldRumorsResult, worldStateResult, campaignBrainResult] = await Promise.all([
+    const [sentimentResult, campaignResult, worldEventsResult, worldRumorsResult, worldStateResult, campaignBrainResult, npcRelationshipsResult, factionsResult] = await Promise.all([
       supabaseAdmin
         .from('narrator_sentiments')
         .select('*')
@@ -276,6 +276,23 @@ async function fetchWorldContext(
             .select('*')
             .eq('campaign_id', campaignId)
             .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      // Fetch NPC relationships for the current character in this campaign
+      (campaignId && characterId)
+        ? supabaseAdmin
+            .from('npc_relationships')
+            .select('npc_id, disposition, trust_level, notes, last_interaction_day')
+            .eq('campaign_id', campaignId)
+            .eq('character_id', characterId)
+            .limit(30)
+        : Promise.resolve({ data: null, error: null }),
+      // Fetch faction data for this campaign
+      campaignId
+        ? supabaseAdmin
+            .from('factions')
+            .select('faction_name, faction_goals, military_strength, allies, rivals, current_conflicts, territory_regions')
+            .eq('campaign_id', campaignId)
+            .limit(10)
         : Promise.resolve({ data: null, error: null }),
     ]);
 
@@ -332,6 +349,8 @@ async function fetchWorldContext(
       active_world_events: worldEventsResult?.data || [],
       world_rumors: worldRumorsResult?.data || [],
       regional_states: worldStateResult?.data || [],
+      npc_relationships: npcRelationshipsResult?.data || [],
+      faction_details: factionsResult?.data || [],
     };
   } catch (e) {
     ctx.errors.push({
@@ -887,7 +906,29 @@ function buildLivingWorldContext(ctx: OrchestratorContext): string {
     }
   }
 
-  // ── STORY ARCS (always active — they're central) ──
+  // ── NPC RELATIONSHIPS (emotional carryover — always useful) ──
+  const npcRels = ws.npc_relationships || [];
+  if (npcRels.length > 0 && !suppressed.has('environment_details')) {
+    parts.push('\nNPC RELATIONSHIP MEMORY (how NPCs feel about the player):');
+    for (const rel of npcRels.slice(0, 10)) {
+      parts.push(`- NPC ${rel.npc_id}: disposition=${rel.disposition}, trust=${rel.trust_level}, last interaction day ${rel.last_interaction_day || '?'}${rel.notes ? ' — ' + rel.notes : ''}`);
+    }
+    parts.push('NPCs should carry emotional tone from past interactions — not just facts.');
+  }
+
+  // ── FACTION DETAILS (from factions table — richer than brain summary) ──
+  const factionDetails = ws.faction_details || [];
+  if (factionDetails.length > 0) {
+    parts.push('\nFACTION DETAILS (persistent political/social forces):');
+    for (const f of factionDetails.slice(0, 6)) {
+      const allies = Array.isArray(f.allies) && f.allies.length > 0 ? ` Allies: ${f.allies.join(', ')}` : '';
+      const rivals = Array.isArray(f.rivals) && f.rivals.length > 0 ? ` Rivals: ${f.rivals.join(', ')}` : '';
+      const conflicts = Array.isArray(f.current_conflicts) && f.current_conflicts.length > 0 ? ` Conflicts: ${f.current_conflicts.join(', ')}` : '';
+      const territories = Array.isArray(f.territory_regions) && f.territory_regions.length > 0 ? ` Territory: ${f.territory_regions.join(', ')}` : '';
+      parts.push(`- ${f.faction_name}: strength ${f.military_strength}/100. Goals: ${f.faction_goals || 'unknown'}.${allies}${rivals}${conflicts}${territories}`);
+    }
+  }
+
   const campaignState = ctx.campaign_state || {};
   const storyCtx = campaignState.story_context || {};
   const activeArcs = storyCtx.active_arcs || [];
@@ -1605,7 +1646,134 @@ async function persistGatedOpportunityUpdates(
   }
 }
 
-    // Keep max 8 hooks, prioritizing active/engaged over stale/resolved
+// ─── Pipeline Step: Persist Campaign Brain Narrative Updates ───
+// This is the KEY Phase 1 addition: every turn, the narrator reports changes
+// to the campaign spine (arc, beats, threads, pressure, player impact, runway).
+// The orchestrator persists these so long campaigns maintain coherence.
+async function persistCampaignBrainUpdates(
+  ctx: OrchestratorContext,
+  campaignId: string,
+): Promise<void> {
+  const brainUpdates = ctx.narration_result?.campaignBrainUpdates;
+  const brain = ctx.campaign_brain;
+  if (!brain || !campaignId) return;
+  if (!brainUpdates || typeof brainUpdates !== 'object') return;
+
+  try {
+    const supabaseAdmin = ctx.supabaseAdmin;
+    const updateData: any = { updated_at: new Date().toISOString() };
+
+    // Current arc progression
+    if (brainUpdates.current_arc && typeof brainUpdates.current_arc === 'string') {
+      updateData.current_arc = brainUpdates.current_arc;
+    }
+
+    // Current pressure update
+    if (brainUpdates.current_pressure && typeof brainUpdates.current_pressure === 'string') {
+      updateData.current_pressure = brainUpdates.current_pressure;
+    }
+
+    // Current location tracking
+    if (brainUpdates.current_location && typeof brainUpdates.current_location === 'string') {
+      updateData.current_location = brainUpdates.current_location;
+    }
+
+    // Narrative runway update
+    if (brainUpdates.remaining_narrative_runway && typeof brainUpdates.remaining_narrative_runway === 'string') {
+      updateData.remaining_narrative_runway = brainUpdates.remaining_narrative_runway;
+    }
+
+    // Active story beats: replace with narrator's updated list if provided
+    if (Array.isArray(brainUpdates.active_story_beats) && brainUpdates.active_story_beats.length > 0) {
+      // Merge: keep existing beats not mentioned, add new ones, remove completed ones
+      const existing: string[] = Array.isArray(brain.active_story_beats) ? [...brain.active_story_beats] : [];
+      const completed: string[] = Array.isArray(brainUpdates.completed_beats) ? brainUpdates.completed_beats : [];
+      const newBeats: string[] = brainUpdates.active_story_beats.filter((b: string) => typeof b === 'string' && b.length > 0);
+      
+      // Remove completed beats from existing
+      const filtered = existing.filter((b: string) => !completed.some((c: string) => b.toLowerCase().includes(c.toLowerCase())));
+      // Add new beats (deduplicate)
+      const merged = [...new Set([...filtered, ...newBeats])].slice(0, 8);
+      updateData.active_story_beats = merged;
+    }
+
+    // Unresolved threads: merge updates
+    if (Array.isArray(brainUpdates.new_threads) || Array.isArray(brainUpdates.resolved_threads)) {
+      const existing: string[] = Array.isArray(brain.unresolved_threads) ? [...brain.unresolved_threads] : [];
+      const resolved: string[] = Array.isArray(brainUpdates.resolved_threads) ? brainUpdates.resolved_threads : [];
+      const newThreads: string[] = Array.isArray(brainUpdates.new_threads) ? brainUpdates.new_threads : [];
+      
+      const filtered = existing.filter((t: string) => !resolved.some((r: string) => t.toLowerCase().includes(r.toLowerCase())));
+      const merged = [...new Set([...filtered, ...newThreads])].slice(0, 10);
+      updateData.unresolved_threads = merged;
+    }
+
+    // Player impact log: append new impacts
+    if (Array.isArray(brainUpdates.player_impacts) && brainUpdates.player_impacts.length > 0) {
+      const existing: any[] = Array.isArray(brain.player_impact_log) ? [...brain.player_impact_log] : [];
+      const currentDay = brain.current_day || 1;
+      for (const impact of brainUpdates.player_impacts.slice(0, 3)) {
+        if (typeof impact === 'string' && impact.length > 0) {
+          existing.push({ day: currentDay, impact });
+        }
+      }
+      updateData.player_impact_log = existing.slice(-20); // Keep last 20 impacts
+    }
+
+    // Future pressures: merge
+    if (Array.isArray(brainUpdates.new_pressures) || Array.isArray(brainUpdates.resolved_pressures)) {
+      const existing: string[] = Array.isArray(brain.future_pressures) ? [...brain.future_pressures] : [];
+      const resolved: string[] = Array.isArray(brainUpdates.resolved_pressures) ? brainUpdates.resolved_pressures : [];
+      const newPressures: string[] = Array.isArray(brainUpdates.new_pressures) ? brainUpdates.new_pressures : [];
+      
+      const filtered = existing.filter((p: string) => !resolved.some((r: string) => p.toLowerCase().includes(r.toLowerCase())));
+      const merged = [...new Set([...filtered, ...newPressures])].slice(0, 8);
+      updateData.future_pressures = merged;
+    }
+
+    // Known truths: add newly revealed truths
+    if (Array.isArray(brainUpdates.new_known_truths) && brainUpdates.new_known_truths.length > 0) {
+      const existing: string[] = Array.isArray(brain.known_truths) ? [...brain.known_truths] : [];
+      const newTruths = brainUpdates.new_known_truths.filter((t: string) => typeof t === 'string' && t.length > 0);
+      updateData.known_truths = [...new Set([...existing, ...newTruths])].slice(0, 15);
+    }
+
+    // Hidden truths: remove revealed ones
+    if (Array.isArray(brainUpdates.revealed_hidden_truths) && brainUpdates.revealed_hidden_truths.length > 0) {
+      const existing: string[] = Array.isArray(brain.hidden_truths) ? [...brain.hidden_truths] : [];
+      const revealed: string[] = brainUpdates.revealed_hidden_truths;
+      updateData.hidden_truths = existing.filter((h: string) => !revealed.some((r: string) => h.toLowerCase().includes(r.toLowerCase())));
+      // Move revealed hidden truths to known truths
+      if (!updateData.known_truths) {
+        updateData.known_truths = Array.isArray(brain.known_truths) ? [...brain.known_truths] : [];
+      }
+      for (const truth of revealed) {
+        if (typeof truth === 'string' && !updateData.known_truths.includes(truth)) {
+          updateData.known_truths.push(truth);
+        }
+      }
+      updateData.known_truths = updateData.known_truths.slice(0, 15);
+    }
+
+    // World summary update (when narrator reports significant world changes)
+    if (brainUpdates.world_summary_update && typeof brainUpdates.world_summary_update === 'string') {
+      updateData.world_summary = brainUpdates.world_summary_update;
+    }
+
+    // Only persist if we have actual updates beyond the timestamp
+    if (Object.keys(updateData).length > 1) {
+      await supabaseAdmin.from('campaign_brain').update(updateData).eq('campaign_id', campaignId);
+    }
+  } catch (e) {
+    ctx.errors.push({
+      step: 'persist_campaign_brain_updates',
+      error: e instanceof Error ? e.message : 'Unknown error',
+      recoverable: true,
+    });
+  }
+}
+
+
     const statusOrder: Record<string, number> = { engaged: 0, active: 1, surfaced: 2, stale: 3, resolved: 4 };
     hooks.sort((a: any, b: any) => {
       const sa = statusOrder[a.status] ?? 3;
@@ -2019,6 +2187,8 @@ serve(async (req) => {
     if (campaignId && ctx.campaign_brain) {
       persistHookUpdates(ctx, campaignId).catch((e) => console.error('Background hook update failed:', e));
       persistGatedOpportunityUpdates(ctx, campaignId).catch((e) => console.error('Background opportunity update failed:', e));
+      // Phase 1: Persist campaign brain narrative updates (arc, beats, threads, pressure, player impact)
+      persistCampaignBrainUpdates(ctx, campaignId).catch((e) => console.error('Background brain update failed:', e));
     }
 
     // ─── Step 7: Build Orchestrated Response ───────────────────
