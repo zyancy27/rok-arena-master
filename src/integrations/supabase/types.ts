@@ -590,6 +590,74 @@ export type Database = {
           },
         ]
       }
+      campaign_location_state: {
+        Row: {
+          campaign_id: string
+          control_description: string | null
+          control_type: string | null
+          controlled_by: string | null
+          created_at: string
+          environmental_friction: Json
+          familiarity_level: number
+          id: string
+          last_visited_day: number | null
+          local_habits: Json
+          location_mood: string | null
+          notable_features: string[] | null
+          quiet_scene_value: Json
+          scene_residue: Json
+          times_visited: number
+          updated_at: string
+          zone_name: string
+        }
+        Insert: {
+          campaign_id: string
+          control_description?: string | null
+          control_type?: string | null
+          controlled_by?: string | null
+          created_at?: string
+          environmental_friction?: Json
+          familiarity_level?: number
+          id?: string
+          last_visited_day?: number | null
+          local_habits?: Json
+          location_mood?: string | null
+          notable_features?: string[] | null
+          quiet_scene_value?: Json
+          scene_residue?: Json
+          times_visited?: number
+          updated_at?: string
+          zone_name: string
+        }
+        Update: {
+          campaign_id?: string
+          control_description?: string | null
+          control_type?: string | null
+          controlled_by?: string | null
+          created_at?: string
+          environmental_friction?: Json
+          familiarity_level?: number
+          id?: string
+          last_visited_day?: number | null
+          local_habits?: Json
+          location_mood?: string | null
+          notable_features?: string[] | null
+          quiet_scene_value?: Json
+          scene_residue?: Json
+          times_visited?: number
+          updated_at?: string
+          zone_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_location_state_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaign_logs: {
         Row: {
           campaign_id: string
