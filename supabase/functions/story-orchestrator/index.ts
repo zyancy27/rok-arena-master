@@ -2592,6 +2592,8 @@ serve(async (req) => {
       persistSocialStateUpdates(ctx, campaignId).catch((e) => console.error('Background social state update failed:', e));
       // Phase 2: Persist NPC emotional carryover updates
       persistNpcEmotionalUpdates(ctx, campaignId).catch((e) => console.error('Background NPC emotional update failed:', e));
+      // Phase 3: Persist location identity updates (territorial ownership, habits, friction, residue)
+      persistLocationUpdates(ctx, campaignId).catch((e) => console.error('Background location update failed:', e));
     }
 
     // ─── Step 7: Build Orchestrated Response ───────────────────
