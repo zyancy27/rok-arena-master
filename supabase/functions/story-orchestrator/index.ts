@@ -368,6 +368,8 @@ async function fetchWorldContext(
       regional_states: worldStateResult?.data || [],
       npc_relationships: npcRelationshipsResult?.data || [],
       faction_details: factionsResult?.data || [],
+      regional_social_state: socialStateResult?.data || [],
+      npc_emotional_carryover: npcEmotionalResult?.data || [],
     };
   } catch (e) {
     ctx.errors.push({
