@@ -233,7 +233,7 @@ async function fetchWorldContext(
   try {
     const supabaseAdmin = ctx.supabaseAdmin;
 
-    const [sentimentResult, campaignResult, worldEventsResult, worldRumorsResult, worldStateResult, campaignBrainResult] = await Promise.all([
+    const [sentimentResult, campaignResult, worldEventsResult, worldRumorsResult, worldStateResult, campaignBrainResult, npcRelationshipsResult, factionsResult] = await Promise.all([
       supabaseAdmin
         .from('narrator_sentiments')
         .select('*')
@@ -276,6 +276,23 @@ async function fetchWorldContext(
             .select('*')
             .eq('campaign_id', campaignId)
             .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      // Fetch NPC relationships for the current character in this campaign
+      (campaignId && characterId)
+        ? supabaseAdmin
+            .from('npc_relationships')
+            .select('npc_id, disposition, trust_level, notes, last_interaction_day')
+            .eq('campaign_id', campaignId)
+            .eq('character_id', characterId)
+            .limit(30)
+        : Promise.resolve({ data: null, error: null }),
+      // Fetch faction data for this campaign
+      campaignId
+        ? supabaseAdmin
+            .from('factions')
+            .select('faction_name, faction_goals, military_strength, allies, rivals, current_conflicts, territory_regions')
+            .eq('campaign_id', campaignId)
+            .limit(10)
         : Promise.resolve({ data: null, error: null }),
     ]);
 
