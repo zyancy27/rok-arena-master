@@ -1947,6 +1947,52 @@ OUTPUT FORMAT (JSON):
       "conflictUpdate": "Brief update on faction conflicts, if any"
     }
   ] or [] if no faction changes,
+  "socialStateUpdates": [
+    // OPTIONAL — Phase 2: report changes to regional social heat and world mood.
+    // Social heat tracks how different groups perceive the player. World mood tracks the emotional atmosphere of a region.
+    // RULES:
+    // - Only report when the player's action MEANINGFULLY affected how a social group sees them or shifted a region's mood.
+    // - Heat values are DELTAS (changes), not absolutes. Range: -20 to +20 per group per turn.
+    // - Positive = favorable (helped, protected, paid fairly). Negative = hostile (fought, stole, disrupted, defied).
+    // - Different groups care about different things:
+    //   • civilians: kindness, disruption, violence, protection
+    //   • merchants: trade fairness, theft, reliable deals, economic disruption
+    //   • guards: law-abiding behavior, defiance, crime, cooperation
+    //   • criminals: weakness shown, leverage given, silence kept, threats made
+    //   • factions: faction-aligned actions, territory respect, betrayal
+    //   • community: local customs respected, outsider behavior, community help
+    // - World mood shifts from major events, danger changes, scarcity, faction activity, player influence.
+    // - Maximum 1-2 social updates per turn. Most turns should have 0.
+    {
+      "region": "region/zone name where this social shift applies",
+      "mood": "tense|suspicious|exhausted|hopeful|unstable|predatory|grieving|devout|neutral|fearful|celebratory — only if mood shifted",
+      "mood_driver": "what caused the mood shift (optional)",
+      "civilian_delta": "<number -20 to +20>",
+      "merchant_delta": "<number -20 to +20>",
+      "guard_delta": "<number -20 to +20>",
+      "criminal_delta": "<number -20 to +20>",
+      "faction_delta": "<number -20 to +20>",
+      "community_delta": "<number -20 to +20>",
+      "memory_event": "what the affected group will remember about this (1 sentence)",
+      "memory_group": "civilians|merchants|guards|criminals|factions|community — which group remembers"
+    }
+  ] or [] if no social changes,
+  "npcEmotionalUpdates": [
+    // OPTIONAL — Phase 2: report NPC emotional tone shifts from this interaction.
+    // NPCs carry emotional state between interactions — not just factual memory.
+    // RULES:
+    // - Only report when an NPC's emotional state MEANINGFULLY shifted this turn.
+    // - Emotional tones: neutral, irritated, grateful, fearful, admiring, suspicious, warm, hostile, awkward, amused, protective, resentful, anxious, relieved
+    // - The "cause" is what the player did that shifted this emotion.
+    // - Maximum 1-3 emotional updates per turn. Most turns should have 0.
+    {
+      "npc_name": "NPC first name or full name",
+      "npc_id": "NPC id if known (from npcUpdates)",
+      "new_tone": "the NPC's new emotional tone after this interaction",
+      "emotional_shift": "brief description of the shift (e.g. 'warmed up after being defended' or 'grew suspicious after evasive answers')",
+      "cause": "what the player did that caused this emotional shift"
+    }
+  ] or [] if no NPC emotional changes,
   "campaignBrainUpdates": {
     // IMPORTANT — report changes to the campaign's narrative spine this turn.
     // This is how you maintain long-term story coherence. Every meaningful turn should update at least one field.

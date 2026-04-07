@@ -233,7 +233,7 @@ async function fetchWorldContext(
   try {
     const supabaseAdmin = ctx.supabaseAdmin;
 
-    const [sentimentResult, campaignResult, worldEventsResult, worldRumorsResult, worldStateResult, campaignBrainResult, npcRelationshipsResult, factionsResult] = await Promise.all([
+    const [sentimentResult, campaignResult, worldEventsResult, worldRumorsResult, worldStateResult, campaignBrainResult, npcRelationshipsResult, factionsResult, socialStateResult, npcEmotionalResult] = await Promise.all([
       supabaseAdmin
         .from('narrator_sentiments')
         .select('*')
@@ -294,6 +294,23 @@ async function fetchWorldContext(
             .eq('campaign_id', campaignId)
             .limit(10)
         : Promise.resolve({ data: null, error: null }),
+      // Phase 2: Fetch regional social state (heat + mood per region)
+      campaignId
+        ? supabaseAdmin
+            .from('regional_social_state')
+            .select('region_name, world_mood, civilian_heat, merchant_heat, guard_heat, criminal_heat, faction_heat, community_heat, mood_drivers, social_memory')
+            .eq('campaign_id', campaignId)
+            .limit(10)
+        : Promise.resolve({ data: null, error: null }),
+      // Phase 2: Fetch NPC emotional carryover
+      campaignId
+        ? supabaseAdmin
+            .from('campaign_npcs')
+            .select('id, name, first_name, emotional_tone, emotional_memory, last_emotional_shift')
+            .eq('campaign_id', campaignId)
+            .not('emotional_tone', 'eq', 'neutral')
+            .limit(20)
+        : Promise.resolve({ data: null, error: null }),
     ]);
 
     if (sentimentResult.data) {
@@ -351,6 +368,8 @@ async function fetchWorldContext(
       regional_states: worldStateResult?.data || [],
       npc_relationships: npcRelationshipsResult?.data || [],
       faction_details: factionsResult?.data || [],
+      regional_social_state: socialStateResult?.data || [],
+      npc_emotional_carryover: npcEmotionalResult?.data || [],
     };
   } catch (e) {
     ctx.errors.push({
@@ -916,7 +935,47 @@ function buildLivingWorldContext(ctx: OrchestratorContext): string {
     parts.push('NPCs should carry emotional tone from past interactions — not just facts.');
   }
 
-  // ── FACTION DETAILS (from factions table — richer than brain summary) ──
+  // ── REGIONAL SOCIAL STATE (Phase 2 — social heat + world mood) ──
+  const socialStates = ws.regional_social_state || [];
+  if (socialStates.length > 0) {
+    parts.push('\nREGIONAL SOCIAL STATE (how different groups perceive the player in each region):');
+    for (const ss of socialStates) {
+      const heats: string[] = [];
+      if (ss.civilian_heat !== 0) heats.push(`civilians: ${ss.civilian_heat > 0 ? '+' : ''}${ss.civilian_heat}`);
+      if (ss.merchant_heat !== 0) heats.push(`merchants: ${ss.merchant_heat > 0 ? '+' : ''}${ss.merchant_heat}`);
+      if (ss.guard_heat !== 0) heats.push(`guards: ${ss.guard_heat > 0 ? '+' : ''}${ss.guard_heat}`);
+      if (ss.criminal_heat !== 0) heats.push(`criminals: ${ss.criminal_heat > 0 ? '+' : ''}${ss.criminal_heat}`);
+      if (ss.faction_heat !== 0) heats.push(`factions: ${ss.faction_heat > 0 ? '+' : ''}${ss.faction_heat}`);
+      if (ss.community_heat !== 0) heats.push(`locals: ${ss.community_heat > 0 ? '+' : ''}${ss.community_heat}`);
+      const heatStr = heats.length > 0 ? ` | Heat: ${heats.join(', ')}` : '';
+      parts.push(`- ${ss.region_name}: mood=${ss.world_mood}${heatStr}`);
+      // Recent social memory
+      const memories = Array.isArray(ss.social_memory) ? ss.social_memory.slice(-3) : [];
+      for (const mem of memories) {
+        if (typeof mem === 'object' && mem.event) {
+          parts.push(`  └ ${mem.group || 'general'} remembers: "${mem.event}"`);
+        }
+      }
+    }
+    parts.push('SOCIAL HEAT RULES: Positive heat = favorable, negative = hostile/suspicious. Different groups remember different things.');
+    parts.push('- Guards remember defiance and law-breaking. Merchants remember cost and reliability.');
+    parts.push('- Civilians remember kindness and disruption. Criminals remember weakness and leverage.');
+    parts.push('- Use social heat to shape NPC behavior: a guard in a region where guard_heat is -30 will be suspicious and confrontational.');
+    parts.push('WORLD MOOD RULES: The region mood colors everything — NPC tone, ambient descriptions, crowd behavior, tension level.');
+  }
+
+  // ── NPC EMOTIONAL CARRYOVER (Phase 2 — persistent emotional tone) ──
+  const npcEmotions = ws.npc_emotional_carryover || [];
+  if (npcEmotions.length > 0) {
+    parts.push('\nNPC EMOTIONAL CARRYOVER (NPCs carry feelings, not just facts):');
+    for (const npc of npcEmotions.slice(0, 10)) {
+      const firstName = npc.first_name || npc.name?.split(' ')[0] || npc.name;
+      const recentMemory = Array.isArray(npc.emotional_memory) ? npc.emotional_memory.slice(-2) : [];
+      const memStr = recentMemory.map((m: any) => typeof m === 'object' ? `${m.emotion} from "${m.cause}"` : m).join('; ');
+      parts.push(`- ${firstName}: tone=${npc.emotional_tone}${npc.last_emotional_shift ? ` (shifted: ${npc.last_emotional_shift})` : ''}${memStr ? ` | recent: ${memStr}` : ''}`);
+    }
+    parts.push('EMOTIONAL RULES: NPCs speak and act from their emotional state. An irritated NPC is curt. A grateful one offers more. A fearful one avoids eye contact. This is NOT separate AI — YOU perform these emotions consistently.');
+  }
   const factionDetails = ws.faction_details || [];
   if (factionDetails.length > 0) {
     parts.push('\nFACTION DETAILS (persistent political/social forces):');
@@ -1798,7 +1857,141 @@ async function persistCampaignBrainUpdates(
   }
 }
 
-// ─── Pipeline Step: Persist World State Updates (Narrator-Owned) ──
+// ─── Pipeline Step: Persist Social State Updates (Phase 2 — Narrator-Owned) ──
+async function persistSocialStateUpdates(
+  ctx: OrchestratorContext,
+  campaignId: string,
+): Promise<void> {
+  const socialUpdates = ctx.narration_result?.socialStateUpdates;
+  if (!Array.isArray(socialUpdates) || socialUpdates.length === 0 || !campaignId) return;
+
+  try {
+    const supabaseAdmin = ctx.supabaseAdmin;
+    const brain = ctx.campaign_brain;
+    const currentDay = brain?.current_day || ctx.campaign_state?.day_count || 1;
+
+    for (const update of socialUpdates.slice(0, 3)) {
+      if (!update.region) continue;
+
+      // Upsert regional social state
+      const { data: existing } = await supabaseAdmin
+        .from('regional_social_state')
+        .select('*')
+        .eq('campaign_id', campaignId)
+        .eq('region_name', update.region)
+        .maybeSingle();
+
+      const clampHeat = (v: number) => Math.max(-100, Math.min(100, v));
+
+      if (existing) {
+        const updateData: any = { updated_at: new Date().toISOString() };
+        if (update.mood) updateData.world_mood = update.mood;
+        if (update.civilian_delta) updateData.civilian_heat = clampHeat((existing.civilian_heat || 0) + update.civilian_delta);
+        if (update.merchant_delta) updateData.merchant_heat = clampHeat((existing.merchant_heat || 0) + update.merchant_delta);
+        if (update.guard_delta) updateData.guard_heat = clampHeat((existing.guard_heat || 0) + update.guard_delta);
+        if (update.criminal_delta) updateData.criminal_heat = clampHeat((existing.criminal_heat || 0) + update.criminal_delta);
+        if (update.faction_delta) updateData.faction_heat = clampHeat((existing.faction_heat || 0) + update.faction_delta);
+        if (update.community_delta) updateData.community_heat = clampHeat((existing.community_heat || 0) + update.community_delta);
+
+        // Append social memory
+        if (update.memory_event) {
+          const memories = Array.isArray(existing.social_memory) ? [...existing.social_memory] : [];
+          memories.push({ event: update.memory_event, group: update.memory_group || 'general', day: currentDay });
+          updateData.social_memory = memories.slice(-15);
+        }
+
+        // Mood drivers
+        if (update.mood_driver) {
+          const drivers = Array.isArray(existing.mood_drivers) ? [...existing.mood_drivers] : [];
+          drivers.push({ driver: update.mood_driver, day: currentDay });
+          updateData.mood_drivers = drivers.slice(-10);
+        }
+
+        await supabaseAdmin.from('regional_social_state').update(updateData).eq('id', existing.id);
+      } else {
+        // Create new regional social state
+        const insertData: any = {
+          campaign_id: campaignId,
+          region_name: update.region,
+          world_mood: update.mood || 'neutral',
+          civilian_heat: clampHeat(update.civilian_delta || 0),
+          merchant_heat: clampHeat(update.merchant_delta || 0),
+          guard_heat: clampHeat(update.guard_delta || 0),
+          criminal_heat: clampHeat(update.criminal_delta || 0),
+          faction_heat: clampHeat(update.faction_delta || 0),
+          community_heat: clampHeat(update.community_delta || 0),
+          social_memory: update.memory_event ? [{ event: update.memory_event, group: update.memory_group || 'general', day: currentDay }] : [],
+          mood_drivers: update.mood_driver ? [{ driver: update.mood_driver, day: currentDay }] : [],
+        };
+        await supabaseAdmin.from('regional_social_state').insert(insertData);
+      }
+    }
+  } catch (e) {
+    ctx.errors.push({
+      step: 'persist_social_state',
+      error: e instanceof Error ? e.message : 'Unknown error',
+      recoverable: true,
+    });
+  }
+}
+
+// ─── Pipeline Step: Persist NPC Emotional Updates (Phase 2 — Narrator-Owned) ──
+async function persistNpcEmotionalUpdates(
+  ctx: OrchestratorContext,
+  campaignId: string,
+): Promise<void> {
+  const emotionalUpdates = ctx.narration_result?.npcEmotionalUpdates;
+  if (!Array.isArray(emotionalUpdates) || emotionalUpdates.length === 0 || !campaignId) return;
+
+  try {
+    const supabaseAdmin = ctx.supabaseAdmin;
+    const brain = ctx.campaign_brain;
+    const currentDay = brain?.current_day || ctx.campaign_state?.day_count || 1;
+
+    for (const update of emotionalUpdates.slice(0, 5)) {
+      if (!update.npc_name && !update.npc_id) continue;
+
+      // Find the NPC
+      let npcQuery = supabaseAdmin
+        .from('campaign_npcs')
+        .select('id, emotional_tone, emotional_memory')
+        .eq('campaign_id', campaignId);
+
+      if (update.npc_id) {
+        npcQuery = npcQuery.eq('id', update.npc_id);
+      } else {
+        npcQuery = npcQuery.or(`name.ilike.%${update.npc_name}%,first_name.ilike.%${update.npc_name}%`);
+      }
+
+      const { data: npc } = await npcQuery.maybeSingle();
+      if (!npc) continue;
+
+      const existingMemory = Array.isArray(npc.emotional_memory) ? [...npc.emotional_memory] : [];
+      if (update.cause) {
+        existingMemory.push({
+          emotion: update.new_tone || update.emotional_shift,
+          cause: update.cause,
+          day: currentDay,
+        });
+      }
+
+      await supabaseAdmin.from('campaign_npcs').update({
+        emotional_tone: update.new_tone || npc.emotional_tone,
+        emotional_memory: existingMemory.slice(-8),
+        last_emotional_shift: update.emotional_shift || null,
+        updated_at: new Date().toISOString(),
+      }).eq('id', npc.id);
+    }
+  } catch (e) {
+    ctx.errors.push({
+      step: 'persist_npc_emotional',
+      error: e instanceof Error ? e.message : 'Unknown error',
+      recoverable: true,
+    });
+  }
+}
+
+
 async function persistWorldStateUpdates(
   ctx: OrchestratorContext,
   campaignId: string,
@@ -2189,6 +2382,10 @@ serve(async (req) => {
       persistGatedOpportunityUpdates(ctx, campaignId).catch((e) => console.error('Background opportunity update failed:', e));
       // Phase 1: Persist campaign brain narrative updates (arc, beats, threads, pressure, player impact)
       persistCampaignBrainUpdates(ctx, campaignId).catch((e) => console.error('Background brain update failed:', e));
+      // Phase 2: Persist social state updates (regional heat, mood, social memory)
+      persistSocialStateUpdates(ctx, campaignId).catch((e) => console.error('Background social state update failed:', e));
+      // Phase 2: Persist NPC emotional carryover updates
+      persistNpcEmotionalUpdates(ctx, campaignId).catch((e) => console.error('Background NPC emotional update failed:', e));
     }
 
     // ─── Step 7: Build Orchestrated Response ───────────────────

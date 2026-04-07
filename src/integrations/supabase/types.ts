@@ -691,6 +691,8 @@ export type Database = {
           campaign_id: string
           created_at: string
           current_zone: string | null
+          emotional_memory: Json
+          emotional_tone: string | null
           faction_ties: Json
           fears: Json
           first_met_day: number
@@ -703,6 +705,7 @@ export type Database = {
           is_chaotic: boolean
           is_outgoing: boolean
           knows_key_facts: Json
+          last_emotional_shift: string | null
           last_seen_day: number | null
           likely_to_initiate: boolean
           memory_summary: string | null
@@ -735,6 +738,8 @@ export type Database = {
           campaign_id: string
           created_at?: string
           current_zone?: string | null
+          emotional_memory?: Json
+          emotional_tone?: string | null
           faction_ties?: Json
           fears?: Json
           first_met_day?: number
@@ -747,6 +752,7 @@ export type Database = {
           is_chaotic?: boolean
           is_outgoing?: boolean
           knows_key_facts?: Json
+          last_emotional_shift?: string | null
           last_seen_day?: number | null
           likely_to_initiate?: boolean
           memory_summary?: string | null
@@ -779,6 +785,8 @@ export type Database = {
           campaign_id?: string
           created_at?: string
           current_zone?: string | null
+          emotional_memory?: Json
+          emotional_tone?: string | null
           faction_ties?: Json
           fears?: Json
           first_met_day?: number
@@ -791,6 +799,7 @@ export type Database = {
           is_chaotic?: boolean
           is_outgoing?: boolean
           knows_key_facts?: Json
+          last_emotional_shift?: string | null
           last_seen_day?: number | null
           likely_to_initiate?: boolean
           memory_summary?: string | null
@@ -2256,6 +2265,65 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      regional_social_state: {
+        Row: {
+          campaign_id: string
+          civilian_heat: number
+          community_heat: number
+          created_at: string
+          criminal_heat: number
+          faction_heat: number
+          guard_heat: number
+          id: string
+          merchant_heat: number
+          mood_drivers: Json
+          region_name: string
+          social_memory: Json
+          updated_at: string
+          world_mood: string
+        }
+        Insert: {
+          campaign_id: string
+          civilian_heat?: number
+          community_heat?: number
+          created_at?: string
+          criminal_heat?: number
+          faction_heat?: number
+          guard_heat?: number
+          id?: string
+          merchant_heat?: number
+          mood_drivers?: Json
+          region_name: string
+          social_memory?: Json
+          updated_at?: string
+          world_mood?: string
+        }
+        Update: {
+          campaign_id?: string
+          civilian_heat?: number
+          community_heat?: number
+          created_at?: string
+          criminal_heat?: number
+          faction_heat?: number
+          guard_heat?: number
+          id?: string
+          merchant_heat?: number
+          mood_drivers?: Json
+          region_name?: string
+          social_memory?: Json
+          updated_at?: string
+          world_mood?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regional_social_state_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       saved_battle_themes: {
         Row: {
