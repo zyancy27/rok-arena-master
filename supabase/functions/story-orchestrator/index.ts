@@ -233,7 +233,7 @@ async function fetchWorldContext(
   try {
     const supabaseAdmin = ctx.supabaseAdmin;
 
-    const [sentimentResult, campaignResult, worldEventsResult, worldRumorsResult, worldStateResult, campaignBrainResult, npcRelationshipsResult, factionsResult, socialStateResult, npcEmotionalResult] = await Promise.all([
+    const [sentimentResult, campaignResult, worldEventsResult, worldRumorsResult, worldStateResult, campaignBrainResult, npcRelationshipsResult, factionsResult, socialStateResult, npcEmotionalResult, locationStateResult] = await Promise.all([
       supabaseAdmin
         .from('narrator_sentiments')
         .select('*')
@@ -311,6 +311,14 @@ async function fetchWorldContext(
             .not('emotional_tone', 'eq', 'neutral')
             .limit(20)
         : Promise.resolve({ data: null, error: null }),
+      // Phase 3: Fetch location identity state for current and nearby zones
+      campaignId
+        ? supabaseAdmin
+            .from('campaign_location_state')
+            .select('zone_name, controlled_by, control_type, control_description, local_habits, environmental_friction, scene_residue, quiet_scene_value, location_mood, familiarity_level, times_visited, last_visited_day, notable_features')
+            .eq('campaign_id', campaignId)
+            .limit(10)
+        : Promise.resolve({ data: null, error: null }),
     ]);
 
     if (sentimentResult.data) {
@@ -370,6 +378,7 @@ async function fetchWorldContext(
       faction_details: factionsResult?.data || [],
       regional_social_state: socialStateResult?.data || [],
       npc_emotional_carryover: npcEmotionalResult?.data || [],
+      location_identity: locationStateResult?.data || [],
     };
   } catch (e) {
     ctx.errors.push({
@@ -826,6 +835,79 @@ function buildCampaignBrainContext(ctx: OrchestratorContext): string {
   return parts.join('\n');
 }
 
+// ─── Build Location Identity Context (Phase 3 — Narrator-Readable) ──
+function buildLocationIdentityContext(ctx: OrchestratorContext): string {
+  const locations = ctx.world_state?.location_identity || [];
+  if (locations.length === 0) return '';
+
+  const currentZone = ctx.campaign_state?.current_zone || '';
+  const parts: string[] = [];
+  parts.push('LOCATION IDENTITY (each place has ownership, habits, friction, and memory):');
+
+  // Sort: current zone first, then most-visited
+  const sorted = [...locations].sort((a: any, b: any) => {
+    if (a.zone_name === currentZone) return -1;
+    if (b.zone_name === currentZone) return 1;
+    return (b.times_visited || 0) - (a.times_visited || 0);
+  });
+
+  for (const loc of sorted.slice(0, 6)) {
+    const isCurrent = loc.zone_name === currentZone;
+    const marker = isCurrent ? ' [CURRENT ZONE]' : '';
+    parts.push(`\n📍 ${loc.zone_name}${marker} (mood: ${loc.location_mood || 'neutral'}, visited ${loc.times_visited || 0}x, familiarity: ${loc.familiarity_level || 0}/10)`);
+
+    // Territorial ownership
+    if (loc.controlled_by) {
+      parts.push(`  Controlled by: ${loc.controlled_by} (${loc.control_type || 'unclaimed'})${loc.control_description ? ' — ' + loc.control_description : ''}`);
+    }
+
+    // Local habits
+    const habits = Array.isArray(loc.local_habits) ? loc.local_habits : [];
+    if (habits.length > 0) {
+      parts.push(`  Habits: ${habits.slice(0, 3).join('; ')}`);
+    }
+
+    // Environmental friction
+    const friction = Array.isArray(loc.environmental_friction) ? loc.environmental_friction : [];
+    if (friction.length > 0) {
+      parts.push(`  Friction: ${friction.slice(0, 3).join('; ')}`);
+    }
+
+    // Scene residue
+    const residue = Array.isArray(loc.scene_residue) ? loc.scene_residue : [];
+    if (residue.length > 0) {
+      const recent = residue.slice(-3);
+      for (const r of recent) {
+        const desc = typeof r === 'object' ? r.description : r;
+        const perm = typeof r === 'object' && r.permanent ? ' [permanent]' : '';
+        parts.push(`  Residue: ${desc}${perm}`);
+      }
+    }
+
+    // Quiet-scene value
+    const quietValue = Array.isArray(loc.quiet_scene_value) ? loc.quiet_scene_value : [];
+    if (quietValue.length > 0 && isCurrent) {
+      parts.push(`  Quiet-scene value: ${quietValue.slice(0, 2).join('; ')}`);
+    }
+
+    // Notable features
+    const features = Array.isArray(loc.notable_features) ? loc.notable_features : [];
+    if (features.length > 0) {
+      parts.push(`  Features: ${features.join(', ')}`);
+    }
+  }
+
+  parts.push('\nLOCATION RULES:');
+  parts.push('- Locations feel INHABITED — they have owners, routines, and memory of past events.');
+  parts.push('- Scene residue is VISIBLE: scorch marks, bloodstains, broken structures, changed crowd routes.');
+  parts.push('- Environmental friction shapes what is easy/hard: mud slows movement, crowds provide cover, guards patrol certain routes.');
+  parts.push('- Quiet scenes have VALUE: trust, information, access, familiarity. Not every turn needs action.');
+  parts.push('- When the player enters a new zone, describe its personality — ownership, mood, habits — before anything else.');
+  parts.push('- Territorial control affects WHO is present, what is allowed, and how NPCs behave.');
+
+  return parts.join('\n');
+}
+
 // ─── Build Living World Context for Narrator (with Priority Gating) ──
 function buildLivingWorldContext(ctx: OrchestratorContext): string {
   const parts: string[] = [];
@@ -976,6 +1058,13 @@ function buildLivingWorldContext(ctx: OrchestratorContext): string {
     }
     parts.push('EMOTIONAL RULES: NPCs speak and act from their emotional state. An irritated NPC is curt. A grateful one offers more. A fearful one avoids eye contact. This is NOT separate AI — YOU perform these emotions consistently.');
   }
+
+  // ── LOCATION IDENTITY (Phase 3 — territorial ownership, habits, friction, residue) ──
+  const locationCtx = buildLocationIdentityContext(ctx);
+  if (locationCtx) {
+    parts.push(`\n${locationCtx}`);
+  }
+
   const factionDetails = ws.faction_details || [];
   if (factionDetails.length > 0) {
     parts.push('\nFACTION DETAILS (persistent political/social forces):');
@@ -1991,6 +2080,123 @@ async function persistNpcEmotionalUpdates(
   }
 }
 
+// ─── Pipeline Step: Persist Location Identity Updates (Phase 3 — Narrator-Owned) ──
+async function persistLocationUpdates(
+  ctx: OrchestratorContext,
+  campaignId: string,
+): Promise<void> {
+  const locationUpdates = ctx.narration_result?.locationUpdates;
+  if (!Array.isArray(locationUpdates) || locationUpdates.length === 0 || !campaignId) return;
+
+  try {
+    const supabaseAdmin = ctx.supabaseAdmin;
+    const brain = ctx.campaign_brain;
+    const currentDay = brain?.current_day || ctx.campaign_state?.day_count || 1;
+
+    for (const update of locationUpdates.slice(0, 3)) {
+      if (!update.zone_name) continue;
+
+      // Upsert location state
+      const { data: existing } = await supabaseAdmin
+        .from('campaign_location_state')
+        .select('*')
+        .eq('campaign_id', campaignId)
+        .eq('zone_name', update.zone_name)
+        .maybeSingle();
+
+      if (existing) {
+        const updateData: any = { updated_at: new Date().toISOString() };
+
+        // Territorial ownership
+        if (update.controlled_by) updateData.controlled_by = update.controlled_by;
+        if (update.control_type) updateData.control_type = update.control_type;
+        if (update.control_description) updateData.control_description = update.control_description;
+
+        // Mood
+        if (update.mood_shift) updateData.location_mood = update.mood_shift;
+
+        // Increment visit count and update last visited
+        updateData.times_visited = (existing.times_visited || 0) + 1;
+        updateData.last_visited_day = currentDay;
+        updateData.familiarity_level = Math.min(10, (existing.familiarity_level || 0) + 1);
+
+        // Append local habits (deduplicate)
+        if (Array.isArray(update.new_habits) && update.new_habits.length > 0) {
+          const habits = Array.isArray(existing.local_habits) ? [...existing.local_habits] : [];
+          for (const h of update.new_habits) {
+            if (typeof h === 'string' && !habits.includes(h)) habits.push(h);
+          }
+          updateData.local_habits = habits.slice(-8);
+        }
+
+        // Append environmental friction
+        if (Array.isArray(update.new_friction) && update.new_friction.length > 0) {
+          const friction = Array.isArray(existing.environmental_friction) ? [...existing.environmental_friction] : [];
+          for (const f of update.new_friction) {
+            if (typeof f === 'string' && !friction.includes(f)) friction.push(f);
+          }
+          updateData.environmental_friction = friction.slice(-8);
+        }
+
+        // Append scene residue
+        if (Array.isArray(update.new_residue) && update.new_residue.length > 0) {
+          const residue = Array.isArray(existing.scene_residue) ? [...existing.scene_residue] : [];
+          for (const r of update.new_residue) {
+            if (r && r.description) {
+              residue.push({ description: r.description, cause: r.cause || 'unknown', permanent: r.permanent || false, day: currentDay });
+            }
+          }
+          updateData.scene_residue = residue.slice(-12);
+        }
+
+        // Append quiet-scene value
+        if (Array.isArray(update.new_quiet_value) && update.new_quiet_value.length > 0) {
+          const quietVal = Array.isArray(existing.quiet_scene_value) ? [...existing.quiet_scene_value] : [];
+          for (const q of update.new_quiet_value) {
+            if (typeof q === 'string' && !quietVal.includes(q)) quietVal.push(q);
+          }
+          updateData.quiet_scene_value = quietVal.slice(-6);
+        }
+
+        // Notable features
+        if (Array.isArray(update.notable_features) && update.notable_features.length > 0) {
+          const features = Array.isArray(existing.notable_features) ? [...existing.notable_features] : [];
+          for (const f of update.notable_features) {
+            if (typeof f === 'string' && !features.includes(f)) features.push(f);
+          }
+          updateData.notable_features = features.slice(-10);
+        }
+
+        await supabaseAdmin.from('campaign_location_state').update(updateData).eq('id', existing.id);
+      } else {
+        // Create new location state
+        const insertData: any = {
+          campaign_id: campaignId,
+          zone_name: update.zone_name,
+          controlled_by: update.controlled_by || null,
+          control_type: update.control_type || 'unclaimed',
+          control_description: update.control_description || null,
+          local_habits: Array.isArray(update.new_habits) ? update.new_habits : [],
+          environmental_friction: Array.isArray(update.new_friction) ? update.new_friction : [],
+          scene_residue: Array.isArray(update.new_residue) ? update.new_residue.map((r: any) => ({ description: r.description, cause: r.cause || 'unknown', permanent: r.permanent || false, day: currentDay })) : [],
+          quiet_scene_value: Array.isArray(update.new_quiet_value) ? update.new_quiet_value : [],
+          location_mood: update.mood_shift || 'neutral',
+          familiarity_level: 1,
+          times_visited: 1,
+          last_visited_day: currentDay,
+          notable_features: Array.isArray(update.notable_features) ? update.notable_features : [],
+        };
+        await supabaseAdmin.from('campaign_location_state').insert(insertData);
+      }
+    }
+  } catch (e) {
+    ctx.errors.push({
+      step: 'persist_location_updates',
+      error: e instanceof Error ? e.message : 'Unknown error',
+      recoverable: true,
+    });
+  }
+}
 
 async function persistWorldStateUpdates(
   ctx: OrchestratorContext,
@@ -2386,6 +2592,8 @@ serve(async (req) => {
       persistSocialStateUpdates(ctx, campaignId).catch((e) => console.error('Background social state update failed:', e));
       // Phase 2: Persist NPC emotional carryover updates
       persistNpcEmotionalUpdates(ctx, campaignId).catch((e) => console.error('Background NPC emotional update failed:', e));
+      // Phase 3: Persist location identity updates (territorial ownership, habits, friction, residue)
+      persistLocationUpdates(ctx, campaignId).catch((e) => console.error('Background location update failed:', e));
     }
 
     // ─── Step 7: Build Orchestrated Response ───────────────────

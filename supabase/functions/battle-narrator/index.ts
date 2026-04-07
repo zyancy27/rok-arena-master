@@ -1993,6 +1993,36 @@ OUTPUT FORMAT (JSON):
       "cause": "what the player did that caused this emotional shift"
     }
   ] or [] if no NPC emotional changes,
+  "locationUpdates": [
+    // OPTIONAL — Phase 3: report location identity updates from this turn.
+    // Locations are living places with ownership, habits, friction, and memory. Track their evolution.
+    // RULES:
+    // - Only report when a location's identity MEANINGFULLY changed or was first established this turn.
+    // - Use to establish WHO controls an area, what HABITS locals follow, what's EASY or HARD here, and what TRACES past events left.
+    // - Maximum 1-2 location updates per turn. Most turns should have 0.
+    // - For scene_residue: only add residue from SIGNIFICANT events (combat damage, explosions, deaths, magical effects, structural collapse).
+    // - For local_habits: these are repeating behaviors the player would notice after spending time here.
+    // - For environmental_friction: what is easy/hard/risky/suspicious in this specific place.
+    // - For quiet_scene_value: what can be gained here through patience, observation, or trust (not combat).
+    {
+      "zone_name": "name of the zone/location being updated",
+      "controlled_by": "who controls this area (faction name, gang, family, 'wildlife', 'unclaimed', etc.) — only if established or changed",
+      "control_type": "faction|gang|family|religious|trade|military|wildlife|unclaimed — only if established or changed",
+      "control_description": "brief description of how control manifests (e.g. 'Iron Wolves patrol every dawn', 'The Yaren family owns every shop on this street')",
+      "new_habits": ["string array — local behaviors/customs observed here. e.g. 'Vendors lower their voices after the bell tower rings', 'No one walks the east alley alone'"],
+      "new_friction": ["string array — environmental factors affecting actions here. e.g. 'The mud makes running difficult', 'Shouting draws guards within minutes', 'The market crowd provides excellent cover'"],
+      "new_residue": [
+        {
+          "description": "what trace was left (e.g. 'Scorch marks on the fountain stones', 'Bloodstains on the cobblestones, poorly cleaned')",
+          "cause": "what event caused this",
+          "permanent": true
+        }
+      ],
+      "new_quiet_value": ["string array — what patience or trust reveals here. e.g. 'Locals share rumors freely after the second drink', 'The shrine keeper knows hidden passages', 'Watching the docks for an hour reveals the smuggling schedule'"],
+      "mood_shift": "the location's emotional atmosphere if it changed (e.g. 'tense', 'welcoming', 'mourning', 'suspicious')",
+      "notable_features": ["string array — important landmarks or features of this location for tactical/narrative use"]
+    }
+  ] or [] if no location identity changes,
   "campaignBrainUpdates": {
     // IMPORTANT — report changes to the campaign's narrative spine this turn.
     // This is how you maintain long-term story coherence. Every meaningful turn should update at least one field.
