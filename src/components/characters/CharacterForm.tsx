@@ -29,6 +29,9 @@ import {
 } from 'lucide-react';
 import CharacterTimeline, { saveTimelineEvents } from './CharacterTimeline';
 import CharacterAppearance, { type AppearanceData, DEFAULT_APPEARANCE } from './CharacterAppearance';
+import CharacterFormStepper, { DEFAULT_STEPS, type StepDefinition } from './CharacterFormStepper';
+import CharacterSummaryTags from './CharacterSummaryTags';
+import CharacterReviewPanel from './CharacterReviewPanel';
 
 // Helper to parse weapons_items (supports both JSON array and legacy plain text)
 interface WeaponItem { name: string; description: string }
@@ -200,6 +203,10 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
     personality: mode === 'edit',
     stats: false,
   });
+
+  // Wizard stepper state
+  const [currentStep, setCurrentStep] = useState(0);
+  const useWizardMode = mode === 'create';
 
   // Sub-sections inside Lore
   const [openLoreSubs, setOpenLoreSubs] = useState<Record<string, boolean>>({
@@ -609,9 +616,40 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
       </Button>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* ═══════════════════════════════════════════
-            ESSENTIALS — Always visible
-            ═══════════════════════════════════════════ */}
+        {/* Wizard Stepper — create mode only */}
+        {useWizardMode && (
+          <CharacterFormStepper
+            currentStep={currentStep}
+            steps={DEFAULT_STEPS.map(s => ({
+              ...s,
+              isComplete: s.id === 'identity' ? !!formData.name.trim()
+                : s.id === 'origin' ? hasIdentity
+                : s.id === 'powers' ? hasPowers
+                : s.id === 'personality' ? hasPersonality
+                : s.id === 'lore' ? !!(formData.lore || Object.values(appearance).some(v => v.trim()))
+                : s.id === 'review' ? false
+                : false,
+            }))}
+            onStepChange={setCurrentStep}
+            canProceed={currentStep === 0 ? !!formData.name.trim() : true}
+          />
+        )}
+
+        {/* Summary tags — visible in wizard mode */}
+        {useWizardMode && formData.name.trim() && (
+          <CharacterSummaryTags
+            name={formData.name}
+            race={formData.race}
+            homePlanet={formData.home_planet}
+            powers={formData.powers}
+            abilities={formData.abilities}
+            personality={formData.personality}
+            mentality={formData.mentality}
+            stats={stats}
+            level={formData.level}
+            compact
+          />
+        )}
         <Card className="bg-card-gradient border-border">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
