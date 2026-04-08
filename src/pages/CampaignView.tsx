@@ -62,6 +62,7 @@ import CampaignTacticalMap, { type NarratorSceneMap } from '@/components/campaig
 import NarratorMessageContent from '@/components/campaigns/NarratorMessageContent';
 import NpcDialogueBubble from '@/components/campaigns/NpcDialogueBubble';
 import EnvironmentBeatBubble from '@/components/campaigns/EnvironmentBeatBubble';
+import CampaignActionRollDisplay from '@/components/campaigns/CampaignActionRollDisplay';
 import ExpressionChatBox from '@/components/chat/ExpressionChatBox';
 import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
@@ -2533,6 +2534,7 @@ export default function CampaignView() {
                       });
                       const msgDice = msg.dice_result as Record<string, unknown> | null;
                       const hasDiceRoll = msgDice && (msgDice.type === 'attack' || msgDice.type === 'defense');
+                      const hasActionRoll = msgDice && (msgDice as any)?.actionRoll && !(msgDice.type === 'attack' || msgDice.type === 'defense');
                       const isMe = msg.sender_type === 'player' && msg.character_id === myParticipant?.character_id;
                       const showReadReceipt = isMe && !(msg as any).isPending;
 
@@ -2703,6 +2705,14 @@ export default function CampaignView() {
                                   </span>
                                 </div>
                               </div>
+                            </div>
+                          )}
+                          {hasActionRoll && (
+                            <div className={isMe ? 'ml-8' : 'mr-8'}>
+                              <CampaignActionRollDisplay
+                                roll={(msgDice as any).actionRoll}
+                                characterName={msg.character?.name}
+                              />
                             </div>
                           )}
                         </div>

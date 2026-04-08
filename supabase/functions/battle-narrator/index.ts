@@ -1379,9 +1379,14 @@ async function handleCampaignNarration(
   // Extract lore context sent by the client
   const loreCtx = playerCharacter.loreContext || {};
 
-  // Build dice context for combat actions
+  // Build dice/action roll context
   let diceInstructions = '';
-  if (defenseResult) {
+
+  // Check for the new unified action roll system first
+  const actionRollContext = body.actionRollNarratorContext;
+  if (actionRollContext && typeof actionRollContext === 'string') {
+    diceInstructions = `\n\n${actionRollContext}`;
+  } else if (defenseResult) {
     diceInstructions = defenseResult.success
       ? `\n\nDICE RESULT: DEFENSE SUCCESS (${defenseResult.defenseType === 'dodge' ? 'Dodge' : 'Block'} ${defenseResult.defenseTotal} vs Incoming ${defenseResult.incomingTotal})
 The player's ${defenseResult.defenseType} works as described. The enemy's attack is stopped.`
