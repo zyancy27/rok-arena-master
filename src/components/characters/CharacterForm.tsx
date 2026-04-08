@@ -650,6 +650,28 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
             compact
           />
         )}
+
+        {/* Review Panel — wizard step 5 only */}
+        {useWizardMode && currentStep === 5 && (
+          <CharacterReviewPanel
+            name={formData.name}
+            race={formData.race}
+            subRace={formData.sub_race}
+            homePlanet={formData.home_planet}
+            homeMoon={formData.home_moon}
+            age={formData.age}
+            sex={formData.sex}
+            level={formData.level}
+            powers={formData.powers}
+            abilities={formData.abilities}
+            weaponsItems={formData.weapons_items}
+            personality={formData.personality}
+            mentality={formData.mentality}
+            lore={formData.lore}
+            stats={stats}
+            appearance={appearance}
+          />
+        )}
         <Card className="bg-card-gradient border-border">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
