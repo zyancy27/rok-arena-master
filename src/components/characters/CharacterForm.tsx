@@ -205,8 +205,19 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
   });
 
   // Wizard stepper state
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep, setCurrentStepRaw] = useState(0);
   const useWizardMode = mode === 'create';
+
+  // Auto-open relevant section when wizard step changes
+  const setCurrentStep = useCallback((step: number) => {
+    setCurrentStepRaw(step);
+    if (!useWizardMode) return;
+    const sectionMap: Record<number, string> = { 1: 'identity', 2: 'powers', 3: 'personality', 4: 'lore' };
+    const sectionKey = sectionMap[step];
+    if (sectionKey) {
+      setOpenSections(prev => ({ ...prev, [sectionKey]: true, ...(step === 2 ? { stats: true } : {}) }));
+    }
+  }, [useWizardMode]);
 
   // Sub-sections inside Lore
   const [openLoreSubs, setOpenLoreSubs] = useState<Record<string, boolean>>({
