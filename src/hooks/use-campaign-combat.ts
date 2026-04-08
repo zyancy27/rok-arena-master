@@ -108,6 +108,7 @@ export function useCampaignCombat(character: CampaignCharacterContext | null, pa
     pendingMessage: null,
     concentrationPrompt: null,
     concentrationUsesLeft: MAX_CONCENTRATION_USES,
+    lastActionRoll: null,
   });
 
   const statusEffects = useCharacterStatusEffects({
