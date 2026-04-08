@@ -1406,7 +1406,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
               </CardContent>
             </Card>
           )}
-        </div>
+        </div>}
 
         {/* Ownership Notice */}
         <OwnershipNotice variant="card" />
