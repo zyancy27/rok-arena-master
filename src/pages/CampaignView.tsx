@@ -62,6 +62,7 @@ import CampaignTacticalMap, { type NarratorSceneMap } from '@/components/campaig
 import NarratorMessageContent from '@/components/campaigns/NarratorMessageContent';
 import NpcDialogueBubble from '@/components/campaigns/NpcDialogueBubble';
 import EnvironmentBeatBubble from '@/components/campaigns/EnvironmentBeatBubble';
+import CampaignActionRollDisplay from '@/components/campaigns/CampaignActionRollDisplay';
 import ExpressionChatBox from '@/components/chat/ExpressionChatBox';
 import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
