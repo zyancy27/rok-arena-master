@@ -187,14 +187,47 @@ export function useCampaignCombat(character: CampaignCharacterContext | null, pa
     });
 
     if (!intentResult.intent.isCombatAction && !hitDetection.shouldTriggerHitCheck && !hitDetection.shouldTriggerDefenseCheck) {
+      // Check if this action needs a non-combat roll
+      const rollCategory = detectRollCategory(messageText);
+      
+      if (rollCategory && rollCategory !== 'attack' && rollCategory !== 'defense') {
+        const scaledStats = buildCampaignStats(character);
+        const actionRoll = rollActionCheck(rollCategory, scaledStats, character.campaignLevel, {
+          actionDescription: messageText.slice(0, 120),
+        });
+        const legacyContext = toLegacyDiceResult(actionRoll);
+
+        setCombatState(prev => ({
+          ...prev,
+          lastHitResult: null,
+          lastDefenseResult: null,
+          lastHitDetection: hitDetection,
+          concentrationPrompt: null,
+          lastActionRoll: actionRoll,
+        }));
+
+        const result = createNonCombatResult(actionRoll.actionDescription);
+        result.narratorDiceContext = {
+          actionRoll: actionRoll,
+          actionRollNarratorContext: formatRollForNarrator(actionRoll),
+          ...legacyContext,
+        };
+        // Attach dice metadata so it gets stored on the message
+        result.diceMetadata = {
+          actionRoll: actionRoll,
+        };
+        return result;
+      }
+
       setCombatState(prev => ({
         ...prev,
         lastHitResult: null,
         lastDefenseResult: null,
         lastHitDetection: hitDetection,
         concentrationPrompt: null,
+        lastActionRoll: null,
       }));
-      return createNonCombatResult('No combat roll required for this action.');
+      return createNonCombatResult('No roll required for this action.');
     }
 
     const characterContext = CharacterContextResolver.resolve({
