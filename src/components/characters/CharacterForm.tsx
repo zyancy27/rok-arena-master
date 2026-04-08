@@ -204,6 +204,10 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
     stats: false,
   });
 
+  // Wizard stepper state
+  const [currentStep, setCurrentStep] = useState(0);
+  const useWizardMode = mode === 'create';
+
   // Sub-sections inside Lore
   const [openLoreSubs, setOpenLoreSubs] = useState<Record<string, boolean>>({
     background: mode === 'edit' && !!initialData?.lore,
