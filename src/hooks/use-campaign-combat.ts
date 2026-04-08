@@ -15,6 +15,14 @@ import { IntentEngine } from '@/systems/intent/IntentEngine';
 import { CharacterContextResolver } from '@/systems/character/CharacterContextResolver';
 import { CombatResolver, type StructuredCombatResult, type CombatOutcome } from '@/systems/combat/CombatResolver';
 import { createCombatState } from '@/systems/combat/CombatState';
+import {
+  detectRollCategory,
+  rollActionCheck,
+  toLegacyDiceResult,
+  formatRollForNarrator,
+  type ActionRollResult,
+  type ActionRollCategory,
+} from '@/lib/campaign-action-rolls';
 
 const MAX_CONCENTRATION_USES = 3;
 
