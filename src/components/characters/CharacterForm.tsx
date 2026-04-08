@@ -792,7 +792,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
         {/* ═══════════════════════════════════════════
             SECTION 1 — Identity & Origin
             ═══════════════════════════════════════════ */}
-        <div className="space-y-2">
+        {(!useWizardMode || currentStep === 1 || currentStep === 5) && <div className="space-y-2">
           <SectionHeader
             icon={<User className="w-4 h-4" />}
             title="Identity & Origin"
@@ -1029,12 +1029,12 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
               </CardContent>
             </Card>
           )}
-        </div>
+        </div>}
 
         {/* ═══════════════════════════════════════════
             SECTION 2 — Powers & Equipment
             ═══════════════════════════════════════════ */}
-        <div className="space-y-2">
+        {(!useWizardMode || currentStep === 2 || currentStep === 5) && <div className="space-y-2">
           <SectionHeader
             icon={<Swords className="w-4 h-4" />}
             title="Powers & Equipment"
@@ -1104,12 +1104,12 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
               </CardContent>
             </Card>
           )}
-        </div>
+        </div>}
 
         {/* ═══════════════════════════════════════════
             SECTION 3 — Personality & Alignment
             ═══════════════════════════════════════════ */}
-        <div className="space-y-2">
+        {(!useWizardMode || currentStep === 3 || currentStep === 5) && <div className="space-y-2">
           <SectionHeader
             icon={<Smile className="w-4 h-4" />}
             title="Personality & Alignment"
@@ -1255,12 +1255,12 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
               </CardContent>
             </Card>
           )}
-        </div>
+        </div>}
 
         {/* ═══════════════════════════════════════════
             SECTION 4 — Character Stats
             ═══════════════════════════════════════════ */}
-        <div className="space-y-2">
+        {(!useWizardMode || currentStep === 2 || currentStep === 5) && <div className="space-y-2">
           <SectionHeader
             icon={<Target className="w-4 h-4" />}
             title="Character Stats"
@@ -1304,12 +1304,12 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
               </CardContent>
             </Card>
           )}
-        </div>
+        </div>}
 
         {/* ═══════════════════════════════════════════
             SECTION 5 — Lore (Appearance, Timeline, Background)
             ═══════════════════════════════════════════ */}
-        <div className="space-y-2">
+        {(!useWizardMode || currentStep === 4 || currentStep === 5) && <div className="space-y-2">
           <SectionHeader
             icon={<BookOpen className="w-4 h-4" />}
             title="Lore"
