@@ -29,6 +29,9 @@ import {
 } from 'lucide-react';
 import CharacterTimeline, { saveTimelineEvents } from './CharacterTimeline';
 import CharacterAppearance, { type AppearanceData, DEFAULT_APPEARANCE } from './CharacterAppearance';
+import CharacterFormStepper, { DEFAULT_STEPS, type StepDefinition } from './CharacterFormStepper';
+import CharacterSummaryTags from './CharacterSummaryTags';
+import CharacterReviewPanel from './CharacterReviewPanel';
 
 // Helper to parse weapons_items (supports both JSON array and legacy plain text)
 interface WeaponItem { name: string; description: string }
