@@ -669,7 +669,6 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
             mentality={formData.mentality}
             lore={formData.lore}
             stats={stats}
-            appearance={appearance}
           />
         )}
         <Card className="bg-card-gradient border-border">
