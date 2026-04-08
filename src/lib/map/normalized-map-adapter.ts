@@ -136,7 +136,7 @@ function extractEntityLayer(data: TacticalMapData): MapEntityLayer {
     type: mapMarkerType(m.urgency),
     label: m.label,
     urgency: m.urgency,
-    expiresIn: m.ttlMs ? Math.ceil(m.ttlMs / 6000) : undefined,
+    expiresIn: m.duration ? Math.ceil(m.duration / 6000) : undefined,
   }));
 
   const movementTrails: MapMovementTrail[] = (data.movementShadows ?? []).map(s => ({
@@ -173,7 +173,7 @@ export function fromNormalizedMap(model: NormalizedMapModel): TacticalMapData {
   const features = model.base.structures.map(s => ({
     id: s.id,
     label: s.label,
-    type: reverseMapFeatureType(s.type),
+    type: reverseMapFeatureType(s.type) as 'structure' | 'cover' | 'hazard' | 'water' | 'vegetation' | 'vehicle' | 'platform' | 'crater',
     x: s.x,
     y: s.y,
     width: s.width,
