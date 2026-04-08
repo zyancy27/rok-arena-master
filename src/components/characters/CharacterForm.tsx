@@ -205,8 +205,19 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
   });
 
   // Wizard stepper state
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep, setCurrentStepRaw] = useState(0);
   const useWizardMode = mode === 'create';
+
+  // Auto-open relevant section when wizard step changes
+  const setCurrentStep = useCallback((step: number) => {
+    setCurrentStepRaw(step);
+    if (!useWizardMode) return;
+    const sectionMap: Record<number, string> = { 1: 'identity', 2: 'powers', 3: 'personality', 4: 'lore' };
+    const sectionKey = sectionMap[step];
+    if (sectionKey) {
+      setOpenSections(prev => ({ ...prev, [sectionKey]: true, ...(step === 2 ? { stats: true } : {}) }));
+    }
+  }, [useWizardMode]);
 
   // Sub-sections inside Lore
   const [openLoreSubs, setOpenLoreSubs] = useState<Record<string, boolean>>({
@@ -650,6 +661,27 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
             compact
           />
         )}
+
+        {/* Review Panel — wizard step 5 only */}
+        {useWizardMode && currentStep === 5 && (
+          <CharacterReviewPanel
+            name={formData.name}
+            race={formData.race}
+            subRace={formData.sub_race}
+            homePlanet={formData.home_planet}
+            homeMoon={formData.home_moon}
+            age={formData.age}
+            sex={formData.sex}
+            level={formData.level}
+            powers={formData.powers}
+            abilities={formData.abilities}
+            weaponsItems={formData.weapons_items}
+            personality={formData.personality}
+            mentality={formData.mentality}
+            lore={formData.lore}
+            stats={stats}
+          />
+        )}
         <Card className="bg-card-gradient border-border">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
@@ -771,7 +803,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
         {/* ═══════════════════════════════════════════
             SECTION 1 — Identity & Origin
             ═══════════════════════════════════════════ */}
-        <div className="space-y-2">
+        {(!useWizardMode || currentStep === 1 || currentStep === 5) && <div className="space-y-2">
           <SectionHeader
             icon={<User className="w-4 h-4" />}
             title="Identity & Origin"
@@ -1008,12 +1040,12 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
               </CardContent>
             </Card>
           )}
-        </div>
+        </div>}
 
         {/* ═══════════════════════════════════════════
             SECTION 2 — Powers & Equipment
             ═══════════════════════════════════════════ */}
-        <div className="space-y-2">
+        {(!useWizardMode || currentStep === 2 || currentStep === 5) && <div className="space-y-2">
           <SectionHeader
             icon={<Swords className="w-4 h-4" />}
             title="Powers & Equipment"
@@ -1083,12 +1115,12 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
               </CardContent>
             </Card>
           )}
-        </div>
+        </div>}
 
         {/* ═══════════════════════════════════════════
             SECTION 3 — Personality & Alignment
             ═══════════════════════════════════════════ */}
-        <div className="space-y-2">
+        {(!useWizardMode || currentStep === 3 || currentStep === 5) && <div className="space-y-2">
           <SectionHeader
             icon={<Smile className="w-4 h-4" />}
             title="Personality & Alignment"
@@ -1234,12 +1266,12 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
               </CardContent>
             </Card>
           )}
-        </div>
+        </div>}
 
         {/* ═══════════════════════════════════════════
             SECTION 4 — Character Stats
             ═══════════════════════════════════════════ */}
-        <div className="space-y-2">
+        {(!useWizardMode || currentStep === 2 || currentStep === 5) && <div className="space-y-2">
           <SectionHeader
             icon={<Target className="w-4 h-4" />}
             title="Character Stats"
@@ -1283,12 +1315,12 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
               </CardContent>
             </Card>
           )}
-        </div>
+        </div>}
 
         {/* ═══════════════════════════════════════════
             SECTION 5 — Lore (Appearance, Timeline, Background)
             ═══════════════════════════════════════════ */}
-        <div className="space-y-2">
+        {(!useWizardMode || currentStep === 4 || currentStep === 5) && <div className="space-y-2">
           <SectionHeader
             icon={<BookOpen className="w-4 h-4" />}
             title="Lore"
@@ -1385,7 +1417,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
               </CardContent>
             </Card>
           )}
-        </div>
+        </div>}
 
         {/* Ownership Notice */}
         <OwnershipNotice variant="card" />

@@ -63,6 +63,9 @@ import NarratorMessageContent from '@/components/campaigns/NarratorMessageConten
 import NpcDialogueBubble from '@/components/campaigns/NpcDialogueBubble';
 import EnvironmentBeatBubble from '@/components/campaigns/EnvironmentBeatBubble';
 import CampaignActionRollDisplay from '@/components/campaigns/CampaignActionRollDisplay';
+import CampaignSuggestionChips from '@/components/campaigns/CampaignSuggestionChips';
+import CampaignSceneRecapCard from '@/components/campaigns/CampaignSceneRecapCard';
+import { buildSceneRecap } from '@/lib/campaign-scene-recap';
 import ExpressionChatBox from '@/components/chat/ExpressionChatBox';
 import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
@@ -224,6 +227,7 @@ export default function CampaignView() {
     nickname_history?: string[];
   } | null>(null);
   const [showTacticalMap, setShowTacticalMap] = useState(false);
+  const [showRecapCard, setShowRecapCard] = useState(true);
   const [activeTab, setActiveTab] = useState<'adventure' | 'narrator'>('adventure');
   const userIsNearBottomRef = useRef(true);
   const introAttemptedRef = useRef(false);
@@ -2877,9 +2881,45 @@ export default function CampaignView() {
                   </div>
                 )}
 
+                {/* Scene Recap Card */}
+                {isActive && myParticipant?.is_active && showRecapCard && campaign && (
+                  <div className="px-3 pt-2 relative z-10">
+                    <CampaignSceneRecapCard
+                      recap={buildSceneRecap({
+                        currentZone: campaign.current_zone,
+                        timeOfDay: campaign.time_of_day,
+                        dayCount: campaign.day_count,
+                        campaignName: campaign.name,
+                        chosenLocation: campaign.chosen_location,
+                        recentNarratorMessages: messages
+                          .filter(m => m.sender_type === 'narrator')
+                          .slice(-3)
+                          .map(m => m.content),
+                        environmentTags: Array.isArray(campaign.environment_tags) ? campaign.environment_tags as string[] : [],
+                      })}
+                      onDismiss={() => setShowRecapCard(false)}
+                    />
+                  </div>
+                )}
+
                 {/* Input */}
                 {isActive && myParticipant?.is_active && (
                   <div className="p-3 border-t border-border/40 bg-background/60 backdrop-blur-sm relative z-10 shrink-0 space-y-2">
+                    <CampaignSuggestionChips
+                      currentZone={campaign?.current_zone}
+                      timeOfDay={campaign?.time_of_day}
+                      dayCount={campaign?.day_count}
+                      characterName={myParticipant.character?.name}
+                      characterPowers={myParticipant.character?.powers || null}
+                      characterWeapons={(myParticipant.character as any)?.weapons_items || null}
+                      partyMembers={participants.filter(p => p.is_active).map(p => p.character?.name || 'Unknown')}
+                      environmentTags={Array.isArray(campaign?.environment_tags) ? campaign.environment_tags as string[] : []}
+                      hasCombatTarget={campaignEnemies.some(e => e.status === 'active')}
+                      isInDanger={campaignEnemies.some(e => e.status === 'active' && e.tier >= 3)}
+                      currentPressure={null}
+                      onSuggestionSelect={(text) => setInputMessage(text)}
+                      currentInput={inputMessage}
+                    />
                     <CampaignResponseSuggestions
                       suggestions={responseSuggestions}
                       selectedSuggestion={selectedResponseSuggestion}
