@@ -15,6 +15,14 @@ import { IntentEngine } from '@/systems/intent/IntentEngine';
 import { CharacterContextResolver } from '@/systems/character/CharacterContextResolver';
 import { CombatResolver, type StructuredCombatResult, type CombatOutcome } from '@/systems/combat/CombatResolver';
 import { createCombatState } from '@/systems/combat/CombatState';
+import {
+  detectRollCategory,
+  rollActionCheck,
+  toLegacyDiceResult,
+  formatRollForNarrator,
+  type ActionRollResult,
+  type ActionRollCategory,
+} from '@/lib/campaign-action-rolls';
 
 const MAX_CONCENTRATION_USES = 3;
 
@@ -34,6 +42,8 @@ export interface CampaignCombatState {
   pendingMessage: string | null;
   concentrationPrompt: CampaignConcentrationPrompt | null;
   concentrationUsesLeft: number;
+  /** Non-combat action roll result (perception, stealth, social, etc.) */
+  lastActionRoll: ActionRollResult | null;
 }
 
 interface CampaignCharacterContext {
@@ -98,6 +108,7 @@ export function useCampaignCombat(character: CampaignCharacterContext | null, pa
     pendingMessage: null,
     concentrationPrompt: null,
     concentrationUsesLeft: MAX_CONCENTRATION_USES,
+    lastActionRoll: null,
   });
 
   const statusEffects = useCharacterStatusEffects({
@@ -176,14 +187,47 @@ export function useCampaignCombat(character: CampaignCharacterContext | null, pa
     });
 
     if (!intentResult.intent.isCombatAction && !hitDetection.shouldTriggerHitCheck && !hitDetection.shouldTriggerDefenseCheck) {
+      // Check if this action needs a non-combat roll
+      const rollCategory = detectRollCategory(messageText);
+      
+      if (rollCategory && rollCategory !== 'attack' && rollCategory !== 'defense') {
+        const scaledStats = buildCampaignStats(character);
+        const actionRoll = rollActionCheck(rollCategory, scaledStats, character.campaignLevel, {
+          actionDescription: messageText.slice(0, 120),
+        });
+        const legacyContext = toLegacyDiceResult(actionRoll);
+
+        setCombatState(prev => ({
+          ...prev,
+          lastHitResult: null,
+          lastDefenseResult: null,
+          lastHitDetection: hitDetection,
+          concentrationPrompt: null,
+          lastActionRoll: actionRoll,
+        }));
+
+        const result = createNonCombatResult(actionRoll.actionDescription);
+        result.narratorDiceContext = {
+          actionRoll: actionRoll,
+          actionRollNarratorContext: formatRollForNarrator(actionRoll),
+          ...legacyContext,
+        };
+        // Attach dice metadata so it gets stored on the message
+        result.diceMetadata = {
+          actionRoll: actionRoll,
+        };
+        return result;
+      }
+
       setCombatState(prev => ({
         ...prev,
         lastHitResult: null,
         lastDefenseResult: null,
         lastHitDetection: hitDetection,
         concentrationPrompt: null,
+        lastActionRoll: null,
       }));
-      return createNonCombatResult('No combat roll required for this action.');
+      return createNonCombatResult('No roll required for this action.');
     }
 
     const characterContext = CharacterContextResolver.resolve({
