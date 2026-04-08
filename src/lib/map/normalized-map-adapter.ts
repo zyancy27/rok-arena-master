@@ -48,9 +48,9 @@ function extractBaseLayer(data: TacticalMapData): MapBaseLayer {
     width: z.width,
     height: z.height,
     elevation: z.elevation,
-    terrain: z.terrain,
-    cover: z.cover,
-    tags: z.tags ?? [],
+    terrain: (z as any).terrain,
+    cover: (z as any).cover,
+    tags: (z as any).tags ?? [],
   }));
 
   const structures: MapStructure[] = (data.features ?? []).map(f => ({
