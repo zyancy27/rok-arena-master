@@ -42,6 +42,8 @@ export interface CampaignCombatState {
   pendingMessage: string | null;
   concentrationPrompt: CampaignConcentrationPrompt | null;
   concentrationUsesLeft: number;
+  /** Non-combat action roll result (perception, stealth, social, etc.) */
+  lastActionRoll: ActionRollResult | null;
 }
 
 interface CampaignCharacterContext {
