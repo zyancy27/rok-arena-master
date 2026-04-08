@@ -63,6 +63,9 @@ import NarratorMessageContent from '@/components/campaigns/NarratorMessageConten
 import NpcDialogueBubble from '@/components/campaigns/NpcDialogueBubble';
 import EnvironmentBeatBubble from '@/components/campaigns/EnvironmentBeatBubble';
 import CampaignActionRollDisplay from '@/components/campaigns/CampaignActionRollDisplay';
+import CampaignSuggestionChips from '@/components/campaigns/CampaignSuggestionChips';
+import CampaignSceneRecapCard from '@/components/campaigns/CampaignSceneRecapCard';
+import { buildSceneRecap } from '@/lib/campaign-scene-recap';
 import ExpressionChatBox from '@/components/chat/ExpressionChatBox';
 import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
