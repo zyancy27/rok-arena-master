@@ -240,12 +240,42 @@ export default function CampaignNarratorChat({
     setMessages(prev => [...prev, userMsg]);
     setIsLoading(true);
 
+    // Fire-and-forget turn log write (vertical slice — non-blocking)
+    const nextTurn = turnCounter + 1;
+    setTurnCounter(nextTurn);
+    if (userId) {
+      void appendTurnLog({
+        campaignId,
+        characterId: myParticipant?.character_id ?? null,
+        userId,
+        turnNumber: nextTurn,
+        dayNumber: dayCount,
+        timeBlock: timeOfDay,
+        zone: currentZone,
+        rawInput: queryText,
+        parsedIntent: { mode: conversationMode, source: 'narrator_chat' },
+      }).then((id) => {
+        if (!id && isTester) {
+          console.warn('[TesterMode] turn log write returned no id');
+        }
+      });
+    }
+
     try {
       // Build conversation history from local messages for continuity
       const chatHistory = messages.map(m => ({
         role: m.role === 'user' ? 'player' : 'world',
         content: m.content,
       }));
+
+      // Load narrator constitution with safe fallback
+      let constitutionPrompt = '';
+      try {
+        constitutionPrompt = buildNarratorConstitution({ conversationMode });
+      } catch (e) {
+        console.warn('[Constitution] load failed, using empty fallback:', e);
+        constitutionPrompt = '[NARRATOR CONSTITUTION fallback] Be grounded, specific, and avoid stock fantasy phrases.';
+      }
 
       const response = await supabase.functions.invoke('battle-narrator', {
         body: {
@@ -266,6 +296,9 @@ export default function CampaignNarratorChat({
             campaignLevel, campaignHp, campaignHpMax,
           },
           narrativeSystemsContext,
+          narratorConstitution: constitutionPrompt,
+          constitutionVersion: NARRATOR_CONSTITUTION_VERSION,
+          conversationMode,
         },
       });
 
@@ -294,6 +327,33 @@ export default function CampaignNarratorChat({
     if (!input.trim() || isLoading) return;
     const userInput = input.trim();
     setInput('');
+
+    // Tester slash-command interception (only for flagged tester profiles)
+    if (isTester && isSlashCommand(userInput)) {
+      const cmd = parseSlashCommand(userInput);
+      if (cmd?.kind === 'mode') {
+        setConversationMode(cmd.mode);
+        setMessages(prev => [...prev, {
+          id: `sys-${Date.now()}`,
+          role: 'narrator',
+          content: `_[tester] conversation_mode → ${cmd.mode}_`,
+          timestamp: new Date(),
+        }]);
+        return;
+      }
+      if (cmd?.kind === 'unknown') {
+        setMessages(prev => [...prev, {
+          id: `sys-${Date.now()}`,
+          role: 'narrator',
+          content: `_[tester] unknown command: ${cmd.raw}. Try /campaign or /analysis._`,
+          timestamp: new Date(),
+        }]);
+        return;
+      }
+      // Other slash commands (feedback/flag/donotlearn) are stubbed in this
+      // repair pass — fall through to narrator so the input isn't lost.
+    }
+
     await sendNarratorQuery(userInput);
   };
 
