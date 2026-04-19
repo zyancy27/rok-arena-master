@@ -42,6 +42,8 @@ import { runPromotionPass } from '@/systems/narrator/PromotionEngine';
 import { enrichTurnPayload } from '@/systems/narrator/TurnLogEnrichment';
 import { runWorldPulse } from '@/systems/narrator/WorldPulse';
 import { recordZoneVisit } from '@/systems/narrator/LocationIntelligence';
+import { buildMapDeltas, recordMapDeltas, summarizeDeltas } from '@/systems/narrator/MapDeltaEngine';
+import { recordGlobalLearning, recordCampaignLearning } from '@/systems/learning/SafeLearningLayer';
 import { CharacterContextResolver } from '@/systems/character/CharacterContextResolver';
 import { buildNarratorConstitution, NARRATOR_CONSTITUTION_VERSION } from '@/systems/narrator/NarratorConstitution';
 import { FlaskConical, MessageSquare } from 'lucide-react';
@@ -304,7 +306,7 @@ export default function CampaignNarratorChat({
         }]);
       }
 
-      void appendTurnLog({
+      const turnLogIdPromise = appendTurnLog({
         campaignId,
         characterId: myParticipant?.character_id ?? null,
         userId,
@@ -323,7 +325,11 @@ export default function CampaignNarratorChat({
         if (!id && isTester) {
           console.warn('[TesterMode] turn log write returned no id');
         }
+        return id;
       });
+      void turnLogIdPromise;
+      // Stash on a ref-like local for the success branch below.
+      (window as unknown as { __lastTurnLogPromise?: Promise<string | null> }).__lastTurnLogPromise = turnLogIdPromise;
     }
 
     try {
@@ -419,6 +425,49 @@ export default function CampaignNarratorChat({
             }
           });
         }
+
+        // Map Delta Engine (Phase 5 / Part 11): build a small set of map
+        // deltas from this turn's signals and append them to the matching
+        // turn-log row. Pure additive; UI may consume `map_delta.deltas[]`
+        // to render pulses, breadcrumbs, icon swaps, etc.
+        void (async () => {
+          try {
+            const stash = (window as unknown as { __lastTurnLogPromise?: Promise<string | null> });
+            const turnLogId = stash.__lastTurnLogPromise ? await stash.__lastTurnLogPromise : null;
+            const deltas = buildMapDeltas({
+              turnNumber: nextTurn,
+              zone: currentZone,
+              previousZone: null, // zone change tracking handled by recordZoneVisit; map UI replays from log
+            });
+            if (turnLogId && deltas.length > 0) {
+              const res = await recordMapDeltas({ campaignId, turnLogId, deltas });
+              if (isTester && res.applied) {
+                setMessages(prev => [...prev, {
+                  id: `sys-map-${Date.now()}`,
+                  role: 'narrator',
+                  content: `_[tester] map deltas → ${summarizeDeltas(deltas)}_`,
+                  timestamp: new Date(),
+                }]);
+              }
+            }
+          } catch (e) {
+            console.warn('[MapDeltaEngine] integration error', e);
+          }
+        })();
+
+        // Safe Learning Layer (Phase 6 / Part 13): record a Tier 2
+        // campaign-scoped learning signal that this turn produced narration.
+        // Skipped automatically for `do_not_learn` campaigns inside the layer.
+        void recordCampaignLearning({
+          campaignId,
+          category: 'arc_continuity',
+          detail: {
+            turnNumber: nextTurn,
+            zone: currentZone,
+            mode: conversationMode,
+          },
+          isTester,
+        });
       }
     } catch (error) {
       console.error('Campaign narrator error:', error);
