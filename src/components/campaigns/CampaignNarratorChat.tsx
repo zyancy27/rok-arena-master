@@ -34,6 +34,11 @@ import {
   getChatBoxSurfaceClasses,
   getChatBoxWrapperClasses,
 } from '@/systems/chat/presentation/chatBoxRenderEffects';
+import { useTesterMode } from '@/hooks/use-tester-mode';
+import { parseSlashCommand, isSlashCommand } from '@/lib/tester/slash-commands';
+import { appendTurnLog } from '@/systems/narrator/TurnLogManager';
+import { buildNarratorConstitution, NARRATOR_CONSTITUTION_VERSION } from '@/systems/narrator/NarratorConstitution';
+import { FlaskConical, MessageSquare } from 'lucide-react';
 
 interface NarratorMessage {
   id: string;
@@ -171,8 +176,13 @@ export default function CampaignNarratorChat({
   const [partyOpen, setPartyOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [showMap, setShowMap] = useState(false);
+  const [turnCounter, setTurnCounter] = useState(0);
   const messagesViewportRef = useRef<HTMLDivElement>(null);
   const userIsNearBottomRef = useRef(true);
+
+  // Tester / developer profile mode
+  const userId = myParticipant?.user_id ?? null;
+  const { isTester, conversationMode, setConversationMode } = useTesterMode(userId);
 
   // Force tactical map regeneration when zone/location changes
   const mapLocationKey = chosenLocation || currentZone || campaignName;
@@ -230,12 +240,42 @@ export default function CampaignNarratorChat({
     setMessages(prev => [...prev, userMsg]);
     setIsLoading(true);
 
+    // Fire-and-forget turn log write (vertical slice — non-blocking)
+    const nextTurn = turnCounter + 1;
+    setTurnCounter(nextTurn);
+    if (userId) {
+      void appendTurnLog({
+        campaignId,
+        characterId: myParticipant?.character_id ?? null,
+        userId,
+        turnNumber: nextTurn,
+        dayNumber: dayCount,
+        timeBlock: timeOfDay,
+        zone: currentZone,
+        rawInput: queryText,
+        parsedIntent: { mode: conversationMode, source: 'narrator_chat' },
+      }).then((id) => {
+        if (!id && isTester) {
+          console.warn('[TesterMode] turn log write returned no id');
+        }
+      });
+    }
+
     try {
       // Build conversation history from local messages for continuity
       const chatHistory = messages.map(m => ({
         role: m.role === 'user' ? 'player' : 'world',
         content: m.content,
       }));
+
+      // Load narrator constitution with safe fallback
+      let constitutionPrompt = '';
+      try {
+        constitutionPrompt = buildNarratorConstitution({ conversationMode });
+      } catch (e) {
+        console.warn('[Constitution] load failed, using empty fallback:', e);
+        constitutionPrompt = '[NARRATOR CONSTITUTION fallback] Be grounded, specific, and avoid stock fantasy phrases.';
+      }
 
       const response = await supabase.functions.invoke('battle-narrator', {
         body: {
@@ -256,6 +296,9 @@ export default function CampaignNarratorChat({
             campaignLevel, campaignHp, campaignHpMax,
           },
           narrativeSystemsContext,
+          narratorConstitution: constitutionPrompt,
+          constitutionVersion: NARRATOR_CONSTITUTION_VERSION,
+          conversationMode,
         },
       });
 
@@ -284,6 +327,33 @@ export default function CampaignNarratorChat({
     if (!input.trim() || isLoading) return;
     const userInput = input.trim();
     setInput('');
+
+    // Tester slash-command interception (only for flagged tester profiles)
+    if (isTester && isSlashCommand(userInput)) {
+      const cmd = parseSlashCommand(userInput);
+      if (cmd?.kind === 'mode') {
+        setConversationMode(cmd.mode);
+        setMessages(prev => [...prev, {
+          id: `sys-${Date.now()}`,
+          role: 'narrator',
+          content: `_[tester] conversation_mode → ${cmd.mode}_`,
+          timestamp: new Date(),
+        }]);
+        return;
+      }
+      if (cmd?.kind === 'unknown') {
+        setMessages(prev => [...prev, {
+          id: `sys-${Date.now()}`,
+          role: 'narrator',
+          content: `_[tester] unknown command: ${cmd.raw}. Try /campaign or /analysis._`,
+          timestamp: new Date(),
+        }]);
+        return;
+      }
+      // Other slash commands (feedback/flag/donotlearn) are stubbed in this
+      // repair pass — fall through to narrator so the input isn't lost.
+    }
+
     await sendNarratorQuery(userInput);
   };
 
@@ -313,6 +383,25 @@ export default function CampaignNarratorChat({
                 <Crosshair className="w-3 h-3" />
                 Map
               </Button>
+            )}
+            {isTester && (
+              <Badge
+                variant="outline"
+                className={`text-[10px] gap-1 cursor-pointer ${
+                  conversationMode === 'analysis'
+                    ? 'border-primary/50 text-primary'
+                    : 'border-muted-foreground/30 text-muted-foreground'
+                }`}
+                onClick={() => setConversationMode(conversationMode === 'analysis' ? 'campaign' : 'analysis')}
+                title="Tester mode — click to toggle. Or type /campaign or /analysis."
+              >
+                {conversationMode === 'analysis' ? (
+                  <FlaskConical className="w-2.5 h-2.5" />
+                ) : (
+                  <MessageSquare className="w-2.5 h-2.5" />
+                )}
+                {conversationMode === 'analysis' ? 'Analysis' : 'Campaign'}
+              </Badge>
             )}
             <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-300">
               <Lock className="w-2.5 h-2.5 mr-1" />
