@@ -122,21 +122,49 @@ export interface OrchestratorRequest {
 export async function invokeOrchestrator(
   request: OrchestratorRequest,
 ): Promise<{ data: OrchestratedNarrationResponse | null; error: any }> {
+  const enriched = injectConstitution(request);
+
   try {
     const { data, error } = await supabase.functions.invoke('story-orchestrator', {
-      body: request,
+      body: enriched,
     });
 
     if (error) {
       console.warn('[Orchestrator] Failed, falling back to direct narrator call:', error);
-      return fallbackToDirectNarrator(request);
+      return fallbackToDirectNarrator(enriched);
     }
 
     return { data, error: null };
   } catch (e) {
     console.warn('[Orchestrator] Exception, falling back:', e);
-    return fallbackToDirectNarrator(request);
+    return fallbackToDirectNarrator(enriched);
   }
+}
+
+/**
+ * Inject the Narrator Constitution into every orchestrator request unless
+ * the caller has already provided one. Safe fallback to empty string on failure.
+ */
+function injectConstitution(request: OrchestratorRequest): OrchestratorRequest {
+  if (typeof request.narratorConstitution === 'string' && request.narratorConstitution.length > 0) {
+    return request;
+  }
+
+  let constitution = '';
+  try {
+    constitution = buildNarratorConstitution({
+      conversationMode: request.conversationMode === 'analysis' ? 'analysis' : 'campaign',
+    });
+  } catch (e) {
+    console.warn('[Constitution] build failed in orchestrator, using empty fallback:', e);
+  }
+
+  return {
+    ...request,
+    narratorConstitution: constitution,
+    constitutionVersion: NARRATOR_CONSTITUTION_VERSION,
+    conversationMode: request.conversationMode ?? 'campaign',
+  };
 }
 
 /** Fallback: call battle-narrator directly if orchestrator is unavailable */
