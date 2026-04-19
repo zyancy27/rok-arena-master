@@ -268,6 +268,40 @@ export default function CampaignNarratorChat({
         characterContext: resolvedActorContext,
         resolutionContext: { currentZone, environmentTags },
       });
+
+      // Tester debug surface: show the enriched intent + roll band inline,
+      // BEFORE the narrator response, so testers can verify what the
+      // Promotion Engine will see.
+      if (isTester) {
+        const pi = enriched.parsedIntent as Record<string, unknown>;
+        const rr = enriched.rollResult as Record<string, unknown> | null;
+        const intentBits = [
+          `type: ${pi.type ?? '—'}`,
+          pi.subType ? `sub: ${pi.subType}` : null,
+          pi.target ? `target: ${pi.target}` : null,
+          pi.tool ? `tool: ${pi.tool}` : null,
+          typeof pi.intensity === 'number' ? `int: ${pi.intensity}` : null,
+          typeof pi.precision === 'number' ? `pre: ${pi.precision}` : null,
+          typeof pi.riskLevel === 'number' ? `risk: ${pi.riskLevel}` : null,
+          typeof pi.confidence === 'number' ? `conf: ${(pi.confidence as number).toFixed(2)}` : null,
+          pi.requiresRoll ? 'roll' : 'no-roll',
+        ].filter(Boolean).join(' · ');
+        const rollBits = rr
+          ? [
+              `band: ${rr.band ?? '—'}`,
+              typeof rr.effectiveness === 'number' ? `eff: ${rr.effectiveness}` : null,
+              typeof rr.success === 'boolean' ? (rr.success ? 'success' : 'fail') : null,
+              rr.synthetic ? 'synthetic' : 'resolver',
+            ].filter(Boolean).join(' · ')
+          : 'no roll';
+        setMessages(prev => [...prev, {
+          id: `sys-enrich-${Date.now()}`,
+          role: 'narrator',
+          content: `_[tester] intent → ${intentBits}_\n_[tester] roll → ${rollBits}_`,
+          timestamp: new Date(),
+        }]);
+      }
+
       void appendTurnLog({
         campaignId,
         characterId: myParticipant?.character_id ?? null,
