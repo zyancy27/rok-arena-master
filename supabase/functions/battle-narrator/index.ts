@@ -1380,7 +1380,18 @@ async function handleCampaignNarration(
     narrativeSystemsContext,
     overchargeContext,
     narratorSentiment,
+    narratorConstitution,
+    constitutionVersion,
+    conversationMode,
   } = body;
+
+  // ── Narrator Constitution + conversation mode (campaign vs analysis) ──
+  const constitutionBlock = (typeof narratorConstitution === 'string' && narratorConstitution.trim().length > 0)
+    ? `\n\n=== NARRATOR CONSTITUTION ${constitutionVersion ? `(${constitutionVersion})` : ''} ===\n${narratorConstitution}\n=== END CONSTITUTION ===\n`
+    : '';
+  const modeBlock = conversationMode === 'analysis'
+    ? `\n\nCONVERSATION MODE: ANALYSIS (tester/developer profile). The current player is testing systems. You may briefly surface meta hints about active systems if asked, but DO NOT break immersion in normal narration.`
+    : '';
 
   // Build conversation history as multi-turn messages for AI continuity
   const historyMessages: { role: string; content: string }[] = [];
