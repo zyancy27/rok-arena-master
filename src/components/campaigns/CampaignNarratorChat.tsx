@@ -330,6 +330,7 @@ export default function CampaignNarratorChat({
       void turnLogIdPromise;
       // Stash on a ref-like local for the success branch below.
       (window as unknown as { __lastTurnLogPromise?: Promise<string | null> }).__lastTurnLogPromise = turnLogIdPromise;
+    }
 
     try {
       // Build conversation history from local messages for continuity
