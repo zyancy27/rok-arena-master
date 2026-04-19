@@ -38,6 +38,7 @@ import { useTesterMode } from '@/hooks/use-tester-mode';
 import { parseSlashCommand, isSlashCommand } from '@/lib/tester/slash-commands';
 import { recordTesterFeedback, flagNarratorResponse, markCampaignDoNotLearn } from '@/lib/tester/feedback-actions';
 import { appendTurnLog } from '@/systems/narrator/TurnLogManager';
+import { runPromotionPass } from '@/systems/narrator/PromotionEngine';
 import { buildNarratorConstitution, NARRATOR_CONSTITUTION_VERSION } from '@/systems/narrator/NarratorConstitution';
 import { FlaskConical, MessageSquare } from 'lucide-react';
 
