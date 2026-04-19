@@ -2504,91 +2504,318 @@ ${isMultiplayer ? `MULTIPLAYER: Respond using "${playerCharacter.name}" — NEVE
 }
 
 /**
- * Generate a campaign concept: name, description, and starting location
+ * Generate a campaign concept: structured seed first, prose after.
+ *
+ * Strategy:
+ *  1. Pick a hidden structured seed (conflict / setting / pressure / antagonist /
+ *     skeleton family / rhythm / discovery flavor / social structure / weirdness)
+ *     from explicit category pools on the server, with anti-repetition weighting
+ *     against `recent` history sent by the client.
+ *  2. Ask the LLM to build premise -> stakes -> setting -> antagonist ->
+ *     opening tension -> title (TITLE LAST) from that seed, with an explicit
+ *     ban list of overused words/structures.
+ *  3. Validate output against banned tropes; regenerate up to MAX_RETRIES.
  */
-async function handleGenerateCampaignConcept(
-  body: { characterName?: string; characterLevel?: number; characterPowers?: string; mood?: string },
+
+// ── Structured seed pools ──────────────────────────────────────────────────
+const CONFLICT_TYPES = [
+  'survival', 'investigation', 'war', 'rebellion', 'rescue', 'escort',
+  'resource_crisis', 'political_fracture', 'territorial_defense', 'expedition',
+  'containment_failure', 'manhunt', 'succession_crisis', 'social_collapse',
+  'pilgrimage', 'tournament_trials',
+];
+const SETTING_TYPES = [
+  'drowned city', 'mining town', 'prison colony', 'frontier settlement',
+  'undercity', 'frozen harbor', 'jungle ruin network', 'sacred valley',
+  'plague village', 'desert salvage zone', 'industrial slum',
+  'moving caravan city', 'volcanic basin', 'floating monastery',
+  'war-torn capital', 'tidal fortress', 'mountain pass garrison',
+  'border refugee camp', 'sky-bridge district', 'reclaimed battlefield',
+];
+const PRESSURE_SOURCES = [
+  'famine', 'political purge', 'weather collapse', 'military occupation',
+  'failing wards', 'ritual deadline', 'infrastructure breakdown',
+  'public panic', 'predator surge', 'ecological imbalance',
+  'missing leadership', 'tribute demands', 'contagious dreams',
+  'disappearing citizens', 'foreign sanctions', 'fuel shortage',
+  'religious schism', 'mass eviction',
+];
+const ANTAGONIST_TYPES = [
+  'corrupt official', 'cult cell', 'mercenary company', 'warlord',
+  'rival faction', 'predatory creature', 'failed institution',
+  'desperate civilian mob', 'foreign agent', 'inheritor of old grudge',
+  'machine left running', 'bureaucratic apparatus', 'pirate crew',
+  'displaced clan', 'local strongman', 'no antagonist (situational pressure only)',
+];
+const SKELETON_FAMILIES = [
+  'political_fracture', 'frontier_survival', 'expedition_descent',
+  'social_mystery', 'war_pressure', 'resource_collapse',
+  'protection_duty', 'hunt_pursuit', 'containment_failure', 'moral_fracture',
+];
+const RHYTHM_PROFILES = [
+  'slow burn building to violence',
+  'sharp opening then political maneuvering',
+  'episodic survival pressure',
+  'mounting dread with quiet stretches',
+  'chaotic urgent throughout',
+  'investigative with sudden escalations',
+];
+const DISCOVERY_FLAVORS = [
+  'people first (NPC-driven secrets)',
+  'place first (the location reveals truths)',
+  'consequence first (early choices echo)',
+  'evidence first (clues accumulate)',
+  'rumor first (conflicting accounts)',
+];
+const SOCIAL_STRUCTURES = [
+  'rigid hierarchy under strain', 'lawless patchwork', 'company town',
+  'occupied population', 'refugee plurality', 'guild-run economy',
+  'theocracy losing faith', 'collapsed monarchy', 'tribal confederacy',
+  'frontier mutual-aid', 'merchant oligarchy',
+];
+const WEIRDNESS_LEVELS = [
+  'grounded (no magic on screen)', 'low (rumors and traces)',
+  'moderate (visible but rare)', 'high (magic shapes daily life)',
+];
+
+// Words/phrases that are dramatically overused in our generations.
+const BANNED_TITLE_TOKENS = [
+  'whisper', 'whispers', 'echo', 'echoes', 'shattered', 'forgotten',
+  'clock', 'chronomancer', 'sunken', 'lost city',
+];
+const BANNED_DESCRIPTION_PATTERNS = [
+  /fabric of (time|reality)/i,
+  /unraveling (reality|time)/i,
+  /ancient (artifact|relic) (causing|caus|stir|awakens?|awaken)/i,
+  /lost city.*(awaken|stirring|stirs|magic)/i,
+  /mysterious disturbances?/i,
+  /ancient power stirs?/i,
+  /must investigate/i,
+];
+
+function pick<T>(arr: readonly T[], rng: () => number = Math.random): T {
+  return arr[Math.floor(rng() * arr.length)];
+}
+
+interface RecentConcept {
+  title?: string;
+  skeleton?: string;
+  conflict?: string;
+  setting?: string;
+}
+
+/** Pick a category value, biased away from recently-used values */
+function pickAvoiding<T extends string>(
+  pool: readonly T[],
+  recentUsed: string[],
+  rng: () => number = Math.random,
+): T {
+  const recentSet = new Set(recentUsed.map((v) => v.toLowerCase()));
+  const fresh = pool.filter((v) => !recentSet.has(String(v).toLowerCase()));
+  const source = fresh.length >= Math.max(2, Math.floor(pool.length / 3)) ? fresh : pool;
+  return pick(source, rng);
+}
+
+function buildStructuredSeed(recent: RecentConcept[], userMood?: string) {
+  const recentSkeletons = recent.map((r) => r.skeleton || '').filter(Boolean);
+  const recentConflicts = recent.map((r) => r.conflict || '').filter(Boolean);
+  const recentSettings = recent.map((r) => r.setting || '').filter(Boolean);
+
+  const skeleton = pickAvoiding(SKELETON_FAMILIES, recentSkeletons);
+  const conflict = pickAvoiding(CONFLICT_TYPES, recentConflicts);
+  const setting = pickAvoiding(SETTING_TYPES, recentSettings);
+
+  return {
+    skeleton_family: skeleton,
+    conflict_type: conflict,
+    setting_type: setting,
+    pressure_source: pick(PRESSURE_SOURCES),
+    antagonist_type: pick(ANTAGONIST_TYPES),
+    rhythm_profile: pick(RHYTHM_PROFILES),
+    discovery_flavor: pick(DISCOVERY_FLAVORS),
+    social_structure: pick(SOCIAL_STRUCTURES),
+    weirdness_level: pick(WEIRDNESS_LEVELS),
+    user_mood: userMood || null,
+  };
+}
+
+function violatesGuardrails(concept: { name?: string; description?: string }): string | null {
+  const name = (concept.name || '').toLowerCase();
+  const desc = concept.description || '';
+  const firstWord = name.replace(/^the\s+/, '').split(/\s+/)[0] || '';
+  for (const banned of BANNED_TITLE_TOKENS) {
+    if (firstWord === banned || name.startsWith(banned + ' ') || name.startsWith('the ' + banned)) {
+      return `title leads with overused token "${banned}"`;
+    }
+  }
+  for (const pat of BANNED_DESCRIPTION_PATTERNS) {
+    if (pat.test(desc)) return `description hits banned pattern ${pat}`;
+  }
+  return null;
+}
+
+async function generateCampaignFromSeed(
   apiKey: string,
-  cors: Record<string, string>
+  seed: ReturnType<typeof buildStructuredSeed>,
+  recent: RecentConcept[],
+  character: { name?: string; level?: number; powers?: string },
+  testerMode: boolean,
+  attempt: number,
+): Promise<{ name: string; description: string; location: string } | null> {
+  const recentTitles = recent.map((r) => r.title).filter(Boolean).slice(0, 12);
+  const breadthClause = testerMode
+    ? 'TESTER MODE: prioritize maximum breadth and variation. Treat repeated quick generations as evidence to push harder away from familiar patterns.'
+    : '';
+
+  const systemPrompt = `You are a campaign designer for a grounded, dramatic tabletop RPG. You will be given a HIDDEN STRUCTURED SEED. Build the campaign FROM the seed, not from generic fantasy vibes.
+
+BUILD ORDER (strict):
+  1. premise (what is happening)
+  2. stakes (what fails if no one acts)
+  3. setting detail (specific to the seed's setting type)
+  4. antagonist or pressure source (specific, not abstract)
+  5. opening tension (the situation when players arrive)
+  6. title — GENERATE LAST, after the concept is fully formed
+
+HARD BANS (do not use, regardless of seed):
+  - Title may NOT begin with: ${BANNED_TITLE_TOKENS.join(', ')}
+  - Do NOT use phrases: "fabric of time", "fabric of reality", "unraveling reality",
+    "ancient artifact causing anomalies", "lost city awakening", "ancient power stirs",
+    "mysterious disturbances", "must investigate"
+  - Do NOT default to: time distortion, chrono themes, lost cities, ancient relics,
+    whispery mysteries — UNLESS the user mood explicitly requested them.
+  - Do NOT recycle title shapes from recent campaigns (listed below).
+
+STYLE:
+  - Concrete, grounded, specific. Names of places, jobs, factions over abstractions.
+  - 2-5 word titles, dramatic but not generic. Avoid "The X of the Y" if overused.
+  - Description: 1-3 sentences, sets up the situation and the pressure clearly.
+  - Location: a specific named place tied to the setting type.
+
+${breadthClause}
+
+Return JSON: { "name": string, "description": string, "location": string }`;
+
+  const userPayload = {
+    hidden_seed: seed,
+    recent_titles_to_avoid: recentTitles,
+    character: character.name
+      ? { name: character.name, tier: character.level || 1, powers: character.powers || null }
+      : null,
+    attempt,
+  };
+
+  const models = ['google/gemini-2.5-flash', 'google/gemini-2.5-flash-lite'];
+  for (const model of models) {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: JSON.stringify(userPayload) },
+        ],
+        max_tokens: 400,
+        temperature: 1.0,
+        response_format: { type: 'json_object' },
+      }),
+    });
+    if (!response.ok) {
+      const errText = await response.text();
+      console.warn(`Campaign seed model ${model} returned ${response.status}: ${errText}`);
+      continue;
+    }
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '{}';
+    try {
+      const parsed = JSON.parse(content);
+      if (parsed?.name && parsed?.description) {
+        return {
+          name: String(parsed.name).trim(),
+          description: String(parsed.description).trim(),
+          location: String(parsed.location || '').trim() || `${seed.setting_type} (entry point)`,
+        };
+      }
+    } catch (e) {
+      console.warn('Failed to parse campaign concept JSON:', e);
+    }
+  }
+  return null;
+}
+
+async function handleGenerateCampaignConcept(
+  body: {
+    characterName?: string;
+    characterLevel?: number;
+    characterPowers?: string;
+    mood?: string;
+    recent?: RecentConcept[];
+    testerMode?: boolean;
+  },
+  apiKey: string,
+  cors: Record<string, string>,
 ): Promise<Response> {
   try {
-    const { characterName, characterLevel, characterPowers, mood } = body;
+    const recent = Array.isArray(body.recent) ? body.recent.slice(0, 12) : [];
+    const testerMode = Boolean(body.testerMode);
+    const character = {
+      name: body.characterName,
+      level: body.characterLevel,
+      powers: body.characterPowers,
+    };
 
-    const systemPrompt = `You are a creative campaign designer for a tabletop RPG universe. Generate an original, evocative campaign concept.
+    const MAX_ATTEMPTS = 3;
+    let lastConcept: { name: string; description: string; location: string } | null = null;
+    let lastSeed: ReturnType<typeof buildStructuredSeed> | null = null;
+    let lastViolation: string | null = null;
 
-RULES:
-- The name should be 2-5 words, dramatic and memorable (e.g., "The Shattered Covenant", "Ember of the Forsaken")
-- The description should be 1-3 sentences setting up the premise — mysterious, compelling, adventure-hook style
-- The location should be a specific, vivid starting place (e.g., "Rusted Dockyard of Mireport", "Obsidian Spire Outskirts")
-- Do NOT use generic fantasy clichés. Be creative and specific.
-- If a character is provided, subtly tailor the concept to their tier/powers without being obvious about it.
-
-Return a JSON object with keys: "name", "description", "location"`;
-
-    const userParts: string[] = [];
-    if (characterName) userParts.push(`Character: ${characterName} (Tier ${characterLevel || 1})`);
-    if (characterPowers) userParts.push(`Powers: ${characterPowers}`);
-    if (mood) userParts.push(`Mood/vibe preference: ${mood}`);
-    if (userParts.length === 0) userParts.push('Generate a compelling campaign concept for any character.');
-
-    const models = ["google/gemini-2.5-flash-lite", "google/gemini-2.5-flash"];
-    let data: any = null;
-
-    for (const model of models) {
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userParts.join('\n') },
-          ],
-          max_tokens: 300,
-          response_format: { type: "json_object" },
-        }),
-      });
-
-      if (response.ok) {
-        data = await response.json();
-        break;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      const seed = buildStructuredSeed(recent, body.mood);
+      lastSeed = seed;
+      const concept = await generateCampaignFromSeed(apiKey, seed, recent, character, testerMode, attempt);
+      if (!concept) continue;
+      const violation = violatesGuardrails(concept);
+      if (!violation) {
+        return new Response(
+          JSON.stringify({
+            name: concept.name,
+            description: concept.description,
+            location: concept.location,
+            seed,
+          }),
+          { headers: { ...cors, 'Content-Type': 'application/json' } },
+        );
       }
-      const errText = await response.text();
-      console.warn(`Campaign concept model ${model} returned ${response.status}: ${errText}`);
+      console.warn(`[campaign-concept] attempt ${attempt} rejected: ${violation}`);
+      lastConcept = concept;
+      lastViolation = violation;
     }
 
-    if (!data) {
-      throw new Error("All AI models failed for campaign concept generation");
+    // All attempts violated — return the last concept anyway with a flag.
+    if (lastConcept) {
+      return new Response(
+        JSON.stringify({
+          name: lastConcept.name,
+          description: lastConcept.description,
+          location: lastConcept.location,
+          seed: lastSeed,
+          guardrail_warning: lastViolation,
+        }),
+        { headers: { ...cors, 'Content-Type': 'application/json' } },
+      );
     }
 
-    const content = data.choices?.[0]?.message?.content || "{}";
-    let concept;
-    try {
-      concept = JSON.parse(content);
-    } catch {
-      concept = { name: "The Unknown Path", description: "A mysterious adventure awaits.", location: "Crossroads of the Wandering Mist" };
-    }
-
-    return new Response(
-      JSON.stringify({
-        name: concept.name || "The Unknown Path",
-        description: concept.description || "A mysterious adventure awaits.",
-        location: concept.location || "Crossroads of the Wandering Mist",
-      }),
-      { headers: { ...cors, "Content-Type": "application/json" } }
-    );
+    throw new Error('All AI models failed for campaign concept generation');
   } catch (error) {
-    console.error("Campaign concept generation error:", error);
+    console.error('Campaign concept generation error:', error);
     return new Response(
       JSON.stringify({
-        name: "The Unknown Path",
-        description: "A mysterious adventure awaits beyond the horizon.",
-        location: "Crossroads of the Wandering Mist",
+        name: 'The Unknown Path',
+        description: 'A mysterious adventure awaits beyond the horizon.',
+        location: 'Crossroads of the Wandering Mist',
       }),
-      { status: 500, headers: { ...cors, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...cors, 'Content-Type': 'application/json' } },
     );
   }
 }
