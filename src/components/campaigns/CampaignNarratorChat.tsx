@@ -34,6 +34,11 @@ import {
   getChatBoxSurfaceClasses,
   getChatBoxWrapperClasses,
 } from '@/systems/chat/presentation/chatBoxRenderEffects';
+import { useTesterMode } from '@/hooks/use-tester-mode';
+import { parseSlashCommand, isSlashCommand } from '@/lib/tester/slash-commands';
+import { appendTurnLog } from '@/systems/narrator/TurnLogManager';
+import { buildNarratorConstitution, NARRATOR_CONSTITUTION_VERSION } from '@/systems/narrator/NarratorConstitution';
+import { FlaskConical, MessageSquare } from 'lucide-react';
 
 interface NarratorMessage {
   id: string;
