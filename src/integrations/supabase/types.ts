@@ -294,6 +294,7 @@ export type Database = {
           campaign_id: string
           campaign_length_target: string
           campaign_objective: string | null
+          consequence_summary: Json
           core_storyline: string | null
           created_at: string
           current_arc: string | null
@@ -311,11 +312,15 @@ export type Database = {
           id: string
           known_truths: Json
           major_arcs: Json
+          narrator_constitution_version: string | null
           npc_roster_summary: Json
           opening_hook: string | null
           player_impact_log: Json
           premise: string
+          region_moods: Json
+          regional_social_heat: Json
           remaining_narrative_runway: string | null
+          rhythm_profile: Json
           story_hooks: Json
           tone: string | null
           unresolved_threads: Json
@@ -328,6 +333,7 @@ export type Database = {
           campaign_id: string
           campaign_length_target?: string
           campaign_objective?: string | null
+          consequence_summary?: Json
           core_storyline?: string | null
           created_at?: string
           current_arc?: string | null
@@ -345,11 +351,15 @@ export type Database = {
           id?: string
           known_truths?: Json
           major_arcs?: Json
+          narrator_constitution_version?: string | null
           npc_roster_summary?: Json
           opening_hook?: string | null
           player_impact_log?: Json
           premise?: string
+          region_moods?: Json
+          regional_social_heat?: Json
           remaining_narrative_runway?: string | null
+          rhythm_profile?: Json
           story_hooks?: Json
           tone?: string | null
           unresolved_threads?: Json
@@ -362,6 +372,7 @@ export type Database = {
           campaign_id?: string
           campaign_length_target?: string
           campaign_objective?: string | null
+          consequence_summary?: Json
           core_storyline?: string | null
           created_at?: string
           current_arc?: string | null
@@ -379,11 +390,15 @@ export type Database = {
           id?: string
           known_truths?: Json
           major_arcs?: Json
+          narrator_constitution_version?: string | null
           npc_roster_summary?: Json
           opening_hook?: string | null
           player_impact_log?: Json
           premise?: string
+          region_moods?: Json
+          regional_social_heat?: Json
           remaining_narrative_runway?: string | null
+          rhythm_profile?: Json
           story_hooks?: Json
           tone?: string | null
           unresolved_threads?: Json
@@ -1065,8 +1080,87 @@ export type Database = {
           },
         ]
       }
+      campaign_turn_logs: {
+        Row: {
+          campaign_id: string
+          character_id: string | null
+          consequence_deltas: Json | null
+          created_at: string
+          day_number: number
+          hook_deltas: Json | null
+          id: string
+          map_delta: Json | null
+          npc_deltas: Json | null
+          opportunity_deltas: Json | null
+          parsed_intent: Json | null
+          promoted: boolean
+          promoted_at: string | null
+          promotion_notes: string | null
+          raw_input: string
+          resolved_action: Json | null
+          roll_result: Json | null
+          scene_beat_summary: string | null
+          time_advance: number | null
+          time_block: string | null
+          turn_number: number
+          user_id: string
+          zone: string | null
+        }
+        Insert: {
+          campaign_id: string
+          character_id?: string | null
+          consequence_deltas?: Json | null
+          created_at?: string
+          day_number?: number
+          hook_deltas?: Json | null
+          id?: string
+          map_delta?: Json | null
+          npc_deltas?: Json | null
+          opportunity_deltas?: Json | null
+          parsed_intent?: Json | null
+          promoted?: boolean
+          promoted_at?: string | null
+          promotion_notes?: string | null
+          raw_input: string
+          resolved_action?: Json | null
+          roll_result?: Json | null
+          scene_beat_summary?: string | null
+          time_advance?: number | null
+          time_block?: string | null
+          turn_number?: number
+          user_id: string
+          zone?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          character_id?: string | null
+          consequence_deltas?: Json | null
+          created_at?: string
+          day_number?: number
+          hook_deltas?: Json | null
+          id?: string
+          map_delta?: Json | null
+          npc_deltas?: Json | null
+          opportunity_deltas?: Json | null
+          parsed_intent?: Json | null
+          promoted?: boolean
+          promoted_at?: string | null
+          promotion_notes?: string | null
+          raw_input?: string
+          resolved_action?: Json | null
+          roll_result?: Json | null
+          scene_beat_summary?: string | null
+          time_advance?: number | null
+          time_block?: string | null
+          turn_number?: number
+          user_id?: string
+          zone?: string | null
+        }
+        Relationships: []
+      }
       campaigns: {
         Row: {
+          abandonment_reason: string | null
           average_party_level: number
           campaign_length: string
           campaign_seed: string | null
@@ -1077,6 +1171,7 @@ export type Database = {
           day_count: number
           description: string | null
           difficulty_scale: number
+          do_not_learn: boolean
           elapsed_hours: number
           environment_tags: Json | null
           genre: string | null
@@ -1092,6 +1187,7 @@ export type Database = {
           world_state: Json | null
         }
         Insert: {
+          abandonment_reason?: string | null
           average_party_level?: number
           campaign_length?: string
           campaign_seed?: string | null
@@ -1102,6 +1198,7 @@ export type Database = {
           day_count?: number
           description?: string | null
           difficulty_scale?: number
+          do_not_learn?: boolean
           elapsed_hours?: number
           environment_tags?: Json | null
           genre?: string | null
@@ -1117,6 +1214,7 @@ export type Database = {
           world_state?: Json | null
         }
         Update: {
+          abandonment_reason?: string | null
           average_party_level?: number
           campaign_length?: string
           campaign_seed?: string | null
@@ -1127,6 +1225,7 @@ export type Database = {
           day_count?: number
           description?: string | null
           difficulty_scale?: number
+          do_not_learn?: boolean
           elapsed_hours?: number
           environment_tags?: Json | null
           genre?: string | null
@@ -2700,6 +2799,75 @@ export type Database = {
           },
         ]
       }
+      tester_feedback: {
+        Row: {
+          campaign_id: string | null
+          category: string
+          context: Json | null
+          created_at: string
+          feedback: string
+          id: string
+          message_id: string | null
+          resolved: boolean
+          severity: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          category?: string
+          context?: Json | null
+          created_at?: string
+          feedback: string
+          id?: string
+          message_id?: string | null
+          resolved?: boolean
+          severity?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          campaign_id?: string | null
+          category?: string
+          context?: Json | null
+          created_at?: string
+          feedback?: string
+          id?: string
+          message_id?: string | null
+          resolved?: boolean
+          severity?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tester_profiles: {
+        Row: {
+          created_at: string
+          id: string
+          is_tester: boolean
+          notes: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_tester?: boolean
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_tester?: boolean
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -3474,6 +3642,7 @@ export type Database = {
       is_battle_creator: { Args: { _battle_id: string }; Returns: boolean }
       is_battle_participant: { Args: { _battle_id: string }; Returns: boolean }
       is_character_owner: { Args: { _character_id: string }; Returns: boolean }
+      is_tester: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
