@@ -384,6 +384,25 @@ export default function CampaignNarratorChat({
                 Map
               </Button>
             )}
+            {isTester && (
+              <Badge
+                variant="outline"
+                className={`text-[10px] gap-1 cursor-pointer ${
+                  conversationMode === 'analysis'
+                    ? 'border-primary/50 text-primary'
+                    : 'border-muted-foreground/30 text-muted-foreground'
+                }`}
+                onClick={() => setConversationMode(conversationMode === 'analysis' ? 'campaign' : 'analysis')}
+                title="Tester mode — click to toggle. Or type /campaign or /analysis."
+              >
+                {conversationMode === 'analysis' ? (
+                  <FlaskConical className="w-2.5 h-2.5" />
+                ) : (
+                  <MessageSquare className="w-2.5 h-2.5" />
+                )}
+                {conversationMode === 'analysis' ? 'Analysis' : 'Campaign'}
+              </Badge>
+            )}
             <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-300">
               <Lock className="w-2.5 h-2.5 mr-1" />
               Private
