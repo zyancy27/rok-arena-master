@@ -48,7 +48,7 @@ export async function appendTurnLog(input: TurnLogInput): Promise<string | null>
   try {
     const { data, error } = await supabase
       .from('campaign_turn_logs')
-      .insert({
+      .insert([{
         campaign_id: input.campaignId,
         character_id: input.characterId ?? null,
         user_id: input.userId,
@@ -67,7 +67,7 @@ export async function appendTurnLog(input: TurnLogInput): Promise<string | null>
         hook_deltas: input.hookDeltas ?? [],
         opportunity_deltas: input.opportunityDeltas ?? [],
         consequence_deltas: input.consequenceDeltas ?? [],
-      })
+      }])
       .select('id')
       .single();
 
