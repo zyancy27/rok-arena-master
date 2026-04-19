@@ -186,7 +186,21 @@ export function useCampaignCombat(character: CampaignCharacterContext | null, pa
       possibleTargets: [{ id: 'enemy', name: 'Enemy', kind: 'enemy' }],
     });
 
-    if (!intentResult.intent.isCombatAction && !hitDetection.shouldTriggerHitCheck && !hitDetection.shouldTriggerDefenseCheck) {
+    // Action Resolver pre-pass: Intent Engine is authoritative.
+    // If intent classifies as non-combat (social/observe/speak/move/interact),
+    // bypass combat dice entirely — even if legacy hit-detection regex fires.
+    // Combat dice ONLY when intent says combat AND legacy detection agrees,
+    // OR when intent says combat (high-confidence explicit attack).
+    const intentSaysNonCombat = !intentResult.intent.isCombatAction
+      && (intentResult.intent.type === 'speak'
+        || intentResult.intent.type === 'observe'
+        || intentResult.intent.type === 'move'
+        || intentResult.intent.type === 'interact');
+
+    const shouldRunCombatPipeline = intentResult.intent.isCombatAction
+      && (hitDetection.shouldTriggerHitCheck || hitDetection.shouldTriggerDefenseCheck || intentResult.confidence >= 0.9);
+
+    if (!shouldRunCombatPipeline || intentSaysNonCombat) {
       // Check if this action needs a non-combat roll
       const rollCategory = detectRollCategory(messageText);
       
