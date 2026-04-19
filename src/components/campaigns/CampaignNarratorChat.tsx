@@ -42,6 +42,8 @@ import { runPromotionPass } from '@/systems/narrator/PromotionEngine';
 import { enrichTurnPayload } from '@/systems/narrator/TurnLogEnrichment';
 import { runWorldPulse } from '@/systems/narrator/WorldPulse';
 import { recordZoneVisit } from '@/systems/narrator/LocationIntelligence';
+import { buildMapDeltas, recordMapDeltas, summarizeDeltas } from '@/systems/narrator/MapDeltaEngine';
+import { recordGlobalLearning, recordCampaignLearning } from '@/systems/learning/SafeLearningLayer';
 import { CharacterContextResolver } from '@/systems/character/CharacterContextResolver';
 import { buildNarratorConstitution, NARRATOR_CONSTITUTION_VERSION } from '@/systems/narrator/NarratorConstitution';
 import { FlaskConical, MessageSquare } from 'lucide-react';
