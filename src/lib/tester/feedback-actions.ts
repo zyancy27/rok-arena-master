@@ -4,9 +4,9 @@
  * Persists slash-command outputs (/feedback, /flag, /donotlearn) to the
  * appropriate tables. Fire-and-forget — never blocks narration.
  *
- * - /feedback → tester_feedback (system-level)
- * - /flag     → tester_feedback (narrator-level, with last_response context)
- * - /donotlearn → campaigns.do_not_learn = true
+ * - /feedback     → tester_feedback (system-level, category from inference)
+ * - /flag         → tester_feedback (severity=high, narrator response in context)
+ * - /donotlearn   → campaigns.do_not_learn = true
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -23,16 +23,14 @@ export async function recordTesterFeedback(
   category?: string,
 ): Promise<{ ok: boolean; error?: string }> {
   try {
-    const { error } = await (supabase as any)
-      .from('tester_feedback')
-      .insert({
-        user_id: ctx.userId,
-        campaign_id: ctx.campaignId ?? null,
-        feedback_kind: 'system',
-        category: category ?? 'general',
-        feedback_text: text,
-        context: { source: 'slash_command_feedback' },
-      });
+    const { error } = await supabase.from('tester_feedback').insert({
+      user_id: ctx.userId,
+      campaign_id: ctx.campaignId ?? null,
+      category: category ?? 'general',
+      severity: 'normal',
+      feedback: text,
+      context: { source: 'slash_command_feedback', kind: 'system' },
+    });
     if (error) return { ok: false, error: error.message };
     return { ok: true };
   } catch (e: any) {
@@ -45,19 +43,18 @@ export async function flagNarratorResponse(
   text: string,
 ): Promise<{ ok: boolean; error?: string }> {
   try {
-    const { error } = await (supabase as any)
-      .from('tester_feedback')
-      .insert({
-        user_id: ctx.userId,
-        campaign_id: ctx.campaignId ?? null,
-        feedback_kind: 'narrator',
-        category: 'narrator_consistency',
-        feedback_text: text,
-        context: {
-          source: 'slash_command_flag',
-          last_narrator_response: ctx.lastNarratorResponse ?? null,
-        },
-      });
+    const { error } = await supabase.from('tester_feedback').insert({
+      user_id: ctx.userId,
+      campaign_id: ctx.campaignId ?? null,
+      category: 'narrator_consistency',
+      severity: 'high',
+      feedback: text,
+      context: {
+        source: 'slash_command_flag',
+        kind: 'narrator',
+        last_narrator_response: ctx.lastNarratorResponse ?? null,
+      },
+    });
     if (error) return { ok: false, error: error.message };
     return { ok: true };
   } catch (e: any) {
