@@ -425,6 +425,51 @@ export default function CampaignNarratorChat({
             }
           });
         }
+
+        // Map Delta Engine (Phase 5 / Part 11): build a small set of map
+        // deltas from this turn's signals and append them to the matching
+        // turn-log row. Pure additive; UI may consume `map_delta.deltas[]`
+        // to render pulses, breadcrumbs, icon swaps, etc.
+        void (async () => {
+          try {
+            const stash = (window as unknown as { __lastTurnLogPromise?: Promise<string | null> });
+            const turnLogId = stash.__lastTurnLogPromise ? await stash.__lastTurnLogPromise : null;
+            const deltas = buildMapDeltas({
+              turnNumber: nextTurn,
+              zone: currentZone,
+              previousZone: lastZoneRef.current,
+            });
+            if (turnLogId && deltas.length > 0) {
+              const res = await recordMapDeltas({ campaignId, turnLogId, deltas });
+              if (isTester && res.applied) {
+                setMessages(prev => [...prev, {
+                  id: `sys-map-${Date.now()}`,
+                  role: 'narrator',
+                  content: `_[tester] map deltas → ${summarizeDeltas(deltas)}_`,
+                  timestamp: new Date(),
+                }]);
+              }
+            }
+            lastZoneRef.current = currentZone || null;
+          } catch (e) {
+            console.warn('[MapDeltaEngine] integration error', e);
+          }
+        })();
+
+        // Safe Learning Layer (Phase 6 / Part 13): record a Tier 2
+        // campaign-scoped learning signal that this turn produced narration.
+        // Skipped automatically for `do_not_learn` campaigns inside the layer.
+        void recordCampaignLearning({
+          campaignId,
+          category: 'arc_continuity',
+          detail: {
+            turnNumber: nextTurn,
+            zone: currentZone,
+            mode: conversationMode,
+            hadRoll: !!enrichedRollResultRef.current,
+          },
+          isTester,
+        });
       }
     } catch (error) {
       console.error('Campaign narrator error:', error);
