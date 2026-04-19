@@ -12,7 +12,22 @@
  */
 
 import type { Intent } from '@/systems/intent/IntentEngine';
-import type { ActionCategory } from './ActionResolver';
+
+/**
+ * Local action category taxonomy used by the broader (non-combat) roll
+ * resolver. Kept here so it doesn't collide with the legacy combat-only
+ * ActionResolver in ./ActionResolver.ts.
+ */
+export type ActionCategory =
+  | 'basic_action'
+  | 'attack'
+  | 'defense'
+  | 'social'
+  | 'stealth'
+  | 'investigation'
+  | 'power_use'
+  | 'movement'
+  | 'rest';
 
 export type RollType =
   | 'attack'
