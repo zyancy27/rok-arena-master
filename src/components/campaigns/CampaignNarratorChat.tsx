@@ -176,8 +176,13 @@ export default function CampaignNarratorChat({
   const [partyOpen, setPartyOpen] = useState(false);
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const [showMap, setShowMap] = useState(false);
+  const [turnCounter, setTurnCounter] = useState(0);
   const messagesViewportRef = useRef<HTMLDivElement>(null);
   const userIsNearBottomRef = useRef(true);
+
+  // Tester / developer profile mode
+  const userId = myParticipant?.user_id ?? null;
+  const { isTester, conversationMode, setConversationMode } = useTesterMode(userId);
 
   // Force tactical map regeneration when zone/location changes
   const mapLocationKey = chosenLocation || currentZone || campaignName;
