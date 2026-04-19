@@ -38,6 +38,7 @@ import { useTesterMode } from '@/hooks/use-tester-mode';
 import { parseSlashCommand, isSlashCommand } from '@/lib/tester/slash-commands';
 import { recordTesterFeedback, flagNarratorResponse, markCampaignDoNotLearn } from '@/lib/tester/feedback-actions';
 import { appendTurnLog } from '@/systems/narrator/TurnLogManager';
+import { runPromotionPass } from '@/systems/narrator/PromotionEngine';
 import { buildNarratorConstitution, NARRATOR_CONSTITUTION_VERSION } from '@/systems/narrator/NarratorConstitution';
 import { FlaskConical, MessageSquare } from 'lucide-react';
 
@@ -310,6 +311,20 @@ export default function CampaignNarratorChat({
           content: response.data.answer || 'The narrator ponders silently...',
           timestamp: new Date(),
         }]);
+
+        // Promotion pass: fold any unpromoted turn logs into campaign_brain.
+        // Fire-and-forget. Surfaces a debug line in tester mode if anything
+        // was promoted; silent otherwise.
+        void runPromotionPass(campaignId).then((res) => {
+          if (isTester && res.promoted > 0) {
+            setMessages(prev => [...prev, {
+              id: `sys-promo-${Date.now()}`,
+              role: 'narrator',
+              content: `_[tester] promotion pass → promoted ${res.promoted}/${res.evaluated}, brain ${res.committed ? 'updated' : 'unchanged'}. reasons: ${res.reasons.slice(0, 3).join(', ') || 'n/a'}_`,
+              timestamp: new Date(),
+            }]);
+          }
+        });
       }
     } catch (error) {
       console.error('Campaign narrator error:', error);
