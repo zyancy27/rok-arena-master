@@ -36,6 +36,7 @@ import {
 } from '@/systems/chat/presentation/chatBoxRenderEffects';
 import { useTesterMode } from '@/hooks/use-tester-mode';
 import { parseSlashCommand, isSlashCommand } from '@/lib/tester/slash-commands';
+import { recordTesterFeedback, flagNarratorResponse, markCampaignDoNotLearn } from '@/lib/tester/feedback-actions';
 import { appendTurnLog } from '@/systems/narrator/TurnLogManager';
 import { buildNarratorConstitution, NARRATOR_CONSTITUTION_VERSION } from '@/systems/narrator/NarratorConstitution';
 import { FlaskConical, MessageSquare } from 'lucide-react';
@@ -331,27 +332,51 @@ export default function CampaignNarratorChat({
     // Tester slash-command interception (only for flagged tester profiles)
     if (isTester && isSlashCommand(userInput)) {
       const cmd = parseSlashCommand(userInput);
+      const pushSys = (content: string) => setMessages(prev => [...prev, {
+        id: `sys-${Date.now()}`,
+        role: 'narrator',
+        content,
+        timestamp: new Date(),
+      }]);
+
       if (cmd?.kind === 'mode') {
         setConversationMode(cmd.mode);
-        setMessages(prev => [...prev, {
-          id: `sys-${Date.now()}`,
-          role: 'narrator',
-          content: `_[tester] conversation_mode → ${cmd.mode}_`,
-          timestamp: new Date(),
-        }]);
+        pushSys(`_[tester] conversation_mode → ${cmd.mode}_`);
+        return;
+      }
+      if (cmd?.kind === 'feedback' && userId) {
+        const res = await recordTesterFeedback(
+          { userId, campaignId },
+          cmd.text,
+          cmd.category,
+        );
+        pushSys(res.ok
+          ? `_[tester] feedback logged${cmd.category ? ` (${cmd.category})` : ''}._`
+          : `_[tester] feedback failed: ${res.error}_`);
+        return;
+      }
+      if (cmd?.kind === 'flag' && userId) {
+        const lastNarrator = [...messages].reverse().find(m => m.role === 'narrator')?.content ?? null;
+        const res = await flagNarratorResponse(
+          { userId, campaignId, lastNarratorResponse: lastNarrator },
+          cmd.text,
+        );
+        pushSys(res.ok
+          ? `_[tester] narrator response flagged._`
+          : `_[tester] flag failed: ${res.error}_`);
+        return;
+      }
+      if (cmd?.kind === 'donotlearn') {
+        const res = await markCampaignDoNotLearn(campaignId);
+        pushSys(res.ok
+          ? `_[tester] campaign marked do_not_learn — this run won't pollute global learning._`
+          : `_[tester] do_not_learn failed: ${res.error}_`);
         return;
       }
       if (cmd?.kind === 'unknown') {
-        setMessages(prev => [...prev, {
-          id: `sys-${Date.now()}`,
-          role: 'narrator',
-          content: `_[tester] unknown command: ${cmd.raw}. Try /campaign or /analysis._`,
-          timestamp: new Date(),
-        }]);
+        pushSys(`_[tester] unknown command: ${cmd.raw}. Try /campaign, /analysis, /feedback <text>, /flag <text>, /donotlearn._`);
         return;
       }
-      // Other slash commands (feedback/flag/donotlearn) are stubbed in this
-      // repair pass — fall through to narrator so the input isn't lost.
     }
 
     await sendNarratorQuery(userInput);
