@@ -1380,7 +1380,18 @@ async function handleCampaignNarration(
     narrativeSystemsContext,
     overchargeContext,
     narratorSentiment,
+    narratorConstitution,
+    constitutionVersion,
+    conversationMode,
   } = body;
+
+  // ── Narrator Constitution + conversation mode (campaign vs analysis) ──
+  const constitutionBlock = (typeof narratorConstitution === 'string' && narratorConstitution.trim().length > 0)
+    ? `\n\n=== NARRATOR CONSTITUTION ${constitutionVersion ? `(${constitutionVersion})` : ''} ===\n${narratorConstitution}\n=== END CONSTITUTION ===\n`
+    : '';
+  const modeBlock = conversationMode === 'analysis'
+    ? `\n\nCONVERSATION MODE: ANALYSIS (tester/developer profile). The current player is testing systems. You may briefly surface meta hints about active systems if asked, but DO NOT break immersion in normal narration.`
+    : '';
 
   // Build conversation history as multi-turn messages for AI continuity
   const historyMessages: { role: string; content: string }[] = [];
@@ -1488,7 +1499,7 @@ Based on ${playerCharacter.name}'s action this turn, update your sentiment. Acti
   }
 
   const systemPrompt = `You are the DUNGEON MASTER for "Realm of Kings" — guiding players through a living world. Your voice is grounded, practical, and immersive. You describe what's happening, not what the atmosphere feels like.
-${SIMPLE_LANGUAGE_RULE}${sentimentInstructions}
+${SIMPLE_LANGUAGE_RULE}${constitutionBlock}${modeBlock}${sentimentInstructions}
 
 DM TONE (shift based on context):
 - EXPLORATION: Specific, practical. "The corridor slopes down. Cooler here. Water drips somewhere ahead."
