@@ -7,6 +7,7 @@
 
 import { useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { fromDecrypted } from '@/lib/encrypted-query';
 import { toast } from 'sonner';
 import {
   createDiscoverySyncState,
@@ -36,9 +37,10 @@ export function useCharacterDiscoverySync() {
     const hasAny = Object.values(pending).some(arr => arr.length > 0);
     if (!hasAny) return;
 
-    // Fetch current character fields
-    const { data: character, error: fetchError } = await supabase
-      .from('characters')
+    // Fetch current character fields from the decrypted view so we
+    // append to plaintext, not to ENC: ciphertext (which would corrupt
+    // existing content when the encrypt trigger re-encrypts on update).
+    const { data: character, error: fetchError } = await fromDecrypted('characters')
       .select('personality, mentality, lore, abilities, powers, weapons_items')
       .eq('id', characterId)
       .maybeSingle();

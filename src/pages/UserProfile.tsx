@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { fromDecrypted } from '@/lib/encrypted-query';
+import { fromDecrypted } from '@/lib/encrypted-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFriends } from '@/hooks/use-friends';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
