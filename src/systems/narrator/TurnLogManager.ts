@@ -10,6 +10,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 
 export interface TurnLogInput {
   campaignId: string;
@@ -41,6 +42,26 @@ export interface TurnLogRecord extends TurnLogInput {
 }
 
 /**
+ * Round-trip a value through JSON.stringify/parse so it satisfies the
+ * Supabase generated `Json` type. Returns null on failure.
+ */
+function toJson(value: unknown): Json {
+  try {
+    return JSON.parse(JSON.stringify(value ?? null)) as Json;
+  } catch {
+    return null;
+  }
+}
+
+function toJsonObject(value: Record<string, unknown> | null | undefined): Json {
+  return toJson(value ?? {});
+}
+
+function toJsonArray(value: unknown[] | null | undefined): Json {
+  return toJson(value ?? []);
+}
+
+/**
  * Append a raw turn log. Fire-and-forget on the client; failures are
  * logged but never block the narrator pipeline.
  */
@@ -57,16 +78,16 @@ export async function appendTurnLog(input: TurnLogInput): Promise<string | null>
         time_block: input.timeBlock ?? null,
         zone: input.zone ?? null,
         raw_input: input.rawInput,
-        parsed_intent: input.parsedIntent ?? {},
-        resolved_action: input.resolvedAction ?? {},
-        roll_result: input.rollResult ?? null,
+        parsed_intent: toJsonObject(input.parsedIntent),
+        resolved_action: toJsonObject(input.resolvedAction),
+        roll_result: input.rollResult ? toJsonObject(input.rollResult) : null,
         scene_beat_summary: input.sceneBeatSummary ?? null,
         time_advance: input.timeAdvance ?? 0,
-        map_delta: input.mapDelta ?? {},
-        npc_deltas: input.npcDeltas ?? [],
-        hook_deltas: input.hookDeltas ?? [],
-        opportunity_deltas: input.opportunityDeltas ?? [],
-        consequence_deltas: input.consequenceDeltas ?? [],
+        map_delta: toJsonObject(input.mapDelta),
+        npc_deltas: toJsonArray(input.npcDeltas),
+        hook_deltas: toJsonArray(input.hookDeltas),
+        opportunity_deltas: toJsonArray(input.opportunityDeltas),
+        consequence_deltas: toJsonArray(input.consequenceDeltas),
       }])
       .select('id')
       .single();
