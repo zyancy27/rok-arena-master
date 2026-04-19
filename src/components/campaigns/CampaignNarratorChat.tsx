@@ -306,7 +306,7 @@ export default function CampaignNarratorChat({
         }]);
       }
 
-      void appendTurnLog({
+      const turnLogIdPromise = appendTurnLog({
         campaignId,
         characterId: myParticipant?.character_id ?? null,
         userId,
@@ -325,8 +325,11 @@ export default function CampaignNarratorChat({
         if (!id && isTester) {
           console.warn('[TesterMode] turn log write returned no id');
         }
+        return id;
       });
-    }
+      void turnLogIdPromise;
+      // Stash on a ref-like local for the success branch below.
+      (window as unknown as { __lastTurnLogPromise?: Promise<string | null> }).__lastTurnLogPromise = turnLogIdPromise;
 
     try {
       // Build conversation history from local messages for continuity
