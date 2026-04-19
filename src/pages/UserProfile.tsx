@@ -3,7 +3,6 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { fromDecrypted } from '@/lib/encrypted-query';
-import { fromDecrypted } from '@/lib/encrypted-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFriends } from '@/hooks/use-friends';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -60,13 +59,15 @@ export default function UserProfile() {
   const { data: characters, isLoading: charactersLoading } = useQuery({
     queryKey: ['user-characters', profile?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('characters')
+      // Use the decrypted view so encrypted fields (lore, powers, abilities,
+      // personality, mentality, weapons_items) are returned as plaintext to
+      // viewers who pass RLS — including the character's own creator.
+      const { data, error } = await fromDecrypted('characters')
         .select('*')
         .eq('user_id', profile!.id)
         .order('updated_at', { ascending: false })
         .limit(6);
-      
+
       if (error) throw error;
       return data;
     },
