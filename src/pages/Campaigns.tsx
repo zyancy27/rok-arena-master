@@ -35,6 +35,7 @@ interface CharacterOption {
 export default function Campaigns() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { isTester } = useTesterMode(user?.id);
   const [campaigns, setCampaigns] = useState<(Campaign & { participant_count: number; my_participant?: CampaignParticipant })[]>([]);
   const [characters, setCharacters] = useState<CharacterOption[]>([]);
   const [loading, setLoading] = useState(true);
