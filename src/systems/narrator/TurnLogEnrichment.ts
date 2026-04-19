@@ -1,22 +1,25 @@
 /**
  * Turn Log Enrichment
  * ─────────────────────────────────────────────────────────────────────
- * Lightweight bridge between the Intent Engine and the Turn Log.
+ * Bridge between the Intent Engine, the Action Resolver, and the Turn Log.
  *
- * The chat layer doesn't have a fully resolved character context handy,
- * so we don't run the full ActionResolver here. Instead we:
- *   1) Run the IntentEngine on the raw text (cheap, deterministic).
- *   2) Derive a synthetic outcome band from intent.intensity / precision
- *      so the Promotion Engine has a meaningful signal until the real
- *      Action/Roll resolver is wired into chat narration.
+ * Pipeline per turn:
+ *   1) IntentEngine.resolve(rawText) → structured Intent
+ *   2) If a ResolvedCharacterContext is supplied:
+ *        ActionResolver.resolve(intent, ctx) → ActionResult
+ *      Else: derive a synthetic outcome from intent fields alone.
+ *   3) Map ActionResult.effectiveness → outcome band the Promotion
+ *      Engine already understands (severe_failure / normal_failure /
+ *      normal_success / strong_success).
  *
- * This keeps the Promotion Engine's `roll_result.band` and `parsed_intent`
- * non-stub without forcing the chat to assemble a heavy combat pipeline.
+ * Pure function, no IO, safe to run on every player turn.
  */
 
 import { IntentEngine, type IntentEngineContext, type Intent } from '@/systems/intent/IntentEngine';
+import { ActionResolver, type ActionResult, type ActionResolutionContext } from '@/systems/resolution/ActionResolver';
+import type { ResolvedCharacterContext } from '@/systems/character/CharacterContextResolver';
 
-export type SyntheticBand =
+export type OutcomeBand =
   | 'severe_failure'
   | 'normal_failure'
   | 'normal_success'
@@ -27,34 +30,44 @@ export interface EnrichedTurnPayload {
   rollResult: Record<string, unknown> | null;
 }
 
+export interface EnrichmentOptions {
+  intentContext?: IntentEngineContext;
+  characterContext?: ResolvedCharacterContext;
+  resolutionContext?: ActionResolutionContext;
+}
+
+/** Map ActionResolver effectiveness (0-100) into a coarse outcome band. */
+function bandFromEffectiveness(effectiveness: number, success: boolean): OutcomeBand {
+  if (effectiveness >= 80) return 'strong_success';
+  if (success) return 'normal_success';
+  if (effectiveness <= 25) return 'severe_failure';
+  return 'normal_failure';
+}
+
 /**
- * Map intent intensity + precision into a coarse synthetic band.
- * No randomness — fully deterministic so the Promotion Engine evaluates
- * the same input the same way every time.
+ * Synthetic fallback band when no character context is available.
+ * Deterministic — no randomness — so promotion is reproducible.
  */
-function deriveBand(intent: Intent): SyntheticBand {
+function syntheticBand(intent: Intent): OutcomeBand {
   const precision = intent.precision ?? 55;
   const intensity = intent.intensity ?? 50;
   const risk = intent.riskLevel ?? 40;
-
-  // High precision + high intensity = strong outcome
   if (precision >= 75 && intensity >= 70) return 'strong_success';
-  // High risk + low precision = severe failure
   if (risk >= 75 && precision < 40) return 'severe_failure';
-  // Low precision generally = failure
   if (precision < 40) return 'normal_failure';
   return 'normal_success';
 }
 
 /**
  * Build an enriched turn-log payload from raw player text.
- * Safe to call on every turn — pure function, no IO.
  */
 export function enrichTurnPayload(
   rawText: string,
-  context: IntentEngineContext = {},
+  options: EnrichmentOptions = {},
 ): EnrichedTurnPayload {
-  const intentResult = IntentEngine.resolve(rawText, context);
+  const { intentContext, characterContext, resolutionContext } = options;
+
+  const intentResult = IntentEngine.resolve(rawText, intentContext);
   const intent = intentResult.intent;
 
   const parsedIntent: Record<string, unknown> = {
@@ -72,16 +85,45 @@ export function enrichTurnPayload(
     confidence: intentResult.confidence,
   };
 
-  // Only emit a roll_result when the intent actually wants a roll.
-  // Promotion Engine treats absent rollResult as "no extreme outcome".
-  const rollResult: Record<string, unknown> | null = intent.requiresRoll
-    ? {
-        band: deriveBand(intent),
-        type: intent.isCombatAction ? 'combat' : intent.type,
-        synthetic: true,
-        source: 'TurnLogEnrichment',
-      }
-    : null;
+  if (!intent.requiresRoll) {
+    return { parsedIntent, rollResult: null };
+  }
+
+  let rollResult: Record<string, unknown>;
+  if (characterContext) {
+    let actionResult: ActionResult;
+    try {
+      actionResult = ActionResolver.resolve(intent, characterContext, resolutionContext ?? {});
+    } catch (e) {
+      console.warn('[TurnLogEnrichment] ActionResolver failed, falling back to synthetic:', e);
+      return {
+        parsedIntent,
+        rollResult: {
+          band: syntheticBand(intent),
+          type: intent.isCombatAction ? 'combat' : intent.type,
+          synthetic: true,
+          source: 'TurnLogEnrichment.fallback',
+        },
+      };
+    }
+    rollResult = {
+      band: bandFromEffectiveness(actionResult.effectiveness, actionResult.success),
+      type: intent.isCombatAction ? 'combat' : intent.type,
+      success: actionResult.success,
+      effectiveness: actionResult.effectiveness,
+      impact: actionResult.impact,
+      consequences: actionResult.consequences,
+      synthetic: false,
+      source: 'TurnLogEnrichment.actionResolver',
+    };
+  } else {
+    rollResult = {
+      band: syntheticBand(intent),
+      type: intent.isCombatAction ? 'combat' : intent.type,
+      synthetic: true,
+      source: 'TurnLogEnrichment.synthetic',
+    };
+  }
 
   return { parsedIntent, rollResult };
 }

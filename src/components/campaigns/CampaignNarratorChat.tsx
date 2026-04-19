@@ -40,6 +40,7 @@ import { recordTesterFeedback, flagNarratorResponse, markCampaignDoNotLearn } fr
 import { appendTurnLog } from '@/systems/narrator/TurnLogManager';
 import { runPromotionPass } from '@/systems/narrator/PromotionEngine';
 import { enrichTurnPayload } from '@/systems/narrator/TurnLogEnrichment';
+import { CharacterContextResolver } from '@/systems/character/CharacterContextResolver';
 import { buildNarratorConstitution, NARRATOR_CONSTITUTION_VERSION } from '@/systems/narrator/NarratorConstitution';
 import { FlaskConical, MessageSquare } from 'lucide-react';
 
@@ -205,6 +206,21 @@ export default function CampaignNarratorChat({
     });
   }, [participants, myParticipant, mapLocationKey, environmentTags]);
 
+  // Resolved character context for ActionResolver-driven turn-log enrichment.
+  // Built from already-available props — no extra fetch.
+  const resolvedActorContext = useMemo(() => {
+    return CharacterContextResolver.resolve({
+      characterId: myParticipant?.character_id,
+      name: characterName,
+      tier: characterLevel ?? campaignLevel ?? 1,
+      abilities: characterAbilities,
+      powers: characterPowers,
+      stamina: typeof campaignHp === 'number' && typeof campaignHpMax === 'number' && campaignHpMax > 0
+        ? Math.round((campaignHp / campaignHpMax) * 100)
+        : null,
+    });
+  }, [myParticipant?.character_id, characterName, characterLevel, campaignLevel, characterAbilities, characterPowers, campaignHp, campaignHpMax]);
+
   // Show mechanic discovery messages when queued
   useEffect(() => {
     if (mechanicDiscoveries.length > 0) {
@@ -248,8 +264,9 @@ export default function CampaignNarratorChat({
     setTurnCounter(nextTurn);
     if (userId) {
       const enriched = enrichTurnPayload(queryText, {
-        mode: 'campaign',
-        actorName: characterName,
+        intentContext: { mode: 'campaign', actorName: characterName },
+        characterContext: resolvedActorContext,
+        resolutionContext: { currentZone, environmentTags },
       });
       void appendTurnLog({
         campaignId,
