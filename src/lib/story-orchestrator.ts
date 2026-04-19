@@ -6,6 +6,10 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import {
+  buildNarratorConstitution,
+  NARRATOR_CONSTITUTION_VERSION,
+} from '@/systems/narrator/NarratorConstitution';
 
 // ─── Types ─────────────────────────────────────────────────────
 
