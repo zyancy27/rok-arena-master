@@ -40,6 +40,7 @@ import { recordTesterFeedback, flagNarratorResponse, markCampaignDoNotLearn } fr
 import { appendTurnLog } from '@/systems/narrator/TurnLogManager';
 import { runPromotionPass } from '@/systems/narrator/PromotionEngine';
 import { enrichTurnPayload } from '@/systems/narrator/TurnLogEnrichment';
+import { CharacterContextResolver } from '@/systems/character/CharacterContextResolver';
 import { buildNarratorConstitution, NARRATOR_CONSTITUTION_VERSION } from '@/systems/narrator/NarratorConstitution';
 import { FlaskConical, MessageSquare } from 'lucide-react';
 
