@@ -264,8 +264,9 @@ export default function CampaignNarratorChat({
     setTurnCounter(nextTurn);
     if (userId) {
       const enriched = enrichTurnPayload(queryText, {
-        mode: 'campaign',
-        actorName: characterName,
+        intentContext: { mode: 'campaign', actorName: characterName },
+        characterContext: resolvedActorContext,
+        resolutionContext: { currentZone, environmentTags },
       });
       void appendTurnLog({
         campaignId,
