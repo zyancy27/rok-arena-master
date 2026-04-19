@@ -437,7 +437,7 @@ export default function CampaignNarratorChat({
             const deltas = buildMapDeltas({
               turnNumber: nextTurn,
               zone: currentZone,
-              previousZone: lastZoneRef.current,
+              previousZone: null, // zone change tracking handled by recordZoneVisit; map UI replays from log
             });
             if (turnLogId && deltas.length > 0) {
               const res = await recordMapDeltas({ campaignId, turnLogId, deltas });
@@ -450,7 +450,6 @@ export default function CampaignNarratorChat({
                 }]);
               }
             }
-            lastZoneRef.current = currentZone || null;
           } catch (e) {
             console.warn('[MapDeltaEngine] integration error', e);
           }
@@ -466,7 +465,6 @@ export default function CampaignNarratorChat({
             turnNumber: nextTurn,
             zone: currentZone,
             mode: conversationMode,
-            hadRoll: !!enrichedRollResultRef.current,
           },
           isTester,
         });
