@@ -20,6 +20,8 @@ import { analyzeLocation } from '@/lib/theme-engine';
 import { Badge as ThemeBadge } from '@/components/ui/badge';
 import type { Campaign, CampaignParticipant, CampaignStatus, CampaignVisibility } from '@/lib/campaign-types';
 import { getTimeEmoji } from '@/lib/campaign-types';
+import { getRecentConcepts, recordConcept } from '@/lib/campaign-concept-history';
+import { useTesterMode } from '@/hooks/use-tester-mode';
 
 interface CharacterOption {
   id: string;
@@ -133,17 +135,33 @@ export default function Campaigns() {
     setGenerating(true);
     try {
       const char = characters.find(c => c.id === selectedCharacter);
+      const recent = getRecentConcepts();
       const { data, error } = await supabase.functions.invoke('battle-narrator', {
         body: {
           type: 'generate_campaign_concept',
           characterName: char?.name,
           characterLevel: char?.level,
+          characterPowers: char?.powers || undefined,
+          recent,
+          testerMode: isTester,
         },
       });
       if (error) throw error;
       if (data?.name) setNewName(data.name);
       if (data?.description) setNewDescription(data.description);
       if (data?.location) setStartingLocation(data.location);
+      // Persist for anti-repetition on future generations
+      if (data?.name) {
+        recordConcept({
+          title: data.name,
+          skeleton: data?.seed?.skeleton_family,
+          conflict: data?.seed?.conflict_type,
+          setting: data?.seed?.setting_type,
+        });
+      }
+      if (data?.guardrail_warning) {
+        console.warn('[campaign-concept] guardrail warning:', data.guardrail_warning);
+      }
       toast.success('Campaign concept generated!');
     } catch (err: any) {
       console.error('Concept generation failed:', err);
