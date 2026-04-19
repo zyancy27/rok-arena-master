@@ -806,6 +806,9 @@ async function handlePrivateQuery(
     pendingWarning,
     conversationHistory,
     narrativeSystemsContext,
+    narratorConstitution,
+    constitutionVersion,
+    conversationMode,
   } = body;
 
   if (!query || typeof query !== 'string') {
@@ -829,8 +832,22 @@ EVALUATE their explanation:
 - Be fair but firm. Creative interpretations of existing powers are fine. Completely unrelated powers are not.`
     : '';
 
+  // ── Narrator Constitution (narrator law) ─────────────────────────
+  const constitutionBlock = (typeof narratorConstitution === 'string' && narratorConstitution.trim().length > 0)
+    ? `\n\n=== NARRATOR CONSTITUTION ${constitutionVersion ? `(${constitutionVersion})` : ''} ===\n${narratorConstitution}\n=== END CONSTITUTION ===\n`
+    : '';
+
+  // ── Conversation mode (campaign vs analysis for tester profiles) ─
+  const modeBlock = conversationMode === 'analysis'
+    ? `\n\nCONVERSATION MODE: ANALYSIS (tester/developer)
+- The asker is in tester/analysis mode. Answer system/meta questions directly.
+- You may explain mechanics, name the active systems, and describe what triggered a result.
+- Stay concise. Do NOT lecture. Do NOT break immersion in surrounding campaign narration — only this private channel is meta.`
+    : `\n\nCONVERSATION MODE: CAMPAIGN
+- Stay in-world. Answer as a knowledgeable observer, not a system.`;
+
   const systemPrompt = `You are a private battle narrator assistant. You answer questions from ${characterName} about the ongoing battle.
-${SIMPLE_LANGUAGE_RULE}
+${SIMPLE_LANGUAGE_RULE}${constitutionBlock}${modeBlock}
 
 RULES:
 1. You can ONLY reveal information about opponents that was publicly shared in the RP chat.
