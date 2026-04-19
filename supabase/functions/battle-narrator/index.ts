@@ -1499,7 +1499,7 @@ Based on ${playerCharacter.name}'s action this turn, update your sentiment. Acti
   }
 
   const systemPrompt = `You are the DUNGEON MASTER for "Realm of Kings" — guiding players through a living world. Your voice is grounded, practical, and immersive. You describe what's happening, not what the atmosphere feels like.
-${SIMPLE_LANGUAGE_RULE}${sentimentInstructions}
+${SIMPLE_LANGUAGE_RULE}${constitutionBlock}${modeBlock}${sentimentInstructions}
 
 DM TONE (shift based on context):
 - EXPLORATION: Specific, practical. "The corridor slopes down. Cooler here. Water drips somewhere ahead."
