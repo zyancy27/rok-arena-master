@@ -40,6 +40,8 @@ import { recordTesterFeedback, flagNarratorResponse, markCampaignDoNotLearn } fr
 import { appendTurnLog } from '@/systems/narrator/TurnLogManager';
 import { runPromotionPass } from '@/systems/narrator/PromotionEngine';
 import { enrichTurnPayload } from '@/systems/narrator/TurnLogEnrichment';
+import { runWorldPulse } from '@/systems/narrator/WorldPulse';
+import { recordZoneVisit } from '@/systems/narrator/LocationIntelligence';
 import { CharacterContextResolver } from '@/systems/character/CharacterContextResolver';
 import { buildNarratorConstitution, NARRATOR_CONSTITUTION_VERSION } from '@/systems/narrator/NarratorConstitution';
 import { FlaskConical, MessageSquare } from 'lucide-react';
@@ -386,6 +388,37 @@ export default function CampaignNarratorChat({
             }]);
           }
         });
+
+        // World Pulse: subtle between-turn evolution (hooks cool, pressure ages,
+        // moods drift, social heat decays). Bounded, deterministic, never injects drama.
+        void runWorldPulse(campaignId).then((res) => {
+          if (isTester && res.applied) {
+            setMessages(prev => [...prev, {
+              id: `sys-pulse-${Date.now()}`,
+              role: 'narrator',
+              content: `_${res.summary}_`,
+              timestamp: new Date(),
+            }]);
+          }
+        });
+
+        // Location Intelligence: record this turn's zone visit.
+        if (currentZone) {
+          void recordZoneVisit({
+            campaignId,
+            zoneName: currentZone,
+            currentDay: dayCount,
+          }).then((res) => {
+            if (isTester && res.applied && res.changedFields.includes('familiarity_level')) {
+              setMessages(prev => [...prev, {
+                id: `sys-loc-${Date.now()}`,
+                role: 'narrator',
+                content: `_[tester] location → ${res.zone} familiarity↑ ${res.familiarityLevel} (visit #${res.timesVisited})_`,
+                timestamp: new Date(),
+              }]);
+            }
+          });
+        }
       }
     } catch (error) {
       console.error('Campaign narrator error:', error);
