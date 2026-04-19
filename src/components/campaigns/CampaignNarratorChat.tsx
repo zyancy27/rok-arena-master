@@ -247,6 +247,10 @@ export default function CampaignNarratorChat({
     const nextTurn = turnCounter + 1;
     setTurnCounter(nextTurn);
     if (userId) {
+      const enriched = enrichTurnPayload(queryText, {
+        mode: 'campaign',
+        actorName: characterName,
+      });
       void appendTurnLog({
         campaignId,
         characterId: myParticipant?.character_id ?? null,
@@ -256,7 +260,12 @@ export default function CampaignNarratorChat({
         timeBlock: timeOfDay,
         zone: currentZone,
         rawInput: queryText,
-        parsedIntent: { mode: conversationMode, source: 'narrator_chat' },
+        parsedIntent: {
+          ...enriched.parsedIntent,
+          mode: conversationMode,
+          source: 'narrator_chat',
+        },
+        rollResult: enriched.rollResult,
       }).then((id) => {
         if (!id && isTester) {
           console.warn('[TesterMode] turn log write returned no id');
