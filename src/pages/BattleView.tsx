@@ -1248,8 +1248,11 @@ export default function BattleView() {
       };
       
       const validation = validateMove(messageInput, characterAbilities);
-      
-      if (!validation.isValid) {
+
+      // Skip re-validation if narrator already approved this exact move text.
+      const alreadyApproved = isSameMoveText(messageInput, lastApprovedMoveTextRef.current);
+
+      if (!validation.isValid && !alreadyApproved) {
         // Route to private narrator for validation instead of inline warning
         setPendingNarratorValidation({
           moveText: messageInput,
