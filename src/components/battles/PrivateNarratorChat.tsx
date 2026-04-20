@@ -11,6 +11,8 @@ import { VoiceTextarea } from '@/components/ui/voice-textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import { inferApprovalFromProse } from '@/lib/move-approval';
+import { useTesterMode } from '@/hooks/use-tester-mode';
 import { BookOpen, Send, Sparkles, ShieldAlert, Lock, Map, User, UserCheck, Swords, MapPin } from 'lucide-react';
 import TacticalBattleMap from './TacticalBattleMap';
 import { generateTacticalMap } from '@/lib/tactical-map-generator';
