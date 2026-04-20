@@ -109,6 +109,8 @@ import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import NarratorMessageContent from '@/components/campaigns/NarratorMessageContent';
 import { buildNarrationPlaybackOptions, getNarratorAnimationClass } from '@/lib/narration-playback';
+import { buildNarratorVoiceScript } from '@/lib/narrator-voice-script';
+import { isSameMoveText } from '@/lib/move-approval';
 import { ChatMessagePresentationResolver } from '@/systems/chat/ChatMessagePresentationResolver';
 import type { ChatSpeakerRole, SpeakerPresentationProfile } from '@/systems/chat/presentation/SpeakerPresentationProfile';
 import {
@@ -446,6 +448,8 @@ export default function BattleView() {
   const [pendingMove, setPendingMove] = useState<string | null>(null);
   const [moveValidation, setMoveValidation] = useState<MoveValidationResult | null>(null);
   const [showMatchupWarning, setShowMatchupWarning] = useState(true);
+  /** Last move text that the narrator already approved — skip re-validation if unchanged. */
+  const lastApprovedMoveTextRef = useRef<string | null>(null);
   
   // Dice roll and concentration state
   const [pendingHit, setPendingHit] = useState<HitDetermination | null>(null);
