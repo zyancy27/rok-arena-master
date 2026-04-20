@@ -2640,9 +2640,16 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (error) {
-    console.error('Story orchestrator error:', error);
+    const errMsg = error instanceof Error ? error.message : String(error);
+    const errStack = error instanceof Error ? error.stack : undefined;
+    console.error('[story-orchestrator] FATAL:', errMsg);
+    if (errStack) console.error('[story-orchestrator] stack:', errStack);
     return new Response(
-      JSON.stringify({ error: 'An error occurred in the narrative orchestrator' }),
+      JSON.stringify({
+        error: 'An error occurred in the narrative orchestrator',
+        internal_code: 'orchestrator_unhandled',
+        detail: errMsg,
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
