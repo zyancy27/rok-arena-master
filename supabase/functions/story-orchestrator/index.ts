@@ -1687,6 +1687,29 @@ async function persistHookUpdates(
       if (hook.status === 'stale') {
         hook.priority = Math.max(1, (hook.priority || 5) - 1);
       }
+    }
+
+    // Cap and prioritize hooks
+    const statusOrder: Record<string, number> = { engaged: 0, active: 1, surfaced: 2, stale: 3, resolved: 4 };
+    hooks.sort((a: any, b: any) => {
+      const sa = statusOrder[a.status] ?? 3;
+      const sb = statusOrder[b.status] ?? 3;
+      if (sa !== sb) return sa - sb;
+      return (b.priority || 0) - (a.priority || 0);
+    });
+    hooks = hooks.slice(0, 12);
+
+    await supabaseAdmin.from('campaign_brain').update({
+      story_hooks: hooks,
+      updated_at: new Date().toISOString(),
+    }).eq('campaign_id', campaignId);
+  } catch (e) {
+    ctx.errors.push({
+      step: 'persist_hook_updates',
+      error: e instanceof Error ? e.message : 'Unknown error',
+      recoverable: true,
+    });
+  }
 }
 
 // ─── Pipeline Step: Persist Gated Opportunity Updates (Narrator-Owned) ──
