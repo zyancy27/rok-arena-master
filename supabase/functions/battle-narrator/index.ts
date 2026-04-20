@@ -925,18 +925,43 @@ OUTPUT FORMAT: Return JSON with:
 
     const content = data.choices?.[0]?.message?.content || '{}';
 
-    let parsed;
+    let parsed: any;
     try {
       parsed = JSON.parse(content);
     } catch {
       parsed = { answer: content };
     }
 
+    // Resolve approval — boolean is source of truth, but if validating a move and
+    // the LLM forgot the boolean while clearly approving in prose, infer it
+    // server-side so the client doesn't get stuck in a re-validation loop.
+    let moveApproved: boolean | null = typeof parsed.moveApproved === 'boolean' ? parsed.moveApproved : null;
+    const answerText: string = typeof parsed.answer === 'string' ? parsed.answer : '';
+    if (isValidationResponse && pendingMove && moveApproved === null && answerText) {
+      const approvalRe = /\b(approved|allowed|accepted|valid|permitted|works|makes sense|i (approve|allow|accept)|you may proceed)\b/i;
+      const rejectionRe = /\b(not (approved|allowed|valid|permitted)|reject|denied|disallow|does not (connect|fit|match))\b/i;
+      if (rejectionRe.test(answerText)) {
+        moveApproved = false;
+      } else if (approvalRe.test(answerText)) {
+        console.warn('[battle-narrator] moveApproved missing — inferred TRUE from prose');
+        moveApproved = true;
+      }
+    }
+
+    const approvedMoveText = moveApproved === true
+      ? (typeof parsed.approvedMoveText === 'string' && parsed.approvedMoveText.trim() ? parsed.approvedMoveText.trim() : pendingMove || null)
+      : null;
+    const validationExplanation = moveApproved === true
+      ? (typeof parsed.validationExplanation === 'string' && parsed.validationExplanation.trim() ? parsed.validationExplanation.trim() : null)
+      : null;
+
     return new Response(
       JSON.stringify({
         answer: parsed.answer || 'The narrator considers...',
-        moveApproved: parsed.moveApproved ?? null,
+        moveApproved,
         abilityDescription: parsed.abilityDescription || null,
+        approvedMoveText,
+        validationExplanation,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
