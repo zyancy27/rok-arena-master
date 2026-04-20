@@ -3235,6 +3235,9 @@ export default function BattleView() {
                           const narratorSurfaceClassName = getBattleMessageSurfaceClasses(narratorPresentationProfile, { align: 'left' });
                           const narratorLabelClassName = getBattleMessageLabelClasses(narratorPresentationProfile);
 
+                          const latestNarrationSpeechText = ((latestNarration.metadata as Record<string, unknown> | null | undefined)?.voiceScript as string | undefined)
+                            ?? latestNarration.content;
+
                           return (
                             <div className={`${narratorSurfaceClassName} animate-fade-in`}>
                               <div className="flex items-start gap-2 relative z-10">
@@ -3259,7 +3262,7 @@ export default function BattleView() {
                                         </button>
                                       ) : (
                                         <button
-                                          onClick={() => narratorVoice.narrate(((latestNarration.metadata as Record<string, unknown> | null | undefined)?.voiceScript as string | undefined) ?? latestNarration.content, latestNarration.id, buildNarrationPlaybackOptions(latestNarration.metadata) ?? 'combat')}
+                                          onClick={() => narratorVoice.narrate(latestNarrationSpeechText, latestNarration.id, buildNarrationPlaybackOptions(latestNarration.metadata) ?? 'combat')}
                                           className="ml-auto p-1 rounded-full hover:bg-muted transition-colors"
                                           title="Listen to narrator"
                                         >
@@ -3276,7 +3279,7 @@ export default function BattleView() {
                                     voiceEnabled={userSettings.audio.narratorVoiceEnabled && userSettings.audio.tapToNarrate}
                                     requireTapConfirmation={userSettings.audio.askBeforeTapToNarrate}
                                     hasPendingTapConfirmation={narratorVoice.pendingTapRequest?.messageId === latestNarration.id}
-                                    onSentenceClick={(sentenceIdx) => narratorVoice.narrateFromSentence(latestNarration.content, latestNarration.id, sentenceIdx, buildNarrationPlaybackOptions(latestNarration.metadata) ?? 'combat')}
+                                    onSentenceClick={(sentenceIdx) => narratorVoice.narrateFromSentence(latestNarrationSpeechText, latestNarration.id, sentenceIdx, buildNarrationPlaybackOptions(latestNarration.metadata) ?? 'combat')}
                                     onConfirmSentenceClick={narratorVoice.confirmTapNarration}
                                     onCancelSentenceClick={narratorVoice.cancelTapNarration}
                                   />
