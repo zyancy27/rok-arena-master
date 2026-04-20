@@ -109,6 +109,8 @@ import { getChatSoundsEngine } from '@/lib/chat-sounds';
 import { useUserSettings } from '@/hooks/use-user-settings';
 import NarratorMessageContent from '@/components/campaigns/NarratorMessageContent';
 import { buildNarrationPlaybackOptions, getNarratorAnimationClass } from '@/lib/narration-playback';
+import { buildNarratorVoiceScript } from '@/lib/narrator-voice-script';
+import { isSameMoveText } from '@/lib/move-approval';
 import { ChatMessagePresentationResolver } from '@/systems/chat/ChatMessagePresentationResolver';
 import type { ChatSpeakerRole, SpeakerPresentationProfile } from '@/systems/chat/presentation/SpeakerPresentationProfile';
 import {
@@ -446,6 +448,8 @@ export default function BattleView() {
   const [pendingMove, setPendingMove] = useState<string | null>(null);
   const [moveValidation, setMoveValidation] = useState<MoveValidationResult | null>(null);
   const [showMatchupWarning, setShowMatchupWarning] = useState(true);
+  /** Last move text that the narrator already approved — skip re-validation if unchanged. */
+  const lastApprovedMoveTextRef = useRef<string | null>(null);
   
   // Dice roll and concentration state
   const [pendingHit, setPendingHit] = useState<HitDetermination | null>(null);
@@ -1244,8 +1248,11 @@ export default function BattleView() {
       };
       
       const validation = validateMove(messageInput, characterAbilities);
-      
-      if (!validation.isValid) {
+
+      // Skip re-validation if narrator already approved this exact move text.
+      const alreadyApproved = isSameMoveText(messageInput, lastApprovedMoveTextRef.current);
+
+      if (!validation.isValid && !alreadyApproved) {
         // Route to private narrator for validation instead of inline warning
         setPendingNarratorValidation({
           moveText: messageInput,
@@ -1978,16 +1985,19 @@ export default function BattleView() {
           response.narration,
           response,
         );
+        // Voice script includes narrator prose + NPC/opponent dialogue beats so
+        // the narrator voice reads the FULL exchange, not just the narrator-only string.
+        const voiceScript = buildNarratorVoiceScript(response.narration, response);
         const narratorMsg = {
           id: `narrator-${Date.now()}`,
           content: response.narration,
           timestamp: new Date(),
-          metadata: narrationPacket.metadata,
+          metadata: { ...narrationPacket.metadata, voiceScript },
         };
         setNarratorMessages(prev => [...prev, narratorMsg]);
         chatSoundsEngine.play('narrator_message');
         if (userSettings.audio.narratorAutoRead && userSettings.audio.narratorVoiceEnabled) {
-          await narratorVoice.narrate(response.narration, narratorMsg.id, buildNarrationPlaybackOptions(narratorMsg.metadata));
+          await narratorVoice.narrate(voiceScript, narratorMsg.id, buildNarrationPlaybackOptions(narratorMsg.metadata));
         }
 
         await supabase.from('battle_messages').insert({
@@ -2084,6 +2094,8 @@ export default function BattleView() {
 
   // Handle narrator-approved move
   const handleNarratorMoveApproved = async (moveText: string, explanation: string) => {
+    // Record approval so re-sending the same move skips re-validation.
+    lastApprovedMoveTextRef.current = moveText;
     setPendingNarratorValidation(null);
     setNarratorGlowing(false);
     setPendingMove(null);
@@ -3247,7 +3259,7 @@ export default function BattleView() {
                                         </button>
                                       ) : (
                                         <button
-                                          onClick={() => narratorVoice.narrate(latestNarration.content, latestNarration.id, buildNarrationPlaybackOptions(latestNarration.metadata) ?? 'combat')}
+                                          onClick={() => narratorVoice.narrate(((latestNarration.metadata as Record<string, unknown> | null | undefined)?.voiceScript as string | undefined) ?? latestNarration.content, latestNarration.id, buildNarrationPlaybackOptions(latestNarration.metadata) ?? 'combat')}
                                           className="ml-auto p-1 rounded-full hover:bg-muted transition-colors"
                                           title="Listen to narrator"
                                         >

@@ -826,10 +826,12 @@ The player is now explaining why this move should be allowed.
 
 EVALUATE their explanation:
 - If the explanation logically connects the move to their existing powers/abilities, APPROVE it.
-  Set "moveApproved": true and provide a brief "abilityDescription" that can be added to their character sheet.
+  Set "moveApproved": true (BOOLEAN, not text). Provide a brief "abilityDescription" that can be added to their character sheet.
+  Also set "approvedMoveText" to the original move text and "validationExplanation" to a one-sentence summary of WHY it was approved.
 - If the explanation is weak, contradictory, or doesn't connect to their powers, REJECT it kindly.
-  Set "moveApproved": false and explain why.
-- Be fair but firm. Creative interpretations of existing powers are fine. Completely unrelated powers are not.`
+  Set "moveApproved": false (BOOLEAN) and explain why.
+- Be fair but firm. Creative interpretations of existing powers are fine. Completely unrelated powers are not.
+- CRITICAL: "moveApproved" MUST be a literal JSON boolean (true or false), never a string, never omitted in validation mode.`
     : '';
 
   // ── Narrator Constitution (narrator law) ─────────────────────────
@@ -866,8 +868,10 @@ BATTLE LOCATION: ${battleLocation || 'Unknown'}
 ${narrativeSystemsContext ? `\nNARRATOR DM CONTEXT (use to inform your answers about campaign state, character identity, and story direction):\n${narrativeSystemsContext}` : ''}
 OUTPUT FORMAT: Return JSON with:
 - "answer": string (your response)
-- "moveApproved": boolean (only if validating a move, otherwise omit)
-- "abilityDescription": string (only if moveApproved is true — a short description to add to character abilities)`;
+- "moveApproved": boolean (REQUIRED in validation mode — literal true/false, never string, never omitted)
+- "abilityDescription": string (only if moveApproved is true — a short description to add to character abilities)
+- "approvedMoveText": string (only if moveApproved is true — echo the original move text)
+- "validationExplanation": string (only if moveApproved is true — one-sentence reason)`;
 
   const userPrompt = `Recent public actions:\n${recentPublicActions || 'None yet'}\n\nPlayer's question/response: ${query}`;
 
@@ -921,18 +925,43 @@ OUTPUT FORMAT: Return JSON with:
 
     const content = data.choices?.[0]?.message?.content || '{}';
 
-    let parsed;
+    let parsed: any;
     try {
       parsed = JSON.parse(content);
     } catch {
       parsed = { answer: content };
     }
 
+    // Resolve approval — boolean is source of truth, but if validating a move and
+    // the LLM forgot the boolean while clearly approving in prose, infer it
+    // server-side so the client doesn't get stuck in a re-validation loop.
+    let moveApproved: boolean | null = typeof parsed.moveApproved === 'boolean' ? parsed.moveApproved : null;
+    const answerText: string = typeof parsed.answer === 'string' ? parsed.answer : '';
+    if (isValidationResponse && pendingMove && moveApproved === null && answerText) {
+      const approvalRe = /\b(approved|allowed|accepted|valid|permitted|works|makes sense|i (approve|allow|accept)|you may proceed)\b/i;
+      const rejectionRe = /\b(not (approved|allowed|valid|permitted)|reject|denied|disallow|does not (connect|fit|match))\b/i;
+      if (rejectionRe.test(answerText)) {
+        moveApproved = false;
+      } else if (approvalRe.test(answerText)) {
+        console.warn('[battle-narrator] moveApproved missing — inferred TRUE from prose');
+        moveApproved = true;
+      }
+    }
+
+    const approvedMoveText = moveApproved === true
+      ? (typeof parsed.approvedMoveText === 'string' && parsed.approvedMoveText.trim() ? parsed.approvedMoveText.trim() : pendingMove || null)
+      : null;
+    const validationExplanation = moveApproved === true
+      ? (typeof parsed.validationExplanation === 'string' && parsed.validationExplanation.trim() ? parsed.validationExplanation.trim() : null)
+      : null;
+
     return new Response(
       JSON.stringify({
         answer: parsed.answer || 'The narrator considers...',
-        moveApproved: parsed.moveApproved ?? null,
+        moveApproved,
         abilityDescription: parsed.abilityDescription || null,
+        approvedMoveText,
+        validationExplanation,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

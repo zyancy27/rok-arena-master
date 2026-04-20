@@ -11,6 +11,7 @@ import { VoiceTextarea } from '@/components/ui/voice-textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import { inferApprovalFromProse } from '@/lib/move-approval';
 import { BookOpen, Send, Sparkles, ShieldAlert, Lock, Map, User, UserCheck, Swords, MapPin } from 'lucide-react';
 import TacticalBattleMap from './TacticalBattleMap';
 import { generateTacticalMap } from '@/lib/tactical-map-generator';
@@ -236,7 +237,7 @@ export default function PrivateNarratorChat({
       });
 
       if (response.data) {
-        const { answer, moveApproved, abilityDescription } = response.data;
+        const { answer, moveApproved, abilityDescription, approvedMoveText, validationExplanation } = response.data;
 
         const narratorMsg: NarratorMessage = {
           id: `nar-${Date.now()}`,
@@ -246,12 +247,29 @@ export default function PrivateNarratorChat({
         };
         setMessages(prev => [...prev, narratorMsg]);
 
-        // If this was a validation response and the narrator approved
-        if (pendingValidation && moveApproved) {
-          onMoveApproved?.(pendingValidation.moveText, userInput);
-          // If a new ability was justified, add it
-          if (abilityDescription) {
-            onAbilityLearned?.(abilityDescription);
+        // Resolve approval — structured boolean is source of truth.
+        // Fallback: if validating and the boolean is missing/null but the prose
+        // clearly approves, treat as approved and warn (prevents validation loops).
+        if (pendingValidation) {
+          let isApproved = moveApproved === true;
+          if (moveApproved === null || moveApproved === undefined) {
+            const proseApproved = inferApprovalFromProse(answer);
+            if (proseApproved) {
+              console.warn('[PrivateNarratorChat] moveApproved missing — falling back to prose-inferred approval', { answer });
+              isApproved = true;
+            }
+          }
+          if (isApproved) {
+            const finalMoveText = (typeof approvedMoveText === 'string' && approvedMoveText.trim().length > 0)
+              ? approvedMoveText.trim()
+              : pendingValidation.moveText;
+            const finalExplanation = (typeof validationExplanation === 'string' && validationExplanation.trim().length > 0)
+              ? validationExplanation.trim()
+              : userInput;
+            onMoveApproved?.(finalMoveText, finalExplanation);
+            if (abilityDescription) {
+              onAbilityLearned?.(abilityDescription);
+            }
           }
         }
       }
