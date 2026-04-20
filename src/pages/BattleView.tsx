@@ -3259,7 +3259,7 @@ export default function BattleView() {
                                         </button>
                                       ) : (
                                         <button
-                                          onClick={() => narratorVoice.narrate(latestNarration.content, latestNarration.id, buildNarrationPlaybackOptions(latestNarration.metadata) ?? 'combat')}
+                                          onClick={() => narratorVoice.narrate(((latestNarration.metadata as Record<string, unknown> | null | undefined)?.voiceScript as string | undefined) ?? latestNarration.content, latestNarration.id, buildNarrationPlaybackOptions(latestNarration.metadata) ?? 'combat')}
                                           className="ml-auto p-1 rounded-full hover:bg-muted transition-colors"
                                           title="Listen to narrator"
                                         >
