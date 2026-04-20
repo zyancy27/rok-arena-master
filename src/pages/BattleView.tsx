@@ -1985,16 +1985,19 @@ export default function BattleView() {
           response.narration,
           response,
         );
+        // Voice script includes narrator prose + NPC/opponent dialogue beats so
+        // the narrator voice reads the FULL exchange, not just the narrator-only string.
+        const voiceScript = buildNarratorVoiceScript(response.narration, response);
         const narratorMsg = {
           id: `narrator-${Date.now()}`,
           content: response.narration,
           timestamp: new Date(),
-          metadata: narrationPacket.metadata,
+          metadata: { ...narrationPacket.metadata, voiceScript },
         };
         setNarratorMessages(prev => [...prev, narratorMsg]);
         chatSoundsEngine.play('narrator_message');
         if (userSettings.audio.narratorAutoRead && userSettings.audio.narratorVoiceEnabled) {
-          await narratorVoice.narrate(response.narration, narratorMsg.id, buildNarrationPlaybackOptions(narratorMsg.metadata));
+          await narratorVoice.narrate(voiceScript, narratorMsg.id, buildNarrationPlaybackOptions(narratorMsg.metadata));
         }
 
         await supabase.from('battle_messages').insert({
@@ -2091,6 +2094,8 @@ export default function BattleView() {
 
   // Handle narrator-approved move
   const handleNarratorMoveApproved = async (moveText: string, explanation: string) => {
+    // Record approval so re-sending the same move skips re-validation.
+    lastApprovedMoveTextRef.current = moveText;
     setPendingNarratorValidation(null);
     setNarratorGlowing(false);
     setPendingMove(null);
