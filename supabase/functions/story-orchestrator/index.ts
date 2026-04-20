@@ -1945,30 +1945,6 @@ async function persistCampaignBrainUpdates(
 }
 
 
-    const statusOrder: Record<string, number> = { engaged: 0, active: 1, surfaced: 2, stale: 3, resolved: 4 };
-    hooks.sort((a: any, b: any) => {
-      const sa = statusOrder[a.status] ?? 3;
-      const sb = statusOrder[b.status] ?? 3;
-      if (sa !== sb) return sa - sb;
-      return (b.priority || 0) - (a.priority || 0);
-    });
-    // Keep resolved hooks for history but cap total
-    hooks = hooks.slice(0, 12);
-
-    await supabaseAdmin.from('campaign_brain').update({
-      story_hooks: hooks,
-      updated_at: new Date().toISOString(),
-    }).eq('campaign_id', campaignId);
-
-  } catch (e) {
-    ctx.errors.push({
-      step: 'persist_hook_updates',
-      error: e instanceof Error ? e.message : 'Unknown error',
-      recoverable: true,
-    });
-  }
-}
-
 // ─── Pipeline Step: Persist Social State Updates (Phase 2 — Narrator-Owned) ──
 async function persistSocialStateUpdates(
   ctx: OrchestratorContext,
