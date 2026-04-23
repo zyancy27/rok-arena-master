@@ -25,11 +25,17 @@ export default function Membership() {
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
   const [loadingAI, setLoadingAI] = useState<string | null>(null);
   const [loadingPortal, setLoadingPortal] = useState(false);
+  const [founderSpotsLeft, setFounderSpotsLeft] = useState<number | null>(null);
+
+  useEffect(() => {
+    supabase.rpc('founder_spots_remaining').then(({ data }) => {
+      if (typeof data === 'number') setFounderSpotsLeft(data);
+    });
+  }, [sub.founderStatus, sub.founderReserved]);
 
   useEffect(() => {
     if (searchParams.get('success') === 'true') {
       toast.success('Payment successful! Refreshing your membership...');
-      // Check subscription status after successful payment
       supabase.functions.invoke('check-subscription').then(() => {
         sub.refresh();
       });
@@ -49,8 +55,9 @@ export default function Membership() {
         body: {
           priceId: tier.priceId,
           mode: 'payment',
-          successPath: '/membership?success=true',
+          successPath: `/payment-success?tier=${tierKey}`,
           cancelPath: '/membership?canceled=true',
+          planLabel: `${tier.label} Tier`,
         },
       });
 
@@ -66,16 +73,17 @@ export default function Membership() {
   };
 
   const handleAISubscribe = async (plan: 'monthly' | 'annual') => {
-    const sub = AI_SUBSCRIPTION[plan];
+    const aiPlan = AI_SUBSCRIPTION[plan];
     setLoadingAI(plan);
 
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: {
-          priceId: sub.priceId,
+          priceId: aiPlan.priceId,
           mode: 'subscription',
-          successPath: '/membership?success=true',
+          successPath: `/payment-success?ai=${plan}`,
           cancelPath: '/membership?canceled=true',
+          planLabel: `AI Access — ${aiPlan.label}`,
         },
       });
 
@@ -133,7 +141,7 @@ export default function Membership() {
         </div>
       </div>
 
-      {/* Founder Banner */}
+      {/* Founder Banner — confirmed */}
       {sub.founderStatus && (
         <Card className="mb-8 border-2 border-amber-500/50 bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-amber-500/10">
           <CardContent className="flex items-center gap-4 py-6">
@@ -152,6 +160,59 @@ export default function Membership() {
         </Card>
       )}
 
+      {/* Founder Pass — reserved but not yet confirmed (still earning days) */}
+      {!sub.founderStatus && sub.founderReserved && (
+        <Card className="mb-8 border-2 border-amber-500/40 bg-amber-500/5">
+          <CardContent className="py-5 space-y-3">
+            <div className="flex items-start gap-3">
+              <Crown className="h-6 w-6 text-amber-500 shrink-0 mt-1" />
+              <div className="flex-1">
+                <h2 className="text-lg font-bold text-amber-500">Your Founder Pass is reserved</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Use the app on <span className="font-semibold text-foreground">5 different days</span> within your first
+                  week to permanently unlock the Founder Pass — unlimited storage and AI access, free, forever.
+                </p>
+              </div>
+              <Badge variant="outline" className="border-amber-500 text-amber-500 shrink-0">
+                {sub.activeDaysCount}/5 days
+              </Badge>
+            </div>
+            <div className="w-full bg-amber-500/10 rounded-full h-2 overflow-hidden">
+              <div
+                className="bg-amber-500 h-full transition-all"
+                style={{ width: `${Math.min(100, (sub.activeDaysCount / 5) * 100)}%` }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Founder Pass availability — open to general audience */}
+      {!sub.founderStatus && !sub.founderReserved && founderSpotsLeft !== null && (
+        <Card className="mb-8 border border-amber-500/30 bg-gradient-to-r from-amber-500/5 to-transparent">
+          <CardContent className="flex items-center gap-4 py-5">
+            <Crown className="h-7 w-7 text-amber-500 shrink-0" />
+            <div className="flex-1">
+              <h2 className="font-bold text-amber-500">Founder Pass</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                {founderSpotsLeft > 0 ? (
+                  <>
+                    Reserved for the first <span className="font-semibold text-foreground">25 sign-ups</span>.
+                    New accounts must use the app for <span className="font-semibold text-foreground">5 days within their first week</span> to claim the pass —
+                    unlimited storage and AI access, free, forever.
+                  </>
+                ) : (
+                  <>All 25 Founder Pass slots have been claimed. Thank you for your support of Realm of Kings.</>
+                )}
+              </p>
+            </div>
+            <Badge className={founderSpotsLeft > 0 ? 'bg-amber-500 text-black' : 'bg-muted text-muted-foreground'}>
+              {founderSpotsLeft} / 25 left
+            </Badge>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Current Status */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         <Card>
@@ -166,15 +227,24 @@ export default function Membership() {
         <Card>
           <CardContent className="flex items-center gap-3 py-4">
             <Zap className="h-5 w-5 text-primary" />
-            <div>
+            <div className="flex-1">
               <p className="text-sm text-muted-foreground">AI Access</p>
-              <p className="font-semibold text-foreground">
-                {sub.hasAIAccess ? (
-                  <span className="text-green-500">Active</span>
-                ) : (
-                  <span className="text-muted-foreground">Inactive</span>
-                )}
-              </p>
+              <div className="flex items-baseline gap-2 flex-wrap">
+                <p className="font-semibold">
+                  {sub.hasAIAccess ? (
+                    <span className="text-green-500">Active</span>
+                  ) : (
+                    <span className="text-muted-foreground">Inactive</span>
+                  )}
+                </p>
+                {sub.founderStatus ? (
+                  <span className="text-xs text-amber-500">• Lifetime (Founder)</span>
+                ) : sub.aiSubscriptionActive && sub.aiSubscriptionExpires ? (
+                  <span className="text-xs text-muted-foreground">
+                    • Renews {new Date(sub.aiSubscriptionExpires).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </span>
+                ) : null}
+              </div>
             </div>
           </CardContent>
         </Card>

@@ -20,9 +20,13 @@ import PageTransition from '@/components/layout/PageTransition';
 import { Swords, Users, Shield, LogOut, User, Home, Heart, Settings, Crown, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { useActivityTracker } from '@/hooks/use-activity-tracker';
+
 export default function MainLayout() {
   // Enable real-time battle challenge notifications
   useBattleNotifications();
+  // Track active days (powers founder pass eligibility)
+  useActivityTracker();
   const { user, profile, signOut, isAdmin, isModerator } = useAuth();
   const navigate = useNavigate();
 

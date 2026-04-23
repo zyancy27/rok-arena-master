@@ -8,6 +8,9 @@ interface SubscriptionState {
   aiSubscriptionActive: boolean;
   aiSubscriptionExpires: string | null;
   founderStatus: boolean;
+  founderReserved: boolean;
+  founderConfirmedAt: string | null;
+  activeDaysCount: number;
   loading: boolean;
 }
 
@@ -18,6 +21,9 @@ export function useSubscription() {
     aiSubscriptionActive: false,
     aiSubscriptionExpires: null,
     founderStatus: false,
+    founderReserved: false,
+    founderConfirmedAt: null,
+    activeDaysCount: 0,
     loading: true,
   });
 
@@ -39,6 +45,9 @@ export function useSubscription() {
         aiSubscriptionActive: data.ai_subscription_active || false,
         aiSubscriptionExpires: data.ai_subscription_expires || null,
         founderStatus: data.founder_status || false,
+        founderReserved: (data as any).founder_reserved || false,
+        founderConfirmedAt: (data as any).founder_confirmed_at || null,
+        activeDaysCount: (data as any).active_days_count || 0,
         loading: false,
       });
     } else {

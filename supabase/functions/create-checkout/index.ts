@@ -24,7 +24,7 @@ serve(async (req) => {
     const user = data.user;
     if (!user?.email) throw new Error("User not authenticated");
 
-    const { priceId, mode, successPath, cancelPath } = await req.json();
+    const { priceId, mode, successPath, cancelPath, planLabel } = await req.json();
     if (!priceId) throw new Error("priceId is required");
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
@@ -44,11 +44,12 @@ serve(async (req) => {
       customer_email: customerId ? undefined : user.email,
       line_items: [{ price: priceId, quantity: 1 }],
       mode: mode || "payment",
-      success_url: `${origin}${successPath || '/membership?success=true'}`,
+      success_url: `${origin}${successPath || '/payment-success'}`,
       cancel_url: `${origin}${cancelPath || '/membership?canceled=true'}`,
       metadata: {
         user_id: user.id,
         price_id: priceId,
+        plan_label: planLabel || "",
       },
     });
 
