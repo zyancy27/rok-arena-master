@@ -190,12 +190,26 @@ export default function Membership() {
             const tier = STORAGE_TIERS[key];
             const isCurrent = sub.storageTier === key || (sub.founderStatus && key === 'free');
             const isFounder = sub.founderStatus;
+            const isFree = !tier.priceId;
             const canUpgrade = !isFounder && canUpgradeTo(sub.storageTier, key);
 
             return (
               <Card
                 key={key}
+                role={tier.priceId ? 'button' : undefined}
+                tabIndex={tier.priceId ? 0 : undefined}
+                onClick={() => {
+                  if (tier.priceId && !loadingTier) handleStorageUpgrade(key);
+                }}
+                onKeyDown={(e) => {
+                  if (tier.priceId && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault();
+                    handleStorageUpgrade(key);
+                  }
+                }}
                 className={`relative transition-all ${
+                  tier.priceId ? 'cursor-pointer hover:border-primary/60 hover:shadow-lg' : ''
+                } ${
                   isCurrent && !isFounder
                     ? 'border-2 border-primary ring-2 ring-primary/20'
                     : ''
@@ -221,17 +235,27 @@ export default function Membership() {
                   <p className="text-sm">
                     <span className="font-semibold">{tier.maxWorlds >= 999 ? '∞' : tier.maxWorlds}</span> worlds
                   </p>
-                  {canUpgrade && (
+                  {isFree && (
+                    <p className="text-xs text-muted-foreground pt-2">Default tier</p>
+                  )}
+                  {tier.priceId && !isFounder && (
                     <Button
                       className="w-full mt-3"
-                      onClick={() => handleStorageUpgrade(key)}
+                      variant={canUpgrade ? 'default' : 'outline'}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleStorageUpgrade(key);
+                      }}
                       disabled={loadingTier === key}
                     >
                       {loadingTier === key ? (
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
                       ) : null}
-                      Upgrade
+                      {isCurrent ? 'Buy Again' : canUpgrade ? 'Upgrade' : 'Purchase'}
                     </Button>
+                  )}
+                  {isFounder && tier.priceId && (
+                    <p className="text-xs text-amber-500 pt-2">Included with Founder</p>
                   )}
                 </CardContent>
               </Card>
@@ -254,7 +278,20 @@ export default function Membership() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {/* Monthly */}
-          <Card className={sub.hasAIAccess ? 'border-primary/30' : ''}>
+          <Card
+            role={!sub.founderStatus ? 'button' : undefined}
+            tabIndex={!sub.founderStatus ? 0 : undefined}
+            onClick={() => {
+              if (!sub.founderStatus && !sub.aiSubscriptionActive && !loadingAI) {
+                handleAISubscribe('monthly');
+              }
+            }}
+            className={`transition-all ${
+              !sub.founderStatus && !sub.aiSubscriptionActive
+                ? 'cursor-pointer hover:border-primary/60 hover:shadow-lg'
+                : ''
+            } ${sub.hasAIAccess ? 'border-primary/30' : ''}`}
+          >
             <CardHeader>
               <CardTitle>Monthly</CardTitle>
               <CardDescription>$10 / month</CardDescription>
@@ -263,7 +300,10 @@ export default function Membership() {
               {!sub.founderStatus && !sub.aiSubscriptionActive && (
                 <Button
                   className="w-full"
-                  onClick={() => handleAISubscribe('monthly')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAISubscribe('monthly');
+                  }}
                   disabled={loadingAI === 'monthly'}
                 >
                   {loadingAI === 'monthly' && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
@@ -274,7 +314,10 @@ export default function Membership() {
                 <Button
                   variant="outline"
                   className="w-full"
-                  onClick={handleManageSubscription}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleManageSubscription();
+                  }}
                   disabled={loadingPortal}
                 >
                   {loadingPortal && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
@@ -288,7 +331,20 @@ export default function Membership() {
           </Card>
 
           {/* Annual */}
-          <Card className={`relative ${sub.hasAIAccess ? 'border-primary/30' : ''}`}>
+          <Card
+            role={!sub.founderStatus ? 'button' : undefined}
+            tabIndex={!sub.founderStatus ? 0 : undefined}
+            onClick={() => {
+              if (!sub.founderStatus && !sub.aiSubscriptionActive && !loadingAI) {
+                handleAISubscribe('annual');
+              }
+            }}
+            className={`relative transition-all ${
+              !sub.founderStatus && !sub.aiSubscriptionActive
+                ? 'cursor-pointer hover:border-primary/60 hover:shadow-lg'
+                : ''
+            } ${sub.hasAIAccess ? 'border-primary/30' : ''}`}
+          >
             <Badge className="absolute -top-3 right-4 bg-green-600 text-white">Save $20</Badge>
             <CardHeader>
               <CardTitle>Annual</CardTitle>
@@ -298,7 +354,10 @@ export default function Membership() {
               {!sub.founderStatus && !sub.aiSubscriptionActive && (
                 <Button
                   className="w-full"
-                  onClick={() => handleAISubscribe('annual')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAISubscribe('annual');
+                  }}
                   disabled={loadingAI === 'annual'}
                 >
                   {loadingAI === 'annual' && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
@@ -309,7 +368,10 @@ export default function Membership() {
                 <Button
                   variant="outline"
                   className="w-full"
-                  onClick={handleManageSubscription}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleManageSubscription();
+                  }}
                   disabled={loadingPortal}
                 >
                   {loadingPortal && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
