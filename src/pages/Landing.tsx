@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import PublicNav from '@/components/layout/PublicNav';
 import { Swords, Sparkles, Users, BookOpen, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import CreatorWelcomeBanner from '@/components/CreatorWelcomeBanner';
 
 export default function Landing() {
   const { user } = useAuth();
@@ -22,6 +23,9 @@ export default function Landing() {
       <PublicNav />
       {/* Hero Section */}
       <div className="container mx-auto px-4 py-16">
+        <div className="max-w-4xl mx-auto mb-10">
+          <CreatorWelcomeBanner />
+        </div>
         <div className="text-center space-y-8 max-w-4xl mx-auto">
           {/* Logo */}
           <div className="flex items-center justify-center gap-4 mb-8">
