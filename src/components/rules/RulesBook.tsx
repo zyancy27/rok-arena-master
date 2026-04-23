@@ -26,6 +26,7 @@ export default function RulesBook() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
+  const [tocOpen, setTocOpen] = useState(false);
 
   // Mark living-chapter entries as read when viewed
   React.useEffect(() => {
