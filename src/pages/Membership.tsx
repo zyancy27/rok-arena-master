@@ -49,8 +49,9 @@ export default function Membership() {
         body: {
           priceId: tier.priceId,
           mode: 'payment',
-          successPath: '/membership?success=true',
+          successPath: `/payment-success?tier=${tierKey}`,
           cancelPath: '/membership?canceled=true',
+          planLabel: `${tier.label} Tier`,
         },
       });
 
@@ -66,16 +67,17 @@ export default function Membership() {
   };
 
   const handleAISubscribe = async (plan: 'monthly' | 'annual') => {
-    const sub = AI_SUBSCRIPTION[plan];
+    const aiPlan = AI_SUBSCRIPTION[plan];
     setLoadingAI(plan);
 
     try {
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: {
-          priceId: sub.priceId,
+          priceId: aiPlan.priceId,
           mode: 'subscription',
-          successPath: '/membership?success=true',
+          successPath: `/payment-success?ai=${plan}`,
           cancelPath: '/membership?canceled=true',
+          planLabel: `AI Access — ${aiPlan.label}`,
         },
       });
 
