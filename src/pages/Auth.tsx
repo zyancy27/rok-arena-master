@@ -222,6 +222,15 @@ export default function Auth() {
                </TabsContent>
 
               <TabsContent value="signup">
+                <div className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-xs text-muted-foreground">
+                  <p className="flex items-center gap-1.5 font-semibold text-amber-500 mb-1">
+                    <Sparkles className="w-3.5 h-3.5" /> Founder Pass — limited to first 25 sign-ups
+                  </p>
+                  <p>
+                    Reserve your slot by signing up early. To <span className="text-foreground font-medium">permanently claim</span> the Founder Pass
+                    (unlimited storage + AI access, free, forever), use the app on <span className="text-foreground font-medium">5 different days within your first week</span>.
+                  </p>
+                </div>
                 <form onSubmit={handleSignup} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="signup-username">Username</Label>
