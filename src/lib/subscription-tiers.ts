@@ -49,15 +49,15 @@ export const AI_SUBSCRIPTION = {
   monthly: {
     label: 'Monthly',
     price: 10,
-    priceId: 'price_1T98BEFBIMzibM2oRTbi2ONN',
-    productId: 'prod_U7MvGFMUdOxRre',
+    priceId: 'price_1TPOKfFBIMzibM2o6MAlXdRB',
+    productId: 'prod_UOAgUnpNwSfgNl',
     interval: 'month' as const,
   },
   annual: {
     label: 'Annual',
     price: 100,
-    priceId: 'price_1T98BxFBIMzibM2oJK5PVjZ9',
-    productId: 'prod_U7Mv6Tdii8Mgr2',
+    priceId: 'price_1TPOLFFBIMzibM2o0tDReZei',
+    productId: 'prod_UOAgs6wOP8VFK6',
     interval: 'year' as const,
   },
 } as const;
