@@ -12,7 +12,7 @@ import { Home } from 'lucide-react';
 // Map route segments to human-readable labels
 const ROUTE_LABELS: Record<string, string> = {
   hub: 'Hub',
-  characters: 'Characters',
+  characters: 'Solar System',
   list: 'My Characters',
   new: 'Create Character',
   edit: 'Edit',
