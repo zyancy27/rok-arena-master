@@ -843,7 +843,7 @@ export default function PlanetEditor({
                     Characters living on {planet.name}
                   </p>
                   <Button size="sm" variant="outline" asChild>
-                    <Link to="/create-character">
+                    <Link to="/characters/new">
                       <UserPlus className="w-4 h-4 mr-1" />
                       Create Character
                     </Link>
