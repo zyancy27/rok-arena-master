@@ -146,47 +146,49 @@ const STATIC_CHAPTERS: BookChapter[] = [
 // ── Build complete book (static + living chapters) ──────────
 
 export function buildBookChapters(): BookChapter[] {
-  const livingChapters = buildLivingChapters();
-  
-  // Convert living chapters to BookChapters
-  const livingBookChapters: BookChapter[] = livingChapters.map(lc => ({
-    id: `living-${lc.chapter.toLowerCase().replace(/\s+/g, '-')}`,
-    title: lc.chapter,
-    icon: lc.icon,
-    isLiving: true,
-    hasUnread: lc.hasUnread,
-    livingEntries: lc.entries,
-    sections: lc.entries.map(entry => ({
-      title: `${entry.icon} ${entry.title}`,
-      content: entry.description,
-      examples: [entry.example],
-      crossRefs: entry.relatedKeys.map(rk => {
-        const related = livingChapters.flatMap(c => c.entries).find(e => e.mechanicKey === rk);
-        return {
-          label: related?.title || rk,
-          mechanicKey: rk,
-        };
-      }),
-    })),
-  }));
+  // Standard rules are ALWAYS included, regardless of discovery state or errors
+  let livingBookChapters: BookChapter[] = [];
 
-  // Interleave: static intro/creation first, then living chapters, then static rules at the end
-  const result: BookChapter[] = [];
-  
-  // Static: Introduction, Character Creation
-  result.push(STATIC_CHAPTERS[0]); // Introduction
-  result.push(STATIC_CHAPTERS[1]); // Character Creation
-  
-  // Living chapters (discovered mechanics)
-  result.push(...livingBookChapters);
-  
-  // Static: PvP Rules, Group Battles, Power Tiers
-  result.push(STATIC_CHAPTERS[2]); // PvP Rules
-  result.push(STATIC_CHAPTERS[3]); // Group Battles
-  result.push(STATIC_CHAPTERS[4]); // Power Tiers
+  try {
+    const livingChapters = buildLivingChapters();
+
+    // Convert living chapters to BookChapters
+    livingBookChapters = livingChapters.map(lc => ({
+      id: `living-${lc.chapter.toLowerCase().replace(/\s+/g, '-')}`,
+      title: lc.chapter,
+      icon: lc.icon,
+      isLiving: true,
+      hasUnread: lc.hasUnread,
+      livingEntries: lc.entries,
+      sections: lc.entries.map(entry => ({
+        title: `${entry.icon} ${entry.title}`,
+        content: entry.description,
+        examples: [entry.example],
+        crossRefs: entry.relatedKeys.map(rk => {
+          const related = livingChapters.flatMap(c => c.entries).find(e => e.mechanicKey === rk);
+          return {
+            label: related?.title || rk,
+            mechanicKey: rk,
+          };
+        }),
+      })),
+    }));
+  } catch (err) {
+    console.warn('[RulesBook] Failed to build living chapters, falling back to standard rules only:', err);
+    livingBookChapters = [];
+  }
+
+  // Always render the full standard rule set, in canonical order:
+  // Introduction → Character Creation → (Living chapters) → PvP Rules → Group Battles → Power Tiers
+  const result: BookChapter[] = [
+    ...STATIC_CHAPTERS.slice(0, 2),       // Introduction, Character Creation (always)
+    ...livingBookChapters,                // Discovered mechanics (may be empty)
+    ...STATIC_CHAPTERS.slice(2),          // PvP Rules, Group Battles, Power Tiers (always)
+  ];
 
   return result;
 }
+
 
 // ── Search across all chapters ──────────────────────────────
 
