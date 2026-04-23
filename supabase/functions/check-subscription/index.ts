@@ -9,15 +9,15 @@ const corsHeaders = {
 
 // AI subscription product IDs
 const AI_PRODUCT_IDS = [
-  'prod_U7MvGFMUdOxRre', // monthly
-  'prod_U7Mv6Tdii8Mgr2', // annual
+  'prod_UOAgUnpNwSfgNl', // monthly
+  'prod_UOAgs6wOP8VFK6', // annual
 ];
 
 // Storage tier product -> tier name mapping
 const STORAGE_PRODUCT_MAP: Record<string, string> = {
-  'prod_U7Ms6gTxHp6OOA': 'creator',
-  'prod_U7Mt7HYnceTiE8': 'architect',
-  'prod_U7Muvsen9CqQ3h': 'worldbuilder',
+  'prod_UOAdvyHGpwls1h': 'creator',
+  'prod_UOAeSgtW5O3fG3': 'architect',
+  'prod_UOAfPhd2Lwi2st': 'worldbuilder',
 };
 
 serve(async (req) => {
