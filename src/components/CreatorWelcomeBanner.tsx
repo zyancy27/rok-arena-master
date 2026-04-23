@@ -114,12 +114,12 @@ export default function CreatorWelcomeBanner({ className }: CreatorWelcomeBanner
             who wants to help shape something fun, unique, and meaningful, I'd love to
             connect. Reach out to me on Instagram:{' '}
             <a
-              href="https://instagram.com/notimportnt"
+              href="https://instagram.com/n0timportnt"
               target="_blank"
               rel="noopener noreferrer"
               className="text-primary font-medium underline-offset-4 hover:underline"
             >
-              @notimportnt
+              @n0timportnt
             </a>
           </p>
         </div>
@@ -127,12 +127,12 @@ export default function CreatorWelcomeBanner({ className }: CreatorWelcomeBanner
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <Button asChild size="sm" className="glow-primary">
             <a
-              href="https://instagram.com/notimportnt"
+              href="https://instagram.com/n0timportnt"
               target="_blank"
               rel="noopener noreferrer"
             >
               <Instagram className="w-4 h-4 mr-2" />
-              @notimportnt on Instagram
+              @n0timportnt on Instagram
             </a>
           </Button>
           <Button variant="ghost" size="sm" onClick={dismiss}>
