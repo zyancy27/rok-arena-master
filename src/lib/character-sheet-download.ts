@@ -96,7 +96,7 @@ export function generateCharacterSheetText(character: CharacterData): string {
   });
 
   sheet += `\n\n${thinDivider}`;
-  sheet += `\n           Generated from Realm of Kings`;
+  sheet += `\n           Generated from O.C.R.P.`;
   sheet += `\n               Character Sheet v1.0`;
   sheet += `\n${thinDivider}\n`;
 
