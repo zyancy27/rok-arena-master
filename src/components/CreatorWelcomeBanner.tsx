@@ -112,7 +112,15 @@ export default function CreatorWelcomeBanner({ className }: CreatorWelcomeBanner
           <p>
             If you're an artist, digital designer, character lover, or another creative
             who wants to help shape something fun, unique, and meaningful, I'd love to
-            connect. Reach out to me on Instagram: <span className="text-foreground font-medium">@notimportnt</span>
+            connect. Reach out to me on Instagram:{' '}
+            <a
+              href="https://instagram.com/notimportnt"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary font-medium underline-offset-4 hover:underline"
+            >
+              @notimportnt
+            </a>
           </p>
         </div>
 
