@@ -2915,26 +2915,41 @@ export type Database = {
       }
       user_subscriptions: {
         Row: {
+          active_days_count: number
           ai_subscription_active: boolean
           ai_subscription_expires: string | null
           created_at: string
+          founder_confirmed_at: string | null
+          founder_reserved: boolean
+          founder_reserved_at: string | null
           founder_status: boolean
+          last_active_date: string | null
           storage_tier: string
           user_id: string
         }
         Insert: {
+          active_days_count?: number
           ai_subscription_active?: boolean
           ai_subscription_expires?: string | null
           created_at?: string
+          founder_confirmed_at?: string | null
+          founder_reserved?: boolean
+          founder_reserved_at?: string | null
           founder_status?: boolean
+          last_active_date?: string | null
           storage_tier?: string
           user_id: string
         }
         Update: {
+          active_days_count?: number
           ai_subscription_active?: boolean
           ai_subscription_expires?: string | null
           created_at?: string
+          founder_confirmed_at?: string | null
+          founder_reserved?: boolean
+          founder_reserved_at?: string | null
           founder_status?: boolean
+          last_active_date?: string | null
           storage_tier?: string
           user_id?: string
         }
@@ -3631,6 +3646,7 @@ export type Database = {
       }
       decrypt_field: { Args: { encrypted_text: string }; Returns: string }
       encrypt_field: { Args: { plain_text: string }; Returns: string }
+      founder_spots_remaining: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -3643,6 +3659,7 @@ export type Database = {
       is_battle_participant: { Args: { _battle_id: string }; Returns: boolean }
       is_character_owner: { Args: { _character_id: string }; Returns: boolean }
       is_tester: { Args: { _user_id: string }; Returns: boolean }
+      record_user_activity: { Args: never; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
