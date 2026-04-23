@@ -62,7 +62,7 @@ export default function RulesBook() {
   const leftPageIdx = (!isMobile && book.currentSpread > 0) ? book.currentSpread - 1 : null;
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4 overflow-hidden">
+    <div className="min-h-[calc(100vh-4rem)] bg-background flex items-center justify-center p-4 overflow-hidden">
       {/* Search bar */}
       <div className={cn(
         "fixed top-4 left-1/2 -translate-x-1/2 z-50 transition-all duration-300",
