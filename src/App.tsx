@@ -37,6 +37,7 @@ import CampaignView from "@/pages/CampaignView";
 import NotFound from "@/pages/NotFound";
 import ResetPassword from "@/pages/ResetPassword";
 import Membership from "@/pages/Membership";
+import PaymentSuccess from "@/pages/PaymentSuccess";
 
 
 const queryClient = new QueryClient();
@@ -79,6 +80,7 @@ const App = () => (
               <Route path="/campaigns/:id" element={<CampaignView />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/membership" element={<Membership />} />
+              <Route path="/payment-success" element={<PaymentSuccess />} />
               <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />
