@@ -42,9 +42,18 @@ export function useBookEngine({ storageKey, totalPages, sfxEnabled = true }: Use
   const [currentSpread, setCurrentSpread] = useState<number>(() => {
     try {
       const saved = localStorage.getItem(`${storageKey}-lastpage`);
-      return saved ? Math.max(0, parseInt(saved, 10)) : 0;
+      const parsed = saved ? parseInt(saved, 10) : 0;
+      if (!Number.isFinite(parsed)) return 0;
+      return Math.max(0, Math.min(parsed, totalPages - 1));
     } catch { return 0; }
   });
+
+  // Clamp if totalPages changes (e.g. living chapters added/removed between sessions)
+  useEffect(() => {
+    if (currentSpread >= totalPages) {
+      setCurrentSpread(Math.max(0, totalPages - 1));
+    }
+  }, [totalPages, currentSpread]);
   const [flipDirection, setFlipDirection] = useState<'next' | 'prev' | null>(null);
   const [isFlipping, setIsFlipping] = useState(false);
   const [bookmarks, setBookmarks] = useState<number[]>(() => {

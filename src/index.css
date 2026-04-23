@@ -3531,8 +3531,26 @@
 }
 .rok-book-open .rok-book-page {
   opacity: 1;
-  transition: opacity 0.6s ease 1.8s;
+  transition: opacity 0.4s ease 0.2s;
 }
+
+/* == Force readable ink colors on cream parchment ==
+   The app uses a dark theme where --foreground is near-white.
+   On the book's cream pages, white text would be invisible.
+   Override Tailwind text utilities used inside the book. */
+.rok-book-page .text-foreground { color: hsl(25 25% 18%); }
+.rok-book-page .text-muted-foreground { color: hsl(25 15% 38%); }
+.rok-book-page .text-primary { color: hsl(20 65% 40%); }
+.rok-book-page .text-primary-foreground { color: hsl(40 35% 95%); }
+.rok-book-page .border-border,
+.rok-book-page .border-border\/20,
+.rok-book-page .border-border\/40,
+.rok-book-page .border-border\/50 { border-color: hsl(30 20% 70% / 0.5); }
+.rok-book-page .bg-muted\/30 { background-color: hsl(30 20% 80% / 0.4); }
+.rok-book-page .bg-primary\/10 { background-color: hsl(20 50% 50% / 0.12); }
+.rok-book-page .bg-primary\/15 { background-color: hsl(20 50% 50% / 0.18); }
+.rok-book-page .bg-primary\/20 { background-color: hsl(20 50% 50% / 0.22); }
+
 
 /* == Side Section Tabs == */
 .rok-side-tabs {
