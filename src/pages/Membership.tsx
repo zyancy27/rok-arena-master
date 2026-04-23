@@ -25,11 +25,17 @@ export default function Membership() {
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
   const [loadingAI, setLoadingAI] = useState<string | null>(null);
   const [loadingPortal, setLoadingPortal] = useState(false);
+  const [founderSpotsLeft, setFounderSpotsLeft] = useState<number | null>(null);
+
+  useEffect(() => {
+    supabase.rpc('founder_spots_remaining').then(({ data }) => {
+      if (typeof data === 'number') setFounderSpotsLeft(data);
+    });
+  }, [sub.founderStatus, sub.founderReserved]);
 
   useEffect(() => {
     if (searchParams.get('success') === 'true') {
       toast.success('Payment successful! Refreshing your membership...');
-      // Check subscription status after successful payment
       supabase.functions.invoke('check-subscription').then(() => {
         sub.refresh();
       });
