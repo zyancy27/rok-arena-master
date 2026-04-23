@@ -75,19 +75,44 @@ export default function CreatorWelcomeBanner({ className }: CreatorWelcomeBanner
 
         <div className="space-y-3 text-sm md:text-base text-muted-foreground leading-relaxed max-w-3xl">
           <p>
-            Hey — I'm the creator of this project, and I'm a real person building this
-            with care for people who truly love their characters, stories, and creative worlds.
+            Hey, I'm the creator of this project, and I'm a character creator too.
+            I've been creating characters since I was about 4 years old, and over time
+            I've built more than 30 deeply developed, well-thought-out original characters of my own.
           </p>
           <p>
-            <span className="text-foreground font-medium">O.C.R.P. is in early development.</span>{' '}
-            My goal is to make it the best community-driven original character notes
-            and development app it can be — a home for your lore, your worlds, and the
-            characters you can't stop thinking about.
+            One of the biggest frustrations I kept running into was having my characters
+            scattered across different notebooks, notes, and random places. Every time I
+            wanted to update something, change a detail, or find an older piece of
+            information, I had to dig through everything just to keep up with my own ideas.
+            I got tired of feeling like there wasn't one true home for all things OC.
           </p>
           <p>
-            If you're an artist, digital designer, writer, or just someone who really
-            cares about characters and worldbuilding and wants to help shape something
-            fun and unique — please reach out. I'd love to hear from you.
+            That's what pushed me to start building this:{' '}
+            <span className="text-foreground font-medium">
+              a one-stop shop for original characters, their notes, their development,
+              and the worlds around them.
+            </span>
+          </p>
+          <p>
+            This project also comes from something personal. My friends and I originally
+            made a verbal OC battle game where we would pit our characters against each
+            other and see whose character was stronger. Over time, that idea kept growing,
+            evolving, and becoming something bigger. Eventually, it turned into the
+            foundation for what I'm trying to create now.
+          </p>
+          <p>
+            <span className="text-foreground font-medium">
+              This app is still in early development,
+            </span>{' '}
+            but the goal is big: I want to build the best community-driven original
+            character notes and development app possible. A place made for people who
+            genuinely love their characters and want a better way to build, organize,
+            grow, and share them.
+          </p>
+          <p>
+            If you're an artist, digital designer, character lover, or another creative
+            who wants to help shape something fun, unique, and meaningful, I'd love to
+            connect. Reach out to me on Instagram: <span className="text-foreground font-medium">@notimportnt</span>
           </p>
         </div>
 
