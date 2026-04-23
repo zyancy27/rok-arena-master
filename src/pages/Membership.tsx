@@ -278,7 +278,20 @@ export default function Membership() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {/* Monthly */}
-          <Card className={sub.hasAIAccess ? 'border-primary/30' : ''}>
+          <Card
+            role={!sub.founderStatus ? 'button' : undefined}
+            tabIndex={!sub.founderStatus ? 0 : undefined}
+            onClick={() => {
+              if (!sub.founderStatus && !sub.aiSubscriptionActive && !loadingAI) {
+                handleAISubscribe('monthly');
+              }
+            }}
+            className={`transition-all ${
+              !sub.founderStatus && !sub.aiSubscriptionActive
+                ? 'cursor-pointer hover:border-primary/60 hover:shadow-lg'
+                : ''
+            } ${sub.hasAIAccess ? 'border-primary/30' : ''}`}
+          >
             <CardHeader>
               <CardTitle>Monthly</CardTitle>
               <CardDescription>$10 / month</CardDescription>
@@ -287,7 +300,10 @@ export default function Membership() {
               {!sub.founderStatus && !sub.aiSubscriptionActive && (
                 <Button
                   className="w-full"
-                  onClick={() => handleAISubscribe('monthly')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAISubscribe('monthly');
+                  }}
                   disabled={loadingAI === 'monthly'}
                 >
                   {loadingAI === 'monthly' && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
@@ -298,7 +314,10 @@ export default function Membership() {
                 <Button
                   variant="outline"
                   className="w-full"
-                  onClick={handleManageSubscription}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleManageSubscription();
+                  }}
                   disabled={loadingPortal}
                 >
                   {loadingPortal && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
@@ -312,7 +331,20 @@ export default function Membership() {
           </Card>
 
           {/* Annual */}
-          <Card className={`relative ${sub.hasAIAccess ? 'border-primary/30' : ''}`}>
+          <Card
+            role={!sub.founderStatus ? 'button' : undefined}
+            tabIndex={!sub.founderStatus ? 0 : undefined}
+            onClick={() => {
+              if (!sub.founderStatus && !sub.aiSubscriptionActive && !loadingAI) {
+                handleAISubscribe('annual');
+              }
+            }}
+            className={`relative transition-all ${
+              !sub.founderStatus && !sub.aiSubscriptionActive
+                ? 'cursor-pointer hover:border-primary/60 hover:shadow-lg'
+                : ''
+            } ${sub.hasAIAccess ? 'border-primary/30' : ''}`}
+          >
             <Badge className="absolute -top-3 right-4 bg-green-600 text-white">Save $20</Badge>
             <CardHeader>
               <CardTitle>Annual</CardTitle>
@@ -322,7 +354,10 @@ export default function Membership() {
               {!sub.founderStatus && !sub.aiSubscriptionActive && (
                 <Button
                   className="w-full"
-                  onClick={() => handleAISubscribe('annual')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAISubscribe('annual');
+                  }}
                   disabled={loadingAI === 'annual'}
                 >
                   {loadingAI === 'annual' && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
@@ -333,7 +368,10 @@ export default function Membership() {
                 <Button
                   variant="outline"
                   className="w-full"
-                  onClick={handleManageSubscription}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleManageSubscription();
+                  }}
                   disabled={loadingPortal}
                 >
                   {loadingPortal && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
