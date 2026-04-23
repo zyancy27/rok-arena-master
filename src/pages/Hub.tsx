@@ -7,7 +7,7 @@ import CharacterCard from '@/components/characters/CharacterCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Swords, Plus, Users, UserPlus, Crown } from 'lucide-react';
+import { Swords, Plus, Users, UserPlus, Crown, BookOpen } from 'lucide-react';
 import CreatorWelcomeBanner from '@/components/CreatorWelcomeBanner';
 
 interface Character {
@@ -64,7 +64,7 @@ export default function Hub() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Link to="/characters/new">
           <Card className="bg-card-gradient border-border hover:glow-primary transition-all cursor-pointer h-full">
             <CardHeader className="text-center">
@@ -91,6 +91,16 @@ export default function Hub() {
               <Swords className="w-12 h-12 mx-auto text-cosmic-gold mb-2" />
               <CardTitle>Battle Arena</CardTitle>
               <CardDescription>Challenge opponents in combat</CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+
+        <Link to="/rules">
+          <Card className="bg-card-gradient border-border hover:glow-primary transition-all cursor-pointer h-full">
+            <CardHeader className="text-center">
+              <BookOpen className="w-12 h-12 mx-auto text-primary mb-2" />
+              <CardTitle>Rules</CardTitle>
+              <CardDescription>Read the standard R.O.K. rulebook</CardDescription>
             </CardHeader>
           </Card>
         </Link>
