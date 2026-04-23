@@ -57,11 +57,11 @@ export default function MainLayout() {
               </Link>
             </Button>
             
-            {/* Solar System – opens the personal book */}
+            {/* Characters – opens the personal book */}
             <Button variant="ghost" size="sm" asChild>
               <Link to="/characters/list" className="flex items-center gap-2">
                 <Users className="w-4 h-4" />
-                <span className="hidden sm:inline">Solar System</span>
+                <span className="hidden sm:inline">Characters</span>
               </Link>
             </Button>
             <Button variant="ghost" size="sm" asChild>
