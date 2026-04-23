@@ -1,4 +1,4 @@
-// Stripe product/price mappings for Realm of Kings monetization
+// Stripe product/price mappings for O.C.R.P. monetization
 
 export const STORAGE_TIERS = {
   free: {

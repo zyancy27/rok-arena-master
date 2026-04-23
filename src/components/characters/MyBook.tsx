@@ -243,7 +243,7 @@ export default function MyBook() {
               {displayName}'s Book
             </h1>
             <p className="text-xs text-primary-foreground/60 uppercase tracking-[0.3em]" style={{ fontFamily: 'Cinzel, serif' }}>
-              Realm of Kings
+              O.C.R.P.
             </p>
             <div className="w-12 h-px bg-primary/40 mt-2" />
           </div>
@@ -297,7 +297,7 @@ function HierarchicalTOC({ parts, pages, flipTo, displayName }: {
     <div className="space-y-5">
       <div className="text-center space-y-2">
         <h2 className="rok-chapter-title text-lg font-bold text-foreground">{displayName}'s Book</h2>
-        <p className="text-[10px] text-muted-foreground italic rok-body-text">Your living chronicle in the Realm of Kings</p>
+        <p className="text-[10px] text-muted-foreground italic rok-body-text">Your living chronicle in O.C.R.P.</p>
         <div className="rok-chapter-divider"><span className="rok-ornament">✦</span></div>
         <p className="text-[10px] text-muted-foreground uppercase tracking-[0.25em]" style={{ fontFamily: 'Cinzel, serif' }}>
           Table of Contents

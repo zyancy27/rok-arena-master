@@ -16,7 +16,7 @@ export default function PublicNav() {
         <Link to="/" className="flex items-center gap-2 group">
           <Swords className="w-8 h-8 text-primary group-hover:animate-pulse-glow transition-all" />
           <span className="font-bold text-xl hidden sm:block text-glow">
-            Realm of Kings
+            O.C.R.P.
           </span>
         </Link>
 

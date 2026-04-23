@@ -55,7 +55,7 @@ export default function Hub() {
           Welcome, {profile?.display_name || profile?.username || 'Warrior'}
         </h1>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-          The arena awaits. Create characters, challenge opponents, and prove your worth in the Realm of Kings.
+          The arena awaits. Create characters, challenge opponents, and prove your worth in O.C.R.P.
         </p>
       </div>
 

@@ -117,9 +117,9 @@ export default function Auth() {
             <Sparkles className="w-8 h-8 text-cosmic-gold" />
           </div>
           <h1 className="text-4xl font-bold text-glow bg-gradient-to-r from-primary via-cosmic-pink to-accent bg-clip-text text-transparent">
-            Realm of Kings
+            O.C.R.P.
           </h1>
-          <p className="text-muted-foreground mt-2">PVP Arena</p>
+          <p className="text-muted-foreground mt-2">Original Character Role Play</p>
         </div>
 
         <Card className="bg-card-gradient border-border glow-primary">
