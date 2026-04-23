@@ -44,7 +44,7 @@ export default function MainLayout() {
           <Link to="/hub" className="flex items-center gap-2 group">
             <Swords className="w-8 h-8 text-primary group-hover:animate-pulse-glow transition-all" />
             <span className="font-bold text-xl hidden sm:block text-glow">
-              Realm of Kings
+              O.C.R.P.
             </span>
           </Link>
 
@@ -149,7 +149,7 @@ export default function MainLayout() {
           <div className="flex items-center gap-4">
             <DonateButton />
             <div className="text-xs text-muted-foreground">
-              © 2026 Realm of Kings. All rights reserved.
+              © 2026 O.C.R.P. All rights reserved.
             </div>
           </div>
         </div>
@@ -209,7 +209,7 @@ function DonateButton() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Heart className="w-5 h-5 fill-primary text-primary" />
-              Support Realm of Kings
+              Support O.C.R.P.
             </DialogTitle>
             <DialogDescription>
               Choose an amount or enter your own. Every bit helps us keep building!

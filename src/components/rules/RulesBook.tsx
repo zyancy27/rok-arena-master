@@ -125,7 +125,7 @@ export default function RulesBook() {
               <>
                 <div className="flex items-center justify-between px-4 pt-3 pb-1 border-b border-border/20">
                   <span className="text-[10px] uppercase tracking-widest text-muted-foreground" style={{ fontFamily: 'Cinzel, serif' }}>
-                    Realm of Kings
+                    O.C.R.P.
                   </span>
                 </div>
                 <div className="rok-page-content flex-1 overflow-y-auto px-5 py-4">

@@ -31,10 +31,10 @@ export default function Landing() {
 
           {/* Title */}
           <h1 className="text-5xl md:text-7xl font-bold text-glow bg-gradient-to-r from-primary via-cosmic-pink to-accent bg-clip-text text-transparent leading-tight">
-            Realm of Kings
+            O.C.R.P.
           </h1>
           <p className="text-2xl md:text-3xl text-muted-foreground">
-            PVP Arena
+            Original Character Role Play
           </p>
 
           {/* Description */}

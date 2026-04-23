@@ -149,7 +149,7 @@ export default function Membership() {
               <Crown className="h-8 w-8 text-amber-500" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-amber-500">Founder of Realm of Kings</h2>
+              <h2 className="text-xl font-bold text-amber-500">Founder of O.C.R.P.</h2>
               <p className="text-muted-foreground">
                 Thank you for being one of the original supporters. You have permanent unlimited access to all features.
                 Your dedication helped build this world — you will always hold a place of honor in the Realm.
@@ -202,7 +202,7 @@ export default function Membership() {
                     unlimited storage and AI access, free, forever.
                   </>
                 ) : (
-                  <>All 25 Founder Pass slots have been claimed. Thank you for your support of Realm of Kings.</>
+                  <>All 25 Founder Pass slots have been claimed. Thank you for your support of O.C.R.P.</>
                 )}
               </p>
             </div>

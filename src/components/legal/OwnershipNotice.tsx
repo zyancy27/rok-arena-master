@@ -26,7 +26,7 @@ export default function OwnershipNotice({ variant = 'inline' }: OwnershipNoticeP
         <AlertDescription className="text-sm">
           <strong className="text-primary">Your creations, your rights.</strong>{' '}
           All characters and ideas you create remain 100% your intellectual property. 
-          By using Realm of Kings, you retain all legal rights to your original characters and concepts.{' '}
+          By using O.C.R.P., you retain all legal rights to your original characters and concepts.{' '}
           <Link to="/terms" className="text-primary hover:underline">
             Read our full terms →
           </Link>

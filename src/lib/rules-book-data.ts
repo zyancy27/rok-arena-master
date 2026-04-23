@@ -29,10 +29,10 @@ const STATIC_CHAPTERS: BookChapter[] = [
     icon: '📖',
     sections: [
       {
-        title: 'Welcome to the Realm of Kings',
-        content: 'The Realm of Kings (R.O.K.) is a creative combat system where players pit their original characters against each other in turn-based battles narrated by AI. Victory is not determined by raw power alone — creativity, strategy, and storytelling are what crown a true champion.',
+        title: 'Welcome to O.C.R.P.',
+        content: 'O.C.R.P. (Original Character Role Play) is a creative combat system where players pit their original characters against each other in turn-based battles narrated by AI. Victory is not determined by raw power alone — creativity, strategy, and storytelling are what crown a true champion.',
         expandable: [
-          { label: 'What makes R.O.K. unique?', content: 'Unlike traditional RPGs, R.O.K. rewards the most creative and unique combatant. A cleverly-written underdog can triumph over a poorly-played powerhouse.' },
+          { label: 'What makes O.C.R.P. unique?', content: 'Unlike traditional RPGs, O.C.R.P. rewards the most creative and unique combatant. A cleverly-written underdog can triumph over a poorly-played powerhouse.' },
           { label: 'How battles work', content: 'Choose your character and an opponent, pick a battle location, then take turns describing attacks, defenses, and strategies. The AI narrates the clash in real-time.' },
         ],
       },

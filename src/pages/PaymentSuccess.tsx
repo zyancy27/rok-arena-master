@@ -124,7 +124,7 @@ export default function PaymentSuccess() {
           </div>
           <CardTitle className="text-3xl">Payment Successful</CardTitle>
           <p className="text-muted-foreground mt-2">
-            Thank you for supporting Realm of Kings.
+            Thank you for supporting O.C.R.P.
           </p>
         </CardHeader>
         <CardContent className="space-y-6 pt-6">
