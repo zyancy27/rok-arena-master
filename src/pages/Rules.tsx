@@ -5,9 +5,9 @@ export default function Rules() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <PublicNav />
-      <div className="flex-1 flex items-center justify-center">
+      <main className="flex-1">
         <RulesBook />
-      </div>
+      </main>
     </div>
   );
 }
