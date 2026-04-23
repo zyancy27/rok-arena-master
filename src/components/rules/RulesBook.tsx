@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { buildBookChapters, searchChapters } from '@/lib/rules-book-data';
 import { getUnreadCount, markRead } from '@/lib/living-rulebook-registry';
-import { BookOpen, ChevronLeft, ChevronRight, Search, X, Sparkles } from 'lucide-react';
+import { BookOpen, ChevronLeft, ChevronRight, Search, X, Sparkles, Menu } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import BookPage from './BookPage';
 
