@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Swords, Plus, Users, UserPlus, Crown } from 'lucide-react';
+import CreatorWelcomeBanner from '@/components/CreatorWelcomeBanner';
 
 interface Character {
   id: string;
@@ -49,6 +50,9 @@ export default function Hub() {
 
   return (
     <div className="space-y-8">
+      {/* Creator's Note (dismissible, first-open) */}
+      <CreatorWelcomeBanner />
+
       {/* Welcome Section */}
       <div className="text-center space-y-4">
         <h1 className="text-4xl font-bold text-glow bg-gradient-to-r from-primary via-cosmic-pink to-accent bg-clip-text text-transparent">
