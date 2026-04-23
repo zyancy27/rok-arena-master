@@ -34,7 +34,7 @@ export default function Terms() {
                 <li className="flex items-start gap-2">
                   <span className="text-primary font-bold">•</span>
                   All original characters, concepts, backstories, powers, and designs that you create 
-                  and upload to Realm of Kings remain your exclusive intellectual property.
+                  and upload to O.C.R.P. remain your exclusive intellectual property.
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary font-bold">•</span>
@@ -43,7 +43,7 @@ export default function Terms() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary font-bold">•</span>
-                  Realm of Kings does not claim any ownership, licensing rights, or creative control 
+                  O.C.R.P. does not claim any ownership, licensing rights, or creative control 
                   over your characters or ideas.
                 </li>
                 <li className="flex items-start gap-2">
@@ -64,7 +64,7 @@ export default function Terms() {
             </CardHeader>
             <CardContent className="space-y-3 text-muted-foreground text-sm">
               <p>
-                By uploading content to Realm of Kings, you grant us only the minimal license necessary 
+                By uploading content to O.C.R.P., you grant us only the minimal license necessary 
                 to display your characters within the platform. This includes:
               </p>
               <ul className="space-y-2 ml-4">
@@ -74,7 +74,7 @@ export default function Terms() {
               </ul>
               <p className="font-medium text-foreground">
                 This license is non-exclusive, revocable (when you delete your content), and 
-                limited solely to operating the Realm of Kings platform.
+                limited solely to operating the O.C.R.P. platform.
               </p>
             </CardContent>
           </Card>
@@ -117,7 +117,7 @@ export default function Terms() {
           <div className="text-center text-sm text-muted-foreground">
             <p>Last updated: January 2026</p>
             <p className="mt-2">
-              By using Realm of Kings, you agree to these terms while retaining full ownership 
+              By using O.C.R.P., you agree to these terms while retaining full ownership 
               of your creative works.
             </p>
           </div>
