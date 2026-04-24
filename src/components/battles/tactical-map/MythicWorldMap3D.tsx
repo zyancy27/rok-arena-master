@@ -16,7 +16,7 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera, Text, Billboard, Stars } from '@react-three/drei';
 import * as THREE from 'three';
 import type { TacticalMapData } from '@/components/battles/TacticalBattleMap';
-import { detectBiomeForVisuals, getBiomeMaterials, getLightingProfile } from '@/lib/map/visual-identity';
+import { detectBiomeForVisuals, getBiomeMaterialSet, getLightingProfile } from '@/lib/map/visual-identity';
 
 // ─── Mythic palette (locked) ──────────────────────────────────────
 
