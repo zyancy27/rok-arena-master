@@ -82,14 +82,12 @@ serve(async (req) => {
     // and uses family/groundedness/imagery distinctness to avoid "same-but-
     // slightly-different" picks. Strongly biased toward grounded human-scale
     // disasters (criminal, transport, infrastructure, civil unrest, etc).
-    const recentEntries = Array.isArray((globalThis as any).__noop) ? [] : [];
     const recentIds = Array.isArray(previousLocations) ? previousLocations : [];
     const selection = selectMultiAxisBlueprint({
       averageTier: avgLevel,
       planetName: planetName ?? null,
       planetDescription: planetDescription ?? null,
       recentBlueprintIds: recentIds,
-      recentEntries,
       // PvP / PvE alike: keep cosmic rare. Edge fn doesn't differentiate yet.
       groundednessWeights: { grounded: 0.78, speculative: 0.17, exotic: 0.05 },
     });
