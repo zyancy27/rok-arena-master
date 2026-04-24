@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import OwnershipNotice from '@/components/legal/OwnershipNotice';
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb';
 import PageTransition from '@/components/layout/PageTransition';
+import SuggestionsButton from '@/components/community/SuggestionsButton';
 import { Swords, Users, Shield, LogOut, User, Home, Heart, Settings, Crown, DollarSign } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -86,7 +87,9 @@ export default function MainLayout() {
             )}
           </nav>
 
-          {/* User Menu */}
+          {/* Suggestions + User Menu */}
+          <div className="flex items-center gap-1">
+            <SuggestionsButton />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">
@@ -131,6 +134,7 @@ export default function MainLayout() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          </div>
         </div>
       </header>
 
