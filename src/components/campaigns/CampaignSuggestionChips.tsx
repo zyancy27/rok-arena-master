@@ -57,6 +57,7 @@ export default function CampaignSuggestionChips({
   currentPressure,
   onSuggestionSelect,
   currentInput,
+  mode = 'all',
 }: CampaignSuggestionChipsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -80,15 +81,18 @@ export default function CampaignSuggestionChips({
     return helpPhraseAction(currentInput, characterName);
   }, [currentInput, characterName]);
 
-  if (suggestions.length === 0 && !phraseHelp) return null;
+  const showPhrase = mode !== 'chips-only' && !!phraseHelp;
+  const showChips = mode !== 'phrase-only' && suggestions.length > 0;
+
+  if (!showPhrase && !showChips) return null;
 
   return (
     <div className="space-y-1.5">
       {/* Phrase helper */}
-      {phraseHelp && (
+      {showPhrase && (
         <button
           type="button"
-          onClick={() => onSuggestionSelect(phraseHelp)}
+          onClick={() => onSuggestionSelect(phraseHelp!)}
           className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded-md hover:bg-muted/50"
         >
           <Lightbulb className="w-3 h-3 text-amber-400" />
@@ -97,31 +101,33 @@ export default function CampaignSuggestionChips({
       )}
 
       {/* Suggestion chips */}
-      <div className="flex items-center gap-1.5 flex-wrap">
-        {(isExpanded ? suggestions : suggestions.slice(0, 3)).map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            onClick={() => {
-              onSuggestionSelect(s.fullText);
-              setIsExpanded(false);
-            }}
-            className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors cursor-pointer ${CATEGORY_COLORS[s.category] || 'border-border text-muted-foreground hover:bg-muted/50'}`}
-          >
-            {s.label}
-          </button>
-        ))}
-        {suggestions.length > 3 && !isExpanded && (
-          <button
-            type="button"
-            onClick={() => setIsExpanded(true)}
-            className="text-[10px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-0.5"
-          >
-            +{suggestions.length - 3} more
-            <ChevronDown className="w-2.5 h-2.5" />
-          </button>
-        )}
-      </div>
+      {showChips && (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {(isExpanded ? suggestions : suggestions.slice(0, 3)).map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => {
+                onSuggestionSelect(s.fullText);
+                setIsExpanded(false);
+              }}
+              className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors cursor-pointer ${CATEGORY_COLORS[s.category] || 'border-border text-muted-foreground hover:bg-muted/50'}`}
+            >
+              {s.label}
+            </button>
+          ))}
+          {suggestions.length > 3 && !isExpanded && (
+            <button
+              type="button"
+              onClick={() => setIsExpanded(true)}
+              className="text-[10px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-0.5"
+            >
+              +{suggestions.length - 3} more
+              <ChevronDown className="w-2.5 h-2.5" />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
