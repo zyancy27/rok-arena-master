@@ -70,27 +70,22 @@ serve(async (req) => {
   }
 
   try {
+    // Auth is OPTIONAL: this endpoint is also used by the guest onboarding flow
+    // before a profile exists. No DB writes happen here — it's a pure AI call —
+    // so unauthenticated requests are allowed. Authenticated requests still work.
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getUser(token);
-    if (claimsError || !claimsData?.user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (authHeader?.startsWith('Bearer ')) {
+      try {
+        const supabaseClient = createClient(
+          Deno.env.get('SUPABASE_URL')!,
+          Deno.env.get('SUPABASE_ANON_KEY')!,
+          { global: { headers: { Authorization: authHeader } } }
+        );
+        const token = authHeader.replace('Bearer ', '');
+        await supabaseClient.auth.getUser(token);
+      } catch {
+        // Ignore auth errors — guest path is fine
+      }
     }
 
     let body;
