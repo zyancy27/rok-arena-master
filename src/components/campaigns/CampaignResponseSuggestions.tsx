@@ -57,9 +57,10 @@ export default function CampaignResponseSuggestions({
   onCancel,
   onConfirm,
   onRefresh,
+  extraContent,
 }: CampaignResponseSuggestionsProps) {
 
-  if (!isLoading && suggestions.length === 0 && !selectedSuggestion) return null;
+  if (!isLoading && suggestions.length === 0 && !selectedSuggestion && !extraContent) return null;
 
   return (
     <section
