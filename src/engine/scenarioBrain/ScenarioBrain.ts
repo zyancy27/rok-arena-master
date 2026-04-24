@@ -1,20 +1,16 @@
 /**
  * ScenarioBrain — Procedural Scenario Intelligence
  *
- * The main orchestrator that generates unique battle environments
- * using layered composition, contextual reasoning, and memory-based
- * deduplication. Replaces template-driven generation with a
- * reasoning-based approach.
- *
- * Usage:
- *   const brain = new ScenarioBrain();
- *   const scenario = brain.generate({ battleIntensity: 0.6, averageTier: 3, ... });
+ * Generates unique battle environments via the EmergencyBlueprint catalog
+ * (100+ base disasters) layered with composer-driven environmental detail.
+ * Memory prevents same-blueprint repeats within a session.
  */
 
 import { type ScenarioContext } from './scenarioLogic';
 import { composeScenario, type ComposedScenario } from './scenarioComposer';
 import { ScenarioMemory, createScenarioMemory } from './scenarioMemory';
 import { createSeededRandom } from './scenarioRandomizer';
+import { selectEmergencyBlueprint, type SelectedBlueprint } from './emergencyBlueprintSelector';
 
 export interface ScenarioBrainOptions {
   /** Optional seed for deterministic generation */
