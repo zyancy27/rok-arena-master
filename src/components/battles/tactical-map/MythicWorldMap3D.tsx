@@ -836,12 +836,16 @@ export function MythicWorldMap3D({
             const [wx, , wz] = toWorld(zone.x, zone.y);
             const wy = getElevationY(zone.elevation) * 0.4;
             const kind = classifyZone(zone);
+            const terrain = (zone as any).terrain as string | undefined;
             const patchColor =
-              kind === 'settlement' ? '#5a4a8a' :
-              kind === 'foliage'    ? '#2e5a3a' :
-              kind === 'ruin'       ? '#5a4a3a' :
-              zone.colorHint === 'water' ? '#1e3a6e' :
-                                      '#3a2f5a';
+              terrain === 'water'      ? '#1e3a6e' :
+              terrain === 'vegetation' ? '#2e5a3a' :
+              terrain === 'hazard'     ? '#5a2424' :
+              kind === 'settlement'    ? '#5a4a8a' :
+              kind === 'foliage'       ? '#2e5a3a' :
+              kind === 'ruin'          ? '#5a4a3a' :
+              (zone as any).colorHint === 'water' ? '#1e3a6e' :
+                                         '#3a2f5a';
             const radius = Math.max(zone.width, zone.height) * 0.16;
             return (
               <mesh
