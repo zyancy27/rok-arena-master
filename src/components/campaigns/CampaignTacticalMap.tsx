@@ -11,8 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-const TacticalMap3D = lazy(() =>
-  import('@/components/battles/tactical-map/TacticalMap3D').then(m => ({ default: m.TacticalMap3D }))
+const MythicWorldMap3D = lazy(() =>
+  import('@/components/battles/tactical-map/MythicWorldMap3D').then(m => ({ default: m.MythicWorldMap3D }))
 );
 
 // ── Types ──────────────────────────────────────────────
@@ -87,7 +87,7 @@ const HAZARD_TYPE_COLORS: Record<string, string> = {
 };
 
 export default function CampaignTacticalMap({ sceneMap, onClose }: CampaignTacticalMapProps) {
-  const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
+  const [viewMode, setViewMode] = useState<'2d' | '3d'>('3d');
   const [hoveredZone, setHoveredZone] = useState<string | null>(null);
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
 
@@ -168,14 +168,14 @@ export default function CampaignTacticalMap({ sceneMap, onClose }: CampaignTacti
   if (!sceneMap || !tacticalMapData) return null;
 
   return (
-    <div className="relative bg-background/95 border border-border rounded-lg overflow-hidden">
+    <div className="relative bg-[#05050f] border border-amber-500/20 rounded-xl overflow-hidden shadow-[0_8px_30px_-8px_rgba(139,92,246,0.4)]">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
-        <div className="flex items-center gap-2">
-          <Map className="w-4 h-4 text-primary" />
-          <span className="text-sm font-semibold truncate">{sceneMap.locationLabel}</span>
-          <Badge variant="outline" className="text-[10px]">
-            {sceneMap.zones.length} zones · {sceneMap.entities.length} entities
+      <div className="flex items-center justify-between px-3 py-2 border-b border-amber-500/15 bg-gradient-to-r from-[#0a0a1f] via-[#1f1a3d]/80 to-[#0a0a1f]">
+        <div className="flex items-center gap-2 min-w-0">
+          <Map className="w-4 h-4 text-amber-300 shrink-0" />
+          <span className="text-sm font-semibold truncate text-amber-50/95 tracking-wide">{sceneMap.locationLabel}</span>
+          <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-200/80 bg-amber-500/5">
+            {sceneMap.zones.length} zones · {sceneMap.entities.length} souls
           </Badge>
         </div>
         <div className="flex items-center gap-1">
@@ -183,40 +183,40 @@ export default function CampaignTacticalMap({ sceneMap, onClose }: CampaignTacti
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={viewMode === '2d' ? 'secondary' : 'ghost'}
+                  variant={viewMode === '3d' ? 'secondary' : 'ghost'}
                   size="icon"
-                  className="h-7 w-7"
-                  onClick={() => setViewMode('2d')}
+                  className={`h-7 w-7 ${viewMode === '3d' ? 'bg-amber-500/15 text-amber-200 hover:bg-amber-500/25' : 'text-amber-200/60 hover:text-amber-100'}`}
+                  onClick={() => setViewMode('3d')}
                 >
-                  <Grid3X3 className="w-3.5 h-3.5" />
+                  <Box className="w-3.5 h-3.5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>2D View</TooltipContent>
+              <TooltipContent>World view</TooltipContent>
             </Tooltip>
           </TooltipProvider>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={viewMode === '3d' ? 'secondary' : 'ghost'}
+                  variant={viewMode === '2d' ? 'secondary' : 'ghost'}
                   size="icon"
-                  className="h-7 w-7"
-                  onClick={() => setViewMode('3d')}
+                  className={`h-7 w-7 ${viewMode === '2d' ? 'bg-amber-500/15 text-amber-200 hover:bg-amber-500/25' : 'text-amber-200/60 hover:text-amber-100'}`}
+                  onClick={() => setViewMode('2d')}
                 >
-                  <Box className="w-3.5 h-3.5" />
+                  <Grid3X3 className="w-3.5 h-3.5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>3D View</TooltipContent>
+              <TooltipContent>Tactical chart</TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-amber-200/60 hover:text-amber-100" onClick={onClose}>
             <X className="w-3.5 h-3.5" />
           </Button>
         </div>
       </div>
 
       {/* Map viewport */}
-      <div className="relative" style={{ height: '280px' }}>
+      <div className="relative" style={{ height: '440px' }}>
         {viewMode === '2d' ? (
           <svg
             viewBox="0 0 100 100"
@@ -362,14 +362,19 @@ export default function CampaignTacticalMap({ sceneMap, onClose }: CampaignTacti
           </svg>
         ) : (
           <Suspense fallback={
-            <div className="w-full h-full flex items-center justify-center bg-background">
-              <span className="text-xs text-muted-foreground animate-pulse">Loading 3D view...</span>
+            <div className="w-full h-full flex items-center justify-center bg-[#05050f]">
+              <div className="flex flex-col items-center gap-2">
+                <div className="h-8 w-8 rounded-full border-2 border-amber-300/30 border-t-amber-300 animate-spin" />
+                <span className="text-[11px] text-amber-200/70 tracking-[0.2em] uppercase">Summoning the realm…</span>
+              </div>
             </div>
           }>
-            <TacticalMap3D
+            <MythicWorldMap3D
               data={tacticalMapData as any}
               selectedEntityId={selectedEntityId}
+              selectedZoneId={hoveredZone}
               onEntityTap={id => setSelectedEntityId(id === selectedEntityId ? null : id)}
+              onZoneTap={id => setHoveredZone(id === hoveredZone ? null : id)}
             />
           </Suspense>
         )}
