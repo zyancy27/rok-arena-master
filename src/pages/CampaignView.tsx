@@ -2906,6 +2906,7 @@ export default function CampaignView() {
                 {isActive && myParticipant?.is_active && (
                   <div className="p-3 border-t border-border/40 bg-background/60 backdrop-blur-sm relative z-10 shrink-0 space-y-2">
                     <CampaignSuggestionChips
+                      mode="phrase-only"
                       currentZone={campaign?.current_zone}
                       timeOfDay={campaign?.time_of_day}
                       dayCount={campaign?.day_count}
@@ -2931,6 +2932,24 @@ export default function CampaignView() {
                       onCancel={() => setSelectedResponseSuggestion(null)}
                       onConfirm={handleConfirmSuggestedResponse}
                       onRefresh={() => { void fetchResponseSuggestions(true); }}
+                      extraContent={
+                        <CampaignSuggestionChips
+                          mode="chips-only"
+                          currentZone={campaign?.current_zone}
+                          timeOfDay={campaign?.time_of_day}
+                          dayCount={campaign?.day_count}
+                          characterName={myParticipant.character?.name}
+                          characterPowers={myParticipant.character?.powers || null}
+                          characterWeapons={(myParticipant.character as any)?.weapons_items || null}
+                          partyMembers={participants.filter(p => p.is_active).map(p => p.character?.name || 'Unknown')}
+                          environmentTags={Array.isArray(campaign?.environment_tags) ? campaign.environment_tags as string[] : []}
+                          hasCombatTarget={campaignEnemies.some(e => e.status === 'active')}
+                          isInDanger={campaignEnemies.some(e => e.status === 'active' && e.tier >= 3)}
+                          currentPressure={null}
+                          onSuggestionSelect={(text) => setInputMessage(text)}
+                          currentInput={inputMessage}
+                        />
+                      }
                     />
                     <form onSubmit={e => { e.preventDefault(); handleSendMessage(); }} className="flex gap-2 items-end">
                       <VoiceTextarea
