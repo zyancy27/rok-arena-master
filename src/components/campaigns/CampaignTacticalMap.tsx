@@ -11,8 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-const TacticalMap3D = lazy(() =>
-  import('@/components/battles/tactical-map/TacticalMap3D').then(m => ({ default: m.TacticalMap3D }))
+const MythicWorldMap3D = lazy(() =>
+  import('@/components/battles/tactical-map/MythicWorldMap3D').then(m => ({ default: m.MythicWorldMap3D }))
 );
 
 // ── Types ──────────────────────────────────────────────
@@ -87,7 +87,7 @@ const HAZARD_TYPE_COLORS: Record<string, string> = {
 };
 
 export default function CampaignTacticalMap({ sceneMap, onClose }: CampaignTacticalMapProps) {
-  const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
+  const [viewMode, setViewMode] = useState<'2d' | '3d'>('3d');
   const [hoveredZone, setHoveredZone] = useState<string | null>(null);
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
 
@@ -168,14 +168,14 @@ export default function CampaignTacticalMap({ sceneMap, onClose }: CampaignTacti
   if (!sceneMap || !tacticalMapData) return null;
 
   return (
-    <div className="relative bg-background/95 border border-border rounded-lg overflow-hidden">
+    <div className="relative bg-[#05050f] border border-amber-500/20 rounded-xl overflow-hidden shadow-[0_8px_30px_-8px_rgba(139,92,246,0.4)]">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
-        <div className="flex items-center gap-2">
-          <Map className="w-4 h-4 text-primary" />
-          <span className="text-sm font-semibold truncate">{sceneMap.locationLabel}</span>
-          <Badge variant="outline" className="text-[10px]">
-            {sceneMap.zones.length} zones · {sceneMap.entities.length} entities
+      <div className="flex items-center justify-between px-3 py-2 border-b border-amber-500/15 bg-gradient-to-r from-[#0a0a1f] via-[#1f1a3d]/80 to-[#0a0a1f]">
+        <div className="flex items-center gap-2 min-w-0">
+          <Map className="w-4 h-4 text-amber-300 shrink-0" />
+          <span className="text-sm font-semibold truncate text-amber-50/95 tracking-wide">{sceneMap.locationLabel}</span>
+          <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-200/80 bg-amber-500/5">
+            {sceneMap.zones.length} zones · {sceneMap.entities.length} souls
           </Badge>
         </div>
         <div className="flex items-center gap-1">
