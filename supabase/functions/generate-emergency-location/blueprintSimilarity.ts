@@ -9,13 +9,13 @@
  * Pure / dependency-free — Deno + browser compatible.
  */
 
-import type { EmergencyBlueprint } from './emergencyBlueprints';
+import type { EmergencyBlueprint } from './emergencyBlueprints.ts';
 import {
   inferFamily,
   inferImagery,
   type DangerFamily,
   type DangerTaxonomyFields,
-} from './dangerTaxonomy';
+} from './dangerTaxonomy.ts';
 
 export type Candidate = EmergencyBlueprint & DangerTaxonomyFields;
 

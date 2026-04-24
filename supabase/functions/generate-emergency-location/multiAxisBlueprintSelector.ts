@@ -21,8 +21,8 @@ import {
   EMERGENCY_BLUEPRINTS,
   type EmergencyBlueprint,
   type RarityTier,
-} from './emergencyBlueprints';
-import { EXTENDED_EMERGENCY_BLUEPRINTS } from './emergencyBlueprintsExtended';
+} from './emergencyBlueprints.ts';
+import { EXTENDED_EMERGENCY_BLUEPRINTS } from './emergencyBlueprintsExtended.ts';
 import {
   inferFamily,
   inferGroundedness,
@@ -38,13 +38,13 @@ import {
   type EnemyPressureType,
   type EscalationPathTag,
   type CombatFrameTag,
-} from './dangerTaxonomy';
+} from './dangerTaxonomy.ts';
 import {
   distinctnessAgainstRecent,
   toRecentEntry,
   type Candidate,
   type RecentEntry,
-} from './blueprintSimilarity';
+} from './blueprintSimilarity.ts';
 
 /** Unified pool: legacy + extended, all typed as Candidate. */
 export const ALL_BLUEPRINTS: Candidate[] = [
