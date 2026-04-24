@@ -85,8 +85,8 @@ export default function EmergencyLocationGenerator({
       if (data?.name) {
         setGeneratedLocation(data);
         onLocationGenerated(data);
-        // Track for deduplication
-        sessionHistory.current.push(`${data.name}: ${data.description}`);
+        // Track blueprint id (preferred) or name fallback for deduplication
+        sessionHistory.current.push(data.blueprintId || `${data.name}: ${data.description}`);
         toast.success(`Emergency generated: ${data.name}`);
       } else {
         throw new Error('Invalid response');
