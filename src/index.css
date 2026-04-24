@@ -3950,3 +3950,34 @@
 [data-expr-hesitation="extreme"] .expr-content {
   word-spacing: 0.15em;
 }
+
+/* ──────────────────────────────────────────────────────────────
+   Chat Bubble Text Stability
+   Environmental effects (.env-*) animate the bubble itself, which
+   makes the inner text jitter and hurts readability. Within chat
+   bubble scopes (.env-scope), neutralize transform-based motion on
+   the wrapper so visual effects (backgrounds, glows, pseudo-element
+   particles) still play, but the readable text stays still.
+   ────────────────────────────────────────────────────────────── */
+.env-scope.env-urgency-shake,
+.env-scope.env-tremor-shake,
+.env-scope.env-shake,
+.env-scope.env-urgency-glitch,
+.env-scope .env-urgency-shake,
+.env-scope .env-tremor-shake {
+  animation: none !important;
+}
+
+/* Keep entry animations brief — once played, lock text in place. */
+.env-scope .expr-content,
+.env-scope .expr-speaker-name {
+  transform: none !important;
+  animation: none !important;
+}
+
+/* Allow ambient particle/background pseudo-elements to keep moving. */
+.env-scope::before,
+.env-scope::after {
+  /* unaffected — pseudo-element animations remain active */
+}
+
