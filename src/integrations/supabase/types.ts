@@ -2752,6 +2752,77 @@ export type Database = {
           },
         ]
       }
+      suggestion_votes: {
+        Row: {
+          created_at: string
+          id: string
+          suggestion_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          suggestion_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          suggestion_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suggestion_votes_suggestion_id_fkey"
+            columns: ["suggestion_id"]
+            isOneToOne: false
+            referencedRelation: "suggestions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suggestions: {
+        Row: {
+          body: string
+          category: string
+          created_at: string
+          id: string
+          page_context: string | null
+          status: string
+          title: string | null
+          updated_at: string
+          user_id: string
+          username: string
+          vote_count: number
+        }
+        Insert: {
+          body: string
+          category?: string
+          created_at?: string
+          id?: string
+          page_context?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+          username: string
+          vote_count?: number
+        }
+        Update: {
+          body?: string
+          category?: string
+          created_at?: string
+          id?: string
+          page_context?: string | null
+          status?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+          username?: string
+          vote_count?: number
+        }
+        Relationships: []
+      }
       sun_customizations: {
         Row: {
           color: string
