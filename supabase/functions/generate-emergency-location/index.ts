@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { selectEmergencyBlueprint, renderBlueprintBrief } from "./emergencyBlueprintSelector.ts";
+import type { RarityTier } from "./emergencyBlueprints.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -72,95 +74,18 @@ serve(async (req) => {
     const lvl2 = typeof character2Level === 'number' ? character2Level : 3;
     const avgLevel = Math.round((lvl1 + lvl2) / 2);
 
-    // === RARITY DISTRIBUTION ===
-    // 70% grounded realistic, 20% advanced sci-fi, 8% extreme planetary, 2% mythic/cosmic
-    const rarityRoll = Math.random();
-    let rarityTier: string;
-    let rarityInstruction: string;
-    if (rarityRoll < 0.70) {
-      rarityTier = "GROUNDED";
-      rarityInstruction = `RARITY: GROUNDED REALISTIC EMERGENCY (70% chance — DOMINANT TIER)
-Generate a HIGH-INTENSITY, CINEMATIC, REALISTIC emergency scenario. This is the most common tier and must work for ALL character levels.
+    // === BLUEPRINT-DRIVEN RARITY + SEED ===
+    // 70% grounded, 20% advanced, 8% extreme, 2% mythic — enforced via blueprint catalog (100+ entries).
+    // previousLocations is treated as a list of recent blueprint ids for dedup.
+    const selection = selectEmergencyBlueprint({
+      averageTier: avgLevel,
+      planetName: planetName ?? null,
+      planetDescription: planetDescription ?? null,
+      recentBlueprintIds: Array.isArray(previousLocations) ? previousLocations : [],
+    });
+    const rarityTier = selection.rarity.toUpperCase();
+    const rarityInstruction = `RARITY: ${rarityTier} (selected from blueprint catalog of 100+ base disasters)\n\n${renderBlueprintBrief(selection)}`;
 
-You MUST assemble the emergency from these GROUNDED BUILDING BLOCKS — pick one or two from each category and combine them into a unique crisis:
-
-CIVILIAN DENSITY MODIFIER (pick one):
-- Rush hour traffic gridlock
-- Packed subway station
-- Airport terminal mid-evacuation
-- Stadium crowd panic
-- Downtown pedestrian crush
-- School dismissal zone
-- Industrial workforce shift change
-- Hospital at full capacity
-- Shopping mall during holiday rush
-
-STRUCTURAL INSTABILITY TRIGGER (pick one):
-- Building about to collapse
-- Suspension bridge cables snapping
-- Skyscraper windows shattering outward
-- Parking garage cave-in
-- Oil rig structural failure
-- Dam cracking under pressure
-- Power plant overload cascade
-- Construction crane falling
-- Highway overpass buckling
-- Subway tunnel ceiling crumbling
-
-NATURAL DISASTER LAYER (pick one):
-- Earthquake tremors intensifying
-- Tsunami wave incoming
-- Flash flood surging through streets
-- Tornado touching down
-- Hurricane landfall with debris
-- Volcano erupting nearby
-- Wildfire spreading rapidly
-- Avalanche cascading downhill
-- Landslide burying infrastructure
-- Sinkhole opening
-
-MECHANICAL / INFRASTRUCTURE CRISIS (pick one):
-- Train derailment mid-city
-- Plane losing altitude over populated area
-- Ship capsizing in harbor
-- Nuclear reactor approaching meltdown
-- Chemical plant explosion imminent
-- Highway tanker spill with ignition risk
-- Power grid cascading failure / citywide blackout
-- Elevator freefall in skyscraper
-- Gas main rupture chain
-- Water treatment plant toxic leak
-
-TIME PRESSURE MECHANIC (pick one):
-- 30-second structural collapse window
-- Countdown to detonation
-- Aftershock timer before next quake
-- Cable snapping sequence (one by one)
-- Reactor temperature climbing past safe limits
-- Structural integrity percentage visibly dropping
-- Floodwater rising toward electrical systems
-- Fire spreading room by room
-
-COMBINE these blocks into one cohesive, cinematic crisis. The result must feel like a disaster movie scene — intense, grounded, plausible.
-Even for high-level characters, grounded emergencies create tactical and moral tension (civilians, infrastructure, collateral damage).
-DO NOT generate: off-planet scenarios, cosmic events, dimensional rifts, mythic phenomena, or abstract sci-fi.
-If a non-Earth planet is selected, ADAPT grounded logic to that planet's infrastructure (e.g., desert mining collapse, alien city bridge failure, terraforming station meltdown).`;
-    } else if (rarityRoll < 0.90) {
-      rarityTier = "ADVANCED";
-      rarityInstruction = `RARITY: ADVANCED SCI-FI INDUSTRIAL (20% chance)
-Generate a plausible sci-fi emergency: space station failures, reactor overloads, warp drive malfunctions, orbital decay, terraforming gone wrong, AI facility lockdown, orbital elevator collapse, antimatter containment breach.
-Keep it grounded in sci-fi logic — no pure fantasy or cosmic horror. It should feel technologically plausible.`;
-    } else if (rarityRoll < 0.98) {
-      rarityTier = "EXTREME";
-      rarityInstruction = `RARITY: EXTREME PLANETARY SCALE (8% chance)
-Generate a planet-scale emergency: supervolcano chain eruption, global tectonic shift, planetary core destabilization, continent-splitting earthquake, planet-wide electromagnetic storm, ocean boiling event.
-Massive scale but still physically grounded — no magic or cosmic entities.`;
-    } else {
-      rarityTier = "MYTHIC";
-      rarityInstruction = `RARITY: MYTHIC / COSMIC (2% chance — EXTREMELY RARE)
-This is a legendary-tier scenario. Go all out: collapsing stars, dimensional tears, ancient sealed entities awakening, reality fractures, black hole proximity event.
-This should feel momentous and awe-inspiring — once-in-a-lifetime crisis.`;
-    }
 
     // === PLANET-LINKED CONSTRAINT ===
     let planetConstraint = "";
@@ -343,6 +268,11 @@ IMPORTANT: "countdownTurns" MUST be exactly ${urgencyCountdown}. "urgencyTier" M
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Inject the blueprint id and category for client-side dedup tracking.
+    locationResult.blueprintId = selection.blueprint.id;
+    locationResult.blueprintCategory = selection.blueprint.category;
+    locationResult.blueprintScope = selection.blueprint.scope;
 
     return new Response(
       JSON.stringify(locationResult),
