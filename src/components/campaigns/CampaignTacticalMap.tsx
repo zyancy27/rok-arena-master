@@ -183,33 +183,33 @@ export default function CampaignTacticalMap({ sceneMap, onClose }: CampaignTacti
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={viewMode === '2d' ? 'secondary' : 'ghost'}
+                  variant={viewMode === '3d' ? 'secondary' : 'ghost'}
                   size="icon"
-                  className="h-7 w-7"
-                  onClick={() => setViewMode('2d')}
+                  className={`h-7 w-7 ${viewMode === '3d' ? 'bg-amber-500/15 text-amber-200 hover:bg-amber-500/25' : 'text-amber-200/60 hover:text-amber-100'}`}
+                  onClick={() => setViewMode('3d')}
                 >
-                  <Grid3X3 className="w-3.5 h-3.5" />
+                  <Box className="w-3.5 h-3.5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>2D View</TooltipContent>
+              <TooltipContent>World view</TooltipContent>
             </Tooltip>
           </TooltipProvider>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  variant={viewMode === '3d' ? 'secondary' : 'ghost'}
+                  variant={viewMode === '2d' ? 'secondary' : 'ghost'}
                   size="icon"
-                  className="h-7 w-7"
-                  onClick={() => setViewMode('3d')}
+                  className={`h-7 w-7 ${viewMode === '2d' ? 'bg-amber-500/15 text-amber-200 hover:bg-amber-500/25' : 'text-amber-200/60 hover:text-amber-100'}`}
+                  onClick={() => setViewMode('2d')}
                 >
-                  <Box className="w-3.5 h-3.5" />
+                  <Grid3X3 className="w-3.5 h-3.5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>3D View</TooltipContent>
+              <TooltipContent>Tactical chart</TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-amber-200/60 hover:text-amber-100" onClick={onClose}>
             <X className="w-3.5 h-3.5" />
           </Button>
         </div>
