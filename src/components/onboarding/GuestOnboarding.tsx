@@ -107,7 +107,7 @@ export default function GuestOnboarding() {
       if (!characterId) {
         const { data, error } = await supabase
           .from('characters')
-          .insert(insert)
+          .insert(insert as never)
           .select('id')
           .single();
         if (error) throw error;
