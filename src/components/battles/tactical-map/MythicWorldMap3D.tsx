@@ -817,9 +817,7 @@ export function MythicWorldMap3D({
 
           {/* ── Hazards ── */}
           {data.hazards?.map(h => {
-            const zone = data.zones?.find(z => z.id === h.zoneId);
-            if (!zone) return null;
-            const [wx, , wz] = toWorld(zone.x, zone.y);
+            const [wx, , wz] = toWorld(h.x, h.y);
             const color = /fire|burn|ember/.test(h.type) ? MYTHIC.ember
               : /electric|spark|storm/.test(h.type) ? MYTHIC.gold
               : /water|flood|ice/.test(h.type) ? '#60a5fa'
