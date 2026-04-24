@@ -13,7 +13,7 @@ import {
   EMERGENCY_BLUEPRINTS,
   type EmergencyBlueprint,
   type RarityTier,
-} from './emergencyBlueprints';
+} from './emergencyBlueprints.ts';
 
 export interface BlueprintSelectionInput {
   averageTier?: number;          // 1-5
