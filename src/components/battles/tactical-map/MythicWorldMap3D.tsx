@@ -626,7 +626,7 @@ interface PropPalette {
 }
 
 function resolvePropPalette(biomeId: string): PropPalette {
-  const mats = getBiomeMaterials(biomeId);
+  const mats = getBiomeMaterialSet(biomeId);
   return {
     buildings: {
       wall: mats.structure.color,
@@ -642,16 +642,19 @@ function resolvePropPalette(biomeId: string): PropPalette {
   };
 }
 
-/** Decide which props to seed into each zone based on its label/terrain. */
-function classifyZone(zone: TacticalMapData['zones'][number]): 'settlement' | 'foliage' | 'ruin' | 'open' {
+/** Decide which props to seed into each zone based on its label/tactical hints. */
+function classifyZone(
+  zone: NonNullable<TacticalMapData['zones']>[number]
+): 'settlement' | 'foliage' | 'ruin' | 'open' {
   const label = (zone.label || '').toLowerCase();
-  const terrain = (zone.terrain || '').toLowerCase();
+  const hint = (zone.colorHint || '').toLowerCase();
+  const tact = zone.tactical || ({} as Partial<typeof zone.tactical>);
 
-  if (/town|village|market|hall|inn|temple|shrine|camp|outpost|fort|keep|gate|bridge/.test(label)) return 'settlement';
-  if (/forest|wood|grove|jungle|thicket|garden/.test(label) || terrain === 'vegetation') return 'foliage';
-  if (/ruin|tomb|cairn|stone|altar|crypt|monolith|barrow/.test(label)) return 'ruin';
-  if (terrain === 'structure') return 'settlement';
-  if (terrain === 'cover') return 'foliage';
+  if (/town|village|market|hall|inn|temple|shrine|camp|outpost|fort|keep|gate|bridge|building|rooftop|floor|station|hangar|deck/.test(label)) return 'settlement';
+  if (/forest|wood|grove|jungle|thicket|garden|treeline|canopy|clearing/.test(label)) return 'foliage';
+  if (/ruin|tomb|cairn|stone|altar|crypt|monolith|barrow|relic|wreck/.test(label)) return 'ruin';
+  if (hint === 'water') return 'open';
+  if (tact.hasCover) return 'settlement';
   return 'open';
 }
 
