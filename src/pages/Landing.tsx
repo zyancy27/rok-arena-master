@@ -5,10 +5,17 @@ import PublicNav from '@/components/layout/PublicNav';
 import { Swords, Sparkles, Users, BookOpen, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import CreatorWelcomeBanner from '@/components/CreatorWelcomeBanner';
+import GuestOnboarding from '@/components/onboarding/GuestOnboarding';
 
 export default function Landing() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const navigate = useNavigate();
+
+  // Logged-out visitors get the guided guest onboarding flow.
+  // Logged-in users keep the existing landing/marketing experience.
+  if (!loading && !user) {
+    return <GuestOnboarding />;
+  }
 
   const handleFeatureClick = (path: string) => {
     if (user) {
