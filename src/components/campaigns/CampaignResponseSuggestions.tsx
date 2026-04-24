@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import type { CampaignResponseSuggestion } from '@/lib/campaign-response-suggestions';
 import { Brain, ChevronDown, ChevronUp, MessageCircleQuestion, RefreshCw, Send, Sparkles, Swords, Undo2 } from 'lucide-react';
@@ -13,6 +14,8 @@ interface CampaignResponseSuggestionsProps {
   onCancel: () => void;
   onConfirm: (suggestion: CampaignResponseSuggestion) => void;
   onRefresh?: () => void;
+  /** Optional extra content (e.g. quick action chips) rendered inside the panel. */
+  extraContent?: ReactNode;
 }
 
 function getIntentLabel(intent: CampaignResponseSuggestion['intent']) {
