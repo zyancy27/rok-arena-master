@@ -696,58 +696,92 @@ export function MythicWorldMap3D({
     });
   }, [data.entities, data.zones]);
 
+  // Compute zone connection roads (Google-Maps signature)
+  const roadPaths = useMemo(() => {
+    const z = data.zones || [];
+    if (z.length < 2) return [];
+    const paths: Array<{ from: [number, number, number]; to: [number, number, number] }> = [];
+    // Connect each zone to its nearest neighbor (MST-ish)
+    for (let i = 0; i < z.length; i++) {
+      let bestJ = -1, bestD = Infinity;
+      for (let j = 0; j < z.length; j++) {
+        if (i === j) continue;
+        const dx = z[i].x - z[j].x, dy = z[i].y - z[j].y;
+        const d = dx * dx + dy * dy;
+        if (d < bestD) { bestD = d; bestJ = j; }
+      }
+      if (bestJ >= 0 && bestJ > i) {
+        const [ax, , az] = toWorld(z[i].x, z[i].y);
+        const [bx, , bz] = toWorld(z[bestJ].x, z[bestJ].y);
+        paths.push({ from: [ax, 0, az], to: [bx, 0, bz] });
+      }
+    }
+    return paths;
+  }, [data.zones]);
+
   return (
     <div className="w-full h-full relative" style={{ touchAction: 'none' }}>
-      {/* Vignette overlay */}
+      {/* Subtle vignette only at corners */}
       <div
         className="absolute inset-0 z-10 pointer-events-none rounded-lg"
-        style={{ boxShadow: 'inset 0 0 80px 24px rgba(5, 5, 15, 0.95)' }}
+        style={{ boxShadow: 'inset 0 0 60px 8px rgba(5, 5, 15, 0.55)' }}
       />
       {/* Compass / scale hint */}
-      <div className="absolute top-2 left-2 z-20 flex items-center gap-1.5 rounded-full bg-black/40 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-amber-200/90 backdrop-blur-sm border border-amber-500/20 pointer-events-none">
+      <div className="absolute top-2 left-2 z-20 flex items-center gap-1.5 rounded-full bg-black/50 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-amber-200/95 backdrop-blur-sm border border-amber-500/25 pointer-events-none">
         <span className="h-1.5 w-1.5 rounded-full bg-amber-300 shadow-[0_0_6px_rgba(251,191,36,0.9)]" />
         {biomeId.replace(/_/g, ' ')}
+      </div>
+      {/* Scale bar — Google-Maps style */}
+      <div className="absolute bottom-2 right-2 z-20 flex items-center gap-1.5 text-[9px] text-amber-200/70 uppercase tracking-[0.15em] pointer-events-none">
+        <div className="h-[2px] w-10 bg-amber-200/60" />
+        <span>~scale</span>
       </div>
 
       <Canvas
         dpr={[1, 1.8]}
         gl={{ antialias: true, alpha: false, powerPreference: 'high-performance' }}
         style={{ background: MYTHIC.voidDeep }}
+        shadows
       >
         <Suspense fallback={null}>
-          <PerspectiveCamera makeDefault position={[0, 9, 12]} fov={42} />
+          {/* Higher, more top-down camera — Google Maps "zoom in" feel */}
+          <PerspectiveCamera makeDefault position={[0, 14, 9]} fov={38} />
           <OrbitControls
             enablePan
             enableZoom
             enableRotate
-            maxPolarAngle={Math.PI / 2.15}
-            minPolarAngle={Math.PI / 8}
-            minDistance={4}
-            maxDistance={28}
-            target={[0, 0.4, 0]}
+            maxPolarAngle={Math.PI / 2.4}
+            minPolarAngle={Math.PI / 12}
+            minDistance={5}
+            maxDistance={32}
+            target={[0, 0, 0]}
             enableDamping
             dampingFactor={0.08}
           />
 
           {/* ── Sky & atmosphere ── */}
           <MythicSky />
-          <Stars radius={60} depth={40} count={1400} factor={3} fade speed={0.4} />
-          <fog attach="fog" args={[MYTHIC.voidMid, 14, 38]} />
+          <Stars radius={60} depth={40} count={900} factor={2.4} fade speed={0.3} />
+          {/* Pulled back fog so the world is readable */}
+          <fog attach="fog" args={[MYTHIC.voidMid, 24, 55]} />
 
-          {/* ── Lights ── */}
-          <ambientLight color={MYTHIC.indigo} intensity={0.55} />
+          {/* ── Lights — brighter so detail reads ── */}
+          <ambientLight color={'#3a3470'} intensity={0.95} />
           <directionalLight
-            position={[6, 10, 6]}
-            intensity={0.9}
+            position={[8, 14, 6]}
+            intensity={1.4}
             color={MYTHIC.violetGlow}
+            castShadow
+            shadow-mapSize-width={1024}
+            shadow-mapSize-height={1024}
           />
           <directionalLight
-            position={[-8, 5, -4]}
-            intensity={0.35}
+            position={[-8, 7, -4]}
+            intensity={0.55}
             color={MYTHIC.gold}
           />
           {/* Hero rim moonlight */}
-          <pointLight position={[0, 12, -4]} color={MYTHIC.violet} intensity={1.4} distance={28} decay={2} />
+          <pointLight position={[0, 14, -4]} color={MYTHIC.violet} intensity={1.6} distance={32} decay={2} />
 
           {/* ── Terrain ── */}
           <MythicTerrain
@@ -757,8 +791,60 @@ export function MythicWorldMap3D({
             zones={data.zones || []}
           />
 
-          {/* ── Mist ── */}
-          <MistParticles count={260} color={MYTHIC.mist} />
+          {/* ── Roads connecting zones (Google-Maps signature) ── */}
+          {roadPaths.map((p, i) => (
+            <RoadPath key={i} from={p.from} to={p.to} />
+          ))}
+
+          {/* ── Biome patches under each zone (color-coded districts) ── */}
+          {data.zones?.map(zone => {
+            const [wx, , wz] = toWorld(zone.x, zone.y);
+            const wy = getElevationY(zone.elevation) * 0.4;
+            const kind = classifyZone(zone);
+            const patchColor =
+              kind === 'settlement' ? '#5a4a8a' :
+              kind === 'foliage'    ? '#2e5a3a' :
+              kind === 'ruin'       ? '#5a4a3a' :
+              zone.colorHint === 'water' ? '#1e3a6e' :
+                                      '#3a2f5a';
+            const radius = Math.max(zone.width, zone.height) * 0.16;
+            return (
+              <mesh
+                key={`patch-${zone.id}`}
+                position={[wx, wy + 0.015, wz]}
+                rotation={[-Math.PI / 2, 0, 0]}
+              >
+                <circleGeometry args={[radius, 32]} />
+                <meshStandardMaterial color={patchColor} roughness={0.95} metalness={0} transparent opacity={0.75} />
+              </mesh>
+            );
+          })}
+
+          {/* ── Mist — lighter so it doesn't obscure the world ── */}
+          <MistParticles count={120} color={MYTHIC.mist} />
+
+          {/* ── Big floating zone-name plates (Google-Maps labels) ── */}
+          {data.zones?.map(zone => {
+            const [wx, , wz] = toWorld(zone.x, zone.y);
+            const wy = getElevationY(zone.elevation) * 0.4;
+            const isSelected = selectedZoneId === zone.id;
+            return (
+              <Billboard key={`label-${zone.id}`} position={[wx, wy + 2.4, wz]}>
+                <Text
+                  fontSize={isSelected ? 0.36 : 0.28}
+                  color={isSelected ? MYTHIC.goldGlow : '#fef3c7'}
+                  anchorX="center"
+                  anchorY="middle"
+                  outlineWidth={0.025}
+                  outlineColor={MYTHIC.voidDeep}
+                  letterSpacing={0.06}
+                  fontWeight={700}
+                >
+                  {(zone.label || '').toUpperCase()}
+                </Text>
+              </Billboard>
+            );
+          })}
 
           {/* ── Worldbuilding props per zone ── */}
           {data.zones?.map((zone, idx) => {
