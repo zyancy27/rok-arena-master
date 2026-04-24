@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import type { CampaignResponseSuggestion } from '@/lib/campaign-response-suggestions';
 import { Brain, ChevronDown, ChevronUp, MessageCircleQuestion, RefreshCw, Send, Sparkles, Swords, Undo2 } from 'lucide-react';
@@ -13,6 +14,8 @@ interface CampaignResponseSuggestionsProps {
   onCancel: () => void;
   onConfirm: (suggestion: CampaignResponseSuggestion) => void;
   onRefresh?: () => void;
+  /** Optional extra content (e.g. quick action chips) rendered inside the panel. */
+  extraContent?: ReactNode;
 }
 
 function getIntentLabel(intent: CampaignResponseSuggestion['intent']) {
@@ -54,9 +57,10 @@ export default function CampaignResponseSuggestions({
   onCancel,
   onConfirm,
   onRefresh,
+  extraContent,
 }: CampaignResponseSuggestionsProps) {
 
-  if (!isLoading && suggestions.length === 0 && !selectedSuggestion) return null;
+  if (!isLoading && suggestions.length === 0 && !selectedSuggestion && !extraContent) return null;
 
   return (
     <section
@@ -162,6 +166,12 @@ export default function CampaignResponseSuggestions({
                       </button>
                     );
                   })}
+            </div>
+          )}
+          {extraContent && !selectedSuggestion && (
+            <div className="mt-3 border-t border-border/40 pt-3">
+              <p className="mb-1.5 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Quick actions</p>
+              {extraContent}
             </div>
           )}
         </div>
