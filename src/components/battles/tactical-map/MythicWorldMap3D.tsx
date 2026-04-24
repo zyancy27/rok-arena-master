@@ -658,6 +658,41 @@ function classifyZone(
   return 'open';
 }
 
+// ─── Animated road path between two zones ─────────────────────────
+
+function RoadPath({ from, to }: { from: [number, number, number]; to: [number, number, number] }) {
+  const ref = useRef<THREE.Mesh>(null);
+  const { length, midpoint, angle } = useMemo(() => {
+    const dx = to[0] - from[0];
+    const dz = to[2] - from[2];
+    const len = Math.sqrt(dx * dx + dz * dz);
+    const mid: [number, number, number] = [(from[0] + to[0]) / 2, 0.025, (from[2] + to[2]) / 2];
+    const a = Math.atan2(dz, dx);
+    return { length: len, midpoint: mid, angle: a };
+  }, [from, to]);
+
+  useFrame((s) => {
+    if (!ref.current) return;
+    const m = ref.current.material as THREE.MeshBasicMaterial;
+    m.opacity = 0.32 + Math.sin(s.clock.elapsedTime * 0.8) * 0.08;
+  });
+
+  return (
+    <group position={midpoint} rotation={[-Math.PI / 2, 0, -angle]}>
+      {/* Base road */}
+      <mesh>
+        <planeGeometry args={[length, 0.18]} />
+        <meshBasicMaterial color={MYTHIC.gold} transparent opacity={0.35} depthWrite={false} />
+      </mesh>
+      {/* Glowing core */}
+      <mesh ref={ref} position={[0, 0, 0.005]}>
+        <planeGeometry args={[length, 0.06]} />
+        <meshBasicMaterial color={MYTHIC.goldGlow} transparent opacity={0.4} depthWrite={false} blending={THREE.AdditiveBlending} />
+      </mesh>
+    </group>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────
 
 interface MythicWorldMap3DProps {
