@@ -269,6 +269,11 @@ IMPORTANT: "countdownTurns" MUST be exactly ${urgencyCountdown}. "urgencyTier" M
       );
     }
 
+    // Inject the blueprint id and category for client-side dedup tracking.
+    locationResult.blueprintId = selection.blueprint.id;
+    locationResult.blueprintCategory = selection.blueprint.category;
+    locationResult.blueprintScope = selection.blueprint.scope;
+
     return new Response(
       JSON.stringify(locationResult),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
