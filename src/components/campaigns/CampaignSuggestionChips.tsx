@@ -29,6 +29,8 @@ interface CampaignSuggestionChipsProps {
   currentPressure?: string | null;
   onSuggestionSelect: (text: string) => void;
   currentInput?: string;
+  /** Render mode: 'all' (default), 'phrase-only' (just the phrase helper), or 'chips-only' (just action chips). */
+  mode?: 'all' | 'phrase-only' | 'chips-only';
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
