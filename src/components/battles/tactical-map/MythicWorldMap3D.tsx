@@ -647,13 +647,16 @@ function classifyZone(
   zone: NonNullable<TacticalMapData['zones']>[number]
 ): 'settlement' | 'foliage' | 'ruin' | 'open' {
   const label = (zone.label || '').toLowerCase();
-  const hint = (zone.colorHint || '').toLowerCase();
-  const tact = zone.tactical || ({} as Partial<typeof zone.tactical>);
+  const hint = ((zone as any).colorHint || '').toLowerCase();
+  const terrain = ((zone as any).terrain || '').toLowerCase();
+  const tact = (zone as any).tactical || {};
 
-  if (/town|village|market|hall|inn|temple|shrine|camp|outpost|fort|keep|gate|bridge|building|rooftop|floor|station|hangar|deck/.test(label)) return 'settlement';
-  if (/forest|wood|grove|jungle|thicket|garden|treeline|canopy|clearing/.test(label)) return 'foliage';
-  if (/ruin|tomb|cairn|stone|altar|crypt|monolith|barrow|relic|wreck/.test(label)) return 'ruin';
-  if (hint === 'water') return 'open';
+  if (terrain === 'vegetation') return 'foliage';
+  if (terrain === 'structure') return 'settlement';
+  if (/town|village|market|hall|inn|temple|shrine|camp|outpost|fort|keep|gate|bridge|building|rooftop|floor|station|hangar|deck|street|plaza|square|district|alley|courtyard/.test(label)) return 'settlement';
+  if (/forest|wood|grove|jungle|thicket|garden|treeline|canopy|clearing|meadow|field|park/.test(label)) return 'foliage';
+  if (/ruin|tomb|cairn|stone|altar|crypt|monolith|barrow|relic|wreck|crater/.test(label)) return 'ruin';
+  if (hint === 'water' || terrain === 'water') return 'open';
   if (tact.hasCover) return 'settlement';
   return 'open';
 }
