@@ -168,6 +168,12 @@ export default function CampaignResponseSuggestions({
                   })}
             </div>
           )}
+          {extraContent && !selectedSuggestion && (
+            <div className="mt-3 border-t border-border/40 pt-3">
+              <p className="mb-1.5 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Quick actions</p>
+              {extraContent}
+            </div>
+          )}
         </div>
       )}
     </section>
