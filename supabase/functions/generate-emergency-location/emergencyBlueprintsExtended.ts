@@ -15,8 +15,8 @@
  * Pure data — Deno + browser compatible.
  */
 
-import type { EmergencyBlueprint } from './emergencyBlueprints';
-import type { DangerTaxonomyFields } from './dangerTaxonomy';
+import type { EmergencyBlueprint } from './emergencyBlueprints.ts';
+import type { DangerTaxonomyFields } from './dangerTaxonomy.ts';
 
 export type ExtendedBlueprint = EmergencyBlueprint & DangerTaxonomyFields;
 
