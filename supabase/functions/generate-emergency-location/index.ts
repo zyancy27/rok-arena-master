@@ -1,6 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { selectEmergencyBlueprint, renderBlueprintBrief } from "./emergencyBlueprintSelector.ts";
+import {
+  selectMultiAxisBlueprint,
+  renderMultiAxisBrief,
+} from "./multiAxisBlueprintSelector.ts";
 import type { RarityTier } from "./emergencyBlueprints.ts";
 
 const corsHeaders = {
@@ -74,17 +77,22 @@ serve(async (req) => {
     const lvl2 = typeof character2Level === 'number' ? character2Level : 3;
     const avgLevel = Math.round((lvl1 + lvl2) / 2);
 
-    // === BLUEPRINT-DRIVEN RARITY + SEED ===
-    // 70% grounded, 20% advanced, 8% extreme, 2% mythic — enforced via blueprint catalog (100+ entries).
-    // previousLocations is treated as a list of recent blueprint ids for dedup.
-    const selection = selectEmergencyBlueprint({
+    // === MULTI-AXIS BLUEPRINT SELECTION ===
+    // Pulls from the unified catalog (legacy + extended human-grounded entries)
+    // and uses family/groundedness/imagery distinctness to avoid "same-but-
+    // slightly-different" picks. Strongly biased toward grounded human-scale
+    // disasters (criminal, transport, infrastructure, civil unrest, etc).
+    const recentIds = Array.isArray(previousLocations) ? previousLocations : [];
+    const selection = selectMultiAxisBlueprint({
       averageTier: avgLevel,
       planetName: planetName ?? null,
       planetDescription: planetDescription ?? null,
-      recentBlueprintIds: Array.isArray(previousLocations) ? previousLocations : [],
+      recentBlueprintIds: recentIds,
+      // PvP / PvE alike: keep cosmic rare. Edge fn doesn't differentiate yet.
+      groundednessWeights: { grounded: 0.78, speculative: 0.17, exotic: 0.05 },
     });
     const rarityTier = selection.rarity.toUpperCase();
-    const rarityInstruction = `RARITY: ${rarityTier} (selected from blueprint catalog of 100+ base disasters)\n\n${renderBlueprintBrief(selection)}`;
+    const rarityInstruction = `RARITY: ${rarityTier} | FAMILY: ${selection.family} | GROUNDEDNESS: ${selection.groundedness}\n\n${renderMultiAxisBrief(selection)}`;
 
 
     // === PLANET-LINKED CONSTRAINT ===
@@ -269,10 +277,13 @@ IMPORTANT: "countdownTurns" MUST be exactly ${urgencyCountdown}. "urgencyTier" M
       );
     }
 
-    // Inject the blueprint id and category for client-side dedup tracking.
+    // Inject blueprint metadata for client-side dedup tracking.
     locationResult.blueprintId = selection.blueprint.id;
     locationResult.blueprintCategory = selection.blueprint.category;
     locationResult.blueprintScope = selection.blueprint.scope;
+    locationResult.blueprintFamily = selection.family;
+    locationResult.blueprintGroundedness = selection.groundedness;
+    locationResult.blueprintDistinctness = Number(selection.distinctness.toFixed(2));
 
     return new Response(
       JSON.stringify(locationResult),

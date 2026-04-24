@@ -11,6 +11,13 @@ import { composeScenario, type ComposedScenario } from './scenarioComposer';
 import { ScenarioMemory, createScenarioMemory } from './scenarioMemory';
 import { createSeededRandom } from './scenarioRandomizer';
 import { selectEmergencyBlueprint, type SelectedBlueprint } from './emergencyBlueprintSelector';
+import {
+  selectMultiAxisBlueprint,
+  selectionToRecent,
+  type MultiAxisSelection,
+} from './multiAxisBlueprintSelector';
+import type { RecentEntry } from './blueprintSimilarity';
+import type { DangerFamily, Groundedness } from './dangerTaxonomy';
 
 export interface ScenarioBrainOptions {
   /** Optional seed for deterministic generation */
@@ -25,6 +32,8 @@ export class ScenarioBrain {
   private recentBlueprintIds: string[] = [];
   /** Recently-used categories — soft penalty in selector */
   private recentCategories: string[] = [];
+  /** Structured recent entries used by the multi-axis similarity check */
+  private recentEntries: RecentEntry[] = [];
 
   constructor(options: ScenarioBrainOptions = {}) {
     this.memory = createScenarioMemory();
@@ -32,9 +41,8 @@ export class ScenarioBrain {
   }
 
   /**
-   * Pick an emergency blueprint (100+ catalog entries) layered with twists.
-   * Use this for PvE / EvE scene seeding so generation never collapses to
-   * the same handful of disasters.
+   * Pick an emergency blueprint (legacy basic selector — kept for back-compat).
+   * Prefer `pickMultiAxisBlueprint` for new call sites.
    */
   pickBlueprint(context: Partial<ScenarioContext> = {}): SelectedBlueprint {
     const selection = selectEmergencyBlueprint({
@@ -50,6 +58,37 @@ export class ScenarioBrain {
     if (this.recentCategories.length > 8) this.recentCategories.shift();
     return selection;
   }
+
+  /**
+   * Multi-axis blueprint pick — uses the unified catalog (legacy + extended
+   * grounded human catalog), filters on rarity + tier + groundedness + family,
+   * scores candidates against the recent window, and rejects same-feeling
+   * picks. This is the preferred entry point for PvE / EvE generation.
+   */
+  pickMultiAxisBlueprint(
+    context: Partial<ScenarioContext> & {
+      excludeFamilies?: DangerFamily[];
+      groundednessOverride?: Groundedness;
+    } = {},
+  ): MultiAxisSelection {
+    const selection = selectMultiAxisBlueprint({
+      averageTier: context.averageTier ?? 3,
+      battleIntensity: context.battleIntensity ?? 0.5,
+      recentEntries: this.recentEntries,
+      recentBlueprintIds: this.recentBlueprintIds,
+      excludeFamilies: context.excludeFamilies,
+      groundednessOverride: context.groundednessOverride,
+      rng: this.rng,
+    });
+    this.recentEntries.push(selectionToRecent(selection));
+    this.recentBlueprintIds.push(selection.blueprint.id);
+    this.recentCategories.push(selection.blueprint.category);
+    if (this.recentEntries.length > 12) this.recentEntries.shift();
+    if (this.recentBlueprintIds.length > 25) this.recentBlueprintIds.shift();
+    if (this.recentCategories.length > 8) this.recentCategories.shift();
+    return selection;
+  }
+
 
 
   /**
