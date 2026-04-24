@@ -216,7 +216,7 @@ export default function CampaignTacticalMap({ sceneMap, onClose }: CampaignTacti
       </div>
 
       {/* Map viewport */}
-      <div className="relative" style={{ height: '280px' }}>
+      <div className="relative" style={{ height: '440px' }}>
         {viewMode === '2d' ? (
           <svg
             viewBox="0 0 100 100"
@@ -362,14 +362,19 @@ export default function CampaignTacticalMap({ sceneMap, onClose }: CampaignTacti
           </svg>
         ) : (
           <Suspense fallback={
-            <div className="w-full h-full flex items-center justify-center bg-background">
-              <span className="text-xs text-muted-foreground animate-pulse">Loading 3D view...</span>
+            <div className="w-full h-full flex items-center justify-center bg-[#05050f]">
+              <div className="flex flex-col items-center gap-2">
+                <div className="h-8 w-8 rounded-full border-2 border-amber-300/30 border-t-amber-300 animate-spin" />
+                <span className="text-[11px] text-amber-200/70 tracking-[0.2em] uppercase">Summoning the realm…</span>
+              </div>
             </div>
           }>
-            <TacticalMap3D
+            <MythicWorldMap3D
               data={tacticalMapData as any}
               selectedEntityId={selectedEntityId}
+              selectedZoneId={hoveredZone}
               onEntityTap={id => setSelectedEntityId(id === selectedEntityId ? null : id)}
+              onZoneTap={id => setHoveredZone(id === hoveredZone ? null : id)}
             />
           </Suspense>
         )}
