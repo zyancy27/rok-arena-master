@@ -28,6 +28,8 @@ import UserProfile from "@/pages/UserProfile";
 import Friends from "@/pages/Friends";
 import Admin from "@/pages/Admin";
 import SystemArchitecture from "@/pages/SystemArchitecture";
+import FeatureChecklist from "@/pages/FeatureChecklist";
+import InternalGate from "@/components/internal/InternalGate";
 import Terms from "@/pages/Terms";
 import Races from "@/pages/Races";
 import Stories from "@/pages/Stories";
@@ -82,8 +84,9 @@ const App = () => (
               <Route path="/settings" element={<Settings />} />
               <Route path="/membership" element={<Membership />} />
               <Route path="/payment-success" element={<PaymentSuccess />} />
-              <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
-              <Route path="/admin/architecture" element={<ProtectedRoute requireAdmin><SystemArchitecture /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute requireAdmin><InternalGate title="Admin Access" description="Enter the admin password to manage users and battles."><Admin /></InternalGate></ProtectedRoute>} />
+              <Route path="/admin/architecture" element={<ProtectedRoute requireAdmin><InternalGate title="Admin Access" description="Enter the admin password to view the system architecture."><SystemArchitecture /></InternalGate></ProtectedRoute>} />
+              <Route path="/feature-checklist" element={<InternalGate title="Feature Checklist Access" description="Enter the access password to view and export the feature checklist."><FeatureChecklist /></InternalGate>} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
