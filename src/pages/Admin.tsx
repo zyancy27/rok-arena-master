@@ -25,7 +25,8 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Shield, Users, Swords, Trash2, UserCheck, UserX } from 'lucide-react';
+import { Shield, Users, Swords, Trash2, UserCheck, UserX, Cpu } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 interface UserData {
   id: string;
@@ -164,14 +165,22 @@ export default function Admin() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold flex items-center gap-2">
-          <Shield className="w-8 h-8 text-primary" />
-          Admin Panel
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Manage users and battles
-        </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <Shield className="w-8 h-8 text-primary" />
+            Admin Panel
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Manage users and battles
+          </p>
+        </div>
+        <Button asChild variant="outline" className="flex items-center gap-2">
+          <Link to="/admin/architecture">
+            <Cpu className="w-4 h-4" />
+            System Architecture
+          </Link>
+        </Button>
       </div>
 
       <Tabs defaultValue="users">
