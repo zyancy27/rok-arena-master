@@ -27,6 +27,7 @@ import Profile from "@/pages/Profile";
 import UserProfile from "@/pages/UserProfile";
 import Friends from "@/pages/Friends";
 import Admin from "@/pages/Admin";
+import SystemArchitecture from "@/pages/SystemArchitecture";
 import Terms from "@/pages/Terms";
 import Races from "@/pages/Races";
 import Stories from "@/pages/Stories";
@@ -82,6 +83,7 @@ const App = () => (
               <Route path="/membership" element={<Membership />} />
               <Route path="/payment-success" element={<PaymentSuccess />} />
               <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin /></ProtectedRoute>} />
+              <Route path="/admin/architecture" element={<ProtectedRoute requireAdmin><SystemArchitecture /></ProtectedRoute>} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
