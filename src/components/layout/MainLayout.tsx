@@ -18,7 +18,7 @@ import OwnershipNotice from '@/components/legal/OwnershipNotice';
 import PageBreadcrumb from '@/components/layout/PageBreadcrumb';
 import PageTransition from '@/components/layout/PageTransition';
 import SuggestionsButton from '@/components/community/SuggestionsButton';
-import { Swords, Users, Shield, LogOut, User, Home, Heart, Settings, Crown, DollarSign } from 'lucide-react';
+import { Swords, Users, Shield, LogOut, User, Home, Heart, Settings, Crown, DollarSign, ListChecks } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useActivityTracker } from '@/hooks/use-activity-tracker';
@@ -125,6 +125,12 @@ export default function MainLayout() {
                 <Link to="/membership" className="flex items-center cursor-pointer">
                   <Crown className="mr-2 h-4 w-4" />
                   Membership
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/feature-checklist" className="flex items-center cursor-pointer">
+                  <ListChecks className="mr-2 h-4 w-4" />
+                  Feature Checklist
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
