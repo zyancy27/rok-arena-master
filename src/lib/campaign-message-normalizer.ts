@@ -257,9 +257,26 @@ export function normalizeNarrationToCampaignMessages(
     return normalizeSceneBeatsToCampaignMessages(options.sceneBeats, options);
   }
 
-  // Fallback: regex-based parsing of flat narration string
-  const rawNarration = cleanText(options.rawNarration);
+  // Defensive recovery: if rawNarration is actually a JSON blob (e.g. the
+  // upstream parser failed and leaked the model output through), try to
+  // extract the embedded `sceneBeats` / `narration` fields here instead of
+  // letting the regex parser shred the JSON into garbage chat rows.
+  let rawNarration = cleanText(options.rawNarration);
+  if (rawNarration.startsWith('{') && /"sceneBeats"\s*:|"narration"\s*:/.test(rawNarration)) {
+    const recovered = recoverFromJsonBlob(rawNarration);
+    if (recovered.sceneBeats && recovered.sceneBeats.length > 0) {
+      return normalizeSceneBeatsToCampaignMessages(recovered.sceneBeats, options);
+    }
+    if (recovered.narration && recovered.narration.length > 10) {
+      rawNarration = cleanText(recovered.narration);
+    } else {
+      // No recoverable content — drop the row rather than persist JSON noise
+      return [];
+    }
+  }
+
   if (!rawNarration) return [];
+
 
   const turnGroupId = options.turnGroupId ?? `turn-${Date.now()}`;
   const baseMetadata = trimMetadataForPersistence(isRecord(options.baseMetadata) ? options.baseMetadata : {});
