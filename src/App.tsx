@@ -29,6 +29,7 @@ import Friends from "@/pages/Friends";
 import Admin from "@/pages/Admin";
 import SystemArchitecture from "@/pages/SystemArchitecture";
 import FeatureChecklist from "@/pages/FeatureChecklist";
+import CampaignBrainDiagnostics from "@/pages/CampaignBrainDiagnostics";
 import InternalGate from "@/components/internal/InternalGate";
 import Terms from "@/pages/Terms";
 import Races from "@/pages/Races";
@@ -86,6 +87,7 @@ const App = () => (
               <Route path="/payment-success" element={<PaymentSuccess />} />
               <Route path="/admin" element={<ProtectedRoute requireAdmin><InternalGate title="Admin Access" description="Enter the admin password to manage users and battles."><Admin /></InternalGate></ProtectedRoute>} />
               <Route path="/admin/architecture" element={<ProtectedRoute requireAdmin><InternalGate title="Admin Access" description="Enter the admin password to view the system architecture."><SystemArchitecture /></InternalGate></ProtectedRoute>} />
+              <Route path="/internal/campaign-brain" element={<ProtectedRoute requireAdmin><InternalGate title="Diagnostics Access" description="Enter the internal password to view the live campaign brain snapshot."><CampaignBrainDiagnostics /></InternalGate></ProtectedRoute>} />
               <Route path="/feature-checklist" element={<InternalGate title="Feature Checklist Access" description="Enter the access password to view and export the feature checklist."><FeatureChecklist /></InternalGate>} />
             </Route>
             <Route path="*" element={<NotFound />} />
