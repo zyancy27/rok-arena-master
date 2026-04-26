@@ -43,6 +43,7 @@ import {
 } from '@/lib/campaign-response-suggestions';
 import { getTimeEmoji, CAMPAIGN_STARTING_ABILITIES, XP_REWARDS, advanceTime } from '@/lib/campaign-types';
 import { normalizeNarrationToCampaignMessages, sortCampaignMessagesForDisplay, type SceneBeat } from '@/lib/campaign-message-normalizer';
+import { persistNarratorBackgroundState } from '@/lib/narrator-background-state';
 import CampaignInventoryPanel, { type InventoryItem } from '@/components/campaigns/CampaignInventoryPanel';
 import CampaignEndDialog from '@/components/campaigns/CampaignEndDialog';
 import CampaignNarratorChat from '@/components/campaigns/CampaignNarratorChat';
@@ -154,7 +155,16 @@ export default function CampaignView() {
     activeEnemyNames?: string[];
     knownNpcNames?: Set<string>;
     sceneBeats?: SceneBeat[] | null;
+    /** Optional context for background-state persistence (player input, character). */
+    backgroundContext?: {
+      playerInput?: string | null;
+      characterId?: string | null;
+      turnLogId?: string | null;
+    };
   }) => {
+    // Stable turnGroupId so chat rows + background state share the same key.
+    const turnGroupId = `turn-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
     const normalizedMessages = normalizeNarrationToCampaignMessages({
       campaignId: input.campaignId,
       rawNarration: input.rawNarration,
@@ -164,21 +174,39 @@ export default function CampaignView() {
       focalCharacterName: input.focalCharacterName,
       isSolo: input.isSolo,
       sceneBeats: input.sceneBeats,
+      turnGroupId,
     });
 
     if (normalizedMessages.length === 0) return;
     const { error: bulkError } = await supabase.from('campaign_messages').insert(normalizedMessages as any);
-    if (!bulkError) return;
-
-    // Bulk insert failed (oversized payload, transient network, etc.). Try one
-    // row at a time so a single bad row doesn't drop the whole response group
-    // — this is what was leaving NPC dialogue + environment beats missing.
-    console.warn('[narration] bulk insert failed, retrying per-row', bulkError);
-    for (const row of normalizedMessages) {
-      const { error: rowError } = await supabase.from('campaign_messages').insert(row as any);
-      if (rowError) {
-        console.warn('[narration] per-row insert failed', { rowError, kind: (row.metadata as any)?.structuredMessageKind });
+    if (bulkError) {
+      // Bulk insert failed (oversized payload, transient network, etc.). Try one
+      // row at a time so a single bad row doesn't drop the whole response group
+      // — this is what was leaving NPC dialogue + environment beats missing.
+      console.warn('[narration] bulk insert failed, retrying per-row', bulkError);
+      for (const row of normalizedMessages) {
+        const { error: rowError } = await supabase.from('campaign_messages').insert(row as any);
+        if (rowError) {
+          console.warn('[narration] per-row insert failed', { rowError, kind: (row.metadata as any)?.structuredMessageKind });
+        }
       }
+    }
+
+    // ── Background state path ──────────────────────────────────────────
+    // Heavy narrator state (generatedPackets, sceneEffectPacket, lore, etc.)
+    // is intentionally stripped from chat rows by the normalizer. Persist it
+    // separately, fire-and-forget, so continuity is never silently lost.
+    // This MUST NOT block chat rendering or surface errors to the user.
+    if (input.baseMetadata && Object.keys(input.baseMetadata).length > 0) {
+      void persistNarratorBackgroundState({
+        campaignId: input.campaignId,
+        turnGroupId,
+        heavyMetadata: input.baseMetadata,
+        rawNarration: input.rawNarration,
+        playerInput: input.backgroundContext?.playerInput ?? null,
+        characterId: input.backgroundContext?.characterId ?? null,
+        turnLogId: input.backgroundContext?.turnLogId ?? null,
+      });
     }
   }, []);
 
