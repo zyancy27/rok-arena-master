@@ -175,12 +175,20 @@ export default function Admin() {
             Manage users and battles
           </p>
         </div>
-        <Button asChild variant="outline" className="flex items-center gap-2">
-          <Link to="/admin/architecture">
-            <Cpu className="w-4 h-4" />
-            System Architecture
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline" className="flex items-center gap-2">
+            <Link to="/admin/architecture">
+              <Cpu className="w-4 h-4" />
+              System Architecture
+            </Link>
+          </Button>
+          <Button asChild variant="outline" className="flex items-center gap-2">
+            <Link to="/internal/campaign-brain">
+              <Cpu className="w-4 h-4" />
+              Campaign Brain
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="users">
