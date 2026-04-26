@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import type { NarrationHighlightRange } from '@/systems/narration/NarrationHighlightManager';
+import { useLiveTyping } from '@/hooks/use-live-typing';
 
 /** Split text into sentences, preserving whitespace between them. */
 function splitSentences(text: string): string[] {
@@ -44,6 +45,13 @@ interface NarratorMessageContentProps {
   playbackClassName?: string;
   /** @deprecated Use playbackClassName to make playback-only styling explicit. */
   animationClassName?: string;
+  /** Stable id for live-typing reveal. When provided, fresh narrator messages
+   *  reveal progressively. Older / re-hydrated messages render fully. */
+  messageId?: string;
+  /** Server timestamp — older-than-session messages render without animation. */
+  createdAt?: string | number | Date | null;
+  /** Disable live typing entirely (e.g. for system / error placeholders). */
+  liveTypingEnabled?: boolean;
 }
 
 export default function NarratorMessageContent({
@@ -59,8 +67,18 @@ export default function NarratorMessageContent({
   contentClassName = 'text-sm whitespace-pre-wrap break-words text-foreground/90 italic',
   playbackClassName = '',
   animationClassName = '',
+  messageId,
+  createdAt,
+  liveTypingEnabled = true,
 }: NarratorMessageContentProps) {
-  const sentences = useMemo(() => splitSentences(content), [content]);
+  const { visibleText, isTyping, skip } = useLiveTyping({
+    messageId: messageId ?? `nar-static-${content.length}`,
+    text: content,
+    createdAt,
+    enabled: liveTypingEnabled && !!messageId,
+  });
+  const renderedContent = isTyping ? visibleText : content;
+  const sentences = useMemo(() => splitSentences(renderedContent), [renderedContent]);
   const [localPendingSentence, setLocalPendingSentence] = useState<number | null>(null);
 
   const handleClick = useCallback(
