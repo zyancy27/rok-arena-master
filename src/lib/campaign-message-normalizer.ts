@@ -40,36 +40,68 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * Heavy fields we never want to persist on EVERY scene beat. These can be
- * hundreds of KB of encrypted lore + identity packets and, when copied across
- * 3-5 beat rows in a single bulk insert, push the request past PostgREST /
- * Cloudflare body limits — the entire insert then fails with
- * "Failed to fetch" and NPC dialogue + environment beats vanish from chat.
+ * ── Two-layer persistence model ──────────────────────────────────────────
  *
- * Anything that needs to survive for downstream rendering (voice cues, intent
- * debug, dice metadata, scene effect summaries) is kept; the rest is dropped.
+ * Chat message rows are LIGHTWEIGHT. They only carry what an individual
+ * message needs to render, animate, play audio, and stay correctly ordered
+ * in the response group. They must NOT carry generated lore packets, full
+ * conversation history, full player/world state, or other large background
+ * context — copying those across 3-5 beat rows blew past the Postgres /
+ * Cloudflare request body limits and silently dropped NPC dialogue and
+ * environment beats from the chat.
+ *
+ * Heavy narrator/campaign state (generatedPackets, conversationHistory,
+ * world/lore packets, scene-effect packets, etc.) lives in the background
+ * via `persistNarratorBackgroundState` → `campaign_logs` and durable tables
+ * (campaign_brain, campaign_turn_logs, campaign_npcs, campaign_location_state).
+ * Future narrator turns retrieve continuity from those tables, NOT from chat
+ * message metadata.
+ *
+ * The chat-row allowlist below is the single source of truth for what is
+ * safe and useful to embed on each campaign_messages row.
  */
-const HEAVY_METADATA_KEYS = new Set<string>([
-  'generatedPackets',
-  'contextPacket',
-  'resolvedActionPacket',
-  'npcReactionPacket',
-  'sceneEffectPacket',
-  'narrationContext',
-  'characterLore',
-  'loreContext',
-  'playerCharacter',
-  'conversationHistory',
-  'storyContext',
-  'worldState',
-  'generated',
+export const CHAT_MESSAGE_METADATA_ALLOWLIST = new Set<string>([
+  // ── Rendering / playback ──
+  'narratorPlayback',          // voice cue, animation tag, voice settings
+  'soundCue',
+  'animationTag',
+  'voiceSettings',
+  'scenePresentationProfile',  // small derived profile used by chat bubbles
+  'chatPresentationTags',
+  'ambientCueFamilies',
+
+  // ── Speaker / identity (rendering only) ──
+  'speakerName',
+  'displaySpeakerName',
+  'sceneBeatType',
+  'narrationFlavorTags',
+  'scenePressureTags',
+
+  // ── Grouping / ordering / live-typing ──
+  'structuredTurnGroupId',
+  'structuredTurnSequence',
+  'structuredMessageKind',
+  'structuredOriginalNarration',
+  'backgroundStateRef',        // pointer to campaign_logs row holding heavy state
+  'turnLogId',                 // pointer to campaign_turn_logs row for this turn
+
+  // ── Compact debug / dice surfaces (small) ──
+  'intentDebug',
+  'diceMetadata',
+  'mapEffectTags',
+  'npcReactionSummary',
 ]);
 
-/** Drop heavy/redundant payloads but keep small surface fields. */
+/**
+ * Reduce metadata to ONLY the fields a chat message needs. Anything not on
+ * the allowlist is dropped from the row and is expected to be persisted to
+ * background state separately via `persistNarratorBackgroundState`.
+ */
 function trimMetadataForPersistence(meta: Record<string, unknown>): Record<string, unknown> {
   const trimmed: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(meta)) {
-    if (HEAVY_METADATA_KEYS.has(key)) continue;
+    if (!CHAT_MESSAGE_METADATA_ALLOWLIST.has(key)) continue;
+    if (value === undefined) continue;
     trimmed[key] = value;
   }
   return trimmed;
