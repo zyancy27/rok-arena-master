@@ -167,7 +167,19 @@ export default function CampaignView() {
     });
 
     if (normalizedMessages.length === 0) return;
-    await supabase.from('campaign_messages').insert(normalizedMessages as any);
+    const { error: bulkError } = await supabase.from('campaign_messages').insert(normalizedMessages as any);
+    if (!bulkError) return;
+
+    // Bulk insert failed (oversized payload, transient network, etc.). Try one
+    // row at a time so a single bad row doesn't drop the whole response group
+    // — this is what was leaving NPC dialogue + environment beats missing.
+    console.warn('[narration] bulk insert failed, retrying per-row', bulkError);
+    for (const row of normalizedMessages) {
+      const { error: rowError } = await supabase.from('campaign_messages').insert(row as any);
+      if (rowError) {
+        console.warn('[narration] per-row insert failed', { rowError, kind: (row.metadata as any)?.structuredMessageKind });
+      }
+    }
   }, []);
 
 
