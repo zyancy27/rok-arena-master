@@ -160,7 +160,7 @@ function normalizeSceneBeatsToCampaignMessages(
   options: NarrationNormalizationOptions,
 ): NormalizedCampaignMessageInsert[] {
   const turnGroupId = options.turnGroupId ?? `turn-${Date.now()}`;
-  const baseMetadata = isRecord(options.baseMetadata) ? options.baseMetadata : {};
+  const baseMetadata = trimMetadataForPersistence(isRecord(options.baseMetadata) ? options.baseMetadata : {});
   const channel = options.channel ?? 'in_universe';
   const knownNpcNames = options.knownNpcNames ?? new Set<string>();
   const activeEnemyNames = options.activeEnemyNames ?? [];
@@ -230,7 +230,7 @@ export function normalizeNarrationToCampaignMessages(
   if (!rawNarration) return [];
 
   const turnGroupId = options.turnGroupId ?? `turn-${Date.now()}`;
-  const baseMetadata = isRecord(options.baseMetadata) ? options.baseMetadata : {};
+  const baseMetadata = trimMetadataForPersistence(isRecord(options.baseMetadata) ? options.baseMetadata : {});
   const channel = options.channel ?? 'in_universe';
   const knownNpcNames = options.knownNpcNames ?? new Set<string>();
   const activeEnemyNames = options.activeEnemyNames ?? [];
