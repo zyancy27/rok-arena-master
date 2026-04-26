@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { CampaignMessage } from '@/lib/campaign-types';
-import { normalizeNarrationToCampaignMessages, sortCampaignMessagesForDisplay } from './campaign-message-normalizer';
+import {
+  CHAT_MESSAGE_METADATA_ALLOWLIST,
+  normalizeNarrationToCampaignMessages,
+  sortCampaignMessagesForDisplay,
+} from './campaign-message-normalizer';
 
 describe('campaign-message-normalizer', () => {
   it('keeps solo narration second-person after an initial named reference', () => {
