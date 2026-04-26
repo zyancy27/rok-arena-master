@@ -111,6 +111,69 @@ function cleanText(text: string) {
   return text.replace(/\s+\n/g, '\n').replace(/\n\s+/g, '\n').trim();
 }
 
+/**
+ * Defensive recovery for the case where `rawNarration` is actually the raw
+ * model JSON output (because the edge function's parser failed). Walks the
+ * brace stack to locate a balanced JSON object, repairs trailing commas /
+ * unbalanced braces from truncation, and extracts the `sceneBeats` and
+ * `narration` fields.
+ */
+function recoverFromJsonBlob(raw: string): { sceneBeats: SceneBeat[] | null; narration: string | null } {
+  const firstBrace = raw.indexOf('{');
+  if (firstBrace === -1) return { sceneBeats: null, narration: null };
+
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  let endIdx = -1;
+  for (let i = firstBrace; i < raw.length; i++) {
+    const ch = raw[i];
+    if (escape) { escape = false; continue; }
+    if (ch === '\\') { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === '{') depth++;
+    else if (ch === '}') { depth--; if (depth === 0) { endIdx = i; break; } }
+  }
+
+  let candidate = endIdx !== -1 ? raw.substring(firstBrace, endIdx + 1) : raw.substring(firstBrace);
+  let parsed: any = null;
+  try { parsed = JSON.parse(candidate); }
+  catch {
+    let repaired = candidate.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
+    let openBraces = 0, openBrackets = 0;
+    inString = false; escape = false;
+    for (let i = 0; i < repaired.length; i++) {
+      const ch = repaired[i];
+      if (escape) { escape = false; continue; }
+      if (ch === '\\') { escape = true; continue; }
+      if (ch === '"') { inString = !inString; continue; }
+      if (inString) continue;
+      if (ch === '{') openBraces++;
+      else if (ch === '}') openBraces--;
+      else if (ch === '[') openBrackets++;
+      else if (ch === ']') openBrackets--;
+    }
+    if (inString) repaired += '"';
+    while (openBrackets > 0) { repaired += ']'; openBrackets--; }
+    while (openBraces > 0) { repaired += '}'; openBraces--; }
+    try { parsed = JSON.parse(repaired); } catch { return { sceneBeats: null, narration: null }; }
+  }
+
+  const beats = Array.isArray(parsed?.sceneBeats)
+    ? parsed.sceneBeats
+        .filter((b: any) => b && typeof b.type === 'string' && typeof b.content === 'string' && b.content.trim().length > 0)
+        .map((b: any) => ({
+          type: b.type as SceneBeatType,
+          content: b.content.trim(),
+          speaker: typeof b.speaker === 'string' ? b.speaker.trim() : null,
+        })) as SceneBeat[]
+    : null;
+
+  const narration = typeof parsed?.narration === 'string' ? parsed.narration.trim() : null;
+  return { sceneBeats: beats && beats.length > 0 ? beats : null, narration };
+}
+
 function toSentenceCaseName(name: string) {
   return name.trim();
 }
@@ -257,9 +320,26 @@ export function normalizeNarrationToCampaignMessages(
     return normalizeSceneBeatsToCampaignMessages(options.sceneBeats, options);
   }
 
-  // Fallback: regex-based parsing of flat narration string
-  const rawNarration = cleanText(options.rawNarration);
+  // Defensive recovery: if rawNarration is actually a JSON blob (e.g. the
+  // upstream parser failed and leaked the model output through), try to
+  // extract the embedded `sceneBeats` / `narration` fields here instead of
+  // letting the regex parser shred the JSON into garbage chat rows.
+  let rawNarration = cleanText(options.rawNarration);
+  if (rawNarration.startsWith('{') && /"sceneBeats"\s*:|"narration"\s*:/.test(rawNarration)) {
+    const recovered = recoverFromJsonBlob(rawNarration);
+    if (recovered.sceneBeats && recovered.sceneBeats.length > 0) {
+      return normalizeSceneBeatsToCampaignMessages(recovered.sceneBeats, options);
+    }
+    if (recovered.narration && recovered.narration.length > 10) {
+      rawNarration = cleanText(recovered.narration);
+    } else {
+      // No recoverable content — drop the row rather than persist JSON noise
+      return [];
+    }
+  }
+
   if (!rawNarration) return [];
+
 
   const turnGroupId = options.turnGroupId ?? `turn-${Date.now()}`;
   const baseMetadata = trimMetadataForPersistence(isRecord(options.baseMetadata) ? options.baseMetadata : {});
