@@ -3283,7 +3283,7 @@ export default function BattleView() {
                                     onConfirmSentenceClick={narratorVoice.confirmTapNarration}
                                     onCancelSentenceClick={narratorVoice.cancelTapNarration}
                                     messageId={latestNarration.id}
-                                    createdAt={latestNarration.created_at}
+                                    createdAt={latestNarration.timestamp}
                                   />
                                 </div>
                               </div>
