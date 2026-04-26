@@ -18,6 +18,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import type { NarrationHighlightRange } from '@/systems/narration/NarrationHighlightManager';
+import { useLiveTyping } from '@/hooks/use-live-typing';
 
 /** Split text into sentences, preserving whitespace between them. */
 function splitSentences(text: string): string[] {
@@ -44,6 +45,13 @@ interface NarratorMessageContentProps {
   playbackClassName?: string;
   /** @deprecated Use playbackClassName to make playback-only styling explicit. */
   animationClassName?: string;
+  /** Stable id for live-typing reveal. When provided, fresh narrator messages
+   *  reveal progressively. Older / re-hydrated messages render fully. */
+  messageId?: string;
+  /** Server timestamp — older-than-session messages render without animation. */
+  createdAt?: string | number | Date | null;
+  /** Disable live typing entirely (e.g. for system / error placeholders). */
+  liveTypingEnabled?: boolean;
 }
 
 export default function NarratorMessageContent({
@@ -59,8 +67,18 @@ export default function NarratorMessageContent({
   contentClassName = 'text-sm whitespace-pre-wrap break-words text-foreground/90 italic',
   playbackClassName = '',
   animationClassName = '',
+  messageId,
+  createdAt,
+  liveTypingEnabled = true,
 }: NarratorMessageContentProps) {
-  const sentences = useMemo(() => splitSentences(content), [content]);
+  const { visibleText, isTyping, skip } = useLiveTyping({
+    messageId: messageId ?? `nar-static-${content.length}`,
+    text: content,
+    createdAt,
+    enabled: liveTypingEnabled && !!messageId,
+  });
+  const renderedContent = isTyping ? visibleText : content;
+  const sentences = useMemo(() => splitSentences(renderedContent), [renderedContent]);
   const [localPendingSentence, setLocalPendingSentence] = useState<number | null>(null);
 
   const handleClick = useCallback(
@@ -77,13 +95,22 @@ export default function NarratorMessageContent({
 
   return (
     <>
-      <p className={[contentClassName, resolvedPlaybackClassName].filter(Boolean).join(' ')}>
+      <p
+        className={[
+          contentClassName,
+          resolvedPlaybackClassName,
+          isTyping ? 'cursor-pointer' : '',
+        ].filter(Boolean).join(' ')}
+        data-narrator-typing={isTyping ? 'true' : 'false'}
+        onClick={isTyping ? (e) => { e.stopPropagation(); skip(); } : undefined}
+        title={isTyping ? 'Tap to reveal full message' : undefined}
+      >
         {sentences.map((sentence, idx) => {
           const isActiveSentence = idx === activeSentenceIndex;
-          const isClickable = voiceEnabled && !!onSentenceClick;
-          const shouldUseRange = !!activeRange && activeRange.sentenceIndex === idx && activeRange.confidence >= 0.75;
+          const isClickable = voiceEnabled && !!onSentenceClick && !isTyping;
+          const shouldUseRange = !isTyping && !!activeRange && activeRange.sentenceIndex === idx && activeRange.confidence >= 0.75;
 
-          if (shouldUseRange) {
+          if (shouldUseRange && activeRange) {
             const sentenceStart = sentences.slice(0, idx).join('').length;
             const localStart = Math.max(0, activeRange.start - sentenceStart);
             const localEnd = Math.max(localStart, Math.min(sentence.length, activeRange.end - sentenceStart));
@@ -114,7 +141,7 @@ export default function NarratorMessageContent({
               onClick={() => handleClick(idx)}
               className={[
                 'transition-colors duration-300',
-                isActiveSentence ? 'bg-accent/40 text-foreground rounded px-0.5' : '',
+                isActiveSentence && !isTyping ? 'bg-accent/40 text-foreground rounded px-0.5' : '',
                 isClickable ? 'cursor-pointer hover:bg-accent/20 rounded' : '',
               ].filter(Boolean).join(' ')}
               title={isClickable ? 'Click to read from here' : undefined}
@@ -123,6 +150,11 @@ export default function NarratorMessageContent({
             </span>
           );
         })}
+        {isTyping && (
+          <span className="inline-block w-[0.5ch] -mb-px ml-px text-primary/70 animate-pulse select-none">
+            ▍
+          </span>
+        )}
       </p>
 
       <AlertDialog open={pendingOpen}>

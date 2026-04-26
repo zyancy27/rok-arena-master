@@ -9,6 +9,7 @@
 import { Sparkles, Swords, User, UserCheck } from 'lucide-react';
 import ChatBoxTheme from '@/components/battles/ChatBoxTheme';
 import ExpressionChatBox from '@/components/chat/ExpressionChatBox';
+import LiveTypingText from '@/components/chat/LiveTypingText';
 import type { EnvironmentTag } from '@/lib/theme-engine';
 import type { SpeakerPresentationProfile } from '@/systems/chat/presentation/SpeakerPresentationProfile';
 import type { ExpressionPacket } from '@/systems/expression/ExpressionPacket';
@@ -29,6 +30,12 @@ interface NpcDialogueBubbleProps {
   presentationProfile?: SpeakerPresentationProfile | null;
   /** Expression packet for advanced rendering */
   expressionPacket?: ExpressionPacket | null;
+  /** Stable id used to suppress typing replay on hydration. */
+  messageId?: string;
+  /** Server timestamp; older-than-session bubbles render fully without typing. */
+  createdAt?: string | number | Date | null;
+  /** Disable progressive reveal (e.g. for system or replayed content). */
+  liveTypingEnabled?: boolean;
 }
 
 export default function NpcDialogueBubble({
@@ -38,6 +45,9 @@ export default function NpcDialogueBubble({
   location,
   presentationProfile,
   expressionPacket,
+  messageId,
+  createdAt,
+  liveTypingEnabled = true,
 }: NpcDialogueBubbleProps) {
   const isUnknown = speakerName === '*Name Unknown*';
   const surfaceClassName = getChatBoxSurfaceClasses(presentationProfile);
@@ -67,7 +77,18 @@ export default function NpcDialogueBubble({
               {speakerName}
             </span>
             <p className={`expr-content mt-1 ${contentClassName}`}>
-              &ldquo;{dialogue}&rdquo;
+              &ldquo;
+              {messageId && liveTypingEnabled ? (
+                <LiveTypingText
+                  messageId={`npc-${messageId}`}
+                  text={dialogue}
+                  createdAt={createdAt}
+                  charsPerSecond={95}
+                />
+              ) : (
+                dialogue
+              )}
+              &rdquo;
             </p>
           </div>
         </div>
