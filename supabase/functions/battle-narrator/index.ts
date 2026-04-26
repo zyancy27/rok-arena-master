@@ -23,6 +23,103 @@ LANGUAGE LEVEL (CRITICAL — apply to ALL narration):
 const MAX_LOCATION_LENGTH = 500;
 const MAX_NAME_LENGTH = 100;
 
+/**
+ * Robustly extract a JSON object from a model response.
+ * Handles: leading/trailing prose, markdown fences, <think> tags, trailing
+ * commas, and truncated outputs by walking the brace stack and balancing
+ * unclosed braces/brackets at the end.
+ *
+ * Returns the parsed object or null if no recoverable JSON could be found.
+ */
+function extractJsonObject(raw: string): any | null {
+  if (!raw || typeof raw !== 'string') return null;
+
+  // 1. Strip reasoning/thinking tags and markdown code fences
+  let cleaned = raw
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
+    .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
+    .replace(/<reflection>[\s\S]*?<\/reflection>/gi, '')
+    .replace(/```json\s*/gi, '')
+    .replace(/```\s*/g, '')
+    .trim();
+
+  if (!cleaned) return null;
+
+  // 2. Direct parse first
+  try { return JSON.parse(cleaned); } catch { /* fall through */ }
+
+  // 3. Find first '{' and walk brace/bracket stack to locate the JSON span
+  const firstBrace = cleaned.indexOf('{');
+  if (firstBrace === -1) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  let endIdx = -1;
+
+  for (let i = firstBrace; i < cleaned.length; i++) {
+    const ch = cleaned[i];
+    if (escape) { escape = false; continue; }
+    if (ch === '\\') { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === '{') depth++;
+    else if (ch === '}') {
+      depth--;
+      if (depth === 0) { endIdx = i; break; }
+    }
+  }
+
+  let candidate = endIdx !== -1
+    ? cleaned.substring(firstBrace, endIdx + 1)
+    : cleaned.substring(firstBrace);
+
+  // 4. Try parse the candidate
+  try { return JSON.parse(candidate); } catch { /* repair */ }
+
+  // 5. Repair: strip trailing commas, balance braces/brackets, then parse
+  let repaired = candidate
+    .replace(/,\s*}/g, '}')
+    .replace(/,\s*]/g, ']');
+
+  // Count unclosed braces/brackets outside strings and append closers
+  let openBraces = 0;
+  let openBrackets = 0;
+  inString = false;
+  escape = false;
+  for (let i = 0; i < repaired.length; i++) {
+    const ch = repaired[i];
+    if (escape) { escape = false; continue; }
+    if (ch === '\\') { escape = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === '{') openBraces++;
+    else if (ch === '}') openBraces--;
+    else if (ch === '[') openBrackets++;
+    else if (ch === ']') openBrackets--;
+  }
+
+  // If the truncation happens inside a string, close it first
+  if (inString) repaired += '"';
+  while (openBrackets > 0) { repaired += ']'; openBrackets--; }
+  while (openBraces > 0) { repaired += '}'; openBraces--; }
+
+  try { return JSON.parse(repaired); } catch { return null; }
+}
+
+/**
+ * Detect when a string is actually a JSON blob (starts with `{` and contains
+ * known narrator-payload keys). Used as a safety net to prevent a JSON blob
+ * from being persisted as raw narration prose.
+ */
+function looksLikeNarratorJson(text: string): boolean {
+  if (!text || typeof text !== 'string') return false;
+  const trimmed = text.trim();
+  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return false;
+  return /"sceneBeats"\s*:|"narration"\s*:|"npcUpdates"\s*:/.test(trimmed);
+}
+
 interface CharacterEntranceData {
   name: string;
   level: number;
