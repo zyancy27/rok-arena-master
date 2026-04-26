@@ -39,6 +39,42 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+/**
+ * Heavy fields we never want to persist on EVERY scene beat. These can be
+ * hundreds of KB of encrypted lore + identity packets and, when copied across
+ * 3-5 beat rows in a single bulk insert, push the request past PostgREST /
+ * Cloudflare body limits — the entire insert then fails with
+ * "Failed to fetch" and NPC dialogue + environment beats vanish from chat.
+ *
+ * Anything that needs to survive for downstream rendering (voice cues, intent
+ * debug, dice metadata, scene effect summaries) is kept; the rest is dropped.
+ */
+const HEAVY_METADATA_KEYS = new Set<string>([
+  'generatedPackets',
+  'contextPacket',
+  'resolvedActionPacket',
+  'npcReactionPacket',
+  'sceneEffectPacket',
+  'narrationContext',
+  'characterLore',
+  'loreContext',
+  'playerCharacter',
+  'conversationHistory',
+  'storyContext',
+  'worldState',
+  'generated',
+]);
+
+/** Drop heavy/redundant payloads but keep small surface fields. */
+function trimMetadataForPersistence(meta: Record<string, unknown>): Record<string, unknown> {
+  const trimmed: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(meta)) {
+    if (HEAVY_METADATA_KEYS.has(key)) continue;
+    trimmed[key] = value;
+  }
+  return trimmed;
+}
+
 function cleanText(text: string) {
   return text.replace(/\s+\n/g, '\n').replace(/\n\s+/g, '\n').trim();
 }
