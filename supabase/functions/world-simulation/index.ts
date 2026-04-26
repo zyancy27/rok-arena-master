@@ -537,7 +537,7 @@ Respond ONLY with valid JSON:
     }
 
     // ─── Persist results in parallel ──────────────────────────
-    const dbOps: Promise<any>[] = [];
+    const dbOps: any[] = [];
 
     // Insert world events
     if (simulation.world_events?.length > 0) {
