@@ -1,20 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+const playCueById = vi.fn();
+vi.mock('@/lib/audio/narration-sound-manager', () => ({
+  getNarrationSoundManager: () => ({ playCueById }),
+}));
+
 import { pickCueForAct, dispatchResponseGroupCues, __resetResponseGroupForTests } from './NarratorResponseGroup';
-
-vi.mock('@/lib/audio/narration-sound-manager', () => {
-  const playCueById = vi.fn();
-  return {
-    getNarrationSoundManager: () => ({ playCueById }),
-    __playCueById: playCueById,
-  };
-});
-
-import * as mgr from '@/lib/audio/narration-sound-manager';
 
 describe('NarratorResponseGroup', () => {
   beforeEach(() => {
     __resetResponseGroupForTests();
-    (mgr as unknown as { __playCueById: ReturnType<typeof vi.fn> }).__playCueById.mockClear();
+    playCueById.mockClear();
     vi.useFakeTimers();
   });
 
@@ -26,7 +22,6 @@ describe('NarratorResponseGroup', () => {
   });
 
   it('dispatches at most maxCues per group, in act order', () => {
-    const playCueById = (mgr as unknown as { __playCueById: ReturnType<typeof vi.fn> }).__playCueById;
     dispatchResponseGroupCues({
       responseGroupId: 'g1',
       acts: [
@@ -43,7 +38,6 @@ describe('NarratorResponseGroup', () => {
   });
 
   it('does not redispatch the same group twice', () => {
-    const playCueById = (mgr as unknown as { __playCueById: ReturnType<typeof vi.fn> }).__playCueById;
     const group = {
       responseGroupId: 'g2',
       acts: [{ messageId: 'a', actIndex: 0, speakerType: 'narrator' as const, text: 'an explosion' }],
