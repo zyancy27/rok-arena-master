@@ -3282,6 +3282,8 @@ export default function BattleView() {
                                     onSentenceClick={(sentenceIdx) => narratorVoice.narrateFromSentence(latestNarrationSpeechText, latestNarration.id, sentenceIdx, buildNarrationPlaybackOptions(latestNarration.metadata) ?? 'combat')}
                                     onConfirmSentenceClick={narratorVoice.confirmTapNarration}
                                     onCancelSentenceClick={narratorVoice.cancelTapNarration}
+                                    messageId={latestNarration.id}
+                                    createdAt={latestNarration.created_at}
                                   />
                                 </div>
                               </div>

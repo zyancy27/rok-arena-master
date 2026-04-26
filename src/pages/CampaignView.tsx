@@ -2584,6 +2584,8 @@ export default function CampaignView() {
                                   location={activeSceneLocation || campaign.current_zone}
                                   presentationProfile={envelope.presentationProfile}
                                   expressionPacket={envelope.expressionPacket}
+                                  messageId={envelope.id}
+                                  createdAt={msg.created_at}
                                 />
                               );
                             }
@@ -2658,6 +2660,8 @@ export default function CampaignView() {
                                         }}
                                         onConfirmSentenceClick={narratorVoice.confirmTapNarration}
                                         onCancelSentenceClick={narratorVoice.cancelTapNarration}
+                                        messageId={envelope.id}
+                                        createdAt={msg.created_at}
                                       />
                                     ) : (
                                       <>
