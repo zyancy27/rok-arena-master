@@ -1427,24 +1427,10 @@ Party: ${partyMembers}${envTagsList}${chosenLocNote}${worldStateNote}${storyCtxN
       throw new Error("Failed to parse AI response");
     }
 
-    let content = data.choices?.[0]?.message?.content || '{}';
-    // Strip thinking/reasoning tags if present
-    content = content
-      .replace(/<think>[\s\S]*?<\/think>/gi, '')
-      .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
-      .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
-      .replace(/<reflection>[\s\S]*?<\/reflection>/gi, '')
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim();
+    const rawContent = data.choices?.[0]?.message?.content || '{}';
 
-    let parsed;
-    try {
-      parsed = JSON.parse(content);
-    } catch {
-      // Fallback: treat content as flat narration
-      parsed = { narration: content || "The adventure begins..." };
-    }
+    // Robust extraction handles markdown, leading prose, truncation, etc.
+    const parsed = extractJsonObject(rawContent) ?? {};
 
     // Extract and validate sceneBeats
     const sceneBeats = Array.isArray(parsed.sceneBeats)
@@ -1457,8 +1443,10 @@ Party: ${partyMembers}${envTagsList}${chosenLocNote}${worldStateNote}${storyCtxN
         }))
       : null;
 
-    const narration = typeof parsed.narration === 'string' && parsed.narration.trim().length > 10
-      ? parsed.narration.trim()
+    // Guard: never let a JSON blob leak into narration prose
+    const candidateNarration = typeof parsed.narration === 'string' ? parsed.narration.trim() : '';
+    const narration = (candidateNarration.length > 10 && !looksLikeNarratorJson(candidateNarration))
+      ? candidateNarration
       : (sceneBeats && sceneBeats.length > 0
           ? sceneBeats.map((b: any) => b.content).join('\n\n')
           : "The adventure begins...");
