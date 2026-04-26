@@ -43,6 +43,7 @@ import {
 } from '@/lib/campaign-response-suggestions';
 import { getTimeEmoji, CAMPAIGN_STARTING_ABILITIES, XP_REWARDS, advanceTime } from '@/lib/campaign-types';
 import { normalizeNarrationToCampaignMessages, sortCampaignMessagesForDisplay, type SceneBeat } from '@/lib/campaign-message-normalizer';
+import { persistNarratorBackgroundState } from '@/lib/narrator-background-state';
 import CampaignInventoryPanel, { type InventoryItem } from '@/components/campaigns/CampaignInventoryPanel';
 import CampaignEndDialog from '@/components/campaigns/CampaignEndDialog';
 import CampaignNarratorChat from '@/components/campaigns/CampaignNarratorChat';
