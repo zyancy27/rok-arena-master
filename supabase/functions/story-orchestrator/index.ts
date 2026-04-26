@@ -162,7 +162,7 @@ interface OrchestratorContext {
   supabase_url: string;
   body?: any;
   /** Shared admin client — created once in the main handler */
-  supabaseAdmin: ReturnType<typeof createClient>;
+  supabaseAdmin: any;
 }
 
 interface SoundEvent {
@@ -321,47 +321,49 @@ async function fetchWorldContext(
         : Promise.resolve({ data: null, error: null }),
     ]);
 
-    if (sentimentResult.data) {
-      ctx.cached_sentiment = sentimentResult.data;
+    const sentimentData = sentimentResult.data as any;
+    if (sentimentData) {
+      ctx.cached_sentiment = sentimentData;
       ctx.narrator_sentiment = {
-        nickname: sentimentResult.data.nickname,
-        sentiment_score: sentimentResult.data.sentiment_score,
-        opinion_summary: sentimentResult.data.opinion_summary,
-        personality_notes: sentimentResult.data.personality_notes,
-        memorable_moments: sentimentResult.data.memorable_moments || [],
-        relationship_stage: sentimentResult.data.relationship_stage,
-        curiosity: sentimentResult.data.curiosity,
-        respect: sentimentResult.data.respect,
-        trust: sentimentResult.data.trust,
-        amusement: sentimentResult.data.amusement,
-        disappointment: sentimentResult.data.disappointment,
-        intrigue: sentimentResult.data.intrigue,
-        story_value: sentimentResult.data.story_value,
-        narrator_observations: sentimentResult.data.narrator_observations || [],
-        nickname_history: sentimentResult.data.nickname_history || [],
-        creativity_score: sentimentResult.data.creativity_score,
-        world_interaction_score: sentimentResult.data.world_interaction_score,
-        npc_interaction_score: sentimentResult.data.npc_interaction_score,
-        exploration_score: sentimentResult.data.exploration_score,
-        combat_style_score: sentimentResult.data.combat_style_score,
-        story_engagement_score: sentimentResult.data.story_engagement_score,
-        story_compatibility: sentimentResult.data.story_compatibility,
+        nickname: sentimentData.nickname,
+        sentiment_score: sentimentData.sentiment_score,
+        opinion_summary: sentimentData.opinion_summary,
+        personality_notes: sentimentData.personality_notes,
+        memorable_moments: sentimentData.memorable_moments || [],
+        relationship_stage: sentimentData.relationship_stage,
+        curiosity: sentimentData.curiosity,
+        respect: sentimentData.respect,
+        trust: sentimentData.trust,
+        amusement: sentimentData.amusement,
+        disappointment: sentimentData.disappointment,
+        intrigue: sentimentData.intrigue,
+        story_value: sentimentData.story_value,
+        narrator_observations: sentimentData.narrator_observations || [],
+        nickname_history: sentimentData.nickname_history || [],
+        creativity_score: sentimentData.creativity_score,
+        world_interaction_score: sentimentData.world_interaction_score,
+        npc_interaction_score: sentimentData.npc_interaction_score,
+        exploration_score: sentimentData.exploration_score,
+        combat_style_score: sentimentData.combat_style_score,
+        story_engagement_score: sentimentData.story_engagement_score,
+        story_compatibility: sentimentData.story_compatibility,
       };
     }
 
-    if (campaignResult?.data) {
+    const campaignData = campaignResult?.data as any;
+    if (campaignData) {
       ctx.campaign_state = {
         ...ctx.campaign_state,
-        world_state: campaignResult.data.world_state,
-        story_context: campaignResult.data.story_context,
-        environment_tags: campaignResult.data.environment_tags,
-        current_zone: campaignResult.data.current_zone,
-        time_of_day: campaignResult.data.time_of_day,
-        day_count: campaignResult.data.day_count,
-        difficulty_scale: campaignResult.data.difficulty_scale,
-        campaign_length: campaignResult.data.campaign_length,
-        genre: campaignResult.data.genre,
-        tone: campaignResult.data.tone,
+        world_state: campaignData.world_state,
+        story_context: campaignData.story_context,
+        environment_tags: campaignData.environment_tags,
+        current_zone: campaignData.current_zone,
+        time_of_day: campaignData.time_of_day,
+        day_count: campaignData.day_count,
+        difficulty_scale: campaignData.difficulty_scale,
+        campaign_length: campaignData.campaign_length,
+        genre: campaignData.genre,
+        tone: campaignData.tone,
       };
     }
 
