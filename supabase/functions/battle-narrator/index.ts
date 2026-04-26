@@ -2533,53 +2533,17 @@ ${isMultiplayer ? `MULTIPLAYER: Respond using "${playerCharacter.name}" — NEVE
       console.warn('Campaign narration response was truncated (finish_reason=length). Attempting recovery...');
     }
 
-    let parsed;
-    try {
-      // Strip thinking/reasoning tags the model may emit
-      let cleaned = content
-        .replace(/<think>[\s\S]*?<\/think>/gi, '')
-        .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
-        .replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
-        .replace(/<reflection>[\s\S]*?<\/reflection>/gi, '')
-        .replace(/```json\n?/g, '')
-        .replace(/```\n?/g, '')
-        .trim();
-      parsed = JSON.parse(cleaned);
-    } catch {
-      // Last resort: try to extract JSON object from the noisy content
-      const jsonMatch = content.match(/\{[\s\S]*"narration"\s*:\s*"[\s\S]*?\}/);
-      if (jsonMatch) {
-        try { parsed = JSON.parse(jsonMatch[0]); } catch { /* fall through */ }
-      }
-      if (!parsed) {
-        // Strip all tags and use whatever text remains as narration
-        const stripped = content
-          .replace(/<[^>]+>[\s\S]*?<\/[^>]+>/gi, '')
-          .replace(/<[^>]+>/gi, '')
-          .replace(/```json\n?/g, '')
-          .replace(/```\n?/g, '')
-          .replace(/^\s*\{[\s\S]*$/, '') // drop malformed JSON
-          .trim();
-        if (stripped && stripped.length > 20) {
-          parsed = { narration: stripped, xpGained: 5, hpChange: 0, advanceTime: 0, newZone: null };
-        } else {
-          // Use contextual fallback instead of dead-end message
-          parsed = {
-            narration: buildContextualFallback(playerAction, currentZone, playerCharacter.name),
-            xpGained: 5,
-            hpChange: 0,
-            advanceTime: 0,
-            newZone: null,
-          };
-        }
-      }
+    // Robust extraction handles markdown, leading prose, truncation, etc.
+    let parsed: any = extractJsonObject(content);
+    if (!parsed || typeof parsed !== 'object') {
+      parsed = {
+        narration: buildContextualFallback(playerAction, currentZone, playerCharacter.name),
+        xpGained: 5,
+        hpChange: 0,
+        advanceTime: 0,
+        newZone: null,
+      };
     }
-
-    // Final validation: never allow empty/placeholder narration through
-    const narrationText = typeof parsed.narration === 'string' ? parsed.narration.trim() : '';
-    const finalNarration = (narrationText && narrationText.length > 10)
-      ? narrationText
-      : buildContextualFallback(playerAction, currentZone, playerCharacter.name);
 
     // Extract and validate sceneBeats
     const sceneBeats = Array.isArray(parsed.sceneBeats)
@@ -2591,6 +2555,18 @@ ${isMultiplayer ? `MULTIPLAYER: Respond using "${playerCharacter.name}" — NEVE
           speaker: typeof b.speaker === 'string' ? b.speaker.trim() : null,
         }))
       : null;
+
+    // Final validation: never allow empty/placeholder narration through.
+    // Guard against the model double-encoding by leaking JSON into the
+    // narration string — if it looks like JSON, prefer beats or fallback.
+    const narrationText = typeof parsed.narration === 'string' ? parsed.narration.trim() : '';
+    const narrationIsJsonBlob = looksLikeNarratorJson(narrationText);
+    const finalNarration = (narrationText && narrationText.length > 10 && !narrationIsJsonBlob)
+      ? narrationText
+      : (sceneBeats && sceneBeats.length > 0
+          ? sceneBeats.map((b: any) => b.content).join('\n\n')
+          : buildContextualFallback(playerAction, currentZone, playerCharacter.name));
+
 
     return new Response(
       JSON.stringify({
