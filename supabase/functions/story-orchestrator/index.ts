@@ -162,7 +162,7 @@ interface OrchestratorContext {
   supabase_url: string;
   body?: any;
   /** Shared admin client — created once in the main handler */
-  supabaseAdmin: ReturnType<typeof createClient>;
+  supabaseAdmin: any;
 }
 
 interface SoundEvent {
