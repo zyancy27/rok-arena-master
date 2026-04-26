@@ -1541,6 +1541,81 @@ export type Database = {
           },
         ]
       }
+      character_nicknames: {
+        Row: {
+          battle_id: string | null
+          campaign_id: string | null
+          character_id: string
+          confidence: number
+          created_at: string
+          first_scene_ref: string | null
+          first_used_at: string
+          id: string
+          is_public: boolean
+          last_used_at: string | null
+          metadata: Json
+          nickname: string
+          origin_event: string | null
+          player_reaction: string
+          reason: string
+          replaces_nickname_id: string | null
+          source_name: string | null
+          source_type: string
+          status: string
+          tone: string
+          updated_at: string
+          usage_count: number
+        }
+        Insert: {
+          battle_id?: string | null
+          campaign_id?: string | null
+          character_id: string
+          confidence?: number
+          created_at?: string
+          first_scene_ref?: string | null
+          first_used_at?: string
+          id?: string
+          is_public?: boolean
+          last_used_at?: string | null
+          metadata?: Json
+          nickname: string
+          origin_event?: string | null
+          player_reaction?: string
+          reason?: string
+          replaces_nickname_id?: string | null
+          source_name?: string | null
+          source_type?: string
+          status?: string
+          tone?: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Update: {
+          battle_id?: string | null
+          campaign_id?: string | null
+          character_id?: string
+          confidence?: number
+          created_at?: string
+          first_scene_ref?: string | null
+          first_used_at?: string
+          id?: string
+          is_public?: boolean
+          last_used_at?: string | null
+          metadata?: Json
+          nickname?: string
+          origin_event?: string | null
+          player_reaction?: string
+          reason?: string
+          replaces_nickname_id?: string | null
+          source_name?: string | null
+          source_type?: string
+          status?: string
+          tone?: string
+          updated_at?: string
+          usage_count?: number
+        }
+        Relationships: []
+      }
       character_sections: {
         Row: {
           body: string
