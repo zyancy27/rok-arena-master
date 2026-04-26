@@ -1838,17 +1838,38 @@ export default function CampaignView() {
             if (newObservations.length > 30) newObservations.shift();
           }
 
-          // Nickname history
+          // Nickname history — engine-gated. The AI may suggest, but
+          // src/systems/identity/NicknameEngine decides whether it's earned.
           const newNicknameHistory = [...(narratorSentiment?.nickname_history || [])];
           const currentNickname = narratorSentiment?.nickname;
-          const newNickname = su.nickname || currentNickname || null;
-          if (newNickname && newNickname !== currentNickname && currentNickname) {
-            if (!newNicknameHistory.includes(currentNickname)) {
-              newNicknameHistory.push(currentNickname);
+          let newNickname = currentNickname || null;
+          if (su.nickname && snapshotParticipant?.character_id) {
+            try {
+              const { processNicknameSuggestion } = await import('@/lib/nickname-runtime');
+              const result = await processNicknameSuggestion({
+                characterId: snapshotParticipant.character_id,
+                characterName: snapshotParticipant.character?.name || 'Unknown',
+                campaignId: snapshotCampaign.id,
+                turnCount: (narratorSentiment?.narrator_observations?.length ?? 0) + 1,
+                dayCount: snapshotCampaign.day_count,
+                memorableMoments: narratorSentiment?.memorable_moments,
+                reputationStage: narratorSentiment?.relationship_stage,
+                recentActions: [messageText].filter(Boolean),
+                aiSuggestion: { nickname: su.nickname, tone: su.nickname_tone, sourceType: su.nickname_source },
+                sceneRef: snapshotCampaign.current_zone,
+              });
+              if (result.acceptedNickname) {
+                if (currentNickname && currentNickname !== result.acceptedNickname && !newNicknameHistory.includes(currentNickname)) {
+                  newNicknameHistory.push(currentNickname);
+                }
+                if (!newNicknameHistory.includes(result.acceptedNickname)) {
+                  newNicknameHistory.push(result.acceptedNickname);
+                }
+                newNickname = result.acceptedNickname;
+              }
+            } catch (e) {
+              console.warn('[nickname] engine error, keeping existing', e);
             }
-          }
-          if (newNickname && !newNicknameHistory.includes(newNickname)) {
-            newNicknameHistory.push(newNickname);
           }
 
           // Derive relationship stage from dimensions
