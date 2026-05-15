@@ -128,7 +128,7 @@ export default function Terms() {
             </p>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
