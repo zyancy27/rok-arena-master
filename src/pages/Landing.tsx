@@ -49,9 +49,15 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-nebula-gradient bg-stars overflow-x-hidden">
+      <SEO
+        title="O.C.R.P. — Original Character Role Play"
+        description="Create original characters and battle in a creative, narrator-driven roleplay arena. Build, customize, and clash in cosmic text-based combat."
+        path="/"
+        jsonLd={landingJsonLd}
+      />
       <PublicNav />
       {/* Hero Section */}
-      <div className="container mx-auto px-4 py-16">
+      <main className="container mx-auto px-4 py-16">
         <div className="max-w-4xl mx-auto mb-10">
           <CreatorWelcomeBanner />
         </div>
@@ -178,7 +184,7 @@ export default function Landing() {
             </Link>
           </Button>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
