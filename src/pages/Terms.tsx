@@ -1,12 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import PublicNav from '@/components/layout/PublicNav';
+import SEO from '@/components/SEO';
 import { Shield, FileText, User, Scale, Mail } from 'lucide-react';
 
 export default function Terms() {
   return (
     <div className="min-h-screen bg-nebula-gradient bg-stars">
+      <SEO
+        title="Terms of Service & Ownership Rights — O.C.R.P."
+        description="Your original characters belong to you. Read O.C.R.P.'s terms of service, intellectual property policy, and platform license details."
+        path="/terms"
+      />
       <PublicNav />
-      <div className="container mx-auto px-4 py-12 max-w-4xl">
+      <main className="container mx-auto px-4 py-12 max-w-4xl">
 
         <div className="space-y-8">
           <div className="text-center space-y-4">
@@ -122,7 +128,7 @@ export default function Terms() {
             </p>
           </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

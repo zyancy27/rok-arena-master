@@ -2,10 +2,32 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import PublicNav from '@/components/layout/PublicNav';
+import SEO from '@/components/SEO';
 import { Swords, Sparkles, Users, BookOpen, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import CreatorWelcomeBanner from '@/components/CreatorWelcomeBanner';
 import GuestOnboarding from '@/components/onboarding/GuestOnboarding';
+
+const landingJsonLd = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'O.C.R.P.',
+    url: 'https://yourocrp.com',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: 'https://yourocrp.com/characters?q={search_term_string}',
+      'query-input': 'required name=search_term_string',
+    },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'O.C.R.P.',
+    alternateName: 'Original Character Role Play',
+    url: 'https://yourocrp.com',
+  },
+];
 
 export default function Landing() {
   const { user, loading } = useAuth();
@@ -27,9 +49,15 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-nebula-gradient bg-stars overflow-x-hidden">
+      <SEO
+        title="O.C.R.P. — Original Character Role Play"
+        description="Create original characters and battle in a creative, narrator-driven roleplay arena. Build, customize, and clash in cosmic text-based combat."
+        path="/"
+        jsonLd={landingJsonLd}
+      />
       <PublicNav />
       {/* Hero Section */}
-      <div className="container mx-auto px-4 py-16">
+      <main className="container mx-auto px-4 py-16">
         <div className="max-w-4xl mx-auto mb-10">
           <CreatorWelcomeBanner />
         </div>
@@ -156,7 +184,7 @@ export default function Landing() {
             </Link>
           </Button>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
