@@ -1,0 +1,16 @@
+# O.C.R.P. — Original Character Role Play
+
+> A creative, narrator-driven roleplay arena where players design original characters and battle in cosmic, text-based combat governed by the R.O.K. rules.
+
+O.C.R.P. (Original Character Role Play) lets users build legendary characters across seven power tiers, run solo or group PvP battles, join long-form campaigns with an AI Narrator, and explore a shared lore world.
+
+## Pages
+
+- [Home](/): Overview, featured tiers, and entry to the arena.
+- [Rules](/rules): The R.O.K. ruleset — power tiers, turn order, FAQ.
+- [Sign in / Sign up](/auth): Create an account or log in.
+- [Terms](/terms): Terms of service and ownership notice.
+
+## Optional
+
+- [Reset password](/reset-password): Password recovery flow.
