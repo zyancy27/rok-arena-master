@@ -1390,7 +1390,7 @@ export default function CampaignView() {
       const [storiesRes, groupsRes, raceRes, npcsRes, npcRelsRes] = await Promise.all([
         supabase.from('story_characters').select('story:stories(title, summary, is_published)').eq('character_id', snapshotParticipant.character_id),
         supabase.from('character_group_members').select('group:character_groups(name, description)').eq('character_id', snapshotParticipant.character_id),
-        charData?.race ? supabase.from('races').select('name, description, typical_abilities, cultural_traits, home_planet').eq('name', charData.race).maybeSingle() : Promise.resolve({ data: null }),
+        charData?.race ? fromDecrypted('races').select('name, description, typical_abilities, cultural_traits, home_planet').eq('name', charData.race).maybeSingle() : Promise.resolve({ data: null }),
         supabase.from('campaign_npcs').select('*').eq('campaign_id', snapshotCampaign.id).eq('status', 'alive').limit(30),
         supabase.from('npc_relationships').select('*').eq('campaign_id', snapshotCampaign.id).eq('character_id', snapshotParticipant.character_id),
       ]);
