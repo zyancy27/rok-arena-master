@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/use-subscription';
 import { supabase } from '@/integrations/supabase/client';
+import { fromDecrypted } from '@/lib/encrypted-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -273,7 +274,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
         setAvailableMoons(moons.map(m => ({ name: m.moon_name, display_name: m.display_name, planet_name: m.planet_name })));
         if ((initialData as any)?.home_moon && !moons.some(m => m.moon_name === (initialData as any)?.home_moon)) setUseCustomMoon(true);
       }
-      const { data: races } = await supabase.from('races').select('id, name, typical_physiology, typical_abilities').eq('user_id', user.id).order('name');
+      const { data: races } = await fromDecrypted('races').select('id, name, typical_physiology, typical_abilities').eq('user_id', user.id).order('name');
       if (races) {
         setAvailableRaces(races);
         if (initialData?.race && !races.some(r => r.name === initialData.race)) setUseCustomRace(true);
@@ -290,7 +291,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
       if (!user || !formData.race.trim()) { setAvailableSubRaces([]); return; }
       const selectedRace = availableRaces.find(r => r.name === formData.race);
       if (!selectedRace) { setAvailableSubRaces([]); return; }
-      const { data } = await supabase.from('sub_races').select('id, name').eq('race_id', selectedRace.id).eq('user_id', user.id).order('name');
+      const { data } = await fromDecrypted('sub_races').select('id, name').eq('race_id', selectedRace.id).eq('user_id', user.id).order('name');
       if (data) {
         setAvailableSubRaces(data);
         if (formData.sub_race && !data.some(sr => sr.name.toLowerCase() === formData.sub_race.trim().toLowerCase())) setUseCustomSubRace(true);
