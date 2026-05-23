@@ -274,7 +274,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
         setAvailableMoons(moons.map(m => ({ name: m.moon_name, display_name: m.display_name, planet_name: m.planet_name })));
         if ((initialData as any)?.home_moon && !moons.some(m => m.moon_name === (initialData as any)?.home_moon)) setUseCustomMoon(true);
       }
-      const { data: races } = await supabase.from('races').select('id, name, typical_physiology, typical_abilities').eq('user_id', user.id).order('name');
+      const { data: races } = await fromDecrypted('races').select('id, name, typical_physiology, typical_abilities').eq('user_id', user.id).order('name');
       if (races) {
         setAvailableRaces(races);
         if (initialData?.race && !races.some(r => r.name === initialData.race)) setUseCustomRace(true);
