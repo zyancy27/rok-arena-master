@@ -1404,8 +1404,7 @@ export default function MockBattle() {
       if (stories && stories.length > 0) {
         // Fetch chapters for each story
         const storiesWithChapters = await Promise.all(stories.map(async (story) => {
-          const { data: chapters } = await supabase
-            .from('story_chapters')
+          const { data: chapters } = await fromDecrypted('story_chapters')
             .select('title, content')
             .eq('story_id', (story as any).id)
             .order('chapter_number', { ascending: true })
