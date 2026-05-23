@@ -291,7 +291,7 @@ export default function CharacterForm({ initialData, mode }: CharacterFormProps)
       if (!user || !formData.race.trim()) { setAvailableSubRaces([]); return; }
       const selectedRace = availableRaces.find(r => r.name === formData.race);
       if (!selectedRace) { setAvailableSubRaces([]); return; }
-      const { data } = await supabase.from('sub_races').select('id, name').eq('race_id', selectedRace.id).eq('user_id', user.id).order('name');
+      const { data } = await fromDecrypted('sub_races').select('id, name').eq('race_id', selectedRace.id).eq('user_id', user.id).order('name');
       if (data) {
         setAvailableSubRaces(data);
         if (formData.sub_race && !data.some(sr => sr.name.toLowerCase() === formData.sub_race.trim().toLowerCase())) setUseCustomSubRace(true);
