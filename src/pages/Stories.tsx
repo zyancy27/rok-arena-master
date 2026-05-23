@@ -126,8 +126,7 @@ export default function Stories() {
     } else {
       // Fetch chapters for each story
       const storiesWithChapters = await Promise.all((data || []).map(async (story) => {
-        const { data: chapters } = await supabase
-          .from('story_chapters')
+        const { data: chapters } = await fromDecrypted('story_chapters')
           .select('*')
           .eq('story_id', story.id)
           .order('chapter_number', { ascending: true });
