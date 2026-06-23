@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useConversations } from '@/hooks/use-conversations';
 import ConversationList from '@/components/messaging/ConversationList';
 import ConversationThread from '@/components/messaging/ConversationThread';
@@ -13,6 +13,15 @@ export default function Messages() {
   const [newOpen, setNewOpen] = useState(false);
 
   const active = conversations.find((c) => c.id === activeId) || null;
+
+  // Suppress global toast while reading a thread here
+  useEffect(() => {
+    const w = window as unknown as { __activeConversationId?: string | null };
+    w.__activeConversationId = active ? active.id : null;
+    return () => {
+      w.__activeConversationId = null;
+    };
+  }, [active]);
 
   return (
     <div className="space-y-4">

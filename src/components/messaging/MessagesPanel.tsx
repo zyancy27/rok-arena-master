@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,15 @@ export default function MessagesPanel() {
   const [newOpen, setNewOpen] = useState(false);
 
   const active = conversations.find((c) => c.id === activeId) || null;
+
+  // Suppress global toast when the panel has a thread open
+  useEffect(() => {
+    const w = window as unknown as { __activeConversationId?: string | null };
+    w.__activeConversationId = open && active ? active.id : null;
+    return () => {
+      w.__activeConversationId = null;
+    };
+  }, [open, active]);
 
   const handleCreated = (id: string) => {
     setActiveId(id);
