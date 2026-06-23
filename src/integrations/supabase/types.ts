@@ -1887,6 +1887,77 @@ export type Database = {
           },
         ]
       }
+      conversation_participants: {
+        Row: {
+          conversation_id: string
+          id: string
+          joined_at: string
+          last_read_at: string | null
+          muted: boolean
+          role: Database["public"]["Enums"]["conversation_role"]
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          id?: string
+          joined_at?: string
+          last_read_at?: string | null
+          muted?: boolean
+          role?: Database["public"]["Enums"]["conversation_role"]
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          id?: string
+          joined_at?: string
+          last_read_at?: string | null
+          muted?: boolean
+          role?: Database["public"]["Enums"]["conversation_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_participants_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          last_message_at: string
+          last_message_preview: string | null
+          name: string | null
+          type: Database["public"]["Enums"]["conversation_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_message_at?: string
+          last_message_preview?: string | null
+          name?: string | null
+          type?: Database["public"]["Enums"]["conversation_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_message_at?: string
+          last_message_preview?: string | null
+          name?: string | null
+          type?: Database["public"]["Enums"]["conversation_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       custom_battle_locations: {
         Row: {
           countdown_seconds: number | null
@@ -2138,6 +2209,44 @@ export type Database = {
             columns: ["config_id"]
             isOneToOne: false
             referencedRelation: "character_3d_configs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          body: string | null
+          conversation_id: string
+          created_at: string
+          deleted_at: string | null
+          edited_at: string | null
+          id: string
+          sender_id: string
+        }
+        Insert: {
+          body?: string | null
+          conversation_id: string
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          sender_id: string
+        }
+        Update: {
+          body?: string | null
+          conversation_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
         ]
@@ -3574,6 +3683,44 @@ export type Database = {
           },
         ]
       }
+      messages_decrypted: {
+        Row: {
+          body: string | null
+          conversation_id: string | null
+          created_at: string | null
+          deleted_at: string | null
+          edited_at: string | null
+          id: string | null
+          sender_id: string | null
+        }
+        Insert: {
+          body?: never
+          conversation_id?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string | null
+          sender_id?: string | null
+        }
+        Update: {
+          body?: never
+          conversation_id?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string | null
+          sender_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       races_decrypted: {
         Row: {
           average_lifespan: string | null
@@ -3782,12 +3929,20 @@ export type Database = {
         Args: { _battle_id: string; _character_id: string }
         Returns: boolean
       }
+      can_message: {
+        Args: { _user_a: string; _user_b: string }
+        Returns: boolean
+      }
       create_battle_challenge: {
         Args: {
           _challenged_user_id: string
           _challenger_character_id: string
           _location_1: string
         }
+        Returns: string
+      }
+      create_group_conversation: {
+        Args: { _member_ids: string[]; _name: string }
         Returns: string
       }
       decrypt_field: { Args: { encrypted_text: string }; Returns: string }
@@ -3804,8 +3959,24 @@ export type Database = {
       is_battle_creator: { Args: { _battle_id: string }; Returns: boolean }
       is_battle_participant: { Args: { _battle_id: string }; Returns: boolean }
       is_character_owner: { Args: { _character_id: string }; Returns: boolean }
+      is_conversation_admin: {
+        Args: { _conversation_id: string }
+        Returns: boolean
+      }
+      is_conversation_member: {
+        Args: { _conversation_id: string }
+        Returns: boolean
+      }
       is_tester: { Args: { _user_id: string }; Returns: boolean }
+      mark_conversation_read: {
+        Args: { _conversation_id: string }
+        Returns: undefined
+      }
       record_user_activity: { Args: never; Returns: Json }
+      start_direct_conversation: {
+        Args: { _other_user: string }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
@@ -3834,6 +4005,8 @@ export type Database = {
         | "kid_slim"
         | "kid_bulky"
         | "kid_longlimb"
+      conversation_role: "member" | "admin"
+      conversation_type: "direct" | "group"
       generation_status: "none" | "queued" | "processing" | "done" | "error"
       image_role:
         | "front"
@@ -4002,6 +4175,8 @@ export const Constants = {
         "kid_bulky",
         "kid_longlimb",
       ],
+      conversation_role: ["member", "admin"],
+      conversation_type: ["direct", "group"],
       generation_status: ["none", "queued", "processing", "done", "error"],
       image_role: ["front", "side", "back", "three_quarter", "detail", "other"],
       message_channel: ["in_universe", "out_of_universe"],
