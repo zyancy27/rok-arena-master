@@ -17,9 +17,10 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFriends, FriendshipWithProfile } from '@/hooks/use-friends';
+import { useNavigate } from 'react-router-dom';
 import { 
   Users, UserPlus, UserCheck, UserX, Search, 
-  Heart, Eye, Loader2, Mail, Check, X 
+  Heart, Eye, Loader2, Mail, Check, X, MessageSquare
 } from 'lucide-react';
 
 interface SearchResult {
@@ -31,6 +32,7 @@ interface SearchResult {
 
 export default function FriendsPanel() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const {
     friends,
     pendingRequests,
@@ -314,19 +316,40 @@ export default function FriendsPanel() {
                   key={friend.id}
                   profile={friend.profile}
                   actions={
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-destructive hover:text-destructive"
-                      onClick={() => handleRemoveFriend(friend.id)}
-                      disabled={actionLoading === friend.id}
-                    >
-                      {actionLoading === friend.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <UserX className="w-4 h-4" />
-                      )}
-                    </Button>
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          setActionLoading(friend.id);
+                          const { data, error } = await supabase.rpc('start_direct_conversation', {
+                            _other_user: friend.profile.id,
+                          });
+                          setActionLoading(null);
+                          if (error) {
+                            toast.error(error.message);
+                          } else {
+                            navigate('/messages');
+                          }
+                        }}
+                        disabled={actionLoading === friend.id}
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => handleRemoveFriend(friend.id)}
+                        disabled={actionLoading === friend.id}
+                      >
+                        {actionLoading === friend.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <UserX className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </>
                   }
                 />
               ))
