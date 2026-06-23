@@ -2,6 +2,7 @@ import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBattleNotifications } from '@/hooks/use-battle-notifications';
+import { useMessageNotifications } from '@/hooks/use-message-notifications';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -27,6 +28,8 @@ import { useActivityTracker } from '@/hooks/use-activity-tracker';
 export default function MainLayout() {
   // Enable real-time battle challenge notifications
   useBattleNotifications();
+  // Real-time toasts for incoming messages
+  useMessageNotifications();
   // Track active days (powers founder pass eligibility)
   useActivityTracker();
   const { user, profile, signOut, isAdmin, isModerator } = useAuth();
