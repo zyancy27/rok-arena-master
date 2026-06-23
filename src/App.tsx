@@ -42,6 +42,7 @@ import NotFound from "@/pages/NotFound";
 import ResetPassword from "@/pages/ResetPassword";
 import Membership from "@/pages/Membership";
 import PaymentSuccess from "@/pages/PaymentSuccess";
+import Messages from "@/pages/Messages";
 
 
 const queryClient = new QueryClient();
@@ -77,6 +78,7 @@ const App = () => (
               <Route path="/profile" element={<Profile />} />
               <Route path="/profile/:username" element={<UserProfile />} />
               <Route path="/friends" element={<Friends />} />
+              <Route path="/messages" element={<Messages />} />
               <Route path="/races" element={<Races />} />
               <Route path="/stories" element={<Stories />} />
               <Route path="/teams" element={<Teams />} />
