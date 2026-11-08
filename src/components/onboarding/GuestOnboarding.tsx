@@ -45,7 +45,11 @@ const COUNT_OPTIONS: Array<{ value: CharacterCountBucket; label: string; helper:
 export default function GuestOnboarding() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [draft, setDraft] = useState<GuestDraftState>(() => loadDraft());
+  const [draft, setDraft] = useState<GuestDraftState>(() => {
+    const d = loadDraft();
+    // Creativity first: skip the old "how many characters" question.
+    return d.step === 1 ? { ...d, step: 2 } : d;
+  });
   const [isParsing, setIsParsing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -232,28 +236,27 @@ export default function GuestOnboarding() {
             <Sparkles className="w-7 h-7 text-cosmic-gold animate-float" />
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-glow bg-gradient-to-r from-primary via-cosmic-pink to-accent bg-clip-text text-transparent">
-            Bring Your Characters In
+            Create Your Character
           </h1>
           <p className="text-muted-foreground mt-3">
-            Start with what you already have. We'll organize it.
+            Start creating right away. You'll only make a profile at the end to save them.
           </p>
+          <button
+            type="button"
+            onClick={() => { setAuthMode('login'); goTo(5); }}
+            className="mt-2 text-sm underline text-muted-foreground hover:text-primary"
+          >
+            Already have an account? Log in
+          </button>
         </div>
 
         <StepIndicator step={draft.step} />
 
         <div className="mt-6">
-          {draft.step === 1 && (
-            <StepCount
-              value={draft.characterCount}
-              onPick={(value) => update({ characterCount: value, step: 2 })}
-              onLogin={() => goTo(5)}
-            />
-          )}
           {draft.step === 2 && (
             <StepBasicInfo
               value={draft.basicInfo}
               onChange={(basicInfo) => update({ basicInfo })}
-              onBack={() => goTo(1)}
               onNext={() => goTo(3)}
             />
           )}
@@ -310,11 +313,11 @@ export default function GuestOnboarding() {
 }
 
 function StepIndicator({ step }: { step: number }) {
-  const labels = ['Count', 'Basics', 'Notes', 'Review', 'Profile'];
+  const labels = ['Basics', 'Notes', 'Review', 'Save'];
   return (
     <div className="flex items-center justify-between gap-2 max-w-xl mx-auto">
       {labels.map((label, i) => {
-        const idx = i + 1;
+        const idx = i + 2;
         const active = idx === step;
         const done = idx < step;
         return (
@@ -328,7 +331,7 @@ function StepIndicator({ step }: { step: number }) {
                     : 'bg-muted text-muted-foreground border-border'
               }`}
             >
-              {done ? <CheckCircle2 className="w-4 h-4" /> : idx}
+              {done ? <CheckCircle2 className="w-4 h-4" /> : idx - 1}
             </div>
             <span className={`mt-1 text-[10px] uppercase tracking-wide ${active ? 'text-foreground' : 'text-muted-foreground'}`}>
               {label}
@@ -392,7 +395,7 @@ function StepBasicInfo({
 }: {
   value: { name: string; nickname: string; universe: string; shortDescription: string };
   onChange: (v: typeof value) => void;
-  onBack: () => void;
+  onBack?: () => void;
   onNext: () => void;
 }) {
   const set = (field: keyof typeof value, v: string) => onChange({ ...value, [field]: v });
@@ -444,10 +447,7 @@ function StepBasicInfo({
             rows={3}
           />
         </div>
-        <div className="flex justify-between pt-2">
-          <Button variant="outline" onClick={onBack}>
-            <ArrowLeft className="w-4 h-4 mr-1" /> Back
-          </Button>
+        <div className="flex justify-end pt-2">
           <Button onClick={onNext} className="glow-primary">
             Next <ArrowRight className="w-4 h-4 ml-1" />
           </Button>

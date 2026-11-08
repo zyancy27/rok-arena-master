@@ -47,7 +47,7 @@ export interface GuestDraftState {
 }
 
 export const EMPTY_DRAFT: GuestDraftState = {
-  step: 1,
+  step: 2,
   characterCount: null,
   basicInfo: { name: '', nickname: '', universe: '', shortDescription: '' },
   rawNotes: '',
