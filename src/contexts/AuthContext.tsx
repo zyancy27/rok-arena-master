@@ -1,3 +1,4 @@
+import { getBiometricRecord, softSignOut, syncBiometricToken, NO_REMEMBER_KEY, TAB_ALIVE_KEY } from '@/lib/biometric-login';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -67,6 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        if (session?.user) syncBiometricToken(session.user.id, session.refresh_token);
         
         if (session?.user) {
           // Use setTimeout to avoid potential race conditions
@@ -78,6 +80,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
       }
     );
+
+    // "Remember me" off: drop the session once the browser/tab was closed
+    if (localStorage.getItem(NO_REMEMBER_KEY) && !sessionStorage.getItem(TAB_ALIVE_KEY)) {
+      localStorage.removeItem(NO_REMEMBER_KEY);
+      if (getBiometricRecord()) softSignOut();
+      else void supabase.auth.signOut({ scope: 'local' });
+    }
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -116,7 +125,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
+    if (getBiometricRecord()) {
+      // Keep the fingerprint-linked session alive; just forget it on this screen
+      softSignOut();
+      setSession(null);
+      setUser(null);
+    } else {
+      await supabase.auth.signOut();
+    }
+    localStorage.removeItem(NO_REMEMBER_KEY);
     setProfile(null);
     setRoles([]);
     // Clear session-only flag on logout
