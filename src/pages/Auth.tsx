@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Fingerprint } from 'lucide-react';
+import { enableBiometric, getBiometricRecord, isBiometricSupported, signInWithBiometric, REMEMBERED_EMAIL_KEY, NO_REMEMBER_KEY, TAB_ALIVE_KEY } from '@/lib/biometric-login';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,7 +22,11 @@ export default function Auth() {
   const [resetSent, setResetSent] = useState(false);
 
   // Login form state
-  const [loginEmail, setLoginEmail] = useState('');
+  const [loginEmail, setLoginEmail] = useState(() => localStorage.getItem(REMEMBERED_EMAIL_KEY) ?? '');
+  const [bioSupported, setBioSupported] = useState(false);
+  const [bioRecord, setBioRecord] = useState(() => getBiometricRecord());
+  const [enableBio, setEnableBio] = useState(false);
+  useEffect(() => { isBiometricSupported().then(setBioSupported); }, []);
   const [loginPassword, setLoginPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
 
@@ -47,22 +53,45 @@ export default function Auth() {
     e.preventDefault();
     setIsLoading(true);
 
-    // If "Remember Me" is unchecked, switch to sessionStorage so session expires on tab close
-    if (!rememberMe) {
-      // Temporarily reconfigure supabase auth to use sessionStorage
-      // The session will not persist across browser restarts
-      sessionStorage.setItem('rok-session-only', 'true');
+    sessionStorage.setItem(TAB_ALIVE_KEY, '1');
+    if (rememberMe) {
+      localStorage.removeItem(NO_REMEMBER_KEY);
+      localStorage.setItem(REMEMBERED_EMAIL_KEY, loginEmail);
     } else {
-      sessionStorage.removeItem('rok-session-only');
+      localStorage.setItem(NO_REMEMBER_KEY, '1');
+      localStorage.removeItem(REMEMBERED_EMAIL_KEY);
     }
-    
+
     const { error } = await signIn(loginEmail, loginPassword);
     
     if (error) {
       toast.error(error.message);
     } else {
+      if (enableBio) {
+        try {
+          await enableBiometric(loginEmail);
+          localStorage.removeItem(NO_REMEMBER_KEY);
+          toast.success('Fingerprint login is on for this device');
+        } catch (err) {
+          toast.error(err instanceof Error ? err.message : 'Could not set up fingerprint login');
+        }
+      }
       toast.success('Welcome back, warrior!');
       navigate('/hub');
+    }
+    setIsLoading(false);
+  };
+
+  const handleBiometricLogin = async () => {
+    setIsLoading(true);
+    try {
+      sessionStorage.setItem(TAB_ALIVE_KEY, '1');
+      await signInWithBiometric();
+      toast.success('Welcome back, warrior!');
+      navigate('/hub');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Fingerprint login failed');
+      setBioRecord(getBiometricRecord());
     }
     setIsLoading(false);
   };
@@ -176,6 +205,14 @@ export default function Auth() {
 
               <TabsContent value="login">
                 <form onSubmit={handleLogin} className="space-y-4">
+                  {bioSupported && bioRecord && (
+                    <>
+                      <Button type="button" variant="outline" className="w-full gap-2" onClick={handleBiometricLogin} disabled={isLoading}>
+                        <Fingerprint className="w-5 h-5" /> Sign in as {bioRecord.label}
+                      </Button>
+                      <p className="text-center text-xs text-muted-foreground">or use your password</p>
+                    </>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="login-email">Email</Label>
                     <Input
@@ -208,6 +245,14 @@ export default function Auth() {
                        Remember Me
                      </Label>
                    </div>
+                   {bioSupported && !bioRecord && (
+                     <div className="flex items-center space-x-2">
+                       <Checkbox id="enable-bio" checked={enableBio} onCheckedChange={(c) => setEnableBio(c === true)} />
+                       <Label htmlFor="enable-bio" className="text-sm text-muted-foreground cursor-pointer flex items-center gap-1">
+                         <Fingerprint className="w-4 h-4" /> Use fingerprint / face to sign in on this device
+                       </Label>
+                     </div>
+                   )}
                    <Button type="submit" className="w-full glow-primary" disabled={isLoading}>
                      {isLoading ? 'Entering...' : 'Enter Arena'}
                    </Button>
